@@ -16,11 +16,15 @@ $diag_dest = "/srv/Diagnostics"
 $diag_server = "10.0.0.10"
 $diag_user = "wkdiag"
 $conemu = "$bin\cmder_mini\vendor\conemu-maximus5\ConEmu.exe"
+$sz = "$bin\7-Zip\7za.exe"
+$produkey = "$bin\tmp\ProduKey.exe"
 
 # OS Check
 . .\os_check.ps1
 if ($arch -eq 64) {
     $conemu = "$bin\cmder_mini\vendor\conemu-maximus5\ConEmu64.exe"
+    $sz = "$bin\7-Zip\7za64.exe"
+    $produkey = "$bin\tmp\ProduKey64.exe"
 }
 
 # Set Service Order
@@ -131,7 +135,7 @@ if (test-path "$localappdata\Google\Chrome") {
         "a", "-t7z", "-mx=1",
         "$backup_path\Chrome.7z",
         '"User Data"')
-    start "$bin\7-Zip\7z.exe" -argumentlist $sz_args -wait -windowstyle minimized
+    start $sz -argumentlist $sz_args -wait -windowstyle minimized
     popd
 }
 if (test-path "$appdata\Mozilla\Firefox") {
@@ -142,7 +146,7 @@ if (test-path "$appdata\Mozilla\Firefox") {
         "$backup_path\Firefox.7z",
         "Profiles",
         "profiles.ini")
-    start "$bin\7-Zip\7z.exe" -argumentlist $sz_args -wait -windowstyle minimized
+    start $sz -argumentlist $sz_args -wait -windowstyle minimized
     popd
 }
 if (test-path "$userprofile\Favorites") {
@@ -152,7 +156,7 @@ if (test-path "$userprofile\Favorites") {
         "a", "-t7z", "-mx=1",
         "$backup_path\IE Favorites.7z",
         "Favorites")
-    start "$bin\7-Zip\7z.exe" -argumentlist $sz_args -wait -windowstyle minimized
+    start $sz -argumentlist $sz_args -wait -windowstyle minimized
     popd
 }
 
@@ -200,29 +204,18 @@ if (!(test-path "$logpath\aida64.htm")) {
 
 # Product Keys
 ## Extract
-md "$bin\ProduKey" 2>&1 | out-null
-$sz_args = @(
-    "x",
-    ('"{0}\ProduKey.7z"' -f $bin),
-    ('-o"{0}\ProduKey"' -f $bin),
-    "-aos",
-    "-pAbracadabra")
-start "$bin\7-Zip\7z.exe" -argumentlist $sz_args -wait -windowstyle minimized
+md "$bin\tmp" 2>&1 | out-null
+start -wait $sz -argumentlist @("e", "$bin\ProduKey.7z", "-otmp", "-aoa", "-pAbracadabra", "-bsp0", "-bso0") -workingdirectory "$bin" -nonewwindow
+rm "$bin\tmp\ProduKey*.cfg"
 sleep -s 1
 
 ## Run
 if (!(test-path "$logpath\keys.txt")) {
     wk-write "* Saving Product Keys" "$log"
-    ri "$bin\ProduKey\*.cfg"
-    if ($arch -eq 64) {
-        $prog = "$bin\ProduKey\ProduKey64.exe"
-    } else {
-        $prog = "$bin\ProduKey\ProduKey.exe"
-    }
-    start -wait $prog -argumentlist @("/nosavereg", "/stext", "$logpath\keys.txt") -workingdirectory "$bin\ProduKey"
+    start -wait $produkey -argumentlist @("/nosavereg", "/stext", "$logpath\keys.txt") -workingdirectory "$bin\tmp"
 }
 
-## Block Windows 10 ##
+# Block Windows 10 #
 if ($win_version -notmatch '^10$') {
     # Kill GWX
     taskkill /f /im gwx.exe

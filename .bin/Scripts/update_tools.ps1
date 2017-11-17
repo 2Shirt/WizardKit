@@ -8,6 +8,13 @@ clear
 $host.UI.RawUI.WindowTitle = "Wizard Kit Update Tool"
 $bin = (Get-Item $wd).Parent.FullName
 $curl = "$bin\curl\curl.exe"
+$sz = "$bin\7-Zip\7za.exe"
+
+# OS Check
+. .\os_check.ps1
+if ($arch -eq 64) {
+    $sz = "$bin\7-Zip\7za64.exe"
+}
 
 ## Functions ##
 function download-file {
@@ -159,7 +166,7 @@ $dl_page = "http://www.samsung.com/semiconductor/minisite/ssd/download/tools.htm
 $regex = "href=./semiconductor/minisite/ssd/downloads/software/Samsung_Magician_Setup_v[0-9]+.zip"
 $url = "http://www.samsung.com{0}" -f (find-dynamic-url $dl_page $regex)
 download-file $path $name $url
-start "$bin\7-Zip\7z.exe" -argumentlist @("e", "`"$bin\_Drivers\Samsung Magician.zip`"", "-aoa", "-bso0", "-bsp0", "-o$bin\_Drivers") -nonewwindow -wait
+start $sz -argumentlist @("e", "`"$bin\_Drivers\Samsung Magician.zip`"", "-aoa", "-bso0", "-bsp0", "-o$bin\_Drivers") -nonewwindow -wait
 Remove-Item "$bin\_Drivers\Samsung Magician.exe" $path 2>&1 | Out-Null
 Remove-Item "$bin\_Drivers\Samsung Magician.zip" $path 2>&1 | Out-Null
 Move-Item "$bin\_Drivers\Samsung*exe" "$bin\_Drivers\Samsung Magician.exe" $path 2>&1 | Out-Null

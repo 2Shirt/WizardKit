@@ -5,6 +5,36 @@ for %%f in (%*) do (
     if /i "%%f" == "/DEBUG" (@echo on)
 )
 
+:FindBin
+set bin=
+pushd "%~dp0"
+:FindBinInner
+if exist ".bin" (
+    set "bin=%cd%\.bin"
+    goto FindBinDone
+)
+if "%~d0\" == "%cd%" (
+    goto FindBinDone
+) else (
+    cd ..
+)
+goto FindBinInner
+:FindBinDone
+popd
+if not defined bin goto ErrorNoBin
+
 :OpenFolder
 cd /d %~dp0
-start "" "explorer.exe" "%cd%\..\.bin\SysinternalsSuite"
+start "" "explorer.exe" "%bin%\SysinternalsSuite"
+goto Exit
+
+:ErrorNoBin
+color 4e
+echo ".bin" folder not found, aborting script.
+echo.
+echo Press any key to exit...
+pause>nul
+color
+goto Exit
+
+:Exit

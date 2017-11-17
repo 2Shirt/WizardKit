@@ -14,22 +14,23 @@ md "$logpath" 2>&1 | out-null
 $log = "$logpath\Activation.log"
 $bin = (Get-Item $wd).Parent.FullName
 $found_key = $false
+$sz = "$bin\7-Zip\7za.exe"
+$produkey = "$bin\tmp\ProduKey.exe"
 
 # OS Check
 . .\os_check.ps1
+if ($arch -eq 64) {
+    $sz = "$bin\7-Zip\7za64.exe"
+    $produkey = "$bin\tmp\ProduKey64.exe"
+}
 
 ## Extract ProduKey
-md "$bin\ProduKey" 2>&1 | out-null
-start -wait "$bin\7-Zip\7z.exe" -argumentlist @("x", "$bin\ProduKey.7z", "-o$bin\ProduKey", "-aos", "-pGerbil14") -workingdirectory "$bin\7-Zip" -nonewwindow -redirectstandardoutput out-null
+md "$bin\tmp" 2>&1 | out-null
+start -wait $sz -argumentlist @("e", "$bin\ProduKey.7z", "-otmp", "-aoa", "-pAbracadabra", "-bsp0", "-bso0") -workingdirectory "$bin" -nonewwindow
+rm "$bin\tmp\ProduKey*.cfg"
 sleep -s 1
 
 ## Get Key ##
-ri "$bin\ProduKey\*.cfg"
-if ($arch -eq 64) {
-    $prog = "$bin\ProduKey\ProduKey64.exe"
-} else {
-    $prog = "$bin\ProduKey\ProduKey.exe"
-}
 $produkey_args = @(
     "/nosavereg",
     "/scomma", "$logpath\keys.csv",
@@ -39,7 +40,7 @@ $produkey_args = @(
     "/SQLKeys", "0",
     "/ExchangeKeys", "0"
 )
-start -wait $prog -argumentlist $produkey_args -workingdirectory "$bin\ProduKey"
+start -wait $produkey -argumentlist $produkey_args -workingdirectory "$bin\tmp"
 $keys = import-csv -header ("Name", "ID", "Key") "$logpath\keys.csv"
 
 ## Find BIOS Key and activate Windows with it

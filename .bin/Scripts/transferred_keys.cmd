@@ -11,10 +11,7 @@ for %%f in (%*) do (
 setlocal EnableDelayedExpansion
 color 1b
 title WK Key Finder
-
-:ClearConfigs
-if exist "ProduKey\ProduKey.cfg" del "ProduKey\ProduKey.cfg"
-if exist "ProduKey\ProduKey64.cfg" del "ProduKey\ProduKey64.cfg"
+set "bin=.."
 
 :WKInfo
 rem Create WK\Info\YYYY-MM-DD and set path as !log_dir!
@@ -29,7 +26,7 @@ if exist "!sw_hive!" (
     set "found_hive=true"
     echo.   !sw_hive!
     echo ==== !sw_hive! ====>> "!log_dir!\transferred_keys.txt"
-    call "Launch.cmd" Program "!cd!\..\ProduKey" "ProduKey.exe" "/IEKeys 0 /ExtractEdition 1 /nosavereg /regfile !sw_hive! /stext !log_dir!\transferred_keys.tmp" /wait /admin
+    call "Launch.cmd" Program "!bin!\tmp" "ProduKey.exe" "/IEKeys 0 /ExtractEdition 1 /nosavereg /regfile !sw_hive! /stext !log_dir!\transferred_keys.tmp" /wait /admin
     type "!log_dir!\transferred_keys.tmp">> "!log_dir!\transferred_keys.txt"
     del "!log_dir!\transferred_keys.tmp"
 )
@@ -38,7 +35,7 @@ if exist "!sw_hive!" (
     set "found_hive=true"
     echo.   !sw_hive!
     echo ==== !sw_hive! ====>> "!log_dir!\transferred_keys.txt"
-    call "Launch.cmd" Program "!cd!\..\ProduKey" "ProduKey.exe" "/IEKeys 0 /ExtractEdition 1 /nosavereg /regfile !sw_hive! /stext !log_dir!\transferred_keys.tmp" /wait /admin
+    call "Launch.cmd" Program "!bin!\tmp" "ProduKey.exe" "/IEKeys 0 /ExtractEdition 1 /nosavereg /regfile !sw_hive! /stext !log_dir!\transferred_keys.tmp" /wait /admin
     type "!log_dir!\transferred_keys.tmp">> "!log_dir!\transferred_keys.txt"
     del "!log_dir!\transferred_keys.tmp"
 )
@@ -47,7 +44,7 @@ if exist "!sw_hive!" (
     set "found_hive=true"
     echo.   !sw_hive!
     echo ==== !sw_hive! ====>> "!log_dir!\transferred_keys.txt"
-    call "Launch.cmd" Program "!cd!\..\ProduKey" "ProduKey.exe" "/IEKeys 0 /ExtractEdition 1 /nosavereg /regfile !sw_hive! /stext !log_dir!\transferred_keys.tmp" /wait /admin
+    call "Launch.cmd" Program "!bin!\tmp" "ProduKey.exe" "/IEKeys 0 /ExtractEdition 1 /nosavereg /regfile !sw_hive! /stext !log_dir!\transferred_keys.tmp" /wait /admin
     type "!log_dir!\transferred_keys.tmp">> "!log_dir!\transferred_keys.txt"
     del "!log_dir!\transferred_keys.tmp"
 )
@@ -58,7 +55,7 @@ if exist "!sw_hive!" (
     set "found_hive=true"
     echo.   !sw_hive!
     echo ==== !sw_hive! ====>> "!log_dir!\transferred_keys.txt"
-    call "Launch.cmd" Program "!cd!\..\ProduKey" "ProduKey.exe" "/IEKeys 0 /ExtractEdition 1 /nosavereg /regfile !sw_hive! /stext !log_dir!\transferred_keys.tmp" /wait /admin
+    call "Launch.cmd" Program "!bin!\tmp" "ProduKey.exe" "/IEKeys 0 /ExtractEdition 1 /nosavereg /regfile !sw_hive! /stext !log_dir!\transferred_keys.tmp" /wait /admin
     type "!log_dir!\transferred_keys.tmp">> "!log_dir!\transferred_keys.txt"
     del "!log_dir!\transferred_keys.tmp"
 )
@@ -67,7 +64,7 @@ if exist "!sw_hive!" (
     set "found_hive=true"
     echo.   !sw_hive!
     echo ==== !sw_hive! ====>> "!log_dir!\transferred_keys.txt"
-    call "Launch.cmd" Program "!cd!\..\ProduKey" "ProduKey.exe" "/IEKeys 0 /ExtractEdition 1 /nosavereg /regfile !sw_hive! /stext !log_dir!\transferred_keys.tmp" /wait /admin
+    call "Launch.cmd" Program "!bin!\tmp" "ProduKey.exe" "/IEKeys 0 /ExtractEdition 1 /nosavereg /regfile !sw_hive! /stext !log_dir!\transferred_keys.tmp" /wait /admin
     type "!log_dir!\transferred_keys.tmp">> "!log_dir!\transferred_keys.txt"
     del "!log_dir!\transferred_keys.tmp"
 )
@@ -76,14 +73,14 @@ if exist "!sw_hive!" (
     set "found_hive=true"
     echo.   !sw_hive!
     echo ==== !sw_hive! ====>> "!log_dir!\transferred_keys.txt"
-    call "Launch.cmd" Program "!cd!\..\ProduKey" "ProduKey.exe" "/IEKeys 0 /ExtractEdition 1 /nosavereg /regfile !sw_hive! /stext !log_dir!\transferred_keys.tmp" /wait /admin
+    call "Launch.cmd" Program "!bin!\tmp" "ProduKey.exe" "/IEKeys 0 /ExtractEdition 1 /nosavereg /regfile !sw_hive! /stext !log_dir!\transferred_keys.tmp" /wait /admin
     type "!log_dir!\transferred_keys.tmp">> "!log_dir!\transferred_keys.txt"
     del "!log_dir!\transferred_keys.tmp"
 )
 
 :ShowResults
 if not defined found_hive (goto NoResults)
-call "Launch.cmd" Program "!cd!\..\Notepad2" "Notepad2-Mod.exe" "!log_dir!\transferred_keys.txt"
+call "Launch.cmd" Program "%bin%\Notepad2" "Notepad2-Mod.exe" "%log_dir%\transferred_keys.txt"
 goto Done
 
 :NoResults

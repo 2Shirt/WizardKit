@@ -15,7 +15,7 @@ set "pd=%cd%"
 set "NAS=\\10.0.0.10\Office"
 set "dest=%systemdrive%\WK\Office"
 set "source=%~1"
-pushd !NAS!
+pushd "!NAS!"
 
 :VerifyCopyAndRun
 if /i "!source!" == "" (goto UsageError)

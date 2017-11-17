@@ -12,6 +12,7 @@ md "$backup_path" 2>&1 | out-null
 md "$logpath" 2>&1 | out-null
 $log = "$logpath\Browsers.log"
 $bin = (Get-Item $wd).Parent.FullName
+$sz = "$bin\7-Zip\7za.exe"
 
 # Vars
 $ff_appdata = "$appdata\Mozilla\Firefox"
@@ -30,6 +31,9 @@ $chrome_profile_list = $chrome_profile_list -inotmatch '\.wkbak' -imatch '^(Defa
 
 # OS Check
 . .\os_check.ps1
+if ($arch -eq 64) {
+    $sz = "$bin\7-Zip\7za64.exe"
+}
 
 # Functions
 function gen-backup-name {
@@ -102,7 +106,7 @@ if (test-path "$userprofile\Favorites") {
         "-mx=1",
         "$backup_path\IE Favorites.7z",
         "Favorites")
-    start "$bin\7-Zip\7z.exe" -argumentlist $sz_args -wait -windowstyle minimized
+    start $sz -argumentlist $sz_args -wait -windowstyle minimized
     popd
 }
 
@@ -178,7 +182,7 @@ if (test-path "$ff_appdata") {
         "$backup_path\Firefox.7z",
         "Profiles",
         "profiles.ini")
-    start "$bin\7-Zip\7z.exe" -argumentlist $sz_args -wait -windowstyle minimized
+    start $sz -argumentlist $sz_args -wait -windowstyle minimized
     popd
 }
 
@@ -309,7 +313,7 @@ if (test-path "$chrome_appdata") {
         "-mx=1",
         "$backup_path\Chrome.7z",
         '"User Data"')
-    start "$bin\7-Zip\7z.exe" -argumentlist $sz_args -wait -windowstyle minimized
+    start $sz -argumentlist $sz_args -wait -windowstyle minimized
     popd
 }
 

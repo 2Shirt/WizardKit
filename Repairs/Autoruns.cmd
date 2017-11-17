@@ -5,6 +5,24 @@ for %%f in (%*) do (
     if /i "%%f" == "/DEBUG" (@echo on)
 )
 
+:FindBin
+set bin=
+pushd "%~dp0"
+:FindBinInner
+if exist ".bin" (
+    set "bin=%cd%\.bin"
+    goto FindBinDone
+)
+if "%~d0\" == "%cd%" (
+    goto FindBinDone
+) else (
+    cd ..
+)
+goto FindBinInner
+:FindBinDone
+popd
+if not defined bin goto ErrorNoBin
+
 :ModifySettings
 reg add HKCU\Software\Sysinternals\AutoRuns /v checkvirustotal /t REG_DWORD /d 0 /f >nul
 reg add HKCU\Software\Sysinternals\AutoRuns /v EulaAccepted /t REG_DWORD /d 1 /f >nul
@@ -18,4 +36,16 @@ reg add HKCU\Software\Sysinternals\AutoRuns\Streams /v EulaAccepted /t REG_DWORD
 reg add HKCU\Software\Sysinternals\AutoRuns\VirusTotal /v VirusTotalTermsAccepted /t REG_DWORD /d 1 /f >nul
 
 :Launch
-call "%~dp0\..\.bin\Scripts\Launch.cmd" Program "%~dp0\..\.bin\SysinternalsSuite" "Autoruns.exe" "-e"
+call "%bin%\Scripts\Launch.cmd" Program "%bin%\SysinternalsSuite" "Autoruns.exe" "-e"
+goto Exit
+
+:ErrorNoBin
+color 4e
+echo ".bin" folder not found, aborting script.
+echo.
+echo Press any key to exit...
+pause>nul
+color
+goto Exit
+
+:Exit

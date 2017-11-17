@@ -43,14 +43,16 @@ popd
 :: Root files ::
 set "args="
 call :RoboCopy "!source!\.bin\Scripts" "!dest!\.bin\Scripts" "" "!args!"
-copy /y "!source!\Activate Windows (with BIOS key).cmd" "!dest!\"
 copy /y "!source!\Battery Health.cmd" "!dest!\"
 copy /y "!source!\Enter SafeMode.cmd" "!dest!\"
 copy /y "!source!\Exit SafeMode.cmd" "!dest!\"
 copy /y "!source!\Final Checklist.cmd" "!dest!\"
-copy /y "!source!\Hide Windows 10 Upgrade.reg" "!dest!\"
 copy /y "!source!\Reset Browsers.cmd" "!dest!\"
 copy /y "!source!\SW Diagnostics.cmd" "!dest!\"
+
+:: Activation ::
+set "args="
+call :RoboCopy "!source!\Activation" "!dest!\Activation" "" "!args!"
 
 :: Data Recovery ::
 rem Disabled.
@@ -105,7 +107,7 @@ set wrongpath=
 :: Testing one for one dir is probably enough.
 dir "Uninstallers" >nul 2>&1
 if %errorlevel% neq 0 (set wrongpath=true)
-if not defined wrongpath (pushd %1)
+if not defined wrongpath (pushd "%1")
 goto :EOF
 
 :WizardKitNotFound

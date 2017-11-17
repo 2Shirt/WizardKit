@@ -22,7 +22,7 @@ set "con=%~dp0\..\cmder_mini\vendor\conemu-maximus5\ConEmu.exe"
 if !arch! equ 64 set "con=%~dp0\..\cmder_mini\vendor\conemu-maximus5\ConEmu.exe"
 
 :Launch
-pushd %2
+pushd "%2"
 if /i "%1" == "Console"  (goto LaunchConsole)
 if /i "%1" == "Office"  (goto LaunchOfficeSetup)
 if /i "%1" == "Program"  (goto LaunchProgram)
@@ -31,7 +31,9 @@ goto Usage
 
 :LaunchConsole
 set "prog=%~3"
-dir "!prog:.=64.!" >nul 2>&1 && if !arch! equ 64 set "prog=!prog:.=64.!"
+if !arch! equ 64 (
+    if exist "!prog:.=64.!" set "prog=!prog:.=64.!"
+)
 if not exist "!prog!" goto ProgramNotFound
 if defined admin (
     start "" "%con%" -cmd "!prog!" %~4 -new_console:a -new_console:n
@@ -47,7 +49,9 @@ goto Done
 
 :LaunchProgram
 set "prog=%~3"
-dir "!prog:.=64.!" >nul 2>&1 && if !arch! equ 64 set "prog=!prog:.=64.!"
+if !arch! equ 64 (
+    if exist "!prog:.=64.!" set "prog=!prog:.=64.!"
+)
 if not exist "!prog!" goto ProgramNotFound
 if not "%~4" == "" (set "ps_args=-argumentlist '%~4'")
 if defined admin (

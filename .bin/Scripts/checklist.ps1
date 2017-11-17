@@ -13,9 +13,15 @@ $bin = (Get-Item $wd).Parent.FullName
 $diag_dest = "/srv/Diagnostics"
 $diag_server = "10.0.0.10"
 $diag_user = "wkdiag"
+$sz = "$bin\7-Zip\7za.exe"
+$produkey = "$bin\tmp\ProduKey.exe"
 
 # OS Check
 . .\os_check.ps1
+if ($arch -eq 64) {
+    $sz = "$bin\7-Zip\7za64.exe"
+    $produkey = "$bin\tmp\ProduKey64.exe"
+}
 
 # Set Service Order
 while ($service_order -notmatch '^\d+') {
@@ -147,28 +153,16 @@ if (!(test-path "$logpath\aida64.htm")) {
 
 # Product Keys
 ## Extract
-md "$bin\ProduKey" 2>&1 | out-null
-$sz_args = @(
-    "x",
-    ('"{0}\ProduKey.7z"' -f $bin),
-    ('-o"{0}\ProduKey"' -f $bin),
-    "-aos",
-    "-pAbracadabra")
-start "$bin\7-Zip\7z.exe" -argumentlist $sz_args -wait -windowstyle minimized
+md "$bin\tmp" 2>&1 | out-null
+start -wait $sz -argumentlist @("e", "$bin\ProduKey.7z", "-otmp", "-aoa", "-pAbracadabra", "-bsp0", "-bso0") -workingdirectory "$bin" -nonewwindow
+rm "$bin\tmp\ProduKey*.cfg"
 sleep -s 1
 
 ## Run
 if (!(test-path "$logpath\keys.txt")) {
     wk-write "* Saving Product Keys" "$log"
-    ri "$bin\ProduKey\*.cfg"
-    if ($arch -eq 64) {
-        $prog = "$bin\ProduKey\ProduKey64.exe"
-    } else {
-        $prog = "$bin\ProduKey\ProduKey.exe"
-    }
-    start -wait $prog -argumentlist @("/nosavereg", "/stext", "$logpath\keys.txt") -workingdirectory "$bin\ProduKey"
+    start -wait $produkey -argumentlist @("/nosavereg", "/stext", "$logpath\keys.txt") -workingdirectory "$bin\tmp"
 }
-wk-write "" "$log"
 
 # User Data
 wk-write "==== User Data ====" "$log"
