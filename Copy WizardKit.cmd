@@ -71,15 +71,15 @@ set _sources=%_sources% "%source%\Uninstallers"
 set _sources=%_sources% "%source%\Activate Windows.cmd"
 set _sources=%_sources% "%source%\Enter SafeMode.cmd"
 set _sources=%_sources% "%source%\Exit SafeMode.cmd"
-set _sources=%_sources% "%source%\Reset Browsers.cmd"
-set _sources=%_sources% "%source%\SW Diagnostics.cmd"
-set _sources=%_sources% "%source%\SW Final Checklist.cmd"
+set _sources=%_sources% "%source%\System Checklist.cmd"
+set _sources=%_sources% "%source%\System Diagnostics.cmd"
+set _sources=%_sources% "%source%\User Checklist.cmd"
 start "" /wait "%fastcopy%" %fastcopy_args% /exclude="Snappy Driver Installer.cmd;*.exe" %_sources% /to="%dest%\"
 start "" /wait "%fastcopy%" %fastcopy_args% "%source%\Installers\Extras\Office\Adobe Reader DC.exe" /to="%dest%\Installers\Extras\Office\"
 
 :Ninite
 echo Extracting Ninite installers...
-"%SEVEN_ZIP%" x "%cbin%\_Ninite.7z" -aoa -bso0 -bse0 -bsp0 -p%ARCHIVE_PASS% -o"%dest%\Installers\Extras" || goto Abort
+"%SEVEN_ZIP%" x "%cbin%\_Ninite.7z" -aos -bso0 -bse0 -bsp0 -p%ARCHIVE_PASS% -o"%dest%\Installers\Extras" || goto Abort
 
 :OpenFolder
 start "" explorer "%dest%"

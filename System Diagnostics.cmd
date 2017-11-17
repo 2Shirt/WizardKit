@@ -31,7 +31,7 @@ call :FindBin
 :: Set L_WAIT to True to have the script wait until L_ITEM has comlpeted
 set L_TYPE=PyScript
 set L_PATH=Scripts
-set L_ITEM=sw_checklist.py
+set L_ITEM=system_diagnostics.py
 set L_ARGS=
 set L_7ZIP=
 set L_CHCK=True

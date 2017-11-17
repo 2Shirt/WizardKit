@@ -48,7 +48,7 @@ if defined _info mkdir "%client_dir%\Info">nul 2>&1
 if defined _office mkdir "%client_dir%\Office">nul 2>&1
 if defined _quickbooks mkdir "%client_dir%\QuickBooks">nul 2>&1
 if defined _quarantine mkdir "%client_dir%\Quarantine">nul 2>&1
-if defined _transfer mkdir "%client_dir%\Transfer">nul 2>&1
+if defined _transfer mkdir "%client_dir%\Transfer_%iso_date%">nul 2>&1
 
 :Done
 goto Exit

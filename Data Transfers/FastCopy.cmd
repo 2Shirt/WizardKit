@@ -33,7 +33,7 @@ call "%bin%\Scripts\init_client_dir.cmd" /Info /Transfer
 set L_TYPE=Program
 set L_PATH=FastCopy
 set L_ITEM=FastCopy.exe
-set L_ARGS=/logfile=%log_dir%\FastCopy.log /cmd=noexist_only /utf8 /skip_empty_dir /linkdest /exclude=$RECYCLE.BIN;$Recycle.Bin;.AppleDB;.AppleDesktop;.AppleDouble;.com.apple.timemachine.supported;.dbfseventsd;.DocumentRevisions-V100*;.DS_Store;.fseventsd;.PKInstallSandboxManager;.Spotlight*;.SymAV*;.symSchedScanLockxz;.TemporaryItems;.Trash*;.vol;.VolumeIcon.icns;desktop.ini;Desktop?DB;Desktop?DF;hiberfil.sys;lost+found;Network?Trash?Folder;pagefile.sys;Recycled;RECYCLER;System?Volume?Information;Temporary?Items;Thumbs.db /to=%client_dir%\Transfer\
+set L_ARGS=/logfile=%log_dir%\FastCopy.log /cmd=noexist_only /utf8 /skip_empty_dir /linkdest /exclude=$RECYCLE.BIN;$Recycle.Bin;.AppleDB;.AppleDesktop;.AppleDouble;.com.apple.timemachine.supported;.dbfseventsd;.DocumentRevisions-V100*;.DS_Store;.fseventsd;.PKInstallSandboxManager;.Spotlight*;.SymAV*;.symSchedScanLockxz;.TemporaryItems;.Trash*;.vol;.VolumeIcon.icns;desktop.ini;Desktop?DB;Desktop?DF;hiberfil.sys;lost+found;Network?Trash?Folder;pagefile.sys;Recycled;RECYCLER;System?Volume?Information;Temporary?Items;Thumbs.db /to=%client_dir%\Transfer_%iso_date%\
 set L_7ZIP=
 set L_CHCK=True
 set L_ELEV=

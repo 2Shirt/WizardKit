@@ -35,7 +35,7 @@ set L_ITEM=user_data_transfer.py
 set L_ARGS=
 set L_7ZIP=
 set L_CHCK=True
-set L_ELEV=
+set L_ELEV=True
 set L_NCMD=
 set L_WAIT=
 
