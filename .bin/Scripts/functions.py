@@ -920,6 +920,8 @@ def upload_data(path=None, file=None, vars_wk=None):
     with open('{TmpDir}\\psftp.batch'.format(**vars_wk), 'w', encoding='ascii') as f:
         f.write('lcd "{path}"\n'.format(path=path))
         f.write('cd "{Share}"\n'.format(**CLIENT_INFO_SERVER))
+        f.write('mkdir {ProduKey}'.format(**vars_wk))
+        f.write('cd {ProduKey}'.format(**vars_wk))
         f.write('put "{file}"\n'.format(file=file))
     
     # Upload Info

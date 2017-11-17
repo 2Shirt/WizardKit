@@ -187,7 +187,7 @@ def clean_internet_explorer():
                     pass
 
 def exit_script():
-    # pause("Press Enter to exit...")
+    pause("Press Enter to exit...")
     quit()
 
 def get_chrome_exe():
@@ -210,10 +210,13 @@ def get_chrome_exe():
 def get_chrome_profiles():
     """Find any existing Chrome profiles and return as a list of os.DirEntry objects."""
     profiles = []
-    for entry in os.scandir('{LOCALAPPDATA}\\Google\\Chrome\\User Data'.format(**vars_wk['Env'])):
-        if entry.is_dir() and re.search(r'^(Default|Profile)', entry.name, re.IGNORECASE):
-            profiles.append(entry)
-    profiles = [p for p in profiles if not re.search(r'\.(wk|)bak.*', p.name, re.IGNORECASE)]
+    try:
+        for entry in os.scandir('{LOCALAPPDATA}\\Google\\Chrome\\User Data'.format(**vars_wk['Env'])):
+            if entry.is_dir() and re.search(r'^(Default|Profile)', entry.name, re.IGNORECASE):
+                profiles.append(entry)
+        profiles = [p for p in profiles if not re.search(r'\.(wk|)bak.*', p.name, re.IGNORECASE)]
+    except:
+        pass
     
     return profiles
 
@@ -223,16 +226,18 @@ def get_chrome_canary_exe():
     if os.path.exists(prog_exe):
         return prog_exe
     else:
-        print_error('    ERROR: chrome.exe not found. Please verify installation.', vars_wk['LogFile'])
         return None
 
 def get_chrome_canary_profiles():
     """Find any existing Chrome profiles and return as a list of os.DirEntry objects."""
     profiles = []
-    for entry in os.scandir('{LOCALAPPDATA}\\Google\\Chrome SxS\\User Data'.format(**vars_wk['Env'])):
-        if entry.is_dir() and re.search(r'^(Default|Profile)', entry.name, re.IGNORECASE):
-            profiles.append(entry)
-    profiles = [p for p in profiles if not re.search(r'\.(wk|)bak.*', p.name, re.IGNORECASE)]
+    try:
+        for entry in os.scandir('{LOCALAPPDATA}\\Google\\Chrome SxS\\User Data'.format(**vars_wk['Env'])):
+            if entry.is_dir() and re.search(r'^(Default|Profile)', entry.name, re.IGNORECASE):
+                profiles.append(entry)
+        profiles = [p for p in profiles if not re.search(r'\.(wk|)bak.*', p.name, re.IGNORECASE)]
+    except:
+        pass
     
     return profiles
 
@@ -276,10 +281,13 @@ def get_opera_exe():
 def get_firefox_profiles():
     """Find any existing Chrome profiles and return as a list of os.DirEntry objects."""
     profiles = []
-    for entry in os.scandir('{APPDATA}\\Mozilla\\Firefox\\Profiles'.format(**vars_wk['Env'])):
-        if entry.is_dir():
-            profiles.append(entry)
-    profiles = [p for p in profiles if not re.search(r'\.(wk|)bak.*', p.name, re.IGNORECASE)]
+    try:
+        for entry in os.scandir('{APPDATA}\\Mozilla\\Firefox\\Profiles'.format(**vars_wk['Env'])):
+            if entry.is_dir():
+                profiles.append(entry)
+        profiles = [p for p in profiles if not re.search(r'\.(wk|)bak.*', p.name, re.IGNORECASE)]
+    except:
+        pass
     
     return profiles
 
@@ -323,27 +331,36 @@ def get_opera_dev_exe():
 def get_opera_profile():
     """Find an existing Opera profile and return as a length-1 list of os.DirEntry objects."""
     profiles = []
-    for entry in os.scandir('{APPDATA}\\Opera Software'.format(**vars_wk['Env'])):
-        if entry.is_dir() and entry.name == 'Opera Stable':
-            return [entry]
+    try:
+        for entry in os.scandir('{APPDATA}\\Opera Software'.format(**vars_wk['Env'])):
+            if entry.is_dir() and entry.name == 'Opera Stable':
+                return [entry]
+    except:
+        pass
     
     return profiles
 
 def get_opera_beta_profile():
     """Find an existing Opera Beta profile and return as a length-1 list of os.DirEntry objects."""
     profiles = []
-    for entry in os.scandir('{APPDATA}\\Opera Software'.format(**vars_wk['Env'])):
-        if entry.is_dir() and entry.name == 'Opera Next':
-            return [entry]
+    try:
+        for entry in os.scandir('{APPDATA}\\Opera Software'.format(**vars_wk['Env'])):
+            if entry.is_dir() and entry.name == 'Opera Next':
+                return [entry]
+    except:
+        pass
     
     return profiles
 
 def get_opera_dev_profile():
     """Find an existing Opera Dev profile and return as a length-1 list of os.DirEntry objects."""
     profiles = []
-    for entry in os.scandir('{APPDATA}\\Opera Software'.format(**vars_wk['Env'])):
-        if entry.is_dir() and entry.name == 'Opera Developer':
-            return [entry]
+    try:
+        for entry in os.scandir('{APPDATA}\\Opera Software'.format(**vars_wk['Env'])):
+            if entry.is_dir() and entry.name == 'Opera Developer':
+                return [entry]
+    except:
+        pass
     
     return profiles
 
@@ -480,14 +497,15 @@ def reset_mozilla_firefox():
             run_program(firefox_dev_exe, ['https://addons.mozilla.org/en-us/firefox/addon/ublock-origin/'], check=False)
 
 def reset_opera():
-    print_standard('  Opera', vars_wk['LogFile'])
     opera_exe = get_opera_exe()
     profiles = get_opera_profile()
     
     # Bail early
     if opera_exe is None and len(profiles) == 0:
-        print_warning('    Opera not installed and no profiles found.')
+        # print_warning('    Opera not installed and no profiles found.')
         return
+    else:
+        print_standard('  Opera', vars_wk['LogFile'])
     
     if opera_exe is None:
         print_error('    ERROR: Opera not installed.', vars_wk['LogFile'])
@@ -512,7 +530,7 @@ def reset_opera_beta():
     
     # Bail early
     if opera_beta_exe is None and len(profiles) == 0:
-        print_error('  Opera Beta not installed and no profiles found.')
+        # print_error('  Opera Beta not installed and no profiles found.')
         return
     else:
         print_standard('  Opera Beta', vars_wk['LogFile'])
@@ -540,7 +558,7 @@ def reset_opera_dev():
     
     # Bail early
     if opera_dev_exe is None and len(profiles) == 0:
-        print_error('  Opera Dev not installed and no profiles found.')
+        # print_error('  Opera Dev not installed and no profiles found.')
         return
     else:
         print_standard('  Opera Dev', vars_wk['LogFile'])

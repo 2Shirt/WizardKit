@@ -11,8 +11,13 @@ title Wizard Kit: Launcher
 call :CheckFlags %*
 call :FindBin
 
-:OpenDriverPage
-start "" "http://us.acer.com/ac/en/US/content/drivers"
+:Configure
+rem just configure for both x32 & x64
+for %%a in (32 64) do (
+    copy /y "%bin%\HWiNFO\general.ini" "%bin%\HWiNFO\HWiNFO%%a.ini"
+    (echo SensorsOnly=0)>>"%bin%\HWiNFO\HWiNFO%%a.ini"
+    (echo SummaryOnly=1)>>"%bin%\HWiNFO\HWiNFO%%a.ini"
+)
 
 :DefineLaunch
 :: Set L_TYPE to one of these options:
@@ -33,8 +38,8 @@ start "" "http://us.acer.com/ac/en/US/content/drivers"
 :: Set L_NCMD to True to stay in the native console window
 :: Set L_WAIT to True to have the script wait until L_ITEM has comlpeted
 set L_TYPE=Program
-set L_PATH=AIDA64
-set L_ITEM=aida64.exe
+set L_PATH=HWiNFO
+set L_ITEM=HWiNFO.exe
 set L_ARGS=
 set L_7ZIP=
 set L_CHCK=True

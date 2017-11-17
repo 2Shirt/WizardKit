@@ -35,7 +35,7 @@ set L_ITEM=aida64.exe
 set L_ARGS=
 set L_7ZIP=
 set L_CHCK=True
-set L_ELEV=True
+set L_ELEV=
 set L_NCMD=True
 set L_WAIT=
 

@@ -89,7 +89,7 @@ def is_valid_image(item):
             run_program(_cmd)
         except subprocess.CalledProcessError:
             _valid = False
-            print_warning('WARNING: Image damaged.', vars_wk['LogFile'])
+            print_warning('WARNING: Image "{image}" damaged.'.format(image=item.name), vars_wk['LogFile'])
             time.sleep(2)
     return _valid
 

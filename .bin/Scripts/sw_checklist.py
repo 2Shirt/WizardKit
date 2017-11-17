@@ -14,13 +14,13 @@ vars_wk = init_vars_wk()
 vars_wk.update(init_vars_os())
 vars_wk['BackupDir'] = '{ClientDir}\\Backups\\{Date}'.format(**vars_wk)
 vars_wk['LogFile'] = '{LogDir}\\Software Checklist.log'.format(**vars_wk)
+vars_wk['AIDA64'] = '{BinDir}\\AIDA64\\aida64.exe'.format(**vars_wk)
 vars_wk['AutoRuns'] = '{BinDir}\\SysinternalsSuite\\autoruns.exe'.format(**vars_wk)
 vars_wk['ERUNT'] = '{BinDir}\\erunt\\ERUNT.EXE'.format(**vars_wk)
 vars_wk['Everything'] = '{BinDir}\\Everything\\Everything.exe'.format(**vars_wk)
 vars_wk['HWiNFO'] = '{BinDir}\\HWiNFO\\HWiNFO.exe'.format(**vars_wk)
 vars_wk['Notepad2'] = '{BinDir}\\Notepad2\\Notepad2-Mod.exe'.format(**vars_wk)
 vars_wk['ProduKey'] = '{BinDir}\\ProduKey\\ProduKey.exe'.format(**vars_wk)
-vars_wk['SIV'] = '{BinDir}\\SIV\\SIV.exe'.format(**vars_wk)
 vars_wk['SevenZip'] = '{BinDir}\\7-Zip\\7za.exe'.format(**vars_wk)
 vars_wk['XMPlay'] = '{BinDir}\\XMPlay\\xmplay.exe'.format(**vars_wk)
 if vars_wk['Arch'] == 64:
@@ -29,7 +29,6 @@ if vars_wk['Arch'] == 64:
     vars_wk['HWiNFO'] = vars_wk['HWiNFO'].replace('.exe', '64.exe')
     vars_wk['Notepad2'] = vars_wk['Notepad2'].replace('.exe', '64.exe')
     vars_wk['ProduKey'] = vars_wk['ProduKey'].replace('.exe', '64.exe')
-    vars_wk['SIV'] = vars_wk['SIV'].replace('.exe', '64.exe')
     vars_wk['SevenZip'] = vars_wk['SevenZip'].replace('.exe', '64.exe')
 os.makedirs(vars_wk['LogDir'], exist_ok=True)
 
@@ -86,12 +85,21 @@ def cleanup_adwcleaner():
             print_error('ERROR: Failed to uninstall AdwCleaner.', vars_wk['LogFile'])
 
 def cleanup_desktop():
+    #~#TODO (Pseudo-code)
+    #~#for d in drives:
+    #~#	for user in os.scandir('{drive}\\Users'.format(drive=d)):
+    #~#		if os.path.exists('{drive}\\Users\\{user}\\Desktop'.format(drive=d, user=user)):
+    #~#			for entry in os.scandir('{drive}\\Users\\{user}\\Desktop'.format(drive=d, user=user)):
+    #~#			# JRT, RKill, Shortcut cleaner
+    #~#			if re.search(r'^((JRT|RKill).*|sc-cleaner)', entry.name, re.IGNORECASE):
+    #~#				shutil.move(entry.path, '{ClientDir}\\Info\\{name}'.format(name=entry.name, **vars_wk))
     print_info('* Checking Desktop for leftover files', vars_wk['LogFile'])
     os.makedirs('{ClientDir}\\Info'.format(**vars_wk), exist_ok=True)
-    for entry in os.scandir('{USERPROFILE}\\Desktop'.format(**vars_wk['Env'])):
-        # JRT, RKill, Shortcut cleaner
-        if re.search(r'^((JRT|RKill).*|sc-cleaner)', entry.name, re.IGNORECASE):
-            shutil.move(entry.path, '{ClientDir}\\Info\\{name}'.format(name=entry.name, **vars_wk))
+    if os.path.exists('{USERPROFILE}\\Desktop'.format(**vars_wk['Env'])):
+        for entry in os.scandir('{USERPROFILE}\\Desktop'.format(**vars_wk['Env'])):
+            # JRT, RKill, Shortcut cleaner
+            if re.search(r'^((JRT|RKill).*|sc-cleaner)', entry.name, re.IGNORECASE):
+                shutil.move(entry.path, '{ClientDir}\\Info\\{name}'.format(name=entry.name, **vars_wk))
     run_program('rmdir "{path}"'.format(path='{ClientDir}\\Info'.format(**vars_wk)), check=False, shell=True)
 
 def exit_script():
@@ -108,14 +116,18 @@ def get_battery_info():
 def get_free_space():
     print_info('* Free space', vars_wk['LogFile'])
     for drive in get_free_space_info():
-        print_standard('  {}  {}'.format(*drive))
+        print_standard('  {}  {}'.format(*drive), vars_wk['LogFile'])
 
 def get_installed_ram():
     print_info('* Installed RAM', vars_wk['LogFile'])
-    with open ('{LogDir}\\RAM Information (SIV).txt'.format(**vars_wk), 'r', encoding='utf16') as f:
+    with open ('{LogDir}\\RAM Information (AIDA64).txt'.format(**vars_wk), 'r') as f:
+        _module = ''
         for line in f.readlines():
-            if re.search(r'^Memory', line, re.IGNORECASE):
-                print_standard('  ' + line.strip(), vars_wk['LogFile'])
+            if re.search(r'Module Size', line, re.IGNORECASE):
+                _module = re.sub(r'\s*Module Size\s+(.*)\s+\(.*$', r'  Module:  \1', line.strip())
+            if re.search(r'Memory Speed', line, re.IGNORECASE):
+                _module += re.sub(r'\s*Memory Speed\s+(.*)$', r' \1', line.strip())
+                print_standard(_module, vars_wk['LogFile'])
 
 def get_os_info():
     print_info('* Operating System', vars_wk['LogFile'])
@@ -158,11 +170,11 @@ def get_os_info():
                 print_warning('  {Name} x{Arch} (unrecognized)'.format(**vars_wk), vars_wk['LogFile'])
     # OS Activation
     if re.search(r'permanent', vars_wk['Activation'], re.IGNORECASE):
-        print_standard('  {Activation}'.format(**vars_wk))
+        print_standard('  {Activation}'.format(**vars_wk), vars_wk['LogFile'])
     elif re.search(r'unavailable', vars_wk['Activation'], re.IGNORECASE):
-        print_warning('  {Activation}'.format(**vars_wk))
+        print_warning('  {Activation}'.format(**vars_wk), vars_wk['LogFile'])
     else:
-        print_error('  {Activation}'.format(**vars_wk))
+        print_error('  {Activation}'.format(**vars_wk), vars_wk['LogFile'])
 
 def get_ticket_number():
     """Get TicketNumber from user and save it in the info folder."""
@@ -214,53 +226,60 @@ def run_produkey():
         _args = ['/nosavereg', '/stext', '{LogDir}\\Product Keys (ProduKey).txt'.format(**vars_wk)]
         run_program(vars_wk['ProduKey'], _args, check=False)
 
-def run_siv():
-    extract_item('SIV', vars_wk, silent=True)
+def run_aida64():
+    extract_item('AIDA64', vars_wk, silent=True)
     # All system info
-    if not os.path.exists('{LogDir}\\System Information (SIV).txt'.format(**vars_wk)):
+    if not os.path.exists('{LogDir}\\System Information (AIDA64).html'.format(**vars_wk)):
         print_info('* Saving System information', vars_wk['LogFile'])
         _cmd = [
-            vars_wk['SIV'],
-            '-KEYS',
-            '-LOCAL',
-            '-UNICODE',
-            '-SAVE={LogDir}\\System_Information_(SIV).txt'.format(**vars_wk)]
+            vars_wk['AIDA64'],
+            '/R',
+            '{LogDir}\\System Information (AIDA64).html'.format(**vars_wk),
+            '/CUSTOM',
+            '{BinDir}\\AIDA64\\full.rpf'.format(**vars_wk),
+            '/HTML',
+            '/SILENT']
         run_program(_cmd, check=False)
     
     # RAM
-    if not os.path.exists('{LogDir}\\RAM_Information_(SIV).txt'.format(**vars_wk)):
-        _args = [
-            '-KEYS',
-            '-LOCAL',
-            '-UNICODE',
-            '-SAVE=[dimms]={LogDir}\\RAM_Information_(SIV).txt'.format(**vars_wk)]
-        run_program(vars_wk['SIV'], _args, check=False)
+    if not os.path.exists('{LogDir}\\RAM Information (AIDA64).txt'.format(**vars_wk)):
+        _cmd = [
+            vars_wk['AIDA64'],
+            '/R',
+            '{LogDir}\\RAM Information (AIDA64).txt'.format(**vars_wk),
+            '/CUSTOM',
+            '{BinDir}\\AIDA64\\ram.rpf'.format(**vars_wk),
+            '/TEXT',
+            '/SILENT']
+        run_program(_cmd, check=False)
     
     # Installed Programs
-    if not os.path.exists('{LogDir}\\Installed Program List_(SIV).txt'.format(**vars_wk)):
+    if not os.path.exists('{LogDir}\\Installed Program List (AIDA64).txt'.format(**vars_wk)):
         print_info('* Saving installed program list', vars_wk['LogFile'])
-        _args = [
-            '-KEYS',
-            '-LOCAL',
-            '-UNICODE',
-            '-SAVE=[software]={LogDir}\\Installed_Program_List_(SIV).txt'.format(**vars_wk)]
-        run_program(vars_wk['SIV'], _args, check=False)
+        _cmd = [
+            vars_wk['AIDA64'],
+            '/R',
+            '{LogDir}\\Installed Program List (AIDA64).txt'.format(**vars_wk),
+            '/CUSTOM',
+            '{BinDir}\\AIDA64\\installed_programs.rpf'.format(**vars_wk),
+            '/TEXT',
+            '/SILENT',
+            '/SAFEST']
+        run_program(_cmd, check=False)
     
     # Product Keys
-    if not os.path.exists('{LogDir}\\Product Keys (SIV).txt'.format(**vars_wk)):
+    if not os.path.exists('{LogDir}\\Product Keys (AIDA64).txt'.format(**vars_wk)):
         print_info('* Saving product keys', vars_wk['LogFile'])
-        _args = [
-            '-KEYS',
-            '-LOCAL',
-            '-UNICODE',
-            '-SAVE=[product-ids]={LogDir}\\Product_Keys_(SIV).txt'.format(**vars_wk)]
-        run_program(vars_wk['SIV'], _args, check=False)
-    extract_item('ProduKey', vars_wk, silent=True)
-    
-    # Rename files
-    for item in os.scandir(vars_wk['LogDir']):
-        if re.search(r'SIV', item.name, re.IGNORECASE):
-            shutil.move(item.path, item.path.replace('_', ' ').title().replace('Siv', 'SIV'))
+        _cmd = [
+            vars_wk['AIDA64'],
+            '/R',
+            '{LogDir}\\Product Keys (AIDA64).txt'.format(**vars_wk),
+            '/CUSTOM',
+            '{BinDir}\\AIDA64\\licenses.rpf'.format(**vars_wk),
+            '/TEXT',
+            '/SILENT',
+            '/SAFEST']
+        run_program(_cmd, check=False)
 
 def run_xmplay():
     extract_item('XMPlay', vars_wk, silent=True)
@@ -358,7 +377,7 @@ if __name__ == '__main__':
     update_clock()
     backup_power_plans()
     backup_registry()
-    run_siv()
+    run_aida64()
     run_produkey()
     
     ## System information ##
@@ -388,7 +407,7 @@ if __name__ == '__main__':
     pause('Press Enter exit...')
     
     # Open log
-    extract_item('Notepad2', vars_wk)
+    extract_item('Notepad2', vars_wk, silent=True)
     subprocess.Popen([vars_wk['Notepad2'], vars_wk['LogFile']])
     
     # Quit
