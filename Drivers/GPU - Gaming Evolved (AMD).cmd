@@ -6,4 +6,4 @@ for %%f in (%*) do (
 )
 
 :Launch
-call "%~dp0\..\.bin\Scripts\Launch.cmd" Program "%~dp0\..\.bin\_Drivers" "raptr_installer.exe" ""
+call "%~dp0\..\.bin\Scripts\Launch.cmd" Program "%~dp0\..\.bin\_Drivers" "AMD Gaming Evolved.exe" ""

@@ -15,9 +15,13 @@ $bin = (Get-Item $wd).Parent.FullName
 $diag_dest = "/srv/Diagnostics"
 $diag_server = "10.0.0.10"
 $diag_user = "wkdiag"
+$conemu = "$bin\cmder_mini\vendor\conemu-maximus5\ConEmu.exe"
 
 # OS Check
 . .\os_check.ps1
+if ($arch -eq 64) {
+    $conemu = "$bin\cmder_mini\vendor\conemu-maximus5\ConEmu64.exe"
+}
 
 # Set Service Order
 while ($service_order -notmatch '^\d+') {
@@ -32,17 +36,17 @@ wk-write "Starting SW diagnostics for Ticket #$service_order" "$log"
 wk-write "" "$log"
 
 ## Sanitize Environment ##
-# ProcessKiller
-#!! DISABLED UNTIL FURTHER TESTING IS DONE !!#
-#   adapted from TronScript (reddit.com/r/TronScript) and credit to /u/cuddlychops06
-#wk-write "* Stopping all processes" "$log"
-#taskkill.exe /F /FI "USERNAME eq Demo" /FI "IMAGENAME ne ClassicShellService.exe" /FI "IMAGENAME ne explorer.exe" /FI "IMAGENAME ne dwm.exe" /FI "IMAGENAME ne cmd.exe" /FI "IMAGENAME ne Taskmgr.exe" /FI "IMAGENAME ne MsMpEng.exe" /FI "IMAGENAME ne powershell.exe" /FI "IMAGENAME ne rkill.exe" /FI "IMAGENAME ne rkill64.exe" /FI "IMAGENAME ne rkill.com" /FI "IMAGENAME ne rkill64.com" /FI "IMAGENAME ne conhost.exe" /FI "IMAGENAME ne dashost.exe" /FI "IMAGENAME ne vmtoolsd.exe" /FI "IMAGENAME ne conhost.exe" 2>&1 | out-null
+#~# BROKEN #~#
+#~# # ProcessKiller
+#~# #   adapted from TronScript (reddit.com/r/TronScript) and credit to /u/cuddlychops06
+#~# #wk-write "* Stopping all processes" "$log"
+#~# taskkill.exe /F /FI "USERNAME eq Demo" /FI "IMAGENAME ne ClassicShellService.exe" /FI "IMAGENAME ne explorer.exe" /FI "IMAGENAME ne dwm.exe" /FI "IMAGENAME ne cmd.exe" /FI "IMAGENAME ne Taskmgr.exe" /FI "IMAGENAME ne MsMpEng.exe" /FI "IMAGENAME ne powershell.exe" /FI "IMAGENAME ne rkill.exe" /FI "IMAGENAME ne rkill64.exe" /FI "IMAGENAME ne rkill.com" /FI "IMAGENAME ne rkill64.com" /FI "IMAGENAME ne conhost.exe" /FI "IMAGENAME ne dashost.exe" /FI "IMAGENAME ne vmtoolsd.exe" /FI "IMAGENAME ne conhost.exe" 2>&1 | out-null
 
 # RKill
 wk-write "* Running RKill" "$log"
-start -wait "$bin\RKill\RKill.exe" -argumentlist @("-l", "$logpath\rkill.log")
+start -wait "$conemu" -argumentlist @("/cmd", "$bin\RKill\RKill.exe", "-l", "$logpath\rkill.log")
 if (!(ask "Did RKill run correctly?" "$log")) {
-    start -wait "$bin\RKill\explorer.exe" -argumentlist @("-l", "$logpath\rkill.log")
+    start -wait "$conemu" -argumentlist @("/cmd", "$bin\RKill\explorer.exe", "-l", "$logpath\rkill.log")
     if (!(ask "Did RKill run correctly?" "$log")) {
         wk-warn "Since RKill has failed to run, please try an alternative version." "$log"
         wk-warn "Opening RKill folder..." "$log"
@@ -64,10 +68,9 @@ if (test-path "$WKPath\Tools\.bin\TDSSKiller.exe") {
 
 ## Network Check ##
 wk-write "* Testing Internet Connection" "$log"
-if (!(test-connection "google.com" -count 2 -quiet)) {
+while (!(test-connection "google.com" -count 2 -quiet)) {
     wk-warn "System appears offline. Please connect to the internet." "$log"
-    pause
-    if (!(test-connection "google.com" -count 2 -quiet)) {
+    if (!(ask "Try again?" "$log")) {
         wk-error "System still appears offline; aborting script." "$log"
         exit 1
     }
@@ -102,6 +105,17 @@ if ($arch -eq 64) {
     $prog = "$bin\HitmanPro\HitmanPro.exe"
 }
 start $prog -argumentlist @("/quiet", "/noinstall", "/noupload", "/log=$logpath\hitman.xml") -workingdirectory "$bin\HitmanPro"
+
+#~# BROKEN #~#
+#~# # OS Health Checks
+#~# ## DISM
+#~# if ($win_version -match '^8|10$') {
+#~#     start "$conemu" -argumentlist @("/cmd", "$windir\System32\dism.exe", "/online", "/cleanup-image", "/checkhealth", "/logpath:$logpath\DISM.log", "-new_console:c")
+#~# }
+#~# ## SFC
+#~# start "$conemu" -argumentlist @("/cmd", "$windir\System32\sfc.exe", "/scannow", "-new_console:c")
+#~# ## CHKDSK
+#~# start "$conemu" -argumentlist @("/cmd", "$windir\System32\chkdsk.exe", "$systemdrive", "-new_console:c")
 
 # Backup Registry
 if (!(test-path "$logpath\Registry")) {
@@ -142,30 +156,30 @@ if (test-path "$userprofile\Favorites") {
     popd
 }
 
-# Remove temporary files
+# Get total size of temporary files
 if (!(test-path "$logpath\bleachbit.log")) {
-    wk-write "* Removing temporary files" "$log"
-    start -wait "$bin\BleachBit\bleachbit_console.exe" -argumentlist @("-c", "--preset") -nonewwindow -workingdirectory "$bin\BleachBit" -redirectstandarderror "$logpath\bleachbit.err" -redirectstandardoutput "$logpath\bleachbit.log"
+    wk-write "* Checking for temporary files" "$log"
+    start -wait "$bin\BleachBit\bleachbit_console.exe" -argumentlist @("--preview", "--preset") -nonewwindow -workingdirectory "$bin\BleachBit" -redirectstandarderror "$logpath\bleachbit.err" -redirectstandardoutput "$logpath\bleachbit.log"
 }
 
 # Autoruns
 if (!(test-path "$logpath\autoruns.arn")) {
     wk-write "* Starting background autoruns scan" "$log"
-    md "HKCU:\Software\Sysinternals" 2>&1 | out-null
-    md "HKCU:\Software\Sysinternals\AutoRuns" 2>&1 | out-null
-    sp -path "HKCU:\Software\Sysinternals\AutoRuns" -name "checkvirustotal" -value 1 -type "DWord" | out-null
-    sp -path "HKCU:\Software\Sysinternals\AutoRuns" -name "EulaAccepted" -value 1 -type "DWord" | out-null
-    sp -path "HKCU:\Software\Sysinternals\AutoRuns" -name "shownomicrosoft" -value 1 -type "DWord" | out-null
-    sp -path "HKCU:\Software\Sysinternals\AutoRuns" -name "shownowindows" -value 1 -type "DWord" | out-null
-    sp -path "HKCU:\Software\Sysinternals\AutoRuns" -name "showonlyvirustotal" -value 1 -type "DWord" | out-null
-    sp -path "HKCU:\Software\Sysinternals\AutoRuns" -name "submitvirustotal" -value 0 -type "DWord" | out-null
-    sp -path "HKCU:\Software\Sysinternals\AutoRuns" -name "verifysignatures" -value 1 -type "DWord" | out-null
-    md "HKCU:\Software\Sysinternals\AutoRuns\SigCheck" 2>&1 | out-null
-    sp -path "HKCU:\Software\Sysinternals\AutoRuns\SigCheck" -name "EulaAccepted" -value 1 -type "DWord" | out-null
-    md "HKCU:\Software\Sysinternals\AutoRuns\Streams" 2>&1 | out-null
-    sp -path "HKCU:\Software\Sysinternals\AutoRuns\Streams" -name "EulaAccepted" -value 1 -type "DWord" | out-null
-    md "HKCU:\Software\Sysinternals\AutoRuns\VirusTotal" 2>&1 | out-null
-    sp -path "HKCU:\Software\Sysinternals\AutoRuns\VirusTotal" -name "VirusTotalTermsAccepted" -value 1 -type "DWord" | out-null
+    New-Item "HKCU:\Software\Sysinternals" 2>&1 | out-null
+    New-Item "HKCU:\Software\Sysinternals\AutoRuns" 2>&1 | out-null
+    Set-ItemProperty -Path "HKCU:\Software\Sysinternals\AutoRuns" -Name "checkvirustotal" -Value 1 -Type "DWord" | out-null
+    Set-ItemProperty -Path "HKCU:\Software\Sysinternals\AutoRuns" -Name "EulaAccepted" -Value 1 -Type "DWord" | out-null
+    Set-ItemProperty -Path "HKCU:\Software\Sysinternals\AutoRuns" -Name "shownomicrosoft" -Value 1 -Type "DWord" | out-null
+    Set-ItemProperty -Path "HKCU:\Software\Sysinternals\AutoRuns" -Name "shownowindows" -Value 1 -Type "DWord" | out-null
+    Set-ItemProperty -Path "HKCU:\Software\Sysinternals\AutoRuns" -Name "showonlyvirustotal" -Value 1 -Type "DWord" | out-null
+    Set-ItemProperty -Path "HKCU:\Software\Sysinternals\AutoRuns" -Name "submitvirustotal" -Value 0 -Type "DWord" | out-null
+    Set-ItemProperty -Path "HKCU:\Software\Sysinternals\AutoRuns" -Name "verifysignatures" -Value 1 -Type "DWord" | out-null
+    New-Item "HKCU:\Software\Sysinternals\AutoRuns\SigCheck" 2>&1 | out-null
+    Set-ItemProperty -Path "HKCU:\Software\Sysinternals\AutoRuns\SigCheck" -Name "EulaAccepted" -Value 1 -Type "DWord" | out-null
+    New-Item "HKCU:\Software\Sysinternals\AutoRuns\Streams" 2>&1 | out-null
+    Set-ItemProperty -Path "HKCU:\Software\Sysinternals\AutoRuns\Streams" -Name "EulaAccepted" -Value 1 -Type "DWord" | out-null
+    New-Item "HKCU:\Software\Sysinternals\AutoRuns\VirusTotal" 2>&1 | out-null
+    Set-ItemProperty -Path "HKCU:\Software\Sysinternals\AutoRuns\VirusTotal" -Name "VirusTotalTermsAccepted" -Value 1 -Type "DWord" | out-null
     start "$bin\SysinternalsSuite\autoruns.exe" -workingdirectory "$bin\SysinternalsSuite" -windowstyle "minimized"
 }
 
@@ -269,7 +283,9 @@ if ($arch -eq 32) {
 } else {
     wk-write "  $os_name x$arch" "$log"
 }
-if ($win_act -notmatch "permanent") {
+if ($win_act -imatch 'unavailable') {
+    wk-warn "$win_act" "$log"
+} elseif ($win_act -notmatch "permanent") {
     wk-error "$win_act" "$log"
 } else {
     wk-write "$win_act" "$log"

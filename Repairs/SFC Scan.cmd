@@ -6,4 +6,4 @@ for %%f in (%*) do (
 )
 
 :Launch
-call "%~dp0\..\.bin\Scripts\Launch.cmd" Console "%windir%\System32" "sfc.exe" "/scannow" /admin
+call "%~dp0\..\.bin\Scripts\Launch.cmd" Console "%windir%\System32" "sfc.exe" "/scannow" "-new_console:c" /admin

@@ -18,8 +18,8 @@ for %%f in (%*) do (
 
 :SetVariables
 if /i "!PROCESSOR_ARCHITECTURE!" == "AMD64" set "arch=64"
-set "con=%~dp0\..\..\ConEmu\ConEmu.exe"
-if !arch! equ 64 set "con=%~dp0\..\..\ConEmu\ConEmu64.exe"
+set "con=%~dp0\..\cmder_mini\vendor\conemu-maximus5\ConEmu.exe"
+if !arch! equ 64 set "con=%~dp0\..\cmder_mini\vendor\conemu-maximus5\ConEmu.exe"
 
 :Launch
 pushd %2

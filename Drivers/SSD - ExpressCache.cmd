@@ -6,4 +6,4 @@ for %%f in (%*) do (
 )
 
 :Launch
-call "%~dp0\..\.bin\Scripts\Launch.cmd" Program "%~dp0\..\.bin\_Drivers" "ExpressCacheSetup.exe" ""
+call "%~dp0\..\.bin\Scripts\Launch.cmd" Program "%~dp0\..\.bin\_Drivers" "SanDisk Express Cache.exe" ""

@@ -9,8 +9,6 @@ $host.UI.RawUI.WindowTitle = "WK SafeMode Tool"
 
 # Ask user
 if (!(ask "Enable booting to SafeMode (with Networking)?")) {
-    # Abort
-    # TODO: test this
     popd
     exit 1
 }
@@ -20,7 +18,8 @@ if (!(ask "Enable booting to SafeMode (with Networking)?")) {
 start -wait "bcdedit" -argumentlist @("/set", "{default}", "safeboot", "network") -nonewwindow
 
 # Enable MSI access under safemode
-# TODO
+New-Item "HKLM:\SYSTEM\CurrentControlSet\Control\SafeBoot\Network\MSIServer" 2>&1 | out-null
+Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\SafeBoot\Network\MSIServer" -Name "(Default)" -Value "Service" -Type "String" -Force | out-null
 
 ## Done ##
 popd

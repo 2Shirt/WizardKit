@@ -48,11 +48,11 @@ if (test-path "$systemdrive\AdwCleaner") {
 }
 
 # Uninstall Autoruns
-if (test-path "hkcu:\Software\Sysinternals\AutoRuns") {
+if (test-path "HKCU:\Software\Sysinternals\AutoRuns") {
     wk-write "* Uninstalling Autoruns" "$log"
-    rm -path hkcu:\Software\Sysinternals\AutoRuns -recurse 2>&1 | out-null
-    if ((gci -path hkcu:\Software\Sysinternals 2> out-null | Measure-Object).count -eq 0) {
-        rm -path hkcu:\Software\Sysinternals 2>&1 | out-null
+    Remove-Item -Path HKCU:\Software\Sysinternals\AutoRuns -Recurse 2>&1 | out-null
+    if ((Get-ChildItem -Path HKCU:\Software\Sysinternals 2> out-null | Measure-Object).count -eq 0) {
+        Remove-Item -Path HKCU:\Software\Sysinternals 2>&1 | out-null
     }
 }
 

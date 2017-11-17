@@ -21,12 +21,12 @@ if (test-path "$programfiles\Mozilla Firefox\firefox.exe") {
     $ff_exe = "$programfiles\Mozilla Firefox\firefox.exe"
 }
 $ff_profile_list = @(gci "$ff_appdata\Profiles" 2> $null | ?{ $_.PSIsContainer })
-$ff_profile_list = $ff_profile_list -inotmatch '\.wkbak$'
+$ff_profile_list = $ff_profile_list -inotmatch '\.wkbak'
 $chrome_appdata = "$localappdata\Google\Chrome"
 $chrome_clean = $false
 $chrome_exe = "$programfiles86\Google\Chrome\Application\chrome.exe"
 $chrome_profile_list = @(gci "$chrome_appdata\User Data" 2> $null | ?{ $_.PSIsContainer })
-$chrome_profile_list = $chrome_profile_list -inotmatch '\.wkbak$' -imatch '^(Default|Profile)'
+$chrome_profile_list = $chrome_profile_list -inotmatch '\.wkbak' -imatch '^(Default|Profile)'
 
 # OS Check
 . .\os_check.ps1

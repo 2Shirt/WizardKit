@@ -4,6 +4,10 @@
 
 $host.UI.RawUI.BackgroundColor = "black"
 $host.UI.RawUI.ForegroundColor = "green"
+$safemode = $false
+if ((gwmi win32_computersystem -Property BootupState).BootupState -imatch 'Fail-safe') {
+    $safemode = $true
+}
 $appdata = (gci env:appdata).value
 $localappdata = (gci env:localappdata).value
 $username = (gci env:username).value

@@ -6,4 +6,4 @@ for %%f in (%*) do (
 )
 
 :Launch
-call "%~dp0\..\.bin\Scripts\Launch.cmd" Program "%~dp0\..\.bin\_Drivers" "Intel SSD Toolbox - v3.3.4.exe" ""
+call "%~dp0\..\.bin\Scripts\Launch.cmd" Program "%~dp0\..\.bin\_Drivers" "Intel SSD Toolbox.exe" ""

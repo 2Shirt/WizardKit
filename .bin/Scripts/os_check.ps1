@@ -54,5 +54,9 @@ if ($win_info.CurrentBuild -match "9600") {
 }
 
 # Get activation status
-$slmgr = (gci env:windir).value + "\System32\slmgr.vbs"
-$win_act = (cscript /nologo $slmgr /xpr) -imatch '^\s'
+if ($safemode) {
+    $win_act = "  Activation status unavailable in safe mode"
+} else {
+    $slmgr = (gci env:windir).value + "\System32\slmgr.vbs"
+    $win_act = (cscript /nologo $slmgr /xpr) -imatch '^\s'
+}

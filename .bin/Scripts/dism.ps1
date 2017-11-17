@@ -13,7 +13,7 @@ $bin = (Get-Item $wd).Parent.FullName
 
 # OS Check
 . .\os_check.ps1
-if ($win_version -le 7 -Or $win_version -imatch 'Vista') {
+if ($win_version -notmatch '^8|10$') {
     wk-error "This tool is not intended for $os_name."
 } else {
     # Get mode

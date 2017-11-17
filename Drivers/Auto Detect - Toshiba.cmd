@@ -7,5 +7,5 @@ for %%f in (%*) do (
 
 :Launch
 echo Waiting for software installation to finish...
-call "%~dp0\..\.bin\Scripts\Launch.cmd" Program "%~dp0\..\.bin\_Drivers" "GetProductInfo.exe" "" /admin /wait
+call "%~dp0\..\.bin\Scripts\Launch.cmd" Program "%~dp0\..\.bin\_Drivers" "Toshiba System Detect.exe" "" /admin /wait
 start "" "http://support.toshiba.com/drivers"

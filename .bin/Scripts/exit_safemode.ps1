@@ -9,8 +9,6 @@ $host.UI.RawUI.WindowTitle = "WK SafeMode Tool"
 
 # Ask user
 if (!(ask "Disable booting to SafeMode?")) {
-    # Abort
-    # TODO: test this
     popd
     exit 1
 }
@@ -21,7 +19,7 @@ start -wait "bcdedit" -argumentlist @("/deletevalue", "{current}", "safeboot") -
 start -wait "bcdedit" -argumentlist @("/deletevalue", "{default}", "safeboot") -nonewwindow
 
 # Disable MSI access under safemode
-# TODO
+Remove-Item -Path "HKLM:\SYSTEM\CurrentControlSet\Control\SafeBoot\Network\MSIServer" -Recurse 2>&1 | out-null
 
 ## Done ##
 popd
