@@ -8,4 +8,4 @@ for %%f in (%*) do (
 :Launch
 echo Waiting for software installation to finish...
 call "%~dp0\..\.bin\Scripts\Launch.cmd" Program "%~dp0\..\.bin\_Drivers" "HP Support Solutions Framework.exe" "" /admin /wait
-start "" "http://h22213.www2.hp.com/ediags/gmd/ProdDetect.aspx?lc=en&cc=us"
+start "" "http://support.hp.com/us-en/drivers/selfservice/identify"

@@ -103,6 +103,21 @@ if (test-path "$programfiles\SUPERAntiSpyware") {
     }
 }
 
+## Block Windows 10 ##
+if ($win_version -notmatch '^10$') {
+    # Kill GWX
+    taskkill /f /im gwx.exe
+    
+    # Block upgrade via registry
+    New-Item -Path "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\OSUpgrade" -Force 2>&1 | out-null
+    Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\OSUpgrade" -Name "AllowOSUpgrade" -Value 0 -Type "DWord" | out-null
+    Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\OSUpgrade" -Name "ReservationsAllowed" -Value 0 -Type "DWord" | out-null
+    New-Item -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows\Gwx" -Force 2>&1 | out-null
+    Set-ItemProperty -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows\Gwx" -Name "DisableGwx" -Value 1 -Type "DWord" | out-null
+    New-Item -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate" -Force 2>&1 | out-null
+    Set-ItemProperty -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate" -Name "DisableOSUpgrade" -Value 1 -Type "DWord" | out-null
+}
+
 ## Summary ##
 wk-write "" "$log"
 wk-write "Starting SW Checklist" "$log"
@@ -229,7 +244,7 @@ if ($arch -eq 64) {
 start $prog
 
 # XMPlay
-start "$WKPath\Tools\Misc\XMPlay.cmd"
+start "$bin\..\Misc\XMPlay.cmd"
 
 ## Upload info ##
 write-host "Uploading info to NAS..."

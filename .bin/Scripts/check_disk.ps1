@@ -7,11 +7,17 @@ pushd "$wd"
 clear
 $host.UI.RawUI.WindowTitle = "WK Check Disk Tool"
 
-## Schedule CHKDSK ##
+# OS Check
+. .\os_check.ps1
+
+## Run Scan (read-only) ##
 write-host "$systemdrive (System Drive)"
-start -wait "chkdsk" -argumentlist @("/f", "$systemdrive") -nonewwindow
+if ($win_version -match '^(8|10)$') {
+    start -wait "chkdsk" -argumentlist @("$systemdrive", "/scan", "/perf") -nonewwindow
+} else {
+    start -wait "chkdsk" -argumentlist @("$systemdrive") -nonewwindow
+}
 
 ## Done ##
 popd
-pause "Press Enter to reboot..."
-restart-computer
+pause "Press Enter to exit..."

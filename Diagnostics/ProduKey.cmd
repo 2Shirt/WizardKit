@@ -7,12 +7,15 @@ for %%f in (%*) do (
 
 :Init
 setlocal EnableDelayedExpansion
+pushd %~dp0\..\.bin
 
 :ClearConfigs
-pushd %~dp0\..\.bin\ProduKey
-if exist "ProduKey.cfg" del "ProduKey.cfg"
-if exist "ProduKey64.cfg" del "ProduKey64.cfg"
-popd
+if exist "ProduKey\*.*" (
+    pushd ProduKey
+    if exist "ProduKey.cfg" del "ProduKey.cfg"
+    if exist "ProduKey64.cfg" del "ProduKey64.cfg"
+    popd
+)
 
 :FindHives
 set choices=L
@@ -38,17 +41,12 @@ if exist "!_P!" (
     echo.P: !_P!
 )
 
-:Extract
-mkdir "%~dp0\..\.bin\ProduKey" >nul 2>&1
-call "%~dp0\..\.bin\Scripts\Launch.cmd" Program "%~dp0\..\.bin" "%~dp0\..\.bin\7-Zip\7z.exe" "x ProduKey.7z -oProduKey -aos -pAbracadabra" /wait
-ping -n 1 127.0.0.1>nul
-
 :Choose
 echo.
 set "args="
 
 rem If there are no choices, then don't ask
-if "!choices!" == "L" (goto Launch)
+if "!choices!" == "L" (goto Extract)
 
 rem pick souce and use response to set sw_hive
 choice /c !choices! /t 10 /d l /m "Please select source"
@@ -64,8 +62,15 @@ if "!choice!" == "P" (set "sw_hive=!_P!")
 rem set args
 if !index! neq 0 (set "args=/regfile !sw_hive!")
 
+:Extract
+cls
+mkdir "ProduKey" >nul 2>&1
+7-Zip\7z.exe x ProduKey.7z -oProduKey -aos -pAbracadabra -bsp0 -bso0
+ping -n 1 127.0.0.1>nul
+
 :Launch
 call "%~dp0\..\.bin\Scripts\Launch.cmd" Program "%~dp0\..\.bin\ProduKey" "ProduKey.exe" "!args!" /admin
 
 :Done
+popd
 endlocal

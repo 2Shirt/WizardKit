@@ -59,9 +59,9 @@ if (!(ask "Did RKill run correctly?" "$log")) {
 
 # TDSSKiller Rootkit scan
 wk-write "* Running Rootkit scan" "$log"
-if (test-path "$WKPath\Tools\.bin\TDSSKiller.exe") {
+if (test-path "$bin\TDSSKiller.exe") {
     md "$WKPath\Quarantine\TDSSKiller" 2>&1 | out-null
-    start -wait "$WKPath\Tools\.bin\TDSSKiller.exe" -argumentlist @("-l", "$logpath\TDSSKiller.log", "-qpath", "$WKPath\Quarantine\TDSSKiller", "-accepteula", "-accepteulaksn", "-dcexact", "-tdlfs")
+    start -wait "$bin\TDSSKiller.exe" -argumentlist @("-l", "$logpath\TDSSKiller.log", "-qpath", "$WKPath\Quarantine\TDSSKiller", "-accepteula", "-accepteulaksn", "-dcexact", "-tdlfs")
 } else {
     wk-error "  TDSSKiller.exe missing. Please verify Wizard-Kit was copied correctly."
 }
@@ -165,8 +165,7 @@ if (!(test-path "$logpath\bleachbit.log")) {
 # Autoruns
 if (!(test-path "$logpath\autoruns.arn")) {
     wk-write "* Starting background autoruns scan" "$log"
-    New-Item "HKCU:\Software\Sysinternals" 2>&1 | out-null
-    New-Item "HKCU:\Software\Sysinternals\AutoRuns" 2>&1 | out-null
+    New-Item -Path "HKCU:\Software\Sysinternals\AutoRuns" -Force 2>&1 | out-null
     Set-ItemProperty -Path "HKCU:\Software\Sysinternals\AutoRuns" -Name "checkvirustotal" -Value 1 -Type "DWord" | out-null
     Set-ItemProperty -Path "HKCU:\Software\Sysinternals\AutoRuns" -Name "EulaAccepted" -Value 1 -Type "DWord" | out-null
     Set-ItemProperty -Path "HKCU:\Software\Sysinternals\AutoRuns" -Name "shownomicrosoft" -Value 1 -Type "DWord" | out-null
@@ -223,12 +222,27 @@ if (!(test-path "$logpath\keys.txt")) {
     start -wait $prog -argumentlist @("/nosavereg", "/stext", "$logpath\keys.txt") -workingdirectory "$bin\ProduKey"
 }
 
+## Block Windows 10 ##
+if ($win_version -notmatch '^10$') {
+    # Kill GWX
+    taskkill /f /im gwx.exe
+    
+    # Block upgrade via registry
+    New-Item -Path "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\OSUpgrade" -Force 2>&1 | out-null
+    Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\OSUpgrade" -Name "AllowOSUpgrade" -Value 0 -Type "DWord" | out-null
+    Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\OSUpgrade" -Name "ReservationsAllowed" -Value 0 -Type "DWord" | out-null
+    New-Item -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows\Gwx" -Force 2>&1 | out-null
+    Set-ItemProperty -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows\Gwx" -Name "DisableGwx" -Value 1 -Type "DWord" | out-null
+    New-Item -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate" -Force 2>&1 | out-null
+    Set-ItemProperty -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate" -Name "DisableOSUpgrade" -Value 1 -Type "DWord" | out-null
+}
+
 ## Summary ##
 wk-write "" "$log"
 
 # Removed temp file size
 wk-write "==== Temp Files ====" "$log"
-$bb = (gc "$logpath\bleachbit.log") -imatch '(disk space recovered|files deleted)'
+$bb = (gc "$logpath\bleachbit.log") -imatch '^(disk space.*recovered|files.*deleted)'
 foreach ($_ in $bb) {
     $_ = "  " + $_
     wk-write $_ "$log"
@@ -295,7 +309,7 @@ wk-write "" "$log"
 # Updates Check
 # TODO: Finish and test this
 #wk-write "==== Windows Updates ====" "$log"
-#import-module "$WKPath\Tools\.bin\Scripts\PSWindowsUpdate"
+#import-module "$bin\Scripts\PSWindowsUpdate"
 # Check last install date
 #get-wuhistory | sort-object date -descending | select-object -first 1
 # Check if installs CS

@@ -6,4 +6,4 @@ for %%f in (%*) do (
 )
 
 :Launch
-call "%~dp0\..\.bin\Scripts\Launch.cmd" Console "%~dp0\..\.bin\Scripts" "check_disk.cmd" "" /admin
+call "%~dp0\..\.bin\Scripts\Launch.cmd" PSScript "%~dp0\..\.bin\Scripts" "check_disk.ps1" /admin
