@@ -1,11 +1,11 @@
-# WK-Exit SafeMode
+# Wizard Kit: Exit SafeMode removing safeboot from {default}
 
 ## Init ##
 $wd = $(Split-Path $MyInvocation.MyCommand.Path)
 pushd "$wd"
 . .\init.ps1
 clear
-$host.UI.RawUI.WindowTitle = "WK SafeMode Tool"
+$host.UI.RawUI.WindowTitle = "Wizard Kit: SafeMode Tool"
 
 # Ask user
 if (!(ask "Disable booting to SafeMode?")) {

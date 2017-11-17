@@ -1,3 +1,5 @@
+# Wizard Kit: List battery health by checking the current max charge against the original value
+
 param([string]$log = "Battery.log")
 if ($log -match '^Battery.log$') {
     $log = "{0}\Battery.log" -f (gci env:temp).value
@@ -13,16 +15,16 @@ try {
     $message = "  Last full charge was {0:N0}% of designed capacity" -f $last_percentage
 
     if ($last_percentage -eq 100) {
-        wk-warn "  Unable to determine battery health" "$log"
+        WK-warn "  Unable to determine battery health" "$log"
     } elseif ($last_percentage -ge 90) {
-        wk-write $message "$log"
+        WK-write $message "$log"
     } elseif ($last_percentage -ge 50) {
-        wk-warn $message "$log"
+        WK-warn $message "$log"
     } else {
-        wk-error $message "$log"
+        WK-error $message "$log"
     }
 } catch {
-    wk-warn "  No battery detected" "$log"
+    WK-warn "  No battery detected" "$log"
 }
 
 ## Done ##

@@ -8,7 +8,7 @@ for %%f in (%*) do (
 )
 
 :Init
-title WK System File Checker
+title Wizard Kit: System File Checker
 color 1b
 
 :ScheduleCheck

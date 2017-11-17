@@ -1,3 +1,5 @@
+# Wizard Kit: List the data usage for the current user (and other users when possible)
+
 param([string]$log)
 
 cd $(Split-Path $MyInvocation.MyCommand.Path)
@@ -32,17 +34,17 @@ function print-dir-size ($name, $location) {
         $total = "{0:N0}" -f $bytes
         $s = "    {0} {1} Bytes ({2})" -f $name.PadRight(10), $total.PadLeft(7), $location
     }
-    wk-write "$s" "$log"
+    WK-write "$s" "$log"
 }
 
 foreach ($user in get-wmiobject -class win32_useraccount) {
     if (test-path registry::hku\$($user.sid)) {
-        wk-write ("  User: {0}" -f $user.name) "$log"
+        WK-write ("  User: {0}" -f $user.name) "$log"
         
         # Profile
         $user_profile = gp "registry::hklm\software\microsoft\windows nt\currentversion\profilelist\$($user.sid)"
         print-dir-size "Profile" $user_profile.ProfileImagePath
-        wk-write "    ------------------------" "$log"
+        WK-write "    ------------------------" "$log"
         
         # Shell Folders
         $shell_folders = gp "registry::hku\$($user.sid)\software\microsoft\windows\currentversion\explorer\shell folders"
@@ -72,6 +74,6 @@ foreach ($user in get-wmiobject -class win32_useraccount) {
         }
         
         # Spacer
-        wk-write "" "$log"
+        WK-write "" "$log"
     }
 }

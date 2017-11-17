@@ -1,14 +1,14 @@
-# WK-Check Disk
+# Wizard Kit: Check Disk
 
 ## Init ##
 $wd = $(Split-Path $MyInvocation.MyCommand.Path)
 pushd "$wd"
 . .\init.ps1
 clear
-$host.UI.RawUI.WindowTitle = "WK Check Disk Tool"
+$host.UI.RawUI.WindowTitle = "Wizard Kit: Check Disk Tool"
 
 # OS Check
-. .\os_check.ps1
+. .\check_os.ps1
 
 ## Run Scan (fix) ##
 write-host "$systemdrive (System Drive)"

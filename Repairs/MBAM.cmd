@@ -6,25 +6,16 @@ for %%f in (%*) do (
 )
 
 :FindBin
-set bin=
-pushd "%~dp0"
+set bin= & pushd "%~dp0"
 :FindBinInner
-if exist ".bin" (
-    set "bin=%cd%\.bin"
-    goto FindBinDone
-)
-if "%~d0\" == "%cd%" (
-    goto FindBinDone
-) else (
-    cd ..
-)
-goto FindBinInner
+if exist ".bin" goto FindBinDone
+if "%~d0\" == "%cd%" goto ErrorNoBin
+cd .. & goto FindBinInner
 :FindBinDone
-popd
-if not defined bin goto ErrorNoBin
+set "bin=%cd%\.bin" & popd
 
 :Install
-call "%bin%\Scripts\Launch.cmd" Program "%bin%" "MBAM.exe" "" /wait
+call "%bin%\Scripts\Launch.cmd" Program "%bin%\..\Installers\Extras\Security" "Malwarebytes Anti-Malware.exe" "" /wait
 
 :Launch
 if exist "%programfiles%\Malwarebytes Anti-Malware\mbam.exe" (call "%bin%\Scripts\Launch.cmd" Program "%programfiles%\Malwarebytes Anti-Malware" "mbam.exe" "")
@@ -32,6 +23,7 @@ if exist "%programfiles(x86)%\Malwarebytes Anti-Malware\mbam.exe" (call "%bin%\S
 goto Exit
 
 :ErrorNoBin
+popd
 color 4e
 echo ".bin" folder not found, aborting script.
 echo.

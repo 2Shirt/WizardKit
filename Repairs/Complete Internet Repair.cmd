@@ -6,26 +6,17 @@ for %%f in (%*) do (
 )
 
 :FindBin
-set bin=
-pushd "%~dp0"
+set bin= & pushd "%~dp0"
 :FindBinInner
-if exist ".bin" (
-    set "bin=%cd%\.bin"
-    goto FindBinDone
-)
-if "%~d0\" == "%cd%" (
-    goto FindBinDone
-) else (
-    cd ..
-)
-goto FindBinInner
+if exist ".bin" goto FindBinDone
+if "%~d0\" == "%cd%" goto ErrorNoBin
+cd .. & goto FindBinInner
 :FindBinDone
-popd
-if not defined bin goto ErrorNoBin
+set "bin=%cd%\.bin" & popd
 
-:WKInfo
-rem Create WK\Info\YYYY-MM-DD and set path as %log_dir%
-call "%bin%\Scripts\wk_info.cmd"
+:Init
+rem Create %client_dir%\Info\YYYY-MM-DD and set path as %log_dir%
+call "%bin%\Scripts\init_client_dir.cmd" /Info
 
 :LaunchERUNT
 rem Backup registry first
@@ -39,6 +30,7 @@ call "%bin%\Scripts\Launch.cmd" Program "%bin%\Complete Internet Repair" "ComInt
 goto Exit
 
 :ErrorNoBin
+popd
 color 4e
 echo ".bin" folder not found, aborting script.
 echo.

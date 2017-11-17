@@ -1,3 +1,5 @@
+# Wizard Kit: List installed RAM (and speed if possible)
+
 param([string]$log)
 
 cd $(Split-Path $MyInvocation.MyCommand.Path)
@@ -34,9 +36,9 @@ foreach ($dev in $mem) {
     $_size = $dev.Capacity/1gb
     $_loc = $dev.DeviceLocator
     $_type = $ram_speeds."$($dev.Speed)"
-    wk-write $("  {0:N2} Gb ({1}) {2}" -f $_size,$_loc,$_type) "$log"
+    WK-write $("  {0:N2} Gb ({1}) {2}" -f $_size,$_loc,$_type) "$log"
     $total += $dev.Capacity
 }
-wk-write "  -------" "$log"
-wk-write $("  {0:N2} Gb Usable" -f $($cs.TotalPhysicalMemory/1gb)) "$log"
-wk-write $("  {0:N2} Gb Installed" -f $($total/1gb)) "$log"
+WK-write "  -------" "$log"
+WK-write $("  {0:N2} Gb Usable" -f $($cs.TotalPhysicalMemory/1gb)) "$log"
+WK-write $("  {0:N2} Gb Installed" -f $($total/1gb)) "$log"

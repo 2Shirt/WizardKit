@@ -8,7 +8,7 @@ for %%f in (%*) do (
 )
 
 :Init
-title WK CheckDisk
+title Wizard Kit: CheckDisk
 color 1b
 
 :ScheduleCheck

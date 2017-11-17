@@ -1,3 +1,5 @@
+# Wizard Kit: List free space for all drives
+
 param([string]$log)
 
 cd $(Split-Path $MyInvocation.MyCommand.Path)
@@ -28,5 +30,5 @@ foreach ($d in [char]'C'..[char]'Z') {
         }
         $drive[$x] = $tmp
     }
-    wk-write $("  {0}  {1:N0}% Free  ({2} / {3})" -f $letter, $percent, $drive[2], $drive[1]) $log
+    WK-write $("  {0}  {1:N0}% Free  ({2} / {3})" -f $letter, $percent, $drive[2], $drive[1]) $log
 }

@@ -1,6 +1,4 @@
-# WK-Init
-#
-# Some common settings and functions
+# Wizard Kit: Common settings and functions
 
 $host.UI.RawUI.BackgroundColor = "black"
 $host.UI.RawUI.ForegroundColor = "green"
@@ -20,10 +18,10 @@ $programfiles86 = $programfiles
 if (test-path env:"programfiles(x86)") {
     $programfiles86 = (gci env:"programfiles(x86)").value
 }
-$WKPath = "$systemdrive\WK"
+$ClientPath = "$systemdrive\WK"
 $date = get-date -uformat "%Y-%m-%d"
 $date_time = get-date -uformat "%Y-%m-%d_%H%M"
-$logpath = "$WKPath\Info\$date"
+$logpath = "$ClientPath\Info\$date"
 
 function ask {
     param([string]$text = "Kotaero", [string]$log = "WK.log")
@@ -43,17 +41,17 @@ function ask {
     out-file -filepath $log -inputobject $text -append
     return $answer
 }
-function wk-error {
+function WK-error {
     param([string]$text = "ERROR", [string]$log = "WK.log")
     write-host ($text) -foreground "red"
     out-file -filepath $log -inputobject $text -append
 }
-function wk-warn {
+function WK-warn {
     param([string]$text = "WARNING", [string]$log = "WK.log")
     write-host ($text) -foreground "yellow"
     out-file -filepath $log -inputobject $text -append
 }
-function wk-write {
+function WK-write {
     param([string]$text = "<TODO>", [string]$log = "WK.log")
     write-host ($text)
     out-file -filepath $log -inputobject $text -append

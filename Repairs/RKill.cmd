@@ -6,27 +6,18 @@ for %%f in (%*) do (
 )
 
 :FindBin
-set bin=
-pushd "%~dp0"
+set bin= & pushd "%~dp0"
 :FindBinInner
-if exist ".bin" (
-    set "bin=%cd%\.bin"
-    goto FindBinDone
-)
-if "%~d0\" == "%cd%" (
-    goto FindBinDone
-) else (
-    cd ..
-)
-goto FindBinInner
+if exist ".bin" goto FindBinDone
+if "%~d0\" == "%cd%" goto ErrorNoBin
+cd .. & goto FindBinInner
 :FindBinDone
-popd
-if not defined bin goto ErrorNoBin
+set "bin=%cd%\.bin" & popd
 
 :Init
 setlocal EnableDelayedExpansion
 color 1b
-title WK Launcher
+title Wizard Kit: Launcher
 
 :CheckHardLinks
 pushd "%bin%\RKill"
@@ -35,9 +26,9 @@ for %%r in (explorer.exe iExplore.exe RKill.com RKill.scr uSeRiNiT.exe WiNlOgOn.
 )
 popd
 
-:WKInfo
-rem Create WK\Info\YYYY-MM-DD and set path as !log_dir!
-call "%bin%\Scripts\wk_info.cmd"
+:CreateInfoDir
+rem Create %client_dir%\Info\YYYY-MM-DD and set path as !log_dir!
+call "%bin%\Scripts\init_client_dir.cmd" /Info
 
 :RKill
 echo Scanning system with RKill...
@@ -71,6 +62,7 @@ color
 goto Exit
 
 :ErrorNoBin
+popd
 color 4e
 echo ".bin" folder not found, aborting script.
 echo.

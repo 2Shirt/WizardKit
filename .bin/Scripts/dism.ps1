@@ -1,20 +1,20 @@
-# WK-DISM wrapper
+# Wizard Kit: DISM wrapper
 
 ## Init ##
 $wd = $(Split-Path $MyInvocation.MyCommand.Path)
 pushd "$wd"
 . .\init.ps1
 clear
-$host.UI.RawUI.WindowTitle = "WK DISM wrapper"
-$logpath = "$WKPath\Info\$date"
+$host.UI.RawUI.WindowTitle = "Wizard Kit: DISM wrapper"
+$logpath = "$ClientPath\Info\$date"
 md "$logpath" 2>&1 | out-null
 $log = "$logpath\DISM.log"
 $bin = (Get-Item $wd).Parent.FullName
 
 # OS Check
-. .\os_check.ps1
+. .\check_os.ps1
 if ($win_version -notmatch '^8|10$') {
-    wk-error "This tool is not intended for $os_name."
+    WK-error "This tool is not intended for $os_name."
 } else {
     # Get mode
     $modes = @(

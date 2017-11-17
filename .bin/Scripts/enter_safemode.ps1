@@ -1,11 +1,11 @@
-# WK-Enter SafeMode
+# Wizard Kit: Enter SafeMode by setting it as {default}
 
 ## Init ##
 $wd = $(Split-Path $MyInvocation.MyCommand.Path)
 pushd "$wd"
 . .\init.ps1
 clear
-$host.UI.RawUI.WindowTitle = "WK SafeMode Tool"
+$host.UI.RawUI.WindowTitle = "Wizard Kit: SafeMode Tool"
 
 # Ask user
 if (!(ask "Enable booting to SafeMode (with Networking)?")) {

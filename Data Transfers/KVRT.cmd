@@ -6,25 +6,18 @@ for %%f in (%*) do (
 )
 
 :FindBin
-set bin=
-pushd "%~dp0"
+set bin= & pushd "%~dp0"
 :FindBinInner
-if exist ".bin" (
-    set "bin=%cd%\.bin"
-    goto FindBinDone
-)
-if "%~d0\" == "%cd%" (
-    goto FindBinDone
-) else (
-    cd ..
-)
-goto FindBinInner
+if exist ".bin" goto FindBinDone
+if "%~d0\" == "%cd%" goto ErrorNoBin
+cd .. & goto FindBinInner
 :FindBinDone
-popd
-if not defined bin goto ErrorNoBin
+set "bin=%cd%\.bin" & popd
 
-:CreateQuarantineDir
-set "q_dir=%systemdrive%\WK\Quarantine\KVRT"
+:Init
+rem Set %client_dir%
+call "%bin%\Scripts\init_client_dir.cmd" /Quarantine
+set "q_dir=%client_dir%\Quarantine\KVRT"
 mkdir "%q_dir%">nul 2>&1
 
 :Launch
@@ -32,6 +25,7 @@ call "%bin%\Scripts\Launch.cmd" Program "%bin%" "KVRT.exe" "-accepteula -d %q_di
 goto Exit
 
 :ErrorNoBin
+popd
 color 4e
 echo ".bin" folder not found, aborting script.
 echo.

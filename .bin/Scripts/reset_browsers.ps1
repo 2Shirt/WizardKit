@@ -1,13 +1,13 @@
-# WK-BrowserReset
+# Wizard Kit: Reset web browsers to safe default while saving user data
 
 ## Init ##
 $wd = $(Split-Path $MyInvocation.MyCommand.Path)
 pushd "$wd"
 . .\init.ps1
 clear
-$host.UI.RawUI.WindowTitle = "WK Browser Reset Tool"
-$backup_path = "$WKPath\Backups\$username\$date"
-$logpath = "$WKPath\Info\$date"
+$host.UI.RawUI.WindowTitle = "Wizard Kit: Browser Reset Tool"
+$backup_path = "$ClientPath\Backups\$username\$date"
+$logpath = "$ClientPath\Info\$date"
 md "$backup_path" 2>&1 | out-null
 md "$logpath" 2>&1 | out-null
 $log = "$logpath\Browsers.log"
@@ -22,15 +22,15 @@ if (test-path "$programfiles\Mozilla Firefox\firefox.exe") {
     $ff_exe = "$programfiles\Mozilla Firefox\firefox.exe"
 }
 $ff_profile_list = @(gci "$ff_appdata\Profiles" 2> $null | ?{ $_.PSIsContainer })
-$ff_profile_list = $ff_profile_list -inotmatch '\.wkbak'
+$ff_profile_list = $ff_profile_list -inotmatch '\.WKBak'
 $chrome_appdata = "$localappdata\Google\Chrome"
 $chrome_clean = $false
 $chrome_exe = "$programfiles86\Google\Chrome\Application\chrome.exe"
 $chrome_profile_list = @(gci "$chrome_appdata\User Data" 2> $null | ?{ $_.PSIsContainer })
-$chrome_profile_list = $chrome_profile_list -inotmatch '\.wkbak' -imatch '^(Default|Profile)'
+$chrome_profile_list = $chrome_profile_list -inotmatch '\.WKBak' -imatch '^(Default|Profile)'
 
 # OS Check
-. .\os_check.ps1
+. .\check_os.ps1
 if ($arch -eq 64) {
     $sz = "$bin\7-Zip\7za64.exe"
 }
@@ -39,27 +39,27 @@ if ($arch -eq 64) {
 function gen-backup-name {
     param ([String]$name)
     
-    # Add .wkbak to name
-    $newname = "$name.wkbak"
+    # Add .WKBak to name
+    $newname = "$name.WKBak"
     
     # Check if the new name exists
     if (test-path "$newname") {
         # Change name to avoid overwriting any backups
         $x = 2
-        $newname = "$name.wkbak$x"
+        $newname = "$name.WKBak$x"
         while (test-path "$newname") {
             $x += 1
-            $newname = "$name.wkbak$x"
+            $newname = "$name.WKBak$x"
         }
     }
     
     return $newname
 }
 function ff-create-default-profile {
-    wk-write "  Creating new default profile" "$log"
+    WK-write "  Creating new default profile" "$log"
     # Check for existing profiles
     if ($ff_profile_list.length -gt 0) {
-        wk-error "  Firefox profile folders found. Possibly corrupt?" "$log"
+        WK-error "  Firefox profile folders found. Possibly corrupt?" "$log"
         return $false
     }
 
@@ -78,7 +78,7 @@ function ff-create-default-profile {
             "default")
         start -wait "$ff_exe" -argumentlist $ff_args -windowstyle minimized
     } else {
-        wk-error "  firefox.exe not found. Please verify installation." "$log"
+        WK-error "  firefox.exe not found. Please verify installation." "$log"
         return $false
     }
     return $true
@@ -86,11 +86,11 @@ function ff-create-default-profile {
 
 
 ## Internet Explorer ##
-wk-write "==== Internet Explorer ====" "$log"
+WK-write "==== Internet Explorer ====" "$log"
 
 # Cleanup
 if (test-path ".bin\Bleachbit") {
-    wk-write "  Removing temporary files" "$log"
+    WK-write "  Removing temporary files" "$log"
     pushd ".bin\Bleachbit"
     start -wait "bleachbit_console.exe" -argumentlist @("-c", "internet_explorer.forms", "internet_explorer.temporary_files", "winapp2_internet.internet_explorer_10_11") -verb runas -windowstyle minimized
     popd
@@ -98,7 +98,7 @@ if (test-path ".bin\Bleachbit") {
 
 # Backup Favorites
 if (test-path "$userprofile\Favorites") {
-    wk-write "  Backing up Favorites" "$log"
+    WK-write "  Backing up Favorites" "$log"
     pushd "$userprofile"
     $sz_args = @(
         "a",
@@ -123,10 +123,10 @@ if (ask "  Reset to default settings?" "$log") {
 $_current_homepage = $ie_settings."Start Page"
 if ($_current_homepage -ne $null -and $_current_homepage.Length -ne 0) {
     $_secondary_homepages = @($ie_settings."Secondary Start Pages")
-    wk-write "  Current homepage: $_current_homepage" "$log"
+    WK-write "  Current homepage: $_current_homepage" "$log"
     foreach ($p in $_secondary_homepages) {
         if ($p -ne $null -and $p.Length -ne 0) {
-            wk-write "                    $p" "$log"
+            WK-write "                    $p" "$log"
         }
     }
     if ($_current_homepage -inotmatch '^https://www\.google\.com/$' -or $_secondary_homepages -imatch '^.+') {
@@ -135,7 +135,7 @@ if ($_current_homepage -ne $null -and $_current_homepage.Length -ne 0) {
 }
 
 # Set homepage(s)
-wk-write "  Setting homepage" "$log"
+WK-write "  Setting homepage" "$log"
 if ($reset_homepage) {
     sp -path hkcu:"Software\Microsoft\Internet Explorer\Main" -name "Start Page" -Value "https://www.google.com/" 2>&1 | out-null
     rp -path hkcu:"Software\Microsoft\Internet Explorer\Main" -name "Secondary Start Pages" 2>&1 | out-null
@@ -153,19 +153,18 @@ if (test-path "$programfiles86\Internet Explorer\iexplore.exe") {
     #    start -wait "$programfiles86\Internet Explorer\iexplore.exe" -argumentlist "https://adblockplus.org"
     #}
 } else {
-    wk-error "  $programfiles86\Internet Explorer\iexplore.exe not found" "$log"
+    WK-error "  $programfiles86\Internet Explorer\iexplore.exe not found" "$log"
 }
-wk-write "" "$log"
-pause
+WK-write "" "$log"
 
 
 ## Mozilla Firefox ##
-wk-write "==== Mozilla Firefox ====" "$log"
+WK-write "==== Mozilla Firefox ====" "$log"
 $ff_errors = 0
 
 # Reduce size of AppData folder
 if (test-path ".bin\Bleachbit") {
-    wk-write "  Removing temporary files" "$log"
+    WK-write "  Removing temporary files" "$log"
     pushd ".bin\Bleachbit"
     start -wait "bleachbit_console.exe" -argumentlist @("-c", "firefox.cache", "firefox.forms", "firefox.session_restore", "firefox.vacuum", "winapp2_mozilla.corrupt_sqlites") -verb runas -nonewwindow
     popd
@@ -173,7 +172,7 @@ if (test-path ".bin\Bleachbit") {
 
 # Backup AppData
 if (test-path "$ff_appdata") {
-    wk-write "  Backing up AppData" "$log"
+    WK-write "  Backing up AppData" "$log"
     pushd "$ff_appdata"
     $sz_args = @(
         "a",
@@ -192,20 +191,20 @@ if ($ff_profile_list.length -eq 0) {
         # Update profile list to catch newly created profiles
         sleep -s 1
         $ff_profile_list = @(gci "$ff_appdata\Profiles" 2> $null | ?{ $_.PSIsContainer })
-        $ff_profile_list = $ff_profile_list -inotmatch '\.wkbak\d*$'
+        $ff_profile_list = $ff_profile_list -inotmatch '\.WKBak\d*$'
         if ($ff_profile_list.length -eq 0) {
-            wk-warn "  Failed to create default profile." "$log"
+            WK-warn "  Failed to create default profile." "$log"
             $ff_errors += 1
         } else {
             # Configure new profile
             $ff_clean = $true
         }
     } else {
-        wk-error "  Failed to create default profile." "$log"
+        WK-error "  Failed to create default profile." "$log"
         $ff_errors += 1
     }
 } else {
-    wk-write "  Profiles found: $($ff_profile_list.length)" "$log"
+    WK-write "  Profiles found: $($ff_profile_list.length)" "$log"
     $ff_clean = (ask "  Reset profile(s) to safe settings?" "$log")
 }
 
@@ -213,7 +212,7 @@ if ($ff_profile_list.length -eq 0) {
 if ($ff_clean -and $ff_errors -eq 0) {
     pushd "$ff_appdata\Profiles"
     foreach ($ff_profile in $ff_profile_list) {
-        wk-write "  Resetting profile: $ff_profile" "$log"
+        WK-write "  Resetting profile: $ff_profile" "$log"
 
         # Backup old settings and only preserve essential settings
         $ff_profile_bak = (gen-backup-name "$ff_profile")
@@ -249,7 +248,7 @@ if ($ff_clean -and $ff_errors -eq 0) {
         }
 
         # Set homepage and search settings
-        wk-write "    Setting homepage and default search" "$log"
+        WK-write "    Setting homepage and default search" "$log"
         out-file -encoding 'ascii' -filepath "$ff_profile\prefs.js" -inputobject 'user_pref("browser.search.geoSpecificDefaults", false);'
         out-file -encoding 'ascii' -filepath "$ff_profile\prefs.js" -inputobject 'user_pref("browser.search.defaultenginename", "Google");' -append
         out-file -encoding 'ascii' -filepath "$ff_profile\prefs.js" -inputobject 'user_pref("browser.search.defaultenginename.US", "Google");' -append
@@ -261,7 +260,7 @@ if ($ff_clean -and $ff_errors -eq 0) {
                 $_current_homepage = $_current_homepage -ireplace 'user_pref\("browser.startup.homepage", "(.*)"\);', '$1'
                 $_header = "    Current homepage:"
                 foreach ($url in  @("$_current_homepage".split("|"))) {
-                    wk-write "$_header $_current_homepage" "$log"
+                    WK-write "$_header $_current_homepage" "$log"
                     $_header = "                     "
                 }
                 if ($_current_homepage -inotmatch '^https://www\.google\.com/$') {
@@ -273,7 +272,7 @@ if ($ff_clean -and $ff_errors -eq 0) {
         }
         $homepage = 'user_pref("browser.startup.homepage", "' + $homepage + '");'
         out-file -encoding 'ascii' -filepath "$ff_profile\prefs.js" -inputobject $homepage -append
-        wk-write "" "$log"
+        WK-write "" "$log"
     }
     popd
 }
@@ -284,20 +283,19 @@ if (test-path "$ff_exe") {
         start -wait "$ff_exe" -argumentlist "https://addons.mozilla.org/en-us/firefox/addon/ublock-origin/"
     }
 } else {
-    wk-error "  firefox.exe not found. Please verify installation." "$log"
+    WK-error "  firefox.exe not found. Please verify installation." "$log"
 }
 
-wk-write "" "$log"
-pause
+WK-write "" "$log"
 
 
 ## Google Chrome ##
-wk-write "==== Google Chrome ====" "$log"
+WK-write "==== Google Chrome ====" "$log"
 $chrome_errors = 0
 
 # Reduce size of AppData folder
 if (test-path ".bin\Bleachbit") {
-    wk-write "  Removing temporary files" "$log"
+    WK-write "  Removing temporary files" "$log"
     pushd ".bin\Bleachbit"
     start -wait "bleachbit_console.exe" -argumentlist @("-c", "google_chrome.cache", "google_chrome.form_history", "google_chrome.search_engines", "google_chrome.session", "google_chrome.vacuum") -verb runas -nonewwindow
     popd
@@ -305,7 +303,7 @@ if (test-path ".bin\Bleachbit") {
 
 # Backup AppData
 if (test-path "$chrome_appdata") {
-    wk-write "  Backing up AppData" "$log"
+    WK-write "  Backing up AppData" "$log"
     pushd "$chrome_appdata"
     $sz_args = @(
         "a",
@@ -319,17 +317,17 @@ if (test-path "$chrome_appdata") {
 
 # Check for profiles
 if ($chrome_profile_list.length -gt 0) {
-    wk-write "  Profiles found: $($chrome_profile_list.length)" "$log"
+    WK-write "  Profiles found: $($chrome_profile_list.length)" "$log"
     $chrome_clean = (ask "  Reset profile(s) to safe settings?" "$log")
 } else {
-    wk-warn "  No profiles found" "$log"
+    WK-warn "  No profiles found" "$log"
 }
 
 # Reset profile(s) to safe defaults
 if ($chrome_clean -and $chrome_errors -eq 0) {
     pushd "$chrome_appdata\User Data"
     foreach ($chrome_profile in $chrome_profile_list) {
-        wk-write "  Cleaning profile: $chrome_profile" "$log"
+        WK-write "  Cleaning profile: $chrome_profile" "$log"
         $chrome_profile_bak = (gen-backup-name "$chrome_profile")
         mv "$chrome_profile" "$chrome_profile_bak"
         md "$chrome_profile" 2>&1 | out-null
@@ -349,7 +347,7 @@ if ($chrome_clean -and $chrome_errors -eq 0) {
             '"Visited Links"',
             '"Web Data"')
         start "robocopy" -argumentlist $robocopy_args -wait -windowstyle minimized
-        wk-write "" "$log"
+        WK-write "" "$log"
     }
     popd
 }
@@ -357,7 +355,7 @@ if ($chrome_clean -and $chrome_errors -eq 0) {
 # Test for single-user installation
 if (test-path "$chrome_appdata\Application\chrome.exe") {
     if (test-path "$chrome_exe") {
-        wk-warn "  Single-user and multi-user installations present. Please reinstall Chrome." "$log"
+        WK-warn "  Single-user and multi-user installations present. Please reinstall Chrome." "$log"
     } else {
         $chrome_exe = "$chrome_appdata\Application\chrome.exe"
     }
@@ -372,9 +370,9 @@ if (test-path "$chrome_exe") {
         start -wait "$chrome_exe" -argumentlist "https://chrome.google.com/webstore/detail/ublock-origin/cjpalhdlnbpafiamejdnhcphjbkeiagm?hl=en"
     }
 } else {
-    wk-error "  chrome.exe not found. Please verify installation." "$log"
+    WK-error "  chrome.exe not found. Please verify installation." "$log"
 }
-wk-write "" "$log"
+WK-write "" "$log"
 
 
 ## Done ##

@@ -6,30 +6,21 @@ for %%f in (%*) do (
 )
 
 :FindBin
-set bin=
-pushd "%~dp0"
+set bin= & pushd "%~dp0"
 :FindBinInner
-if exist ".bin" (
-    set "bin=%cd%\.bin"
-    goto FindBinDone
-)
-if "%~d0\" == "%cd%" (
-    goto FindBinDone
-) else (
-    cd ..
-)
-goto FindBinInner
+if exist ".bin" goto FindBinDone
+if "%~d0\" == "%cd%" goto ErrorNoBin
+cd .. & goto FindBinInner
 :FindBinDone
-popd
-if not defined bin goto ErrorNoBin
+set "bin=%cd%\.bin" & popd
+
+:Init
+rem Create %client_dir%\Info\YYYY-MM-DD and set path as %log_dir%
+call "%bin%\Scripts\init_client_dir.cmd" /Info /Quarantine
 
 :CreateQuarantineDir
-set "q_dir=%systemdrive%\WK\Quarantine\TDSSKiller"
+set "q_dir=%client_dir%\Quarantine\TDSSKiller"
 mkdir "%q_dir%">nul 2>&1
-
-:WKInfo
-rem Create WK\Info\YYYY-MM-DD and set path as %log_dir%
-call "%bin%\Scripts\wk_info.cmd"
 
 :Launch
 call "%bin%\Scripts\Launch.cmd" Program "%bin%" "TDSSKiller.exe" "-l %log_dir%\TDSSKiller.log -qpath %q_dir% -accepteula -accepteulaksn -dcexact -tdlfs"
@@ -37,6 +28,7 @@ rem call "%bin%\Scripts\Launch.cmd" Program "%bin%" "TDSSKiller.exe" "-l %log_di
 goto Exit
 
 :ErrorNoBin
+popd
 color 4e
 echo ".bin" folder not found, aborting script.
 echo.

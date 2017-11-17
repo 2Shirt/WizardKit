@@ -109,21 +109,6 @@ if (test-path "$programfiles\SUPERAntiSpyware") {
     }
 }
 
-## Block Windows 10 ##
-if ($win_version -notmatch '^10$') {
-    # Kill GWX
-    taskkill /f /im gwx.exe
-    
-    # Block upgrade via registry
-    New-Item -Path "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\OSUpgrade" -Force 2>&1 | out-null
-    Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\OSUpgrade" -Name "AllowOSUpgrade" -Value 0 -Type "DWord" | out-null
-    Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\OSUpgrade" -Name "ReservationsAllowed" -Value 0 -Type "DWord" | out-null
-    New-Item -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows\Gwx" -Force 2>&1 | out-null
-    Set-ItemProperty -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows\Gwx" -Name "DisableGwx" -Value 1 -Type "DWord" | out-null
-    New-Item -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate" -Force 2>&1 | out-null
-    Set-ItemProperty -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate" -Name "DisableOSUpgrade" -Value 1 -Type "DWord" | out-null
-}
-
 ## Summary ##
 wk-write "" "$log"
 wk-write "Starting SW Checklist" "$log"
@@ -136,19 +121,35 @@ if (!(test-path "$logpath\Registry")) {
 }
 
 # AIDA64
-if (!(test-path "$logpath\aida-keys.txt")) {
+if (!(test-path "$logpath\keys-aida64.txt")) {
     wk-write "* Running AIDA64 (Product Keys)" "$log"
-    start -wait "$bin\AIDA64\aida64.exe" -argumentlist @("/R", "$logpath\aida-keys.txt", "/CUSTOM", "$bin\AIDA64\licenses.rpf", "/TEXT", "/SILENT", "/SAFEST") -workingdirectory "$bin\AIDA64"
+    start -wait "$bin\AIDA64\aida64.exe" -argumentlist @("/R", "$logpath\keys-aida64.txt", "/CUSTOM", "$bin\AIDA64\licenses.rpf", "/TEXT", "/SILENT", "/SAFEST") -workingdirectory "$bin\AIDA64"
 }
 
-if (!(test-path "$logpath\aida-installed_programs.txt")) {
+if (!(test-path "$logpath\program_list-aida64.txt")) {
     wk-write "* Running AIDA64 (SW listing)" "$log"
-    start -wait "$bin\AIDA64\aida64.exe" -argumentlist @("/R", "$logpath\aida-installed_programs.txt", "/CUSTOM", "$bin\AIDA64\installed_programs.rpf", "/TEXT", "/SILENT", "/SAFEST") -workingdirectory "$bin\AIDA64"
+    start -wait "$bin\AIDA64\aida64.exe" -argumentlist @("/R", "$logpath\program_list-aida64.txt", "/CUSTOM", "$bin\AIDA64\installed_programs.rpf", "/TEXT", "/SILENT", "/SAFEST") -workingdirectory "$bin\AIDA64"
 }
 
 if (!(test-path "$logpath\aida64.htm")) {
     wk-write "* Running AIDA64 (Full listing) in background" "$log"
     start "$bin\AIDA64\aida64.exe" -argumentlist @("/R", "$logpath\aida64.html", "/CUSTOM", "$bin\AIDA64\full.rpf", "/HTML", "/SILENT") -workingdirectory "$bin\AIDA64"
+}
+
+# SIV
+if (!(test-path "$logpath\keys-siv.txt")) {
+    wk-write "* Running SIV (Product Keys)" "$log"
+    start -wait "$siv" -argumentlist @("-KEYS", "-LOCAL", "-UNICODE", "-SAVE=[product-ids]=$logpath\keys-siv.txt") -workingdirectory "$bin\SIV"
+}
+
+if (!(test-path "$logpath\program_list-siv.txt")) {
+    wk-write "* Running SIV (SW listing)" "$log"
+    start -wait "$siv" -argumentlist @("-KEYS", "-LOCAL", "-UNICODE", "-SAVE=[software]=$logpath\program_list-siv.txt") -workingdirectory "$bin\SIV"
+}
+
+if (!(test-path "$logpath\aida64.htm")) {
+    wk-write "* Running SIV (Full listing) in background" "$log"
+    start -wait "$siv" -argumentlist @("-KEYS", "-LOCAL", "-UNICODE", "-SAVE=$logpath\siv.txt") -workingdirectory "$bin\SIV"
 }
 
 # Product Keys
@@ -159,9 +160,9 @@ rm "$bin\tmp\ProduKey*.cfg"
 sleep -s 1
 
 ## Run
-if (!(test-path "$logpath\keys.txt")) {
+if (!(test-path "$logpath\keys-produkey.txt")) {
     wk-write "* Saving Product Keys" "$log"
-    start -wait $produkey -argumentlist @("/nosavereg", "/stext", "$logpath\keys.txt") -workingdirectory "$bin\tmp"
+    start -wait $produkey -argumentlist @("/nosavereg", "/stext", "$logpath\keys-produkey.txt") -workingdirectory "$bin\tmp"
 }
 
 # User Data
@@ -252,7 +253,7 @@ out-file -encoding "ASCII" -filepath "$wd\psftp_batch" -inputobject $batch
 # Upload files
 $psftp_args = @(
     "-noagent",
-    "-i", "$bin\PuTTY\Wizard-Kit.ppk",
+    "-i", "$bin\PuTTY\WK.ppk",
     "$diag_user@$diag_server",
     "-b", "$wd\psftp_batch")
 start "$bin\PuTTY\PSFTP.exe" -argumentlist $psftp_args -wait -windowstyle minimized

@@ -1,11 +1,11 @@
-# WK-Checklist
+# Wizard Kit: Diagnostics Tool
 
 ## Init ##
 $wd = $(Split-Path $MyInvocation.MyCommand.Path)
 pushd "$wd"
 . .\init.ps1
 clear
-$host.UI.RawUI.WindowTitle = "WK Diagnostics Tool"
+$host.UI.RawUI.WindowTitle = "Wizard Kit: Diagnostics Tool"
 $backup_path = "$WKPath\Backups\$username\$date"
 $logpath = "$WKPath\Info\$date"
 md "$backup_path" 2>&1 | out-null
@@ -18,6 +18,7 @@ $diag_user = "wkdiag"
 $conemu = "$bin\cmder_mini\vendor\conemu-maximus5\ConEmu.exe"
 $sz = "$bin\7-Zip\7za.exe"
 $produkey = "$bin\tmp\ProduKey.exe"
+$siv = "$bin\SIV\SIV.exe"
 
 # OS Check
 . .\os_check.ps1
@@ -25,6 +26,7 @@ if ($arch -eq 64) {
     $conemu = "$bin\cmder_mini\vendor\conemu-maximus5\ConEmu64.exe"
     $sz = "$bin\7-Zip\7za64.exe"
     $produkey = "$bin\tmp\ProduKey64.exe"
+    $siv = "$bin\SIV\SIV64.exe"
 }
 
 # Set Service Order
@@ -187,19 +189,35 @@ if (!(test-path "$logpath\autoruns.arn")) {
 }
 
 # AIDA64
-if (!(test-path "$logpath\aida-keys.txt")) {
+if (!(test-path "$logpath\keys-aida64.txt")) {
     wk-write "* Running AIDA64 (Product Keys)" "$log"
-    start -wait "$bin\AIDA64\aida64.exe" -argumentlist @("/R", "$logpath\aida-keys.txt", "/CUSTOM", "$bin\AIDA64\licenses.rpf", "/TEXT", "/SILENT", "/SAFEST") -workingdirectory "$bin\AIDA64"
+    start -wait "$bin\AIDA64\aida64.exe" -argumentlist @("/R", "$logpath\keys-aida64.txt", "/CUSTOM", "$bin\AIDA64\licenses.rpf", "/TEXT", "/SILENT", "/SAFEST") -workingdirectory "$bin\AIDA64"
 }
 
-if (!(test-path "$logpath\aida-installed_programs.txt")) {
+if (!(test-path "$logpath\program_list-aida64.txt")) {
     wk-write "* Running AIDA64 (SW listing)" "$log"
-    start -wait "$bin\AIDA64\aida64.exe" -argumentlist @("/R", "$logpath\aida-installed_programs.txt", "/CUSTOM", "$bin\AIDA64\installed_programs.rpf", "/TEXT", "/SILENT", "/SAFEST") -workingdirectory "$bin\AIDA64"
+    start -wait "$bin\AIDA64\aida64.exe" -argumentlist @("/R", "$logpath\program_list-aida64.txt", "/CUSTOM", "$bin\AIDA64\installed_programs.rpf", "/TEXT", "/SILENT", "/SAFEST") -workingdirectory "$bin\AIDA64"
 }
 
 if (!(test-path "$logpath\aida64.htm")) {
     wk-write "* Running AIDA64 (Full listing) in background" "$log"
     start "$bin\AIDA64\aida64.exe" -argumentlist @("/R", "$logpath\aida64.html", "/CUSTOM", "$bin\AIDA64\full.rpf", "/HTML", "/SILENT") -workingdirectory "$bin\AIDA64"
+}
+
+# SIV
+if (!(test-path "$logpath\keys-siv.txt")) {
+    wk-write "* Running SIV (Product Keys)" "$log"
+    start -wait "$siv" -argumentlist @("-KEYS", "-LOCAL", "-UNICODE", "-SAVE=[product-ids]=$logpath\keys-siv.txt") -workingdirectory "$bin\SIV"
+}
+
+if (!(test-path "$logpath\program_list-siv.txt")) {
+    wk-write "* Running SIV (SW listing)" "$log"
+    start -wait "$siv" -argumentlist @("-KEYS", "-LOCAL", "-UNICODE", "-SAVE=[software]=$logpath\program_list-siv.txt") -workingdirectory "$bin\SIV"
+}
+
+if (!(test-path "$logpath\aida64.htm")) {
+    wk-write "* Running SIV (Full listing) in background" "$log"
+    start -wait "$siv" -argumentlist @("-KEYS", "-LOCAL", "-UNICODE", "-SAVE=$logpath\siv.txt") -workingdirectory "$bin\SIV"
 }
 
 # Product Keys
@@ -210,24 +228,9 @@ rm "$bin\tmp\ProduKey*.cfg"
 sleep -s 1
 
 ## Run
-if (!(test-path "$logpath\keys.txt")) {
+if (!(test-path "$logpath\keys-produkey.txt")) {
     wk-write "* Saving Product Keys" "$log"
-    start -wait $produkey -argumentlist @("/nosavereg", "/stext", "$logpath\keys.txt") -workingdirectory "$bin\tmp"
-}
-
-# Block Windows 10 #
-if ($win_version -notmatch '^10$') {
-    # Kill GWX
-    taskkill /f /im gwx.exe
-    
-    # Block upgrade via registry
-    New-Item -Path "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\OSUpgrade" -Force 2>&1 | out-null
-    Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\OSUpgrade" -Name "AllowOSUpgrade" -Value 0 -Type "DWord" | out-null
-    Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\OSUpgrade" -Name "ReservationsAllowed" -Value 0 -Type "DWord" | out-null
-    New-Item -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows\Gwx" -Force 2>&1 | out-null
-    Set-ItemProperty -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows\Gwx" -Name "DisableGwx" -Value 1 -Type "DWord" | out-null
-    New-Item -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate" -Force 2>&1 | out-null
-    Set-ItemProperty -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate" -Name "DisableOSUpgrade" -Value 1 -Type "DWord" | out-null
+    start -wait $produkey -argumentlist @("/nosavereg", "/stext", "$logpath\keys-produkey.txt") -workingdirectory "$bin\tmp"
 }
 
 ## Summary ##
@@ -254,7 +257,7 @@ wk-write "" "$log"
 
 # List installed Office programs
 wk-write "==== Installed Office Programs ====" "$log"
-$installed_office = (gc "$logpath\aida-installed_programs.txt") -imatch 'Office' | sort
+$installed_office = (gc "$logpath\program_list-aida64.txt") -imatch 'Office' | sort
 foreach ($_ in $installed_office) {
     $_ = $_ -ireplace '^\s+(.*?)\s\s+.*', '$1'
     wk-write "  $_" "$log"
@@ -263,7 +266,7 @@ wk-write "" "$log"
 
 # Saved keys
 wk-write "==== Found Product Keys ====" "$log"
-$keys = (gc "$logpath\keys.txt") -imatch '(product.name)'
+$keys = (gc "$logpath\keys-produkey.txt") -imatch '(product.name)'
 foreach ($_ in $keys) {
     $_ = $_ -ireplace '^product name\s+: ', '  '
     wk-write $_ "$log"
@@ -333,7 +336,7 @@ out-file -encoding "ASCII" -filepath "$wd\psftp_batch" -inputobject $batch
 ## Upload files
 $psftp_args = @(
     "-noagent",
-    "-i", "$bin\PuTTY\Wizard-Kit.ppk",
+    "-i", "$bin\PuTTY\WK.ppk",
     "$diag_user@$diag_server",
     "-b", "$wd\psftp_batch")
 start "$bin\PuTTY\PSFTP.exe" -argumentlist $psftp_args -wait -windowstyle minimized

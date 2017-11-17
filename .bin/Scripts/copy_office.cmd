@@ -8,57 +8,68 @@ for %%f in (%*) do (
 
 :Init
 setlocal EnableDelayedExpansion
-title WK Office Installer
+title Wizard Kit: Office Installer
 color 1b
 echo Initializing...
-set "pd=%cd%"
-set "NAS=\\10.0.0.10\Office"
-set "dest=%systemdrive%\WK\Office"
-set "source=%~1"
-pushd "!NAS!"
 
-:VerifyCopyAndRun
-if /i "!source!" == "" (goto UsageError)
+:FindBin
+set bin= & pushd "%~dp0"
+:FindBinInner
+if exist ".bin" goto FindBinDone
+if "%~d0\" == "%cd%" goto ErrorNoBin
+cd .. & goto FindBinInner
+:FindBinDone
+set "bin=%cd%\.bin" & popd
 
-if /i "!source:~-3,3!" == "exe" (
-    if not exist "!source!" goto OfficeNotFound
-    call :CopyFile "!source!"
-) else if /i "!source:~-3,3!" == "msi" (
-    if not exist "!source!" goto OfficeNotFound
-    call :CopyFile "!source!"
-) else (
-    if not exist "!source!\setup.exe" goto OfficeNotFound
-    call :CopyFolder "!source!"
+:SetVariables
+if /i "!PROCESSOR_ARCHITECTURE!" == "AMD64" set "arch=64"
+set "fastcopy=%bin%\FastCopy\FastCopy.exe"
+if !arch! equ 64 (
+    set "fastcopy=%bin%\FastCopy\FastCopy64.exe"
 )
+set "fastcopy_args=/cmd=diff /no_ui /auto_close"
+rem Create %client_dir%\Office
+call "%bin%\Scripts\init_client_dir.cmd" /Office
+set "product=%~1"
+set "source=\\10.0.0.10\Office\%product%"
+set "dest=%client_dir%\Office"
+
+:FileOrFolder
+if /i "%source%" == ""          goto UsageError
+if /i "%source:~-3,3%" == "exe" goto CopyFile
+if /i "%source:~-3,3%" == "msi" goto CopyFile
+goto CopyFolder
+
+:CopyFile
+if not exist "%source%" goto OfficeNotFound
+echo Copying installer...
+start "" /wait "%fastcopy%" %fastcopy_args% "%source%" /to="%dest%\%product:0,4%\"
+:: Run Setup ::
+start "" "%dest%\%product:0,4%\%product:~5%"
 goto Done
 
-:: Sub-routines ::
-:CopyFile
-set "file=%~1"
-echo Copying files...
-mkdir "!dest!" > nul 2>&1
-robocopy /r:3 /w:0 "!file:~0,4!" "!dest!" "!file:~5!"
-:: Run Setup ::
-start "" "!dest!\!file:~5!"
-goto :EOF
-
 :CopyFolder
-set "folder=%~1"
-mkdir "!dest!\!folder!" > nul 2>&1
-robocopy /s /r:3 /w:0 "!folder!" "!dest!\!folder!"
+if not exist "%source%\setup.exe" goto OfficeNotFound
+echo Copying setup files...
+start "" /wait "%fastcopy%" %fastcopy_args% "%source%" /to="%dest%\%product:0,4%\"
 :: Run Setup ::
-if exist "!dest!\!folder!\configuration.xml" (
-    pushd "!dest!\!folder!"
+if exist "%dest%\%product:0,4%\configuration.xml" (
+    pushd "%dest%\%product:0,4%"
     start "" "setup.exe" /configure
     popd
 ) else (
-    start "" "!dest!\!folder!\setup.exe"
+    start "" "%dest%\%product:0,4%\setup.exe"
 )
-goto :EOF
+goto Done
 
 :: Errors ::
+:ErrorNoBin
+popd
+echo ERROR: ".bin" folder not found.
+goto Abort
+
 :OfficeNotFound
-echo ERROR: "!source!" not found.
+echo ERROR: "%source%" not found.
 goto Abort
 
 :UsageError
@@ -71,21 +82,16 @@ goto Abort
 color 4e
 echo.
 echo Aborted.
+echo.
+echo Press any key to exit...
+pause>nul
 goto Exit
 
 :Done
-set silent=true
 echo.
 echo Done.
 goto Exit
 
 :Exit
-rem if not defined silent (
-rem     echo Press any key to exit...
-rem     pause>nul
-rem )
-popd
 color
 endlocal
-
-:EOF
