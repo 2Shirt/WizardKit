@@ -7,23 +7,28 @@ import re
 os.chdir(os.path.dirname(os.path.realpath(__file__)))
 os.system('title Wizard Kit: SW Bundle Tool')
 from functions import *
-vars = init_vars()
-vars_os = init_vars_os()
+vars_wk = init_vars_wk()
+vars_wk.update(init_vars_os())
 
 if __name__ == '__main__':
+    stay_awake(vars_wk)
+    errors = False
+    
     # Adobe Reader
-    if vars_os['Version'] != 'Vista':
+    if vars_wk['Version'] != 'Vista':
         print('Installing Adobe Reader DC...')
-        _prog = '{BaseDir}/Installers/Extras/Office/Adobe Reader DC.exe'.format(**vars)
+        _prog = '{BaseDir}/Installers/Extras/Office/Adobe Reader DC.exe'.format(**vars_wk)
         _args = ['/sAll', '/msi', '/norestart', '/quiet', 'ALLUSERS=1', 'EULA_ACCEPT=YES']
         try:
             run_program(_prog, _args)
         except:
             print_error('Failed to install Adobe Reader DC')
+            errors = True
     
     # Visual C++ Redists
     print('Installing Visual C++ Runtimes...')
-    os.chdir('{BinDir}/_vcredists'.format(**vars))
+    extract_item('_vcredists', vars_wk, silent=True)
+    os.chdir('{BinDir}/_vcredists'.format(**vars_wk))
     _redists = [
         # 2005
         {'Prog':    'msiexec',
@@ -61,19 +66,22 @@ if __name__ == '__main__':
             run_program(vcr['Prog'], vcr['Args'], check=False)
         except:
             print_error('Failed to install {}'.format(vcr['Prog']))
+            errors = True
     
     # Main Bundle
-    if vars_os['Version'] in ['Vista', '7']:
+    if vars_wk['Version'] in ['Vista', '7']:
         # Legacy selection
         if ask('Install MSE?'):
-            _prog = '{BaseDir}/Installers/Extras/Security/Microsoft Security Essentials.exe'.format(**vars)
-            run_program(_prog, check=False)
-        _prog = '{BaseDir}/Installers/Extras/Bundles/Legacy.exe'.format(**vars)
-        run_program(_prog, check=False)
-    elif vars_os['Version'] in ['8', '10']:
+            _prog = '{BaseDir}/Installers/Extras/Security/Microsoft Security Essentials.exe'.format(**vars_wk)
+            subprocess.Popen(_prog)
+        _prog = '{BaseDir}/Installers/Extras/Bundles/Legacy.exe'.format(**vars_wk)
+        subprocess.Popen(_prog)
+    elif vars_wk['Version'] in ['8', '10']:
         # Modern selection
-        _prog = '{BaseDir}/Installers/Extras/Bundles/Modern.exe'.format(**vars)
-        run_program(_prog, check=False)
+        _prog = '{BaseDir}/Installers/Extras/Bundles/Modern.exe'.format(**vars_wk)
+        subprocess.Popen(_prog)
     
-    pause("Press Enter to exit...")
+    if errors:
+        pause("Press Enter to exit...")
+    kill_process('caffeine.exe')
     quit()

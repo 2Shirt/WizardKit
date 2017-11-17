@@ -34,116 +34,6 @@ def resolve_dynamic_url(source_url, regex):
     _tmp_file = '{TmpDir}/webpage.tmp'.format(**vars)
     _args = ['-#LSfo', _tmp_file, source_url]
     try:
-<<<<<<< HEAD
-        run_program(cmd)
-    except subprocess.CalledProcessError:
-        errors = True
-        print_error('Failed to apply Windows image.')
-
-    # Create boot files
-    if not errors:
-        print('  Creating boot files...'.format(**selected_windows_version))
-        try:
-            run_program('bcdboot W:\\Windows /s S: /f ALL')
-        except subprocess.CalledProcessError:
-            errors = True
-            print_error('Failed to create boot files.')
-        if re.search(r'^(8|10)', selected_windows_version['Family']):
-            try:
-                run_program('W:\\Windows\\System32\\reagentc /setreimage /path T:\\Recovery\\WindowsRE /target W:\\Windows')
-            except subprocess.CalledProcessError:
-                # errors = True # Changed to warning.
-                print_warning('Failed to setup WindowsRE files.')
-
-    # Print summary
-    if errors:
-        print_warning('\nErrors were encountered during setup.')
-        time.sleep(300)
-    else:
-        print_success('\nNo errors were encountered during setup.')
-        time.sleep(10)
-    pause('\nPress Enter to return to main menu... ')
-
-def menu_tools():
-    tools = [
-        {'Name': 'Blue Screen View', 'Folder': 'BlueScreenView', 'File': 'BlueScreenView.exe'},
-        {'Name': 'CPU-Z', 'Folder': 'CPU-Z', 'File': 'cpuz.exe'},
-        {'Name': 'Explorer++', 'Folder': 'Explorer++', 'File': 'Explorer++.exe'},
-        {'Name': 'Fast Copy', 'Folder': 'FastCopy', 'File': 'FastCopy.exe', 'Args': ['/log', '/logfile=X:\WK\Info\FastCopy.log', '/cmd=noexist_only', '/utf8', '/skip_empty_dir', '/linkdest', '/open_window', '/balloon=FALSE', r'/exclude=$RECYCLE.BIN;$Recycle.Bin;.AppleDB;.AppleDesktop;.AppleDouble;.com.apple.timemachine.supported;.dbfseventsd;.DocumentRevisions-V100*;.DS_Store;.fseventsd;.PKInstallSandboxManager;.Spotlight*;.SymAV*;.symSchedScanLockxz;.TemporaryItems;.Trash*;.vol;.VolumeIcon.icns;desktop.ini;Desktop?DB;Desktop?DF;hiberfil.sys;lost+found;Network?Trash?Folder;pagefile.sys;Recycled;RECYCLER;System?Volume?Information;Temporary?Items;Thumbs.db']},
-        {'Name': 'HWiNFO', 'Folder': 'HWiNFO', 'File': 'HWiNFO.exe'},
-        {'Name': 'HW Monitor', 'Folder': 'HWMonitor', 'File': 'HWMonitor.exe'},
-        {'Name': 'NT Password Editor', 'Folder': 'NT Password Editor', 'File': 'ntpwedit.exe'},
-        {'Name': 'Notepad2', 'Folder': 'Notepad2', 'File': 'Notepad2-Mod.exe'},
-        {'Name': 'PhotoRec', 'Folder': 'TestDisk', 'File': 'photorec_win.exe', 'Args': ['-new_console:n']},
-        {'Name': 'Prime95', 'Folder': 'Prime95', 'File': 'prime95.exe'},
-        {'Name': 'ProduKey', 'Folder': 'ProduKey', 'File': 'ProduKey.exe', 'Args': ['/external', '/ExtractEdition:1']},
-        {'Name': 'Q-Dir', 'Folder': 'Q-Dir', 'File': 'Q-Dir.exe'},
-        {'Name': 'TestDisk', 'Folder': 'TestDisk', 'File': 'testdisk_win.exe', 'Args': ['-new_console:n']},
-        ]
-    actions = [
-        {'Name': 'Main Menu', 'Letter': 'M'},
-        ]
-
-    # Menu loop
-    while True:
-        selection = menu_select('Tools Menu', tools, actions)
-
-        if (selection.isnumeric()):
-            tool = tools[int(selection)-1]
-            cmd = ['{bin}\\{folder}\\{file}'.format(bin=bin, folder=tool['Folder'], file=tool['File'])]
-            if tool['Name'] == 'Blue Screen View':
-                # Select path to scan
-                minidump_path = select_minidump_path()
-                if minidump_path is not None:
-                    tool['Args'] = ['/MiniDumpFolder', minidump_path]
-            if 'Args' in tool:
-                cmd += tool['Args']
-            try:
-                subprocess.Popen(cmd)
-            except:
-                print_error('Failed to run {prog}'.format(prog=tool['Name']))
-            time.sleep(2)
-        elif (selection == 'M'):
-            break
-
-def menu_main():
-    menus = [
-        {'Name': 'Create Backups', 'Menu': menu_backup_imaging},
-        {'Name': 'Install Windows', 'Menu': menu_windows_setup},
-        {'Name': 'Misc Tools', 'Menu': menu_tools},
-        ]
-    actions = [
-        {'Name': 'Command Prompt', 'Letter': 'C'},
-        {'Name': 'Reboot', 'Letter': 'R'},
-        {'Name': 'Shutdown', 'Letter': 'S'},
-        ]
-
-    # Main loop
-    while True:
-        selection = menu_select('Main Menu', menus, actions, secret_exit=True)
-
-        if (selection.isnumeric()):
-            try:
-                menus[int(selection)-1]['Menu']()
-            except AbortException:
-                pass
-            except:
-                print_error('Major exception in: {menu}'.format(menu=menus[int(selection)-1]['Name']))
-                print_warning('  Please let The Wizard know and he\'ll look into it (Please include the details below).')
-                print(traceback.print_exc())
-                print_info('  You can reboot and try again but if this crashes again an alternative approach is required.')
-                time.sleep(300)
-                pause('Press Enter to shutdown...')
-                run_program(['wpeutil', 'shutdown'])
-        elif (selection == 'C'):
-            run_program(['cmd', '-new_console:n'], check=False)
-        elif (selection == 'R'):
-            run_program(['wpeutil', 'reboot'])
-        elif (selection == 'S'):
-            run_program(['wpeutil', 'shutdown'])
-        else:
-            quit()
-=======
         os.makedirs(vars['TmpDir'], exist_ok=True)
         run_program(curl, _args)
     except:
@@ -161,9 +51,9 @@ def menu_main():
     # Cleanup and return
     os.remove(_tmp_file)
     return _url
->>>>>>> d9a6f8abf55c460cf0adeea19aded1786b3bc5d0
 
 if __name__ == '__main__':
+    stay_awake(vars_wk)
     ## Diagnostics ##
     # HitmanPro
     _path = '{BinDir}/HitmanPro'.format(**vars)
@@ -216,44 +106,6 @@ if __name__ == '__main__':
     download_file(_path, _name, _url)
 
     ## Driver Tools ##
-    # Acer Serial Number Detect Tool
-    _path = '{BinDir}/_Drivers'.format(**vars)
-    _name = 'Acer Serial Number Detect Tool.exe'
-    _url = 'http://global-download.acer.com/SupportFiles/Files/SNID/APP/SerialNumberDetectionTool.exe'
-    download_file(_path, _name, _url)
-
-    # AMD Autodetect
-    _path = '{BinDir}/_Drivers'.format(**vars)
-    _name = 'AMD Autodetect.exe'
-    _url = 'http://www2.ati.com/drivers/auto/autodetectutility.exe'
-    download_file(_path, _name, _url)
-
-    # AMD Gaming Evolved
-    _path = '{BinDir}/_Drivers'.format(**vars)
-    _name = 'AMD Gaming Evolved.exe'
-    _url = 'http://clientupdater.raptr.com/client/pc/amd/raptr_installer.exe'
-    download_file(_path, _name, _url)
-
-    # Dell System Detect
-    _path = '{BinDir}/_Drivers'.format(**vars)
-    _name = 'Dell System Detect.exe'
-    _url = 'https://downloads.dell.com/tools/dellsystemdetect/dellsystemdetectlauncher.exe'
-    download_file(_path, _name, _url)
-
-    #~Broken~# # GeForce Experience
-    #~Broken~# _path = '{BinDir}/_Drivers'.format(**vars)
-    #~Broken~# _name = 'GeForce Experience.exe'
-    #~Broken~# _dl_page = 'http://www.geforce.com/geforce-experience/download'
-    #~Broken~# _regex = r'href=.*http(s|)://us\.download\.nvidia\.com/GFE/GFEClient/[0-9\.]+/GeForce_Experience_v[0-9\.]+\.exe'
-    #~Broken~# _url = resolve_dynamic_url(_dl_page, _regex)
-    #~Broken~# download_file(_path, _name, _url)
-
-    # HP Support Solutions Framework
-    _path = '{BinDir}/_Drivers'.format(**vars)
-    _name = 'HP Support Solutions Framework.exe'
-    _url = 'http://h20614.www2.hp.com/ediags/filehosting/api/installer'
-    download_file(_path, _name, _url)
-
     # Intel Driver Update Utility
     _path = '{BinDir}/_Drivers'.format(**vars)
     _name = 'Intel Driver Update Utility.exe'
@@ -272,12 +124,6 @@ if __name__ == '__main__':
     _url = re.sub(r'.*httpDown=(.*)', r'\1', _url, flags=re.IGNORECASE)
     _url = _url.replace('%3A', ':')
     _url = _url.replace('%2F', '/')
-    download_file(_path, _name, _url)
-
-    # Lenovo Service Bridge
-    _path = '{BinDir}/_Drivers'.format(**vars)
-    _name = 'Lenovo Service Bridge.exe'
-    _url = 'https://download.lenovo.com/lsb/LSBsetup.exe'
     download_file(_path, _name, _url)
 
     #~Broken~# # Samsung Magician
@@ -308,12 +154,6 @@ if __name__ == '__main__':
     _path = '{BinDir}/_Drivers'.format(**vars)
     _name = 'SanDisk Express Cache.exe'
     _url = 'http://mp3support.sandisk.com/ReadyCache/ExpressCacheSetup.exe'
-    download_file(_path, _name, _url)
-
-    # Toshiba System Detect
-    _path = '{BinDir}/_Drivers'.format(**vars)
-    _name = 'Toshiba System Detect.exe'
-    _url = 'http://cdgenp01.csd.toshiba.com/content/support/downloads/GetProductInfo.exe'
     download_file(_path, _name, _url)
 
     ## Installers ##
@@ -448,6 +288,24 @@ if __name__ == '__main__':
     download_file(_path, 'Google Chrome.exe', 'https://ninite.com/chrome/ninite.exe')
     download_file(_path, 'Mozilla Firefox.exe', 'https://ninite.com/firefox/ninite.exe')
     download_file(_path, 'Opera Chromium.exe', 'https://ninite.com/operaChromium/ninite.exe')
+    
+    ## Misc ##
+    # Sysinternals
+    _path = '{BinDir}/tmp'.format(**vars)
+    _name = 'SysinternalsSuite.zip'
+    _url = 'https://download.sysinternals.com/files/SysinternalsSuite.zip'
+    download_file(_path, _name, _url)
+    # Extract
+    _args = [
+        'e', '"{BinDir}/tmp/SysinternalsSuite.zip"'.format(**vars),
+        '-aoa', '-bso0', '-bsp0',
+        '-o"{BinDir}/SysinternalsSuite"'.format(**vars)]
+    run_program(seven_zip, _args)
+    try:
+        os.remove('{BinDir}/tmp/SysinternalsSuite.zip'.format(**vars))
+    except:
+        pass
 
     pause("Press Enter to exit...")
+    kill_process('caffeine.exe')
     quit()

@@ -1,6 +1,7 @@
-:: Wizard Kit: Create Info folder using current date
+:: Wizard Kit: Create client_dir folder(s)
 
 @echo off
+if defined DEBUG (@echo on)
 
 :Flags
 set _backups=
