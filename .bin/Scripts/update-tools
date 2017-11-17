@@ -1,0 +1,118 @@
+#!/usr/bin/env python3
+#
+## WK Tool Updater
+
+import os
+import re
+import requests
+import shutil
+import zipfile
+from bs4 import BeautifulSoup
+
+def download_file(path, name, url):
+    print("Downloading {}...".format(name))
+    if url is not None:
+        r = requests.get(url, stream=True)
+        # If request succeeds then download
+        if r.status_code == 200:
+            os.makedirs(path, exist_ok=True)
+            filename = '{}/{}'.format(path, name)
+            with open(filename, 'wb') as f:
+                shutil.copyfileobj(r.raw, f)
+        else:
+            print("    Error downloading: {}".format(name))
+
+def find_dynamic_url(dl_page, regex):
+    r = requests.get(dl_page)
+    soup = BeautifulSoup(r.content)
+    url = None
+    for link in soup.find_all('a'):
+        if re.search(regex, link.get('href'), re.IGNORECASE):
+            url = link.get('href')
+            break
+    return url
+
+## Chdir to parent folder of script (i.e. Kit root)
+os.chdir(os.path.dirname(os.path.realpath(__file__)))
+os.chdir(os.path.pardir)
+os.chdir(os.path.pardir)
+
+print('Updating tools...')
+## AdwCleaner
+path = '.bin'
+name = 'AdwCleaner.exe'
+dl_page = 'http://www.bleepingcomputer.com/download/adwcleaner/dl/125/'
+regex = r'^http://download\.bleepingcomputer\.com/dl/[a-zA-Z0-9]+/[a-zA-Z0-9]+/windows/security/security-utilities/a/adwcleaner/AdwCleaner\.exe'
+download_file(path, name, find_dynamic_url(dl_page, regex))
+
+## ComboFix
+path = '.bin'
+name = 'ComboFix.exe'
+dl_page = 'http://www.bleepingcomputer.com/download/combofix/dl/12/'
+regex = r'^http://download\.bleepingcomputer\.com/dl/[a-zA-Z0-9]+/[a-zA-Z0-9]+/windows/security/anti-virus/c/combofix/ComboFix\.exe'
+download_file(path, name, find_dynamic_url(dl_page, regex))
+
+## ESET Online Scanner
+path = '.bin'
+name = 'ESET.exe'
+url = 'http://download.eset.com/special/eos/esetsmartinstaller_enu.exe'
+download_file(path, name, url)
+
+## HitmanPro
+path = '.bin/HitmanPro'
+name = 'HitmanPro.exe'
+url = 'http://dl.surfright.nl/HitmanPro.exe'
+download_file(path, name, url)
+name = 'HitmanPro64.exe'
+url = 'http://dl.surfright.nl/HitmanPro_x64.exe'
+download_file(path, name, url)
+
+## Junkware Removal Tool
+path = '.bin'
+name = 'JRT.exe'
+url = 'http://thisisudax.org/downloads/JRT.exe'
+download_file(path, name, url)
+
+## Kaspersky Virus Removal Tool
+path = '.bin'
+name = 'KVRT.exe'
+url = 'http://devbuilds.kaspersky-labs.com/devbuilds/KVRT/latest/full/KVRT.exe'
+download_file(path, name, url)
+
+## RKill
+path = '.bin/RKill'
+name = 'RKill.exe'
+dl_page = 'http://www.bleepingcomputer.com/download/rkill/dl/10/'
+regex = r'^http://download\.bleepingcomputer\.com/dl/[a-zA-Z0-9]+/[a-zA-Z0-9]+/windows/security/security-utilities/r/rkill/rkill\.exe'
+download_file(path, name, find_dynamic_url(dl_page, regex))
+
+## TDSSKiller
+path = '.bin'
+name = 'TDSSKiller.exe'
+url = 'http://media.kaspersky.com/utilities/VirusUtilities/EN/tdsskiller.exe'
+download_file(path, name, url)
+
+## WinAIO Repairs
+path = '.bin/Windows AIO Repair'
+url = 'http://www.tweaking.com/files/setups/tweaking.com_windows_repair_aio.zip'
+
+# Delete old version (saving settings)
+print('Removing old version of WinAIO Repair...')
+try:
+    shutil.move('.bin/Windows AIO Repair/settings-boh.ini', 'settings-boh.ini')
+    shutil.move('.bin/Windows AIO Repair/settings-foh.ini', 'settings-foh.ini')
+    shutil.rmtree('.bin/Windows AIO Repair')
+except FileNotFoundError:
+    pass
+
+# Download and extract new version
+download_file('.', 'Windows AIO Repair.zip', url)
+print('Extracting Windows AIO Repair...')
+with zipfile.ZipFile('Windows AIO Repair.zip') as z:
+    z.extractall('.bin') # Potentially dangerous (https://docs.python.org/3.4/library/zipfile.html#zipfile.ZipFile.extractall)
+shutil.move('.bin/Tweaking.com - Windows Repair', '.bin/Windows AIO Repair')
+
+# Preserve previous settings and remove zip file
+shutil.move('settings-boh.ini', '.bin/Windows AIO Repair/settings-boh.ini')
+shutil.move('settings-foh.ini', '.bin/Windows AIO Repair/settings-foh.ini')
+os.remove('Windows AIO Repair.zip')

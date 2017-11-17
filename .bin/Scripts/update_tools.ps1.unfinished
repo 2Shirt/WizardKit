@@ -1,0 +1,71 @@
+# Wizard-Kit-Updater
+
+## Init ##
+$wd = $(Split-Path $MyInvocation.MyCommand.Path)
+pushd "$wd"
+. .\init.ps1
+clear
+$host.UI.RawUI.WindowTitle = "Wizard Kit Update Tool"
+$bin = (Get-Item $wd).Parent.FullName
+$wget = "$bin\wget\wget.exe"
+
+# Functions
+function download-file {
+    param ([String]$name, [String]$url)
+    
+    write-host ("Downloading {0}" -f $name)
+    $args = @(
+        "--quiet", "−−show−progress",
+        "−−timestamping",
+        "$url"
+    )
+    start "$wget" -argumentlist $args -nonewwindow -wait
+}
+function find-dynamic-url {
+    param ([String]$source_page, [String]$regex)
+    $d_url = ""
+    
+    # Get source page
+    $wget_args = @(
+        "--quiet",
+        "-O", "tmp_page",
+        "$url")
+    start "$wget" -argumentlist $wget_args -nonewwindow -wait
+    
+    # Search for real url
+    $d_url = Get-Content "tmp_page" | Where-Object {$_ -imatch $regex}
+    $d_url = $d_url -ireplace '.*a href="(.*)".*', '$1'
+    
+    return $d_url
+}
+#function gen-backup-name {
+#    param ([String]$name)
+#    
+#    # Add .wkbak to name
+#    $newname = "$name.wkbak"
+#    
+#    # Check if the new name exists
+#    if (test-path "$newname") {
+#        # Change name to avoid overwriting any backups
+#        $x = 2
+#        $newname = "$name.wkbak$x"
+#        while (test-path "$newname") {
+#            $x += 1
+#            $newname = "$name.wkbak$x"
+#        }
+#    }
+#    
+#    return $newname
+#}
+
+## ComboFix
+$path = '.bin'
+$name = 'ComboFix.exe'
+$dl_page = 'http://www.bleepingcomputer.com/download/combofix/dl/12/'
+$regex = '^http://download\.bleepingcomputer\.com/dl/[a-zA-Z0-9]+/[a-zA-Z0-9]+/windows/security/anti-virus/c/combofix/ComboFix\.exe'
+#download_file(path, name, find_dynamic_url(dl_page, regex))
+write-host (find-dynamic-url $dl_page $regex)
+
+## Done ##
+popd
+pause "Press Enter to exit..."
