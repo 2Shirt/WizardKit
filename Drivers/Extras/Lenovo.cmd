@@ -6,10 +6,19 @@
 @echo off
 
 :Init
-setlocal
+setlocal EnableDelayedExpansion
 title Wizard Kit: Launcher
 call :CheckFlags %*
 call :FindBin
+call :SetTitle Launcher
+
+:Configure
+rem just configure for both x32 & x64
+for %%a in (32 64) do (
+    copy /y "%bin%\HWiNFO\general.ini" "%bin%\HWiNFO\HWiNFO%%a.ini"
+    (echo SensorsOnly=0)>>"%bin%\HWiNFO\HWiNFO%%a.ini"
+    (echo SummaryOnly=0)>>"%bin%\HWiNFO\HWiNFO%%a.ini"
+)
 
 :OpenDriverPage
 start "" "http://support.lenovo.com/us/en/products?tabName=Downloads"
@@ -33,8 +42,8 @@ start "" "http://support.lenovo.com/us/en/products?tabName=Downloads"
 :: Set L_NCMD to True to stay in the native console window
 :: Set L_WAIT to True to have the script wait until L_ITEM has comlpeted
 set L_TYPE=Program
-set L_PATH=AIDA64
-set L_ITEM=aida64.exe
+set L_PATH=HWiNFO
+set L_ITEM=HWiNFO.exe
 set L_ARGS=
 set L_7ZIP=
 set L_CHCK=True
@@ -79,6 +88,20 @@ goto FindBinInner
 set "bin=%cd%\.bin"
 set "cbin=%cd%\.cbin"
 popd
+@exit /b 0
+
+:SetTitle
+rem Sets title using KIT_NAME_FULL from settings\main.py
+set "SETTINGS=%bin%\Scripts\settings\main.py"
+for /f "tokens=* usebackq" %%f in (`findstr KIT_NAME_FULL %SETTINGS%`) do (
+    set "_v=%%f"
+    set "_v=!_v:*'=!"
+    set "KIT_NAME_FULL=!_v:~0,-1!"
+)
+set "window_title=%*"
+if not defined window_title set "window_title=Launcher"
+set "window_title=%KIT_NAME_FULL%: %window_title%"
+title %window_title%
 @exit /b 0
 
 :: Errors ::

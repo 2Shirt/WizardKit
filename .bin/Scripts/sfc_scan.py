@@ -1,19 +1,15 @@
-# Wizard Kit: SFC Tool
+# Wizard Kit: Check, and possibly repair, system file health via SFC
 
 import os
 import sys
 
 # Init
 os.chdir(os.path.dirname(os.path.realpath(__file__)))
-os.system('title Wizard Kit: SFC Tool')
 sys.path.append(os.getcwd())
-from functions import *
+from functions.repairs import *
 init_global_vars()
-
-def abort():
-    print_warning('Aborted.')
-    pause("Press Enter to exit...")
-    exit_script()
+os.system('title {}: SFC Tool'.format(KIT_NAME_FULL))
+global_vars['LogFile'] = r'{LogDir}\SFC Tool.log'.format(**global_vars)
 
 if __name__ == '__main__':
     try:
@@ -25,7 +21,8 @@ if __name__ == '__main__':
                 'GenericRepair':        'Repaired',
             }}
         stay_awake()
-        try_and_print(message='SFC scan...', function=run_sfc_scan, other_results=other_results)
+        try_and_print(message='SFC scan...',
+            function=run_sfc_scan, other_results=other_results)
         
         # Done
         print_standard('\nDone.')

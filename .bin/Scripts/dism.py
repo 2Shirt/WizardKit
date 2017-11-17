@@ -1,19 +1,15 @@
-# Wizard Kit: DISM wrapper
+# Wizard Kit: Check or repair component store health via DISM
 
 import os
 import sys
 
 # Init
 os.chdir(os.path.dirname(os.path.realpath(__file__)))
-os.system('title Wizard Kit: DISM helper Tool')
 sys.path.append(os.getcwd())
-from functions import *
+from functions.repairs import *
 init_global_vars()
-global_vars['LogFile'] = '{LogDir}\\DISM helper tool.log'.format(**global_vars)
-
-def abort():
-    print_warning('Aborted.')
-    exit_script()
+os.system('title {}: DISM helper Tool'.format(KIT_NAME_FULL))
+global_vars['LogFile'] = r'{LogDir}\DISM helper tool.log'.format(**global_vars)
 
 if __name__ == '__main__':
     try:
@@ -27,18 +23,24 @@ if __name__ == '__main__':
                 'UnsupportedOSError':   'Unsupported OS',
             }}
         options = [
-            {'Name': 'Check Health', 'Command': 'Check'},
-            {'Name': 'Restore Health', 'Command': 'Restore'}]
+            {'Name': 'Check Health', 'Repair': False},
+            {'Name': 'Restore Health', 'Repair': True}]
         actions = [{'Name': 'Quit', 'Letter': 'Q'}]
-        selection = menu_select('Please select action to perform', options, actions)
+        selection = menu_select(
+            'Please select action to perform', options, actions)
         os.system('cls')
         print_info('DISM helper tool')
         if selection == 'Q':
             abort()
-        elif options[int(selection)-1]['Command'] == 'Check':
-            try_and_print(message='DISM ScanHealth...', function=run_dism_scan_health, cs='No corruption', ns='Corruption detected', other_results=other_results)
-        elif options[int(selection)-1]['Command'] == 'Restore':
-            try_and_print(message='DISM RestoreHealth...', function=run_dism_restore_health, cs='No corruption', ns='Corruption detected', other_results=other_results)
+        elif selection.isnumeric():
+            repair = options[int(selection)-1]['Repair']
+            if repair:
+                message='DISM RestoreHealth...'
+            else:
+                message='DISM ScanHealth...'
+            try_and_print(message=message, function=run_dism,
+                cs='No corruption', ns='Corruption detected',
+                other_results=other_results, repair=repair)
         else:
             abort()
         

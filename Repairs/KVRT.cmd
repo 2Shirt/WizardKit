@@ -6,10 +6,11 @@
 @echo off
 
 :Init
-setlocal
+setlocal EnableDelayedExpansion
 title Wizard Kit: Launcher
 call :CheckFlags %*
 call :FindBin
+call :SetTitle Launcher
 call "%bin%\Scripts\init_client_dir.cmd" /Quarantine
 set "q_dir=%client_dir%\Quarantine\KVRT"
 mkdir "%q_dir%">nul 2>&1
@@ -79,6 +80,20 @@ goto FindBinInner
 set "bin=%cd%\.bin"
 set "cbin=%cd%\.cbin"
 popd
+@exit /b 0
+
+:SetTitle
+rem Sets title using KIT_NAME_FULL from settings\main.py
+set "SETTINGS=%bin%\Scripts\settings\main.py"
+for /f "tokens=* usebackq" %%f in (`findstr KIT_NAME_FULL %SETTINGS%`) do (
+    set "_v=%%f"
+    set "_v=!_v:*'=!"
+    set "KIT_NAME_FULL=!_v:~0,-1!"
+)
+set "window_title=%*"
+if not defined window_title set "window_title=Launcher"
+set "window_title=%KIT_NAME_FULL%: %window_title%"
+title %window_title%
 @exit /b 0
 
 :: Errors ::

@@ -6,10 +6,11 @@
 @echo off
 
 :Init
-setlocal
+setlocal EnableDelayedExpansion
 title Wizard Kit: Launcher
 call :CheckFlags %*
 call :FindBin
+call :SetTitle Launcher
 
 :DefineLaunch
 :: Set L_TYPE to one of these options:
@@ -35,7 +36,7 @@ set L_ITEM=Everything.exe
 set L_ARGS=-nodb
 set L_7ZIP=
 set L_CHCK=True
-set L_ELEV=
+set L_ELEV=True
 set L_NCMD=True
 set L_WAIT=
 
@@ -76,6 +77,20 @@ goto FindBinInner
 set "bin=%cd%\.bin"
 set "cbin=%cd%\.cbin"
 popd
+@exit /b 0
+
+:SetTitle
+rem Sets title using KIT_NAME_FULL from settings\main.py
+set "SETTINGS=%bin%\Scripts\settings\main.py"
+for /f "tokens=* usebackq" %%f in (`findstr KIT_NAME_FULL %SETTINGS%`) do (
+    set "_v=%%f"
+    set "_v=!_v:*'=!"
+    set "KIT_NAME_FULL=!_v:~0,-1!"
+)
+set "window_title=%*"
+if not defined window_title set "window_title=Launcher"
+set "window_title=%KIT_NAME_FULL%: %window_title%"
+title %window_title%
 @exit /b 0
 
 :: Errors ::

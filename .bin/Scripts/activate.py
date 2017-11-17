@@ -1,23 +1,20 @@
 # Wizard Kit: Activate Windows using various methods
 
 import os
-import re
 import sys
 
 # Init
 os.chdir(os.path.dirname(os.path.realpath(__file__)))
-os.system('title Wizard Kit: Windows Activation Tool')
 sys.path.append(os.getcwd())
-from functions import *
+from functions.activation import *
+from functions.common import *
 init_global_vars()
-
-def abort():
-    print_warning('Aborted.')
-    exit_script()
+os.system('title {}: Windows Activation Tool'.format(KIT_NAME_FULL))
 
 def activate_with_bios():
     """Attempt to activate Windows with a key stored in the BIOS."""
-    try_and_print(message='BIOS Activation:',   function=activate_windows_with_bios, other_results=other_results)
+    try_and_print(message='BIOS Activation:',
+        function=activate_windows_with_bios, other_results=other_results)
 
 if __name__ == '__main__':
     try:
@@ -25,13 +22,14 @@ if __name__ == '__main__':
         # Bail early if already activated
         if windows_is_activated():
             print_info('This system is already activated')
+            sleep(5)
             exit_script()
 
         # Determine activation method
         activation_methods = [
             {'Name': 'Activate with BIOS key', 'Function': activate_with_bios},
             ]
-        if not re.match(r'^(8|10)$', global_vars['OS']['Version']):
+        if global_vars['OS']['Version'] not in ['8', '10']:
             activation_methods[0]['Disabled'] = True
         actions = [
             {'Name': 'Quit', 'Letter': 'Q'},
@@ -39,7 +37,9 @@ if __name__ == '__main__':
 
         # Main loop
         while True:
-            selection = menu_select('Wizard Kit: Windows Activation Menu', activation_methods, actions)
+            selection = menu_select(
+                '{}: Windows Activation Menu'.format(KIT_NAME_FULL),
+                activation_methods, actions)
 
             if (selection.isnumeric()):
                 activation_methods[int(selection)-1]['Function']()

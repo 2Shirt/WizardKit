@@ -18,9 +18,16 @@ call :DeQuote L_PATH
 call :DeQuote L_TYPE
 
 :SetVariables
-set "ARCHIVE_PASS=Abracadabra"
-set "OFFICE_SERVER=10.0.0.10"
-set "QUICKBOOKS_SERVER=10.0.0.10"
+rem Set variables using settings\main.py file
+set "SETTINGS=%bin%\Scripts\settings\main.py"
+for %%v in (ARCHIVE_PASSWORD KIT_NAME_FULL OFFICE_SERVER_IP QUICKBOOKS_SERVER_IP) do (
+    set "var=%%v"
+    for /f "tokens=* usebackq" %%f in (`findstr "!var!=" %SETTINGS%`) do (
+        set "_v=%%f"
+        set "_v=!_v:*'=!"
+        set "%%v=!_v:~0,-1!"
+    )
+)
 rem Set ARCH to 32 as a gross assumption and check for x86_64 status
 set ARCH=32
 if /i "%PROCESSOR_ARCHITECTURE%" == "AMD64" set "ARCH=64"
@@ -33,6 +40,17 @@ if %ARCH% equ 64 (
     set "CON=%bin%\ConEmu\ConEmu64.exe"
     set "FASTCOPY=%bin%\FastCopy\FastCopy64.exe"
     set "PYTHON=%bin%\Python\x64\python.exe"
+)
+
+:UpdateTitle
+rem Sets title using KIT_NAME_FULL from settings\main.py (unless %window_title% already set)
+if defined window_title (
+    title %window_title%
+) else (
+    set "window_title=%*"
+    if not defined window_title set "window_title=Launcher"
+    set "window_title=%KIT_NAME_FULL%: %window_title%"
+    title %window_title%
 )
 
 :CheckUsage
@@ -96,64 +114,35 @@ goto Exit
 
 :LaunchOfficeSetup
 rem set args and copy setup files to system
-rem NOTE: init_client_dir.cmd sets %client_dir% and creates %SystemDrive%\WK\Office folder
+rem NOTE: init_client_dir.cmd sets %client_dir% and creates %client_dir%\Office folder
 call "%bin%\Scripts\init_client_dir.cmd" /Office
 echo Copying setup file(s) for %L_ITEM%...
-rem NOTE: If L_PATH == "2013" or "2016" extract the ODT setup/xml, otherwise copy from OFFICE_SERVER
-set "_odt=False"
-if %L_PATH% equ 2013 (set "_odt=True")
-if %L_PATH% equ 2016 (set "_odt=True")
-if "%_odt%" == "True" (
-    rem extract setup/xml and start installation
-    set "source=%L_PATH%\setup.exe"
-    set "dest=%client_dir%\Office\%L_PATH%"
-    "%SEVEN_ZIP%" e "%cbin%\_Office.7z" -aoa -bso0 -bse0 -p%ARCHIVE_PASS% -o"!dest!" !source! !L_ITEM! || exit /b 1
-    "%systemroot%\System32\ping.exe" -n 2 127.0.0.1>nul
-    if not exist "!dest!\setup.exe" (goto ErrorOfficeSourceNotFound)
-    if not exist "!dest!\!L_ITEM!" (goto ErrorOfficeSourceNotFound)
-    pushd "!dest!"
-    rem # The line below jumps to ErrorUnknown even though setup.exe is run correctly??
-    rem start "" "setup.exe" /configure !L_ITEM! || popd & goto ErrorUnknown
-    rem # Going to assume it extracted correctly and blindly start setup.exe
-    start "" "setup.exe" /configure !L_ITEM!
-    popd
-) else (
-    rem copy setup files from OFFICE_SERVER
-    set "fastcopy_args=/cmd=diff /no_ui /auto_close"
-    set "product=%L_PATH%\%L_ITEM%"
-    set "product_name=%L_ITEM%"
-    call :GetBasename product_name || goto ErrorBasename
-    set "source=\\%OFFICE_SERVER%\Office\!product!"
-    set "dest=%client_dir%\Office"
-    rem Verify source
-    if not exist "!source!" (goto ErrorOfficeSourceNotFound)
-    rem Copy setup file(s) to system
-    start "" /wait "%FASTCOPY%" !fastcopy_args! "!source!" /to="!dest!\"
-    rem Run setup
-    if exist "!dest!\!product_name!\setup.exe" (
-        start "" "!dest!\!product_name!\setup.exe" || goto ErrorUnknown
-    ) else if "!product_name:~-3,3!" == "exe" (
-        start "" "!dest!\!product_name!" || goto ErrorUnknown
-    ) else if "!product_name:~-3,3!" == "msi" (
-        start "" "!dest!\!product_name!" || goto ErrorUnknown
-    ) else (
-        rem Office source not supported by this script
-        goto ErrorOfficeUnsupported
-    )
-)
+rem extract setup/xml and start installation
+set "setup=%L_PATH%\setup.exe"
+set "dest=%client_dir%\Office\%L_PATH%"
+"%SEVEN_ZIP%" e "%cbin%\_Office.7z" -aoa -bso0 -bse0 -p%ARCHIVE_PASSWORD% -o"!dest!" !setup! !L_ITEM! || exit /b 1
+"%systemroot%\System32\ping.exe" -n 2 127.0.0.1>nul
+if not exist "!dest!\setup.exe" (goto ErrorOfficeSourceNotFound)
+if not exist "!dest!\!L_ITEM!" (goto ErrorOfficeSourceNotFound)
+pushd "!dest!"
+rem # The line below jumps to ErrorUnknown even though setup.exe is run correctly??
+rem start "" "setup.exe" /configure !L_ITEM! || popd & goto ErrorUnknown
+rem # Going to assume it extracted correctly and blindly start setup.exe
+start "" "setup.exe" /configure !L_ITEM!
+popd
 goto Exit
 
 :LaunchQuickBooksSetup
 rem set args and copy setup files to system
-rem NOTE: init_client_dir.cmd sets %client_dir% and creates %SystemDrive%\WK\QuickBooks folder
+rem NOTE: init_client_dir.cmd sets %client_dir% and creates %client_dir%\QuickBooks folder
 call "%bin%\Scripts\init_client_dir.cmd" /QuickBooks
 echo Copying setup file(s) for %L_ITEM%...
-rem copy setup files from QUICKBOOKS_SERVER
+rem copy setup files from QUICKBOOKS_SERVER_IP
 set "fastcopy_args=/cmd=diff /no_ui /auto_close"
 set "product=%L_PATH%\%L_ITEM%"
 set "product_name=%L_ITEM%"
 call :GetBasename product_name || goto ErrorBasename
-set "source=\\%QUICKBOOKS_SERVER%\QuickBooks\!product!"
+set "source=\\%QUICKBOOKS_SERVER_IP%\QuickBooks\!product!"
 set "dest=%client_dir%\QuickBooks"
 rem Verify source
 if not exist "!source!" (goto ErrorQuickBooksSourceNotFound)
@@ -276,9 +265,9 @@ for /f "delims=" %%a in ('echo %%%1%%') do set %1=%%~a
 rem Extract %cbin% archive into %bin%
 echo Extracting "%L_ITEM%"...
 if exist "%cbin%\%L_PATH%\%L_ITEM:~0,-4%.7z" (
-    "%SEVEN_ZIP%" x "%cbin%\%L_PATH%\%L_ITEM:~0,-4%.7z" -aos -bso0 -bse0 -p%ARCHIVE_PASS% -o"%bin%\%L_PATH%" %L_7ZIP% || exit /b 1
+    "%SEVEN_ZIP%" x "%cbin%\%L_PATH%\%L_ITEM:~0,-4%.7z" -aos -bso0 -bse0 -p%ARCHIVE_PASSWORD% -o"%bin%\%L_PATH%" %L_7ZIP% || exit /b 1
 ) else (
-    "%SEVEN_ZIP%" x "%cbin%\%L_PATH%.7z" -aos -bso0 -bse0 -p%ARCHIVE_PASS% -o"%bin%\%L_PATH%" %L_7ZIP% || exit /b 1
+    "%SEVEN_ZIP%" x "%cbin%\%L_PATH%.7z" -aos -bso0 -bse0 -p%ARCHIVE_PASSWORD% -o"%bin%\%L_PATH%" %L_7ZIP% || exit /b 1
 )
 ping.exe -n 2 127.0.0.1>nul
 exit /b 0

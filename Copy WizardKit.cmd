@@ -2,15 +2,25 @@
 @echo off
 
 :Init
-setlocal
+setlocal EnableDelayedExpansion
 title Wizard Kit: Tools Copier
 color 1b
 echo Initializing...
 call :CheckFlags %*
 call :FindBin
+call :SetTitle Tools Copier
 
 :SetVariables
-set "ARCHIVE_PASS=Abracadabra"
+rem Set variables using settings\main.py file
+set "SETTINGS=%bin%\Scripts\settings\main.py"
+for %%v in (ARCHIVE_PASSWORD KIT_NAME_FULL) do (
+    set "var=%%v"
+    for /f "tokens=* usebackq" %%f in (`findstr "!var!=" %SETTINGS%`) do (
+        set "_v=%%f"
+        set "_v=!_v:*'=!"
+        set "%%v=!_v:~0,-1!"
+    )
+)
 rem Set ARCH to 32 as a gross assumption and check for x86_64 status
 set ARCH=32
 if /i "%PROCESSOR_ARCHITECTURE%" == "AMD64" set "ARCH=64"
@@ -108,6 +118,14 @@ goto FindBinInner
 set "bin=%cd%\.bin"
 set "cbin=%cd%\.cbin"
 popd
+@exit /b 0
+
+:SetTitle
+rem Sets title using KIT_NAME_FULL from settings\main.py
+set "window_title=%*"
+if not defined window_title set "window_title=Launcher"
+set "window_title=%KIT_NAME_FULL%: %window_title%"
+title %window_title%
 @exit /b 0
 
 :: Errors ::

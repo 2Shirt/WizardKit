@@ -1,46 +1,44 @@
-# Wizard Kit: Copy user data to the system over the network
+# Wizard Kit: Copy user data to the system from a local or network source
 
 import os
 import sys
 
 # Init
 os.chdir(os.path.dirname(os.path.realpath(__file__)))
-os.system('title Wizard Kit: Data 1')
 sys.path.append(os.getcwd())
-from functions import *
+from functions.data import *
+from functions.repairs import *
 init_global_vars()
-global_vars['LogFile'] = '{LogDir}\\Data 1.log'.format(**global_vars)
-global_vars['Data'] = {}
-
-def abort():
-    umount_backup_shares()
-    print_warning('Aborted.')
-    pause("Press Enter to exit...")
-    exit_script()
+os.system('title {}: Data 1'.format(KIT_NAME_FULL))
+global_vars['LogFile'] = r'{LogDir}\Data 1.log'.format(**global_vars)
 
 if __name__ == '__main__':
     try:
         # Prep
         stay_awake()
-        get_ticket_number()
+        ticket_number = get_ticket_number()
         os.system('cls')
-        select_destination()
-        select_backup()
-        scan_backup()
+        folder_path = r'{}\Transfer'.format(KIT_NAME_SHORT)
+        dest = select_destination(folder_path=folder_path,
+            prompt='Which disk are we transferring to?')
+        source = select_source(ticket_number)
+        items = scan_source(source, dest)
         
         # Transfer
         os.system('cls')
         print_info('Transfer Details:\n')
-        show_info('Ticket:',        global_vars['TicketNumber'])
-        show_info('Source:',        global_vars['Data']['Source'].path)
-        show_info('Destination:',   global_vars['Data']['Destination'])
+        show_info('Ticket:',        ticket_number)
+        show_info('Source:',        source.path)
+        show_info('Destination:',   dest)
         
         if (not ask('Proceed with transfer?')):
+            umount_backup_shares()
             abort()
         
         print_info('Transferring Data')
-        transfer_backup()
-        try_and_print(message='Removing extra files...', function=cleanup_transfer, cs='Done')
+        transfer_source(source, dest, items)
+        try_and_print(message='Removing extra files...',
+            function=cleanup_transfer, cs='Done')
         umount_backup_shares()
         
         # Done

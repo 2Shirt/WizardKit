@@ -3,25 +3,34 @@
 import os
 import sys
 
+# STATIC VARIABLES
+REG_MSISERVER = r'HKLM\SYSTEM\CurrentControlSet\Control\SafeBoot\Network\MSIServer'
+
 # Init
 os.chdir(os.path.dirname(os.path.realpath(__file__)))
-os.system('title Wizard Kit: SafeMode Tool')
 sys.path.append(os.getcwd())
-from functions import *
+from functions.common import *
+init_global_vars()
+os.system('title {}: SafeMode Tool'.format(KIT_NAME_FULL))
 
 if __name__ == '__main__':
     try:
         if ask('Enable booting to SafeMode (with Networking)?'):
             # Edit BCD to set safeboot as default
-            run_program('bcdedit /set {default} safeboot network', check=False)
+            cmd = ['bcdedit', '/set', '{default}', 'safeboot', 'network']
+            run_program(cmd, check=False)
             
             # Enable MSI access under safemode
-            run_program(r'reg add HKLM\SYSTEM\CurrentControlSet\Control\SafeBoot\Network\MSIServer /f', check=False)
-            run_program(r'reg add HKLM\SYSTEM\CurrentControlSet\Control\SafeBoot\Network\MSIServer /ve /t REG_SZ /d "Service" /f', check=False)
+            cmd = ['reg', 'add', REG_MSISERVER, '/f']
+            run_program(cmd, check=False)
+            cmd = ['reg', 'add', REG_MSISERVER, '/ve',
+                    '/t', 'REG_SZ', '/d', 'Service', '/f']
+            run_program(cmd, check=False)
         
             ## Done ##
             pause('Press Enter to reboot...')
-            run_program('shutdown -r -t 3', check=False)
+            cmd = ['shutdown', '-r', '-t', '3']
+            run_program(cmd, check=False)
         
         # Done
         exit_script()

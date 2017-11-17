@@ -1,19 +1,15 @@
-# Wizard Kit: Check Disk Tool
+# Wizard Kit: Check or repair the %SYSTEMDRIVE% filesystem via CHKDSK
 
 import os
 import sys
 
 # Init
 os.chdir(os.path.dirname(os.path.realpath(__file__)))
-os.system('title Wizard Kit: Check Disk Tool')
 sys.path.append(os.getcwd())
-from functions import *
+from functions.repairs import *
 init_global_vars()
-global_vars['LogFile'] = '{LogDir}\\Check Disk.log'.format(**global_vars)
-
-def abort():
-    print_warning('Aborted.')
-    exit_script()
+os.system('title {}: Check Disk Tool'.format(KIT_NAME_FULL))
+global_vars['LogFile'] = r'{LogDir}\Check Disk.log'.format(**global_vars)
 
 if __name__ == '__main__':
     try:
@@ -26,9 +22,27 @@ if __name__ == '__main__':
                 'GenericRepair':        'Repaired',
                 'UnsupportedOSError':   'Unsupported OS',
             }}
+        options = [
+            {'Name': 'Run CHKDSK scan (read-only)', 'Repair': False},
+            {'Name': 'Schedule CHKDSK scan (offline repair)', 'Repair': True}]
+        actions = [{'Name': 'Quit', 'Letter': 'Q'}]
+        selection = menu_select(
+            'Please select action to perform', options, actions)
         os.system('cls')
         print_info('Check Disk Tool')
-        try_and_print(message='CHKDSK ({SYSTEMDRIVE})...'.format(**global_vars['Env']), function=run_chkdsk, other_results=other_results)
+        if selection == 'Q':
+            abort()
+        elif selection.isnumeric():
+            repair = options[int(selection)-1]['Repair']
+            if repair:
+                cs = 'Scheduled'
+            else:
+                cs = 'CS'
+            message = 'CHKDSK ({SYSTEMDRIVE})...'.format(**global_vars['Env'])
+            try_and_print(message=message, function=run_chkdsk,
+                cs=cs, other_results=other_results, repair=repair)
+        else:
+            abort()
         
         # Done
         print_success('Done.')

@@ -3,25 +3,32 @@
 import os
 import sys
 
+# STATIC VARIABLES
+REG_MSISERVER = r'HKLM\SYSTEM\CurrentControlSet\Control\SafeBoot\Network\MSIServer'
+
 # Init
 os.chdir(os.path.dirname(os.path.realpath(__file__)))
-os.system('title Wizard Kit: SafeMode Tool')
 sys.path.append(os.getcwd())
-from functions import *
+from functions.common import *
+init_global_vars()
+os.system('title {}: SafeMode Tool'.format(KIT_NAME_FULL))
 
 if __name__ == '__main__':
     try:
         if ask('Disable booting to SafeMode?'):
             # Edit BCD to remove safeboot value
-            run_program('bcdedit /deletevalue {current} safeboot', check=False)
-            run_program('bcdedit /deletevalue {default} safeboot', check=False)
+            for boot in ['{current}', '{default}']:
+                cmd = ['bcdedit', '/deletevalue', boot, 'safeboot']
+                run_program(cmd, check=False)
             
             # Disable MSI access under safemode
-            run_program(r'reg delete HKLM\SYSTEM\CurrentControlSet\Control\SafeBoot\Network\MSIServer /f', check=False)
+            cmd = ['reg', 'delete', REG_MSISERVER, '/f']
+            run_program(cmd, check=False)
         
             ## Done ##
             pause('Press Enter to reboot...')
-            run_program('shutdown -r -t 3', check=False)
+            cmd = ['shutdown', '-r', '-t', '3']
+            run_program(cmd, check=False)
         
         # Done
         exit_script()

@@ -6,10 +6,11 @@
 @echo off
 
 :Init
-setlocal
+setlocal EnableDelayedExpansion
 title Wizard Kit: Launcher
 call :CheckFlags %*
 call :FindBin
+call :SetTitle Launcher
 
 :Configure
 reg add HKCU\Software\Sysinternals\AutoRuns /v checkvirustotal /t REG_DWORD /d 0 /f >nul
@@ -42,7 +43,7 @@ reg add HKCU\Software\Sysinternals\AutoRuns\VirusTotal /v VirusTotalTermsAccepte
 :: Set L_NCMD to True to stay in the native console window
 :: Set L_WAIT to True to have the script wait until L_ITEM has comlpeted
 set L_TYPE=Program
-set L_PATH=SysinternalsSuite
+set L_PATH=Autoruns
 set L_ITEM=Autoruns.exe
 set L_ARGS=-e
 set L_7ZIP=Autoruns*
@@ -88,6 +89,20 @@ goto FindBinInner
 set "bin=%cd%\.bin"
 set "cbin=%cd%\.cbin"
 popd
+@exit /b 0
+
+:SetTitle
+rem Sets title using KIT_NAME_FULL from settings\main.py
+set "SETTINGS=%bin%\Scripts\settings\main.py"
+for /f "tokens=* usebackq" %%f in (`findstr KIT_NAME_FULL %SETTINGS%`) do (
+    set "_v=%%f"
+    set "_v=!_v:*'=!"
+    set "KIT_NAME_FULL=!_v:~0,-1!"
+)
+set "window_title=%*"
+if not defined window_title set "window_title=Launcher"
+set "window_title=%KIT_NAME_FULL%: %window_title%"
+title %window_title%
 @exit /b 0
 
 :: Errors ::
