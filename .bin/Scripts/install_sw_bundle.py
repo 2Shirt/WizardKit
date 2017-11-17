@@ -15,7 +15,7 @@ if __name__ == '__main__':
     errors = False
     
     # Adobe Reader
-    if vars_wk['Version'] != 'Vista':
+    if vars_wk['OS']['Version'] != 'Vista':
         print('Installing Adobe Reader DC...')
         _prog = '{BaseDir}/Installers/Extras/Office/Adobe Reader DC.exe'.format(**vars_wk)
         _args = ['/sAll', '/msi', '/norestart', '/quiet', 'ALLUSERS=1', 'EULA_ACCEPT=YES']
@@ -69,19 +69,18 @@ if __name__ == '__main__':
             errors = True
     
     # Main Bundle
-    if vars_wk['Version'] in ['Vista', '7']:
+    if vars_wk['OS']['Version'] in ['Vista', '7']:
         # Legacy selection
         if ask('Install MSE?'):
             _prog = '{BaseDir}/Installers/Extras/Security/Microsoft Security Essentials.exe'.format(**vars_wk)
             subprocess.Popen(_prog)
         _prog = '{BaseDir}/Installers/Extras/Bundles/Legacy.exe'.format(**vars_wk)
         subprocess.Popen(_prog)
-    elif vars_wk['Version'] in ['8', '10']:
+    elif vars_wk['OS']['Version'] in ['8', '10']:
         # Modern selection
         _prog = '{BaseDir}/Installers/Extras/Bundles/Modern.exe'.format(**vars_wk)
         subprocess.Popen(_prog)
     
     if errors:
         pause("Press Enter to exit...")
-    kill_process('caffeine.exe')
-    quit()
+    exit_script(vars_wk)

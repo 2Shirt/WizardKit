@@ -30,8 +30,8 @@ call :FindBin
 :: Set L_NCMD to True to stay in the native console window
 :: Set L_WAIT to True to have the script wait until L_ITEM has comlpeted
 set L_TYPE=Program
-set L_PATH=Notepad2
-set L_ITEM=Notepad2-Mod.exe
+set L_PATH=notepadplusplus
+set L_ITEM=notepadplusplus.exe
 set L_ARGS=
 set L_7ZIP=
 set L_CHCK=True

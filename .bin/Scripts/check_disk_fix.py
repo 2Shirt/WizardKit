@@ -1,43 +1,37 @@
-# Wizard Kit: Check Disk Tool
+# Wizard Kit: Check Disk (Fix) Tool
 
 import os
-import subprocess
 
 # Init
 os.chdir(os.path.dirname(os.path.realpath(__file__)))
-os.system('title Wizard Kit: Check Disk Tool')
+os.system('title Wizard Kit: Check Disk (Fix) Tool')
 from functions import *
-vars_wk = init_vars_wk()
-vars_wk.update(init_vars_os())
+init_global_vars()
+set_global_vars(LogFile='{LogDir}\\Check Disk (Fix).log'.format(**global_vars))
 
 def abort():
-    print_warning('Aborted.', vars_wk['LogFile'])
+    print_warning('Aborted.', global_vars['LogFile'])
     exit_script()
 
-def exit_script():
-    pause("Press Enter to reboot...")
-    run_program('shutdown -r -t 3', check=False)
-    quit()
-
 if __name__ == '__main__':
-    stay_awake(vars_wk)
-    print_info('* Running CHKDSK (repairs) on {SYSTEMDRIVE}'.format(**vars_wk['Env']))
-    # Run scan (and attempt to repair errors)
-    try:
-        if vars_wk['Version'] in ['8', '10']:
-            try:
-                run_program('chkdsk {SYSTEMDRIVE} /sdcleanup /spotfix'.format(**vars_wk['Env']), pipe=False)
-            except subprocess.CalledProcessError:
-                print_error('ERROR: CHKDSK is still reporting problems.')
-                if ask('Run full offline scan?'):
-                    run_program('chkdsk {SYSTEMDRIVE} /offlinescanandfix'.format(**vars_wk['Env']), pipe=False)
-        else:
-            # Windows 7 and older
-            run_program('chkdsk {SYSTEMDRIVE} /F'.format(**vars_wk['Env']), pipe=False)
-    except subprocess.CalledProcessError:
-        print_error('ERROR: CHKDSK encountered a problem. Please review any messages above.')
-        abort()
+    stay_awake()
+    other_results = {
+        'Error': {
+            'CalledProcessError':   'Unknown Error',
+        },
+        'Warning': {
+            'GenericRepair':        'Repaired',
+            'UnsupportedOSError':   'Unsupported OS',
+        }}
+    offline_scan = True
+    os.system('cls')
+    print_info('Check Disk Tool')
+    _spotfix = try_and_print(message='CHKDSK Spotfix ({SYSTEMDRIVE})...'.format(**global_vars['Env']), function=run_chkdsk_spotfix, cs='CS',  ns='NS', other_results=other_results)
+    if global_vars['OS']['Version'] in ['8', '10'] and not _spotfix['CS']:
+        offline_scan = ask('Run full offline scan?')
+    try_and_print(message='CHKDSK Offline ({SYSTEMDRIVE})...'.format(**global_vars['Env']), function=run_chkdsk_offline, cs='Scheduled',  ns='Error', other_results=other_results)
     
+    # Done
     print_success('Done.')
-    kill_process('caffeine.exe')
+    pause("Press Enter to exit...")
     exit_script()

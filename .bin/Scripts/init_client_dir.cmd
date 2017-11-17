@@ -14,6 +14,7 @@ for %%f in (%*) do (
     if /i "%%f" == "/Backups" set _backups=True
     if /i "%%f" == "/Info" set _info=True
     if /i "%%f" == "/Office" set _office=True
+    if /i "%%f" == "/QuickBooks" set _quickbooks=True
     if /i "%%f" == "/Quarantine" set _quarantine=True
     if /i "%%f" == "/Transfer" set _transfer=True
 )
@@ -45,6 +46,7 @@ set "log_dir=%client_dir%\Info\%iso_date%"
 if defined _backups mkdir "%client_dir%\Backups">nul 2>&1
 if defined _info mkdir "%client_dir%\Info">nul 2>&1
 if defined _office mkdir "%client_dir%\Office">nul 2>&1
+if defined _quickbooks mkdir "%client_dir%\QuickBooks">nul 2>&1
 if defined _quarantine mkdir "%client_dir%\Quarantine">nul 2>&1
 if defined _transfer mkdir "%client_dir%\Transfer">nul 2>&1
 

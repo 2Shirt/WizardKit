@@ -29,13 +29,13 @@ call :FindBin
 :: Set L_ELEV to True to launch with elevated permissions
 :: Set L_NCMD to True to stay in the native console window
 :: Set L_WAIT to True to have the script wait until L_ITEM has comlpeted
-set L_TYPE=PyScript
-set L_PATH=Scripts
-set L_ITEM=update_kit.py
+set L_TYPE=Program
+set L_PATH=OutlookAddressBookView
+set L_ITEM=OutlookAddressBookView.exe
 set L_ARGS=
 set L_7ZIP=
 set L_CHCK=True
-set L_ELEV=
+set L_ELEV=True
 set L_NCMD=True
 set L_WAIT=
 

@@ -20,6 +20,7 @@ call :DeQuote L_TYPE
 :SetVariables
 set "ARCHIVE_PASS=Abracadabra"
 set "OFFICE_SERVER=10.0.0.10"
+set "QUICKBOOKS_SERVER=10.0.0.10"
 rem Set ARCH to 32 as a gross assumption and check for x86_64 status
 set ARCH=32
 if /i "%PROCESSOR_ARCHITECTURE%" == "AMD64" set "ARCH=64"
@@ -59,13 +60,14 @@ if not defined IN_CONEMU (
 
 :CheckLaunchType
 rem Jump to the selected launch type or show usage
-if /i "%L_TYPE%" == "Console"   (goto LaunchConsole)
-if /i "%L_TYPE%" == "Folder"    (goto LaunchFolder)
-if /i "%L_TYPE%" == "Office"    (goto LaunchOfficeSetup)
-if /i "%L_TYPE%" == "Program"   (goto LaunchProgram)
-if /i "%L_TYPE%" == "PSScript"  (goto LaunchPSScript)
-if /i "%L_TYPE%" == "PyScript"  (goto LaunchPyScript)
-if /i "%L_TYPE%" == "PywScript" (goto LaunchPywScript)
+if /i "%L_TYPE%" == "Console"       (goto LaunchConsole)
+if /i "%L_TYPE%" == "Folder"        (goto LaunchFolder)
+if /i "%L_TYPE%" == "Office"        (goto LaunchOfficeSetup)
+if /i "%L_TYPE%" == "QuickBooks"    (goto LaunchQuickBooksSetup)
+if /i "%L_TYPE%" == "Program"       (goto LaunchProgram)
+if /i "%L_TYPE%" == "PSScript"      (goto LaunchPSScript)
+if /i "%L_TYPE%" == "PyScript"      (goto LaunchPyScript)
+if /i "%L_TYPE%" == "PywScript"     (goto LaunchPywScript)
 goto Usage
 
 :LaunchConsole
@@ -138,6 +140,33 @@ if "%_odt%" == "True" (
         rem Office source not supported by this script
         goto ErrorOfficeUnsupported
     )
+)
+goto Exit
+
+:LaunchQuickBooksSetup
+rem set args and copy setup files to system
+rem NOTE: init_client_dir.cmd sets %client_dir% and creates %SystemDrive%\WK\QuickBooks folder
+call "%bin%\Scripts\init_client_dir.cmd" /QuickBooks
+echo Copying setup file(s) for %L_ITEM%...
+rem copy setup files from QUICKBOOKS_SERVER
+set "fastcopy_args=/cmd=diff /no_ui /auto_close"
+set "product=%L_PATH%\%L_ITEM%"
+set "product_name=%L_ITEM%"
+call :GetBasename product_name || goto ErrorBasename
+set "source=\\%QUICKBOOKS_SERVER%\QuickBooks\!product!"
+set "dest=%client_dir%\QuickBooks"
+rem Verify source
+if not exist "!source!" (goto ErrorQuickBooksSourceNotFound)
+rem Copy setup file(s) to system
+start "" /wait "%FASTCOPY%" !fastcopy_args! "!source!" /to="!dest!\"
+rem Run setup
+if exist "!dest!\!product_name!\Setup.exe" (
+    pushd "!dest!\!product_name!"
+    start "" "!dest!\!product_name!\Setup.exe" || goto ErrorUnknown
+    popd
+) else (
+    rem QuickBooks source not supported by this script
+    goto ErrorQuickBooksUnsupported
 )
 goto Exit
 
@@ -222,14 +251,15 @@ goto Exit
 :Usage
 echo.
 echo.Usage (via defined variables):
-echo.   L_TYPE    L_PATH       L_ITEM   L_ARGS
-echo.   Console   Working Dir  Program  Args   [L_CHECK] [L_ELEV] [L_NCMD] [L_WAIT]
-echo.   Folder    Folder       '.'             [L_CHECK]          [L_NCMD]
-echo.   Office    Year         Product         [L_CHECK]          [L_NCMD]
-echo.   Program   Working Dir  Program  Args   [L_CHECK] [L_ELEV] [L_NCMD] [L_WAIT]
-echo.   PSScript  Scripts      Script          [L_CHECK] [L_ELEV] [L_NCMD]
-echo.   PyScript  Scripts      Script          [L_CHECK] [L_ELEV] [L_NCMD]
-echo.   PywScript Scripts      Script          [L_CHECK] [L_ELEV] [L_NCMD]
+echo.   L_TYPE      L_PATH       L_ITEM   L_ARGS
+echo.   Console     Working Dir  Program  Args   [L_CHECK] [L_ELEV] [L_NCMD] [L_WAIT]
+echo.   Folder      Folder       '.'             [L_CHECK]          [L_NCMD]
+echo.   Office      Year         Product         [L_CHECK]          [L_NCMD]
+echo.   QuickBooks  Year         Product         [L_CHECK]          [L_NCMD]
+echo.   Program     Working Dir  Program  Args   [L_CHECK] [L_ELEV] [L_NCMD] [L_WAIT]
+echo.   PSScript    Scripts      Script          [L_CHECK] [L_ELEV] [L_NCMD]
+echo.   PyScript    Scripts      Script          [L_CHECK] [L_ELEV] [L_NCMD]
+echo.   PywScript   Scripts      Script          [L_CHECK] [L_ELEV] [L_NCMD]
 echo.
 echo.   NOTE: PywScript uses Python's window instead of %CON%
 echo.
@@ -320,6 +350,18 @@ rem Source is not an executable nor is a folder with a setup.exe file inside. Op
 echo.
 echo ERROR: Office version not supported by this script.
 start "" "explorer.exe" "%client_dir%\Office"
+goto Abort
+
+:ErrorQuickBooksSourceNotFound
+echo.
+echo ERROR: QuickBooks source "%L_ITEM%" not found.
+goto Abort
+
+:ErrorQuickBooksUnsupported
+rem Source is not an executable nor is a folder with a setup.exe file inside. Open explorer to local setup file(s) instead.
+echo.
+echo ERROR: QuickBooks version not supported by this script.
+start "" "explorer.exe" "%client_dir%\QuickBooks"
 goto Abort
 
 :ErrorProgramNotFound

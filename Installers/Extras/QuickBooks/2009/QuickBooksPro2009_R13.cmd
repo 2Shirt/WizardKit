@@ -13,30 +13,29 @@ call :FindBin
 
 :DefineLaunch
 :: Set L_TYPE to one of these options:
-::     Console, Folder, Office, Program, PSScript, or PyScript
+::     Console
+::     Office
+::     Program
+::     PSScript
+::     PyScript
 :: Set L_PATH to the path to the program folder
 :: NOTE: Launch.cmd will test for L_PATH in the following order:
-::      1: %cbin%\L_PATH.7z (which will be extracted to %bin%\L_PATH)
-::      2: %bin%\L_PATH
-::      3. %L_PATH%         (i.e. treat L_PATH as an absolute path)
-:: Set L_ITEM to one of the following:
-::      1. The filename of the item to launch
-::      2. The Office product to install
-::      3. '.' to open extracted folder
+::       1: %bin%\L_PATH
+::       2: %cbin%\L_PATH.7z (which will be extracted to %bin%\L_PATH)
+::       3. %L_PATH%         (i.e. treat L_PATH as an absolute path)
+:: Set L_ITEM to the filename of the item to launch (or Office product to install)
 :: Set L_ARGS to include any necessary arguments (if any)
-:: Set L_7ZIP to include any necessary arguments for extraction
 :: Set L_CHCK to True to have Launch.cmd to stay open if an error is encountered
 :: Set L_ELEV to True to launch with elevated permissions
 :: Set L_NCMD to True to stay in the native console window
 :: Set L_WAIT to True to have the script wait until L_ITEM has comlpeted
-set L_TYPE=Program
-set L_PATH=SIV
-set L_ITEM=SIV.exe
-set L_ARGS=-LOCAL -KEYS -UNICODE -NOWIZARD
-set L_7ZIP=
+set L_TYPE=QuickBooks
+set L_PATH=2009
+set L_ITEM=QuickBooksPro2009_R13
+set L_ARGS=
 set L_CHCK=True
 set L_ELEV=
-set L_NCMD=True
+set L_NCMD=
 set L_WAIT=
 
 :::::::::::::::::::::::::::::::::::::::::::

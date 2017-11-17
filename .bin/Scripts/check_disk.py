@@ -1,37 +1,33 @@
 # Wizard Kit: Check Disk Tool
 
 import os
-import subprocess
 
 # Init
 os.chdir(os.path.dirname(os.path.realpath(__file__)))
 os.system('title Wizard Kit: Check Disk Tool')
 from functions import *
-vars_wk = init_vars_wk()
-vars_wk.update(init_vars_os())
+init_global_vars()
+set_global_vars(LogFile='{LogDir}\\Check Disk.log'.format(**global_vars))
 
 def abort():
-    print_warning('Aborted.', vars_wk['LogFile'])
+    print_warning('Aborted.', global_vars['LogFile'])
     exit_script()
 
-def exit_script():
-    pause("Press Enter to exit...")
-    quit()
-
 if __name__ == '__main__':
-    stay_awake(vars_wk)
-    print_info('* Running CHKDSK (read-only) on {SYSTEMDRIVE}'.format(**vars_wk['Env']))
-    # Run scan (read-only)
-    try:
-        if vars_wk['Version'] in ['8', '10']:
-            run_program('chkdsk {SYSTEMDRIVE} /scan /pref'.format(**vars_wk['Env']), pipe=False)
-        else:
-            # Windows 7 and older
-            run_program('chkdsk {SYSTEMDRIVE}'.format(**vars_wk['Env']), pipe=False)
-    except subprocess.CalledProcessError:
-        print_error('ERROR: CHKDSK encountered a problem. Please review any messages above.')
-        abort()
+    stay_awake()
+    other_results = {
+        'Error': {
+            'CalledProcessError':   'Unknown Error',
+        },
+        'Warning': {
+            'GenericRepair':        'Repaired',
+            'UnsupportedOSError':   'Unsupported OS',
+        }}
+    os.system('cls')
+    print_info('Check Disk Tool')
+    try_and_print(message='CHKDSK ({SYSTEMDRIVE})...'.format(**global_vars['Env']), function=run_chkdsk, cs='CS',  ns='NS', other_results=other_results)
     
+    # Done
     print_success('Done.')
-    kill_process('caffeine.exe')
+    pause("Press Enter to exit...")
     exit_script()
