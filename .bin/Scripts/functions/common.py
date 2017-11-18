@@ -431,7 +431,7 @@ def get_exception(s):
     return getattr(sys.modules[__name__], s)
 
 def try_and_print(message='Trying...',
-    function, cs='CS', ns='NS', other_results={},
+    function=None, cs='CS', ns='NS', other_results={},
     catch_all=True, print_return=False, silent_function=True,
     indent=8, width=32, *args, **kwargs):
     """Run function, print if successful or not, and return dict.
