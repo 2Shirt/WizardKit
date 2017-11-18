@@ -168,6 +168,7 @@ def exit_script(return_value=0):
                 global_vars['LogFile']])
         except Exception:
             print_error('ERROR: Failed to extract Notepad++ and open log.')
+            pause('Press Enter to exit...')
 
     # Kill Caffeine if still running
     kill_process('caffeine.exe')
