@@ -37,10 +37,11 @@ REGEX_EXCL_ROOT_ITEMS = re.compile(
     re.IGNORECASE)
 REGEX_INCL_ROOT_ITEMS = re.compile(
     r'^\\?(AdwCleaner|(My\s*|)(Doc(uments?( and Settings|)|s?)|Downloads'
-    r'|{prefix}(-?Info|-?Transfer|)'.format(prefix=KIT_NAME_SHORT)
     r'|Media|Music|Pic(ture|)s?|Vid(eo|)s?)'
+    r'|{prefix}(-?Info|-?Transfer|)'
     r'|(ProgramData|Recovery|Temp.*|Users)$'
-    r'|.*\.(log|txt|rtf|qb\w*|avi|m4a|m4v|mp4|mkv|jpg|png|tiff?)$)',
+    r'|.*\.(log|txt|rtf|qb\w*|avi|m4a|m4v|mp4|mkv|jpg|png|tiff?)$)'
+    r''.format(prefix=KIT_NAME_SHORT),
     re.IGNORECASE)
 REGEX_WIM_FILE = re.compile(
     r'\.wim$',
