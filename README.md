@@ -24,5 +24,7 @@ A collection of scripts to help technicians service Windows systems.
 
 ## Setup ##
 
-* Edit the `.bin\Scripts\settings\main.py` file to your liking.
-* _**(Broken)**_ Run the `_Update Kit.cmd` file to populate `.bin` and `.cbin`.
+* Run `Build Kit.cmd` which will do the following:
+  * Download 7-Zip, ConEmu, Notepad++, and Python (including wheel packages)
+  * Open `.bin\Scripts\settings\main.py` in Notepad++ for configuration
+  * Update the rest of the tools with the `.bin\Scripts\update_kit.py` script
