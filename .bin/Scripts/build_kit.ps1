@@ -5,6 +5,8 @@ clear
 $host.UI.RawUI.WindowTitle = "Wizard Kit: Build Tool"
 $wd = $(Split-Path $MyInvocation.MyCommand.Path)
 $bin = (Get-Item $wd).Parent.FullName
+$root = (Get-Item "$bin\..").FullName # Get-Item $bin fails
+    # (I'm assuming that starting with a '.' is the issue)
 $tmp = "{0}\tmp" -f $bin
 $errors = 0
 pushd "$wd"
@@ -154,12 +156,21 @@ catch {
 }
 
 ## Cleanup ##
-Move-Item "$bin\..\Build Kit.cmd" "$bin\Scripts\Build Kit.cmd"
+Move-Item "$root\Build Kit.cmd" "$bin\Scripts\Build Kit.cmd"
+Move-Item "$root\.root_items\*" "$root\"
+New-Item "$root\.cbin"
+Remove-Item "$root\.root_items"
+foreach ($item in @(".bin", ".cbin")) {
+    if (Test-Path "$root\$item") {
+        (Get-Item "$root\$item").attributes = "Hidden"
+    }
+}
 
 ## Configure ##
 Write-Host "Configuring kit"
 wk_pause "Press Enter to open settings..."
 start "$bin\NotepadPlusPlus\notepadplusplus.exe" -argumentlist @("$bin\Scripts\settings\main.py") -wait
+Start-Sleep 1
 
 ## Done ##
 popd

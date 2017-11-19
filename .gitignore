@@ -7,6 +7,7 @@
 .bin/ConEmu/
 .bin/Erunt/
 .bin/Everything/
+.bin/FastCopy/
 .bin/HWiNFO/HWiNFO*.ini
 .bin/NotepadPlusPlus/
 .bin/ProcessKiller/
@@ -14,4 +15,7 @@
 .bin/Python/
 .bin/Tmp/
 .bin/XMPlay/
-.cbin/
+.cbin/AIDA64/
+.cbin/ProduKey/
+.cbin/TestDisk/
+.cbin/XYplorerFree/
