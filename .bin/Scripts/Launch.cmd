@@ -34,6 +34,7 @@ if /i "%PROCESSOR_ARCHITECTURE%" == "AMD64" set "ARCH=64"
 set "SEVEN_ZIP=%bin%\7-Zip\7za.exe"
 set "CON=%bin%\ConEmu\ConEmu.exe"
 set "FASTCOPY=%bin%\FastCopy\FastCopy.exe"
+set "POWERSHELL=%systemroot%\system32\WindowsPowerShell\v1.0\powershell.exe"
 set "PYTHON=%bin%\Python\x32\python.exe"
 if %ARCH% equ 64 (
     set "SEVEN_ZIP=%bin%\7-Zip\7za64.exe"
@@ -65,15 +66,19 @@ if /i not "%L_NCMD%" == "True" (set "L_NCMD=")
 if /i not "%L_WAIT%" == "True" (set "L_WAIT=")
 
 :RelaunchInConEmu
-if not defined IN_CONEMU (
-    if not defined L_NCMD (
-        set "con_args=-new_console:n"
-        rem If in DEBUG state then force ConEmu to stay open
-        if defined DEBUG (set "con_args=!con_args! -new_console:c")
-        set IN_CONEMU=True
-        start "" "%CON%" -run ""%~0" %*" !con_args! || goto ErrorUnknown
-        exit /b 0
-    )
+set USE_CONEMU=True
+if defined IN_CONEMU set "USE_CONEMU="
+if defined L_NCMD set "USE_CONEMU="
+if "%L_TYPE%" == "PSScript" set "USE_CONEMU="
+if "%L_TYPE%" == "PyScript" set "USE_CONEMU="
+
+if defined USE_CONEMU (
+    set "con_args=-new_console:n"
+    rem If in DEBUG state then force ConEmu to stay open
+    if defined DEBUG (set "con_args=!con_args! -new_console:c")
+    set IN_CONEMU=True
+    start "" "%CON%" -run ""%~0" %*" !con_args! || goto ErrorUnknown
+    exit /b 0
 )
 
 :CheckLaunchType
@@ -85,7 +90,6 @@ if /i "%L_TYPE%" == "QuickBooks"    (goto LaunchQuickBooksSetup)
 if /i "%L_TYPE%" == "Program"       (goto LaunchProgram)
 if /i "%L_TYPE%" == "PSScript"      (goto LaunchPSScript)
 if /i "%L_TYPE%" == "PyScript"      (goto LaunchPyScript)
-if /i "%L_TYPE%" == "PywScript"     (goto LaunchPywScript)
 goto Usage
 
 :LaunchConsole
@@ -190,12 +194,27 @@ rem NOTE: This should always result in path=%bin%\Scripts. Exceptions are unsupp
 call :TestPath || goto ErrorProgramNotFound
 rem Set args
 set "script=%_path%\%L_ITEM%"
-set "ps_args=-ExecutionPolicy Bypass -File "%script%" -NoProfile"
-if defined L_ELEV (set "ps_args=%ps_args% -new_console:a -new_console:n")
-if defined L_WAIT (set "ps_args=%ps_args% -Wait")
+set "ps_args=-ExecutionPolicy Bypass -NoProfile"
 if not exist "%script%" goto ErrorScriptNotFound
-rem Run program and catch error(s)
-start "" "%CON%" -run %systemroot%\system32\WindowsPowerShell\v1.0\powershell.exe %ps_args% || goto ErrorUnknown
+if defined L_ELEV (
+    call :DeQuote script
+    mkdir "%bin%\tmp" 2>nul
+    rem Create a temporary VB script to elevate the specified program
+    echo Set UAC = CreateObject^("Shell.Application"^) > "%bin%\tmp\Elevate.vbs"
+    if defined L_NCMD (
+        rem use Powershell's window instead of %CON%
+        echo UAC.ShellExecute "%POWERSHELL%", "%ps_args% -File "!script!"", "", "runas", 3 >> "%bin%\tmp\Elevate.vbs"
+    ) else (
+        echo UAC.ShellExecute "%CON%", "-run %POWERSHELL% %ps_args% -File "!script!" -new_console:n", "", "runas", 1 >> "%bin%\tmp\Elevate.vbs"
+    )
+    "%systemroot%\System32\cscript.exe" //nologo "%bin%\tmp\Elevate.vbs" || goto ErrorUnknown
+) else (
+    if defined L_NCMD (
+        start "" "%POWERSHELL%" %ps_args% -File "%script%" || goto ErrorUnknown
+    ) else (
+        start "" "%CON%" -run "%POWERSHELL%" %ps_args% -File "%script%" -new_console:n || goto ErrorUnknown
+    )
+)
 goto Exit
 
 :LaunchPyScript
@@ -204,36 +223,25 @@ rem NOTE: This should always result in path=%bin%\Scripts. Exceptions are unsupp
 call :TestPath || goto ErrorProgramNotFound
 rem Set args
 set "script=%_path%\%L_ITEM%"
-set "py_args=-new_console:n"
 if not exist "%script%" goto ErrorScriptNotFound
 if defined L_ELEV (
     call :DeQuote script
-    rem Create a temporary VB script to elevate the specified program
     mkdir "%bin%\tmp" 2>nul
+    rem Create a temporary VB script to elevate the specified program
     echo Set UAC = CreateObject^("Shell.Application"^) > "%bin%\tmp\Elevate.vbs"
-    echo UAC.ShellExecute "%CON%", "-run %PYTHON% !script! %py_args%", "", "runas", 1 >> "%bin%\tmp\Elevate.vbs"
+    if defined L_NCMD (
+        rem use Python's window instead of %CON%
+        echo UAC.ShellExecute "%PYTHON%", "!script!", "", "runas", 3 >> "%bin%\tmp\Elevate.vbs"
+    ) else (
+        echo UAC.ShellExecute "%CON%", "-run %PYTHON% !script! -new_console:n", "", "runas", 1 >> "%bin%\tmp\Elevate.vbs"
+    )
     "%systemroot%\System32\cscript.exe" //nologo "%bin%\tmp\Elevate.vbs" || goto ErrorUnknown
 ) else (
-    start "" "%CON%" -run "%PYTHON%" "%script%" %py_args% || goto ErrorUnknown
-)
-goto Exit
-
-:LaunchPywScript
-rem Test L_PATH and set %_path%
-rem NOTE: This should always result in path=%bin%\Scripts. Exceptions are unsupported.
-call :TestPath || goto ErrorProgramNotFound
-rem Set args
-set "script=%_path%\%L_ITEM%"
-if not exist "%script%" goto ErrorScriptNotFound
-if defined L_ELEV (
-    call :DeQuote script
-    rem Create a temporary VB script to elevate the specified program
-    mkdir "%bin%\tmp" 2>nul
-    echo Set UAC = CreateObject^("Shell.Application"^) > "%bin%\tmp\Elevate.vbs"
-    echo UAC.ShellExecute "%PYTHON%", "!script!", "", "runas", 3 >> "%bin%\tmp\Elevate.vbs"
-    "%systemroot%\System32\cscript.exe" //nologo "%bin%\tmp\Elevate.vbs" || goto ErrorUnknown
-) else (
-    start "" "%PYTHON%" "%script%" /max || goto ErrorUnknown
+    if defined L_NCMD (
+        start "" "%PYTHON%" "%script%" || goto ErrorUnknown
+    ) else (
+        start "" "%CON%" -run "%PYTHON%" "%script%" -new_console:n || goto ErrorUnknown
+    )
 )
 goto Exit
 
@@ -248,9 +256,6 @@ echo.   QuickBooks  Year         Product         [L_CHECK]          [L_NCMD]
 echo.   Program     Working Dir  Program  Args   [L_CHECK] [L_ELEV] [L_NCMD] [L_WAIT]
 echo.   PSScript    Scripts      Script          [L_CHECK] [L_ELEV] [L_NCMD]
 echo.   PyScript    Scripts      Script          [L_CHECK] [L_ELEV] [L_NCMD]
-echo.   PywScript   Scripts      Script          [L_CHECK] [L_ELEV] [L_NCMD]
-echo.
-echo.   NOTE: PywScript uses Python's window instead of %CON%
 echo.
 goto Abort
 
