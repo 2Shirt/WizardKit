@@ -12,6 +12,10 @@ call :CheckFlags %*
 call :FindBin
 call :SetTitle Launcher
 
+:Optional
+:: This section is for any work that needs done before launching L_ITEM
+rem EXTRA_CODE_GOES_HERE
+
 :DefineLaunch
 :: Set L_TYPE to one of these options:
 ::     Console, Folder, Office, Program, PSScript, or PyScript
@@ -30,12 +34,12 @@ call :SetTitle Launcher
 :: Set L_ELEV to True to launch with elevated permissions
 :: Set L_NCMD to True to stay in the native console window
 :: Set L_WAIT to True to have the script wait until L_ITEM has comlpeted
-set L_TYPE=__TYPE__
-set L_PATH=__PATH__
-set L_ITEM=__ITEM__
+set L_TYPE=
+set L_PATH=
+set L_ITEM=
 set L_ARGS=
 set L_7ZIP=
-set L_CHCK=True
+set L_CHCK=
 set L_ELEV=
 set L_NCMD=
 set L_WAIT=

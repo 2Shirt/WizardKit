@@ -11,6 +11,9 @@ init_global_vars()
 os.system('title {}: Kit Update Tool'.format(KIT_NAME_FULL))
 
 if __name__ == '__main__':
+    print('Loaded update_kit.py!')
+    pause('Hmm...')
+    exit_script()
     try:
         other_results = {
             'Error': {
