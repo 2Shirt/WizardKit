@@ -16,6 +16,11 @@
 .bin/Tmp/
 .bin/XMPlay/
 .cbin/AIDA64/
+.cbin/Autoruns/
+.cbin/BleachBit-Portable/
+.cbin/BlueScreenView/
+.cbin/Du/
 .cbin/ProduKey/
 .cbin/TestDisk/
 .cbin/XYplorerFree/
+.cbin/_Drivers/

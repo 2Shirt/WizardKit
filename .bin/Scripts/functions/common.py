@@ -36,16 +36,14 @@ TOOLS = {
         '32': r'Autoruns\autoruns.exe',
         '64': r'Autoruns\autoruns64.exe'},
     'BleachBit': {
-        '32': r'BleachBit\bleachbit_console.exe'},
+        '32': r'BleachBit-Portable\bleachbit_console.exe'},
     'Caffeine': {
-        '32': r'caffeine\caffeine.exe'},
-    'curl': {
-        '32': r'curl\curl.exe'},
+        '32': r'Caffeine\caffeine.exe'},
     'Du': {
-        '32': r'du\du.exe',
-        '64': r'du\du64.exe'},
+        '32': r'Du\du.exe',
+        '64': r'Du\du64.exe'},
     'ERUNT': {
-        '32': r'erunt\ERUNT.EXE'},
+        '32': r'ERUNT\ERUNT.EXE'},
     'Everything': {
         '32': r'Everything\Everything.exe',
         '64': r'Everything\Everything64.exe'},
@@ -61,7 +59,7 @@ TOOLS = {
     'KVRT': {
         '32': r'KVRT\KVRT.exe'},
     'NotepadPlusPlus': {
-        '32': r'notepadplusplus\notepadplusplus.exe'},
+        '32': r'NotepadPlusPlus\notepadplusplus.exe'},
     'ProduKey': {
         '32': r'ProduKey\ProduKey.exe',
         '64': r'ProduKey\ProduKey64.exe'},
@@ -72,7 +70,7 @@ TOOLS = {
     'SevenZip': {
         '32': r'7-Zip\7za.exe',
         '64': r'7-Zip\7za64.exe'},
-    'TDSSKille': {
+    'TDSSKiller': {
         '32': r'TDSSKiller\TDSSKiller.exe'},
     'wimlib-imagex': {
         '32': r'wimlib\x32\wimlib-imagex.exe',

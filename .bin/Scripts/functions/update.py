@@ -6,14 +6,141 @@ import requests
 from functions.common import *
 from settings.launchers import *
 
-def download_to_temp(out_name, source_url):
+NINITE_FILES = {
+    'Bundles': {
+        'Runtimes.exe': '.net4.7-air-java8-silverlight',
+        'Legacy.exe': '.net4.7-7zip-air-chrome-firefox-java8-silverlight-vlc',
+        'Modern.exe': '.net4.7-7zip-air-chrome-classicstart-firefox-java8-silverlight-vlc',
+        },
+    'Audio-Video': {
+        'AIMP.exe': 'aimp',
+        'Audacity.exe': 'audacity',
+        'CCCP.exe': 'cccp',
+        'Foobar2000.exe': 'foobar',
+        'GOM.exe': 'gom',
+        'HandBrake.exe': 'handbrake',
+        'iTunes.exe': 'itunes',
+        'K-Lite Codecs.exe': 'klitecodecs',
+        'MediaMonkey.exe': 'mediamonkey',
+        'MusicBee.exe': 'musicbee',
+        'Spotify.exe': 'spotify',
+        'VLC.exe': 'vlc',
+        'Winamp.exe': 'winamp',
+        },
+    'Cloud Storage': {
+        'Dropbox.exe': 'dropbox',
+        'Google Backup & Sync.exe': 'googlebackupandsync',
+        'Mozy.exe': 'mozy',
+        'OneDrive.exe': 'onedrive',
+        'SugarSync.exe': 'sugarsync',
+        },
+    'Communication': {
+        'Pidgin.exe': 'pidgin',
+        'Skype.exe': 'skype',
+        'Trillian.exe': 'trillian',
+        },
+    'Compression': {
+        '7-Zip.exe': '7zip',
+        'PeaZip.exe': 'peazip',
+        'WinRAR.exe': 'winrar',
+        },
+    'Developer': {
+        'Eclipse.exe': 'eclipse',
+        'FileZilla.exe': 'filezilla',
+        'JDK 8.exe': 'jdk8',
+        'JDK 8 (x64).exe': 'jdkx8',
+        'Notepad++.exe': 'notepadplusplus',
+        'PuTTY.exe': 'putty',
+        'Python 2.exe': 'python',
+        'Visual Studio Code.exe': 'vscode',
+        'WinMerge.exe': 'winmerge',
+        'WinSCP.exe': 'winscp',
+        },
+    'File Sharing': {
+        'qBittorrent.exe': 'qbittorrent',
+        },
+    'Image-Photo': {
+        'Blender.exe': 'blender',
+        'FastStone.exe': 'faststone',
+        'GIMP.exe': 'gimp',
+        'Greenshot.exe': 'greenshot',
+        'Inkscape.exe': 'inkscape',
+        'IrfanView.exe': 'irfanview',
+        'Krita.exe': 'krita',
+        'Paint.NET.exe': 'paint.net',
+        'ShareX.exe': 'sharex',
+        'XnView.exe': 'xnview',
+        },
+    'Misc': {
+        'Evernote.exe': 'evernote',
+        'Everything.exe': 'everything',
+        'KeePass 2.exe': 'keepass2',
+        'Google Earth.exe': 'googleearth',
+        'NV Access.exe': 'nvda',
+        'Steam.exe': 'steam',
+        },
+    'Office': {
+        'CutePDF.exe': 'cutepdf',
+        'Foxit Reader.exe': 'foxit',
+        'LibreOffice.exe': 'libreoffice',
+        'OpenOffice.exe': 'openoffice',
+        'PDFCreator.exe': 'pdfcreator',
+        'SumatraPDF.exe': 'sumatrapdf',
+        'Thunderbird.exe': 'thunderbird',
+        },
+    'Runtimes': {
+        'Adobe Air.exe': 'air',
+        'dotNET.exe': '.net4.7',
+        'Java 8.exe': 'java8',
+        'Shockwave.exe': 'shockwave',
+        'Silverlight.exe': 'silverlight',
+        },
+    'Security': {
+        'Avast.exe': 'avast',
+        'AVG.exe': 'avg',
+        'Avira.exe': 'avira',
+        'Microsoft Security Essentials.exe': 'essentials',
+        'Malwarebytes Anti-Malware.exe': 'malwarebytes',
+        'Spybot 2.exe': 'spybot2',
+        'SUPERAntiSpyware.exe': 'super',
+        },
+    'Utilities': {
+        'CDBurnerXP.exe': 'cdburnerxp',
+        'Classic Start.exe': 'classicstart',
+        'Glary Utilities.exe': 'glary',
+        'ImgBurn.exe': 'imgburn',
+        'InfraRecorder.exe': 'infrarecorder',
+        'Launchy.exe': 'launchy',
+        'RealVNC.exe': 'realvnc',
+        'Revo Uninstaller.exe': 'revo',
+        'TeamViewer 12.exe': 'teamviewer12',
+        'TeraCopy.exe': 'teracopy',
+        'WinDirStat.exe': 'windirstat',
+        },
+    'Web Browsers': {
+        'Google Chrome.exe': 'chrome',
+        'Mozilla Firefox.exe': 'firefox',
+        'Opera Chromium.exe': 'operaChromium',
+        },
+    }
+RST_FILES = {
+    #SetupRST_12.0.exe :  Removed from download center?
+    #SetupRST_12.5.exe :  Removed from download center?
+    #SetupRST_12.8.exe :  Removed from download center?
+    'SetupRST_12.9.exe': 'https://downloadmirror.intel.com/23496/eng/SetupRST.exe',
+    #SetupRST_13.x.exe :  Broken, doesn't support > .NET 4.5
+    'SetupRST_14.0.exe': 'https://downloadmirror.intel.com/25091/eng/SetupRST.exe',
+    'SetupRST_14.8.exe': 'https://downloadmirror.intel.com/26759/eng/setuprst.exe',
+    'SetupRST_15.8.exe': 'https://downloadmirror.intel.com/27147/eng/SetupRST.exe',
+    }
+
+def download_generic(out_dir, out_name, source_url):
     """Downloads a file using requests."""
     ## Code based on this Q&A: https://stackoverflow.com/q/16694907
     ### Asked by: https://stackoverflow.com/users/427457/roman-podlinov
     ### Edited by: https://stackoverflow.com/users/657427/christophe-roussy
     ### Using answer: https://stackoverflow.com/a/39217788
     ### Answer from: https://stackoverflow.com/users/4323/john-zwinck
-    out_dir = global_vars['TmpDir']
     os.makedirs(out_dir, exist_ok=True)
     out_path = '{}/{}'.format(out_dir, out_name)
     try:
@@ -23,6 +150,9 @@ def download_to_temp(out_name, source_url):
         r.close()
     except:
         raise GenericError('Failed to download file.')
+
+def download_to_temp(out_name, source_url):
+    download_generic(global_vars['TmpDir'], out_name, source_url)
 
 def resolve_dynamic_url(source_url, regex, tmp_file='webpage.tmp'):
     """Scan source_url for a url using the regex provided; returns str."""
@@ -47,82 +177,42 @@ def resolve_dynamic_url(source_url, regex, tmp_file='webpage.tmp'):
     os.remove(tmp_file)
     return url
 
-def extract_from_temp(source, root, dest, *args):
+def extract_generic(source, dest, mode='x', sz_args=[]):
     cmd = [
         global_vars['Tools']['SevenZip'],
-        'e', r'{}\{}'.format(global_vars['TmpDir'], source),
-        r'-o{}\{}'.format(root, dest),
+        mode, source, r'-o{}'.format(dest),
         '-aoa', '-bso0', '-bse0',
         ]
-    cmd.extend(args)
+    cmd.extend(sz_args)
     run_program(cmd)
 
-def extract_to_bin(source, item, *args):
-    extract_from_temp(source, global_vars['BinDir'], item, *args)
+def extract_temp_to_bin(source, item, mode='x', sz_args=[]):
+    source = r'{}\{}'.format(global_vars['TmpDir'], source)
+    dest = r'{}\{}'.format(global_vars['BinDir'], item)
+    extract_generic(source, dest, mode, sz_args)
 
-def extract_to_cbin(source, item, *args):
+def extract_temp_to_cbin(source, item, mode='x', sz_args=[]):
+    source = r'{}\{}'.format(global_vars['TmpDir'], source)
     dest = r'{}\{}'.format(global_vars['CBinDir'], item)
     include_path = r'{}\_include\{}'.format(global_vars['CBinDir'], item)
     if os.path.exists(include_path):
         shutil.copytree(include_path, dest)
-    extract_from_temp(source, global_vars['CBinDir'], item, *args)
+    extract_generic(source, dest, mode, sz_args)
 
 def remove_from_kit(item):
-    bin_path = r'{}\{}'.format(global_vars['BinDir'], item)
-    cbin_path = r'{}\{}'.format(global_vars['CBinDir'], item)
-    shutil.rmtree(bin_path, ignore_errors=True)
-    shutil.rmtree(cbin_path, ignore_errors=True)
+    item_locations = []
+    for p in [global_vars['BinDir'], global_vars['CBinDir']]:
+        item_locations.append(r'{}\{}'.format(p, item))
+        item_locations.append(r'{}\_Drivers\{}'.format(p, item))
+    for item_path in item_locations:
+        if os.path.exists(item_path):
+            if os.path.isdir(item_path):
+                shutil.rmtree(item_path, ignore_errors=True)
+            else:
+                os.remove(item_path)
 
 def remove_from_temp(item):
     os.remove(r'{}\{}'.format(global_vars['TmpDir'], item))
-
-## .bin (NOT compressed) ##
-def update_fastcopy():
-    # Stop running processes
-    for process in ['FastCopy.exe', 'FastCopy64.exe']:
-        kill_process(process)
-    
-    # Download
-    name = 'FastCopy32.zip'
-    url = 'http://ftp.vector.co.jp/69/28/2323/FastCopy332.zip'
-    download_to_temp(name, url)
-
-    name = 'FastCopy64.zip'
-    url = 'http://ftp.vector.co.jp/69/28/2323/FastCopy332_x64.zip'
-    download_to_temp(name, url)
-    
-    # Extract
-    extract_to_bin('FastCopy64.zip', 'FastCopy', 'FastCopy.exe')
-    shutil.move(
-        r'{}\FastCopy\FastCopy.exe'.format(global_vars['BinDir']),
-        r'{}\FastCopy\FastCopy64.exe'.format(global_vars['BinDir']))
-    extract_to_bin('FastCopy32.zip', 'FastCopy', r'-x!setup.exe', r'-x!*.dll')
-    
-    # Cleanup
-    remove_from_temp('FastCopy32.zip')
-    remove_from_temp('FastCopy64.zip')
-
-def update_hwinfo():
-    # Stop running processes
-    for exe in ['HWiNFO32.exe', 'HWiNFO64.exe']:
-        kill_process(exe)
-    
-    # Download
-    name = 'HWiNFO32.zip'
-    url = 'http://app.oldfoss.com:81/download/HWiNFO/hw32_560.zip'
-    download_to_temp(name, url)
-
-    name = 'HWiNFO64.zip'
-    url = 'http://app.oldfoss.com:81/download/HWiNFO/hw64_560.zip'
-    download_to_temp(name, url)
-    
-    # Extract files
-    extract_to_bin('HWiNFO32.zip', 'HWiNFO')
-    extract_to_bin('HWiNFO64.zip', 'HWiNFO')
-    
-    # Cleanup
-    remove_from_temp('HWiNFO32.zip')
-    remove_from_temp('HWiNFO64.zip')
 
 ## Data Recovery ##
 def update_testdisk():
@@ -140,12 +230,48 @@ def update_testdisk():
     download_to_temp(name, url)
     
     # Extract files
-    extract_to_cbin('testdisk_wip.zip', 'TestDisk')
+    extract_temp_to_cbin('testdisk_wip.zip', 'TestDisk')
+    dest = r'{}\TestDisk'.format(global_vars['CBinDir'])
+    for item in os.scandir(r'{}\testdisk-7.1-WIP'.format(dest)):
+        dest_item = '{}\{}'.format(dest, item.name)
+        if not os.path.exists(dest_item):
+            shutil.move(item.path, dest_item)
+    shutil.rmtree(
+        r'{}\TestDisk\testdisk-7.1-WIP'.format(global_vars['CBinDir']))
     
     # Cleanup
     remove_from_temp('testdisk_wip.zip')
 
 ## Data Transfers ##
+def update_fastcopy():
+    ## NOTE: Lives in .bin uncompressed
+    # Stop running processes
+    for process in ['FastCopy.exe', 'FastCopy64.exe']:
+        kill_process(process)
+    
+    # Remove existing folders
+    remove_from_kit('FastCopy')
+    
+    # Download
+    name = 'FastCopy32.zip'
+    url = 'http://ftp.vector.co.jp/69/28/2323/FastCopy332.zip'
+    download_to_temp(name, url)
+
+    name = 'FastCopy64.zip'
+    url = 'http://ftp.vector.co.jp/69/28/2323/FastCopy332_x64.zip'
+    download_to_temp(name, url)
+    
+    # Extract
+    extract_temp_to_bin('FastCopy64.zip', 'FastCopy', sz_args=['FastCopy.exe'])
+    shutil.move(
+        r'{}\FastCopy\FastCopy.exe'.format(global_vars['BinDir']),
+        r'{}\FastCopy\FastCopy64.exe'.format(global_vars['BinDir']))
+    extract_temp_to_bin('FastCopy32.zip', 'FastCopy', sz_args=[r'-x!setup.exe', r'-x!*.dll'])
+    
+    # Cleanup
+    remove_from_temp('FastCopy32.zip')
+    remove_from_temp('FastCopy64.zip')
+
 def update_xyplorer():
     # Stop running processes
     kill_process('XYplorerFree.exe')
@@ -159,7 +285,7 @@ def update_xyplorer():
     download_to_temp(name, url)
     
     # Extract files
-    extract_to_cbin('xyplorer_free.zip', 'XYplorerFree')
+    extract_temp_to_cbin('xyplorer_free.zip', 'XYplorerFree')
     
     # Cleanup
     remove_from_temp('xyplorer_free.zip')
@@ -178,38 +304,170 @@ def update_aida64():
     download_to_temp(name, url)
     
     # Extract files
-    extract_to_cbin('aida64.zip', 'AIDA64')
+    extract_temp_to_cbin('aida64.zip', 'AIDA64')
     
     # Cleanup
     remove_from_temp('aida64.zip')
 
 def update_autoruns():
-    pass
+    # Stop running processes
+    kill_process('Autoruns.exe')
+    kill_process('Autoruns64.exe')
+    
+    # Remove existing folders
+    remove_from_kit('Autoruns')
+    
+    # Download
+    name = 'Autoruns.zip'
+    url = 'https://download.sysinternals.com/files/Autoruns.zip'
+    download_to_temp(name, url)
+    
+    # Extract files
+    extract_temp_to_cbin('Autoruns.zip', 'Autoruns')
+    
+    # Cleanup
+    remove_from_temp('Autoruns.zip')
 
 def update_bleachbit():
-    pass
+    # Stop running processes
+    kill_process('bleachbit.exe')
+    
+    # Remove existing folders
+    remove_from_kit('BleachBit-Portable')
+    
+    # Download
+    name = 'BleachBit-Portable.zip'
+    url = 'https://download.bleachbit.org/beta/1.17/BleachBit-1.17-portable.zip'
+    download_to_temp(name, url)
+    name = 'Winapp2.zip'
+    url = 'https://github.com/MoscaDotTo/Winapp2/archive/master.zip'
+    download_to_temp(name, url)
+    
+    # Extract files
+    extract_temp_to_cbin('BleachBit-Portable.zip', 'BleachBit-Portable')
+    extract_generic(
+        r'{}\Winapp2.zip'.format(global_vars['TmpDir']),
+        r'{}\BleachBit-Portable\cleaners'.format(global_vars['CBinDir']),
+        mode='e', sz_args=[r'Winapp2-master\Non-CCleaner\Winapp2.ini'])
+    
+    # Move files into place
+    dest = r'{}\BleachBit-Portable'.format(global_vars['CBinDir'])
+    for item in os.scandir(r'{}\BleachBit-Portable'.format(dest)):
+        dest_item = '{}\{}'.format(dest, item.name)
+        if not os.path.exists(dest_item):
+            shutil.move(item.path, dest_item)
+    shutil.rmtree(
+        r'{}\BleachBit-Portable\BleachBit-Portable'.format(global_vars['CBinDir']))
+    
+    # Cleanup
+    remove_from_temp('BleachBit-Portable.zip')
+    remove_from_temp('Winapp2.zip')
 
 def update_bluescreenview():
-    pass
+    # Stop running processes
+    for exe in ['BlueScreenView.exe', 'BlueScreenView64.exe']:
+        kill_process(exe)
+    
+    # Remove existing folders
+    remove_from_kit('BlueScreenView')
+    
+    # Download
+    name = 'bluescreenview.zip'
+    url = 'http://www.nirsoft.net/utils/bluescreenview.zip'
+    download_to_temp(name, url)
+    
+    name = 'bluescreenview64.zip'
+    url = 'http://www.nirsoft.net/utils/bluescreenview-x64.zip'
+    download_to_temp(name, url)
+    
+    # Extract files
+    extract_temp_to_cbin('bluescreenview64.zip', 'BlueScreenView', sz_args=['BlueScreenView.exe'])
+    shutil.move(
+        r'{}\BlueScreenView\BlueScreenView.exe'.format(global_vars['CBinDir']),
+        r'{}\BlueScreenView\BlueScreenView64.exe'.format(global_vars['CBinDir']))
+    extract_temp_to_cbin('bluescreenview.zip', 'BlueScreenView')
+    
+    # Cleanup
+    remove_from_temp('bluescreenview.zip')
+    remove_from_temp('bluescreenview64.zip')
 
 def update_du():
-    pass
+    # Stop running processes
+    kill_process('du.exe')
+    kill_process('du64.exe')
+    
+    # Remove existing folders
+    remove_from_kit('Du')
+    
+    # Download
+    name = 'du.zip'
+    url = 'https://download.sysinternals.com/files/DU.zip'
+    download_to_temp(name, url)
+    
+    # Extract files
+    extract_temp_to_cbin('du.zip', 'Du')
+    
+    # Cleanup
+    remove_from_temp('du.zip')
 
 def update_erunt():
-    pass
+    # Stop running processes
+    kill_process('ERUNT.EXE')
+    
+    # Remove existing folders
+    remove_from_kit('ERUNT')
+    
+    # Download
+    name = 'erunt.zip'
+    url = 'http://www.aumha.org/downloads/erunt.zip'
+    download_to_temp(name, url)
+    
+    # Extract files
+    extract_temp_to_cbin('erunt.zip', 'ERUNT')
+    
+    # Cleanup
+    remove_from_temp('erunt.zip')
 
 def update_hitmanpro():
-    #def download_hitmanpro():
-    #    path = '{CBinDir}/HitmanPro'.format(**global_vars)
-    #    name = 'HitmanPro.exe'
-    #    url = 'http://dl.surfright.nl/HitmanPro.exe'
-    #    download_to_temp(path, name, url)
-    #
-    #    name = 'HitmanPro64.exe'
-    #    url = 'http://dl.surfright.nl/HitmanPro_x64.exe'
-    #    download_to_temp(path, name, url)
-    #
-    pass
+    # Stop running processes
+    for exe in ['HitmanPro.exe', 'HitmanPro64.exe']:
+        kill_process(exe)
+    
+    # Remove existing folders
+    remove_from_kit('HitmanPro')
+    
+    # Download
+    dest = r'{}\HitmanPro'.format(global_vars['CBinDir'])
+    name = 'HitmanPro.exe'
+    url = 'https://dl.surfright.nl/HitmanPro.exe'
+    download_generic(dest, name, url)
+    
+    name = 'HitmanPro64.exe'
+    url = 'https://dl.surfright.nl/HitmanPro_x64.exe'
+    download_generic(dest, name, url)
+
+def update_hwinfo():
+    ## NOTE: Lives in .bin uncompressed
+    # Stop running processes
+    for exe in ['HWiNFO32.exe', 'HWiNFO64.exe']:
+        kill_process(exe)
+    
+    # Download
+    name = 'HWiNFO32.zip'
+    url = 'http://app.oldfoss.com:81/download/HWiNFO/hw32_560.zip'
+    download_to_temp(name, url)
+
+    name = 'HWiNFO64.zip'
+    url = 'http://app.oldfoss.com:81/download/HWiNFO/hw64_560.zip'
+    download_to_temp(name, url)
+    
+    # Extract files
+    extract_temp_to_bin('HWiNFO32.zip', 'HWiNFO')
+    extract_temp_to_bin('HWiNFO64.zip', 'HWiNFO')
+    
+    # Cleanup
+    remove_from_temp('HWiNFO32.zip')
+    remove_from_temp('HWiNFO64.zip')
 
 def update_produkey():
     # Stop running processes
@@ -229,11 +487,11 @@ def update_produkey():
     download_to_temp(name, url)
     
     # Extract files
-    extract_to_cbin('produkey64.zip', 'ProduKey', 'ProduKey.exe')
+    extract_temp_to_cbin('produkey64.zip', 'ProduKey', sz_args=['ProduKey.exe'])
     shutil.move(
         r'{}\ProduKey\ProduKey.exe'.format(global_vars['CBinDir']),
         r'{}\ProduKey\ProduKey64.exe'.format(global_vars['CBinDir']))
-    extract_to_cbin('produkey.zip', 'ProduKey')
+    extract_temp_to_cbin('produkey.zip', 'ProduKey')
     
     # Cleanup
     remove_from_temp('produkey.zip')
@@ -241,200 +499,48 @@ def update_produkey():
 
 ## Drivers ##
 def update_intel_rst():
-    pass
+    # Remove existing folders
+    remove_from_kit('Intel RST')
+    
+    # Prep
+    dest = r'{}\_Drivers\Intel RST'.format(global_vars['CBinDir'])
+    include_path = r'{}\_include\_Drivers\Intel RST'.format(
+        global_vars['CBinDir'])
+    if os.path.exists(include_path):
+        shutil.copytree(include_path, dest)
+    
+    # Download
+    for name, url in RST_FILES.items():
+        download_generic(dest, name, url)
 
 def update_intel_ssd_toolbox():
-    #def update_intel_ssd_toolbox():
-    #    path = '{BinDir}/_Drivers'.format(**global_vars)
-    #    name = 'Intel SSD Toolbox.exe'
-    #    _dl_page = 'https://downloadcenter.intel.com/download/26085/Intel-Solid-State-Drive-Toolbox'
-    #    _regex = r'href=./downloads/eula/[0-9]+/Intel-Solid-State-Drive-Toolbox.httpDown=https\%3A\%2F\%2Fdownloadmirror\.intel\.com\%2F[0-9]+\%2Feng\%2FIntel\%20SSD\%20Toolbox\%20-\%20v[0-9\.]+.exe'
-    #    url = resolve_dynamic_url(_dl_page, _regex)
-    #    url = re.sub(r'.*httpDown=(.*)', r'\1', url, re.IGNORECASE)
-    #    url = url.replace('%3A', ':')
-    #    url = url.replace('%2F', '/')
-    #    download_to_temp(path, name, url)
-    pass
+    # Remove existing folders
+    remove_from_kit('Intel SSD Toolbox.exe')
+    
+    # Download
+    dest = r'{}\_Drivers'.format(global_vars['CBinDir'])
+    name = 'Intel SSD Toolbox.exe'
+    url = r'https://downloadmirror.intel.com/27330/eng/Intel%20SSD%20Toolbox%20-%20v3.4.9.exe'
+    download_generic(dest, name, url)
 
-def update_samsing_magician():
-    #def update_samsung_magician():
-    #    print_warning('Disabled.')
-    #    #~Broken~# path = '{BinDir}/_Drivers'.format(**global_vars)
-    #    #~Broken~# name = 'Samsung Magician.zip'
-    #    #~Broken~# _dl_page = 'http://www.samsung.com/semiconductor/minisite/ssd/download/tools.html'
-    #    #~Broken~# _regex = r'href=./semiconductor/minisite/ssd/downloads/software/Samsung_Magician_Setup_v[0-9]+.zip'
-    #    #~Broken~# url = resolve_dynamic_url(_dl_page, _regex)
-    #    #~Broken~# # Convert relative url to absolute
-    #    #~Broken~# url = 'http://www.samsung.com' + url
-    #    #~Broken~# download_to_temp(path, name, url)
-    #    #~Broken~# # Extract and replace old copy
-    #    #~Broken~# _args = [
-    #    #~Broken~#     'e', '"{BinDir}/_Drivers/Samsung Magician.zip"'.format(**global_vars),
-    #    #~Broken~#     '-aoa', '-bso0', '-bsp0',
-    #    #~Broken~#     '-o"{BinDir}/_Drivers"'.format(**global_vars)
-    #    #~Broken~# ]
-    #    #~Broken~# run_program(seven_zip, _args)
-    #    #~Broken~# try:
-    #    #~Broken~#     os.remove('{BinDir}/_Drivers/Samsung Magician.zip'.format(**global_vars))
-    #    #~Broken~#     #~PoSH~# Move-Item "$bin\_Drivers\Samsung*exe" "$bin\_Drivers\Samsung Magician.exe" $path 2>&1 | Out-Null
-    #    #~Broken~# except Exception:
-    #    #~Broken~#     pass
-    #    pass
-    pass
+def update_samsung_magician():
+    # Remove existing folders
+    remove_from_kit('Samsung Magician.exe')
+    
+    # Download
+    dest = r'{}\_Drivers'.format(global_vars['CBinDir'])
+    name = 'Samsung Magician.exe'
+    url = 'http://downloadcenter.samsung.com/content/SW/201710/20171019164455812/Samsung_Magician_Installer.exe'
+    download_generic(dest, name, url)
 
 def update_sdi():
+    #TODO
     pass
 
 ## Installers ##
-def update_adobe_reader():
+def update_adobe_reader_dc():
     pass
     
-def update_ninite():
-    # Ninite - Bundles
-    # print_info('Installers')
-    # print_success(' '*4 + 'Ninite Bundles')
-    # _path = r'{BaseDir}\Installers\Extras\Bundles'.format(**global_vars)
-    # try_and_print(message='Runtimes.exe', function=download_file, other_results=other_results, out_dir=_path, out_name='Runtimes.exe', source_url='https://ninite.com/.net4.7-air-java8-silverlight/ninite.exe')
-    # try_and_print(message='Legacy.exe', function=download_file, other_results=other_results, out_dir=_path, out_name='Legacy.exe', source_url='https://ninite.com/.net4.7-7zip-air-chrome-firefox-java8-silverlight-vlc/ninite.exe')
-    # try_and_print(message='Modern.exe', function=download_file, other_results=other_results, out_dir=_path, out_name='Modern.exe', source_url='https://ninite.com/.net4.7-7zip-air-chrome-classicstart-firefox-java8-silverlight-vlc/ninite.exe')
-        
-    # # Ninite - Audio-Video
-    # print_success(' '*4 + 'Audio-Video')
-    # _path = r'{BaseDir}\Installers\Extras\Audio-Video'.format(**global_vars)
-    # try_and_print(message='AIMP.exe', function=download_file, other_results=other_results, out_dir=_path, out_name='AIMP.exe', source_url='https://ninite.com/aimp/ninite.exe')
-    # try_and_print(message='Audacity.exe', function=download_file, other_results=other_results, out_dir=_path, out_name='Audacity.exe', source_url='https://ninite.com/audacity/ninite.exe')
-    # try_and_print(message='CCCP.exe', function=download_file, other_results=other_results, out_dir=_path, out_name='CCCP.exe', source_url='https://ninite.com/cccp/ninite.exe')
-    # try_and_print(message='Foobar2000.exe', function=download_file, other_results=other_results, out_dir=_path, out_name='Foobar2000.exe', source_url='https://ninite.com/foobar/ninite.exe')
-    # try_and_print(message='GOM.exe', function=download_file, other_results=other_results, out_dir=_path, out_name='GOM.exe', source_url='https://ninite.com/gom/ninite.exe')
-    # try_and_print(message='iTunes.exe', function=download_file, other_results=other_results, out_dir=_path, out_name='HandBrake.exe', source_url='https://ninite.com/handbrake/ninite.exe')
-    # try_and_print(message='iTunes.exe', function=download_file, other_results=other_results, out_dir=_path, out_name='iTunes.exe', source_url='https://ninite.com/itunes/ninite.exe')
-    # try_and_print(message='K-Lite Codecs.exe', function=download_file, other_results=other_results, out_dir=_path, out_name='K-Lite Codecs.exe', source_url='https://ninite.com/klitecodecs/ninite.exe')
-    # try_and_print(message='MediaMonkey.exe', function=download_file, other_results=other_results, out_dir=_path, out_name='MediaMonkey.exe', source_url='https://ninite.com/mediamonkey/ninite.exe')
-    # try_and_print(message='MusicBee.exe', function=download_file, other_results=other_results, out_dir=_path, out_name='MusicBee.exe', source_url='https://ninite.com/musicbee/ninite.exe')
-    # try_and_print(message='Spotify.exe', function=download_file, other_results=other_results, out_dir=_path, out_name='Spotify.exe', source_url='https://ninite.com/spotify/ninite.exe')
-    # try_and_print(message='VLC.exe', function=download_file, other_results=other_results, out_dir=_path, out_name='VLC.exe', source_url='https://ninite.com/vlc/ninite.exe')
-    # try_and_print(message='Winamp.exe', function=download_file, other_results=other_results, out_dir=_path, out_name='Winamp.exe', source_url='https://ninite.com/winamp/ninite.exe')
-
-    # # Ninite - Cloud Storage
-    # print_success(' '*4 + 'Cloud Storage')
-    # _path = r'{BaseDir}\Installers\Extras\Cloud Storage'.format(**global_vars)
-    # try_and_print(message='Dropbox.exe', function=download_file, other_results=other_results, out_dir=_path, out_name='Dropbox.exe', source_url='https://ninite.com/dropbox/ninite.exe')
-    # try_and_print(message='Google Backup & Sync.exe', function=download_file, other_results=other_results, out_dir=_path, out_name='Google Backup & Sync.exe', source_url='https://ninite.com/googlebackupandsync/ninite.exe')
-    # try_and_print(message='Mozy.exe', function=download_file, other_results=other_results, out_dir=_path, out_name='Mozy.exe', source_url='https://ninite.com/mozy/ninite.exe')
-    # try_and_print(message='OneDrive.exe', function=download_file, other_results=other_results, out_dir=_path, out_name='OneDrive.exe', source_url='https://ninite.com/onedrive/ninite.exe')
-    # try_and_print(message='SugarSync.exe', function=download_file, other_results=other_results, out_dir=_path, out_name='SugarSync.exe', source_url='https://ninite.com/sugarsync/ninite.exe')
-
-    # # Ninite - Communication
-    # print_success(' '*4 + 'Communication')
-    # _path = r'{BaseDir}\Installers\Extras\Communication'.format(**global_vars)
-    # try_and_print(message='Pidgin.exe', function=download_file, other_results=other_results, out_dir=_path, out_name='Pidgin.exe', source_url='https://ninite.com/pidgin/ninite.exe')
-    # try_and_print(message='Skype.exe', function=download_file, other_results=other_results, out_dir=_path, out_name='Skype.exe', source_url='https://ninite.com/skype/ninite.exe')
-    # try_and_print(message='Trillian.exe', function=download_file, other_results=other_results, out_dir=_path, out_name='Trillian.exe', source_url='https://ninite.com/trillian/ninite.exe')
-
-    # # Ninite - Compression
-    # print_success(' '*4 + 'Compression')
-    # _path = r'{BaseDir}\Installers\Extras\Compression'.format(**global_vars)
-    # try_and_print(message='7-Zip.exe', function=download_file, other_results=other_results, out_dir=_path, out_name='7-Zip.exe', source_url='https://ninite.com/7zip/ninite.exe')
-    # try_and_print(message='PeaZip.exe', function=download_file, other_results=other_results, out_dir=_path, out_name='PeaZip.exe', source_url='https://ninite.com/peazip/ninite.exe')
-    # try_and_print(message='WinRAR.exe', function=download_file, other_results=other_results, out_dir=_path, out_name='WinRAR.exe', source_url='https://ninite.com/winrar/ninite.exe')
-
-    # # Ninite - Developer
-    # print_success(' '*4 + 'Developer')
-    # _path = r'{BaseDir}\Installers\Extras\Developer'.format(**global_vars)
-    # try_and_print(message='Eclipse.exe', function=download_file, other_results=other_results, out_dir=_path, out_name='Eclipse.exe', source_url='https://ninite.com/eclipse/ninite.exe')
-    # try_and_print(message='FileZilla.exe', function=download_file, other_results=other_results, out_dir=_path, out_name='FileZilla.exe', source_url='https://ninite.com/filezilla/ninite.exe')
-    # try_and_print(message='JDK 8.exe', function=download_file, other_results=other_results, out_dir=_path, out_name='JDK 8.exe', source_url='https://ninite.com/jdk8/ninite.exe')
-    # try_and_print(message='JDK 8 (x64).exe', function=download_file, other_results=other_results, out_dir=_path, out_name='JDK 8 (x64).exe', source_url='https://ninite.com/jdkx8/ninite.exe')
-    # try_and_print(message='Notepad++.exe', function=download_file, other_results=other_results, out_dir=_path, out_name='Notepad++.exe', source_url='https://ninite.com/notepadplusplus/ninite.exe')
-    # try_and_print(message='PuTTY.exe', function=download_file, other_results=other_results, out_dir=_path, out_name='PuTTY.exe', source_url='https://ninite.com/putty/ninite.exe')
-    # try_and_print(message='Python 2.7.exe', function=download_file, other_results=other_results, out_dir=_path, out_name='Python 2.exe', source_url='https://ninite.com/python/ninite.exe')
-    # try_and_print(message='Visual Studio Code.exe', function=download_file, other_results=other_results, out_dir=_path, out_name='Visual Studio Code.exe', source_url='https://ninite.com/vscode/ninite.exe')
-    # try_and_print(message='WinMerge.exe', function=download_file, other_results=other_results, out_dir=_path, out_name='WinMerge.exe', source_url='https://ninite.com/winmerge/ninite.exe')
-    # try_and_print(message='WinSCP.exe', function=download_file, other_results=other_results, out_dir=_path, out_name='WinSCP.exe', source_url='https://ninite.com/winscp/ninite.exe')
-
-    # # Ninite - File Sharing
-    # print_success(' '*4 + 'File Sharing')
-    # _path = r'{BaseDir}\Installers\Extras\File Sharing'.format(**global_vars)
-    # try_and_print(message='qBittorrent.exe', function=download_file, other_results=other_results, out_dir=_path, out_name='qBittorrent.exe', source_url='https://ninite.com/qbittorrent/ninite.exe')
-
-    # # Ninite - Image-Photo
-    # print_success(' '*4 + 'Image-Photo')
-    # _path = r'{BaseDir}\Installers\Extras\Image-Photo'.format(**global_vars)
-    # try_and_print(message='Blender.exe', function=download_file, other_results=other_results, out_dir=_path, out_name='Blender.exe', source_url='https://ninite.com/blender/ninite.exe')
-    # try_and_print(message='FastStone.exe', function=download_file, other_results=other_results, out_dir=_path, out_name='FastStone.exe', source_url='https://ninite.com/faststone/ninite.exe')
-    # try_and_print(message='GIMP.exe', function=download_file, other_results=other_results, out_dir=_path, out_name='GIMP.exe', source_url='https://ninite.com/gimp/ninite.exe')
-    # try_and_print(message='Greenshot.exe', function=download_file, other_results=other_results, out_dir=_path, out_name='Greenshot.exe', source_url='https://ninite.com/greenshot/ninite.exe')
-    # try_and_print(message='Inkscape.exe', function=download_file, other_results=other_results, out_dir=_path, out_name='Inkscape.exe', source_url='https://ninite.com/inkscape/ninite.exe')
-    # try_and_print(message='IrfanView.exe', function=download_file, other_results=other_results, out_dir=_path, out_name='IrfanView.exe', source_url='https://ninite.com/irfanview/ninite.exe')
-    # try_and_print(message='Krita.exe', function=download_file, other_results=other_results, out_dir=_path, out_name='Krita.exe', source_url='https://ninite.com/krita/ninite.exe')
-    # try_and_print(message='Paint.NET.exe', function=download_file, other_results=other_results, out_dir=_path, out_name='Paint.NET.exe', source_url='https://ninite.com/paint.net/ninite.exe')
-    # try_and_print(message='ShareX.exe', function=download_file, other_results=other_results, out_dir=_path, out_name='ShareX.exe', source_url='https://ninite.com/sharex/ninite.exe')
-    # try_and_print(message='XnView.exe', function=download_file, other_results=other_results, out_dir=_path, out_name='XnView.exe', source_url='https://ninite.com/xnview/ninite.exe')
-
-    # # Ninite - Misc
-    # print_success(' '*4 + 'Misc')
-    # _path = r'{BaseDir}\Installers\Extras\Misc'.format(**global_vars)
-    # try_and_print(message='Evernote.exe', function=download_file, other_results=other_results, out_dir=_path, out_name='Evernote.exe', source_url='https://ninite.com/evernote/ninite.exe')
-    # try_and_print(message='Everything.exe', function=download_file, other_results=other_results, out_dir=_path, out_name='Everything.exe', source_url='https://ninite.com/everything/ninite.exe')
-    # try_and_print(message='KeePass 2.exe', function=download_file, other_results=other_results, out_dir=_path, out_name='KeePass 2.exe', source_url='https://ninite.com/keepass2/ninite.exe')
-    # try_and_print(message='Google Earth.exe', function=download_file, other_results=other_results, out_dir=_path, out_name='Google Earth.exe', source_url='https://ninite.com/googleearth/ninite.exe')
-    # try_and_print(message='NV Access.exe', function=download_file, other_results=other_results, out_dir=_path, out_name='NV Access.exe', source_url='https://ninite.com/nvda/ninite.exe')
-    # try_and_print(message='Steam.exe', function=download_file, other_results=other_results, out_dir=_path, out_name='Steam.exe', source_url='https://ninite.com/steam/ninite.exe')
-
-    # # Ninite - Office
-    # print_success(' '*4 + 'Office')
-    # _path = r'{BaseDir}\Installers\Extras\Office'.format(**global_vars)
-    # try_and_print(message='CutePDF.exe', function=download_file, other_results=other_results, out_dir=_path, out_name='CutePDF.exe', source_url='https://ninite.com/cutepdf/ninite.exe')
-    # try_and_print(message='Foxit Reader.exe', function=download_file, other_results=other_results, out_dir=_path, out_name='Foxit Reader.exe', source_url='https://ninite.com/foxit/ninite.exe')
-    # try_and_print(message='LibreOffice.exe', function=download_file, other_results=other_results, out_dir=_path, out_name='LibreOffice.exe', source_url='https://ninite.com/libreoffice/ninite.exe')
-    # try_and_print(message='OpenOffice.exe', function=download_file, other_results=other_results, out_dir=_path, out_name='OpenOffice.exe', source_url='https://ninite.com/openoffice/ninite.exe')
-    # try_and_print(message='PDFCreator.exe', function=download_file, other_results=other_results, out_dir=_path, out_name='PDFCreator.exe', source_url='https://ninite.com/pdfcreator/ninite.exe')
-    # try_and_print(message='SumatraPDF.exe', function=download_file, other_results=other_results, out_dir=_path, out_name='SumatraPDF.exe', source_url='https://ninite.com/sumatrapdf/ninite.exe')
-    # try_and_print(message='Thunderbird.exe', function=download_file, other_results=other_results, out_dir=_path, out_name='Thunderbird.exe', source_url='https://ninite.com/thunderbird/ninite.exe')
-
-    # # Ninite - Runtimes
-    # print_success(' '*4 + 'Runtimes')
-    # _path = r'{BaseDir}\Installers\Extras\Runtimes'.format(**global_vars)
-    # try_and_print(message='Adobe Air.exe', function=download_file, other_results=other_results, out_dir=_path, out_name='Adobe Air.exe', source_url='https://ninite.com/air/ninite.exe')
-    # try_and_print(message='dotNET.exe', function=download_file, other_results=other_results, out_dir=_path, out_name='dotNET.exe', source_url='https://ninite.com/.net4.7/ninite.exe')
-    # try_and_print(message='Java 8.exe', function=download_file, other_results=other_results, out_dir=_path, out_name='Java 8.exe', source_url='https://ninite.com/java8/ninite.exe')
-    # try_and_print(message='Shockwave.exe', function=download_file, other_results=other_results, out_dir=_path, out_name='Shockwave.exe', source_url='https://ninite.com/shockwave/ninite.exe')
-    # try_and_print(message='Silverlight.exe', function=download_file, other_results=other_results, out_dir=_path, out_name='Silverlight.exe', source_url='https://ninite.com/silverlight/ninite.exe')
-
-    # # Ninite - Security
-    # print_success(' '*4 + 'Security')
-    # _path = r'{BaseDir}\Installers\Extras\Security'.format(**global_vars)
-    # try_and_print(message='Avast.exe', function=download_file, other_results=other_results, out_dir=_path, out_name='Avast.exe', source_url='https://ninite.com/avast/ninite.exe')
-    # try_and_print(message='AVG.exe', function=download_file, other_results=other_results, out_dir=_path, out_name='AVG.exe', source_url='https://ninite.com/avg/ninite.exe')
-    # try_and_print(message='Avira.exe', function=download_file, other_results=other_results, out_dir=_path, out_name='Avira.exe', source_url='https://ninite.com/avira/ninite.exe')
-    # try_and_print(message='Microsoft Security Essentials.exe', function=download_file, other_results=other_results, out_dir=_path, out_name='Microsoft Security Essentials.exe', source_url='https://ninite.com/essentials/ninite.exe')
-    # try_and_print(message='Malwarebytes Anti-Malware.exe', function=download_file, other_results=other_results, out_dir=_path, out_name='Malwarebytes Anti-Malware.exe', source_url='https://ninite.com/malwarebytes/ninite.exe')
-    # try_and_print(message='Spybot 2.exe', function=download_file, other_results=other_results, out_dir=_path, out_name='Spybot 2.exe', source_url='https://ninite.com/spybot2/ninite.exe')
-    # try_and_print(message='SUPERAntiSpyware.exe', function=download_file, other_results=other_results, out_dir=_path, out_name='SUPERAntiSpyware.exe', source_url='https://ninite.com/super/ninite.exe')
-
-    # # Ninite - Utilities
-    # print_success(' '*4 + 'Utilities')
-    # _path = r'{BaseDir}\Installers\Extras\Utilities'.format(**global_vars)
-    # try_and_print(message='CDBurnerXP.exe', function=download_file, other_results=other_results, out_dir=_path, out_name='CDBurnerXP.exe', source_url='https://ninite.com/cdburnerxp/ninite.exe')
-    # try_and_print(message='Classic Start.exe', function=download_file, other_results=other_results, out_dir=_path, out_name='Classic Start.exe', source_url='https://ninite.com/classicstart/ninite.exe')
-    # try_and_print(message='Glary Utilities.exe', function=download_file, other_results=other_results, out_dir=_path, out_name='Glary Utilities.exe', source_url='https://ninite.com/glary/ninite.exe')
-    # try_and_print(message='ImgBurn.exe', function=download_file, other_results=other_results, out_dir=_path, out_name='ImgBurn.exe', source_url='https://ninite.com/imgburn/ninite.exe')
-    # try_and_print(message='InfraRecorder.exe', function=download_file, other_results=other_results, out_dir=_path, out_name='InfraRecorder.exe', source_url='https://ninite.com/infrarecorder/ninite.exe')
-    # try_and_print(message='Launchy.exe', function=download_file, other_results=other_results, out_dir=_path, out_name='Launchy.exe', source_url='https://ninite.com/launchy/ninite.exe')
-    # try_and_print(message='RealVNC.exe', function=download_file, other_results=other_results, out_dir=_path, out_name='RealVNC.exe', source_url='https://ninite.com/realvnc/ninite.exe')
-    # try_and_print(message='Revo Uninstaller.exe', function=download_file, other_results=other_results, out_dir=_path, out_name='Revo Uninstaller.exe', source_url='https://ninite.com/revo/ninite.exe')
-    # try_and_print(message='TeamViewer 12.exe', function=download_file, other_results=other_results, out_dir=_path, out_name='TeamViewer 12.exe', source_url='https://ninite.com/teamviewer12/ninite.exe')
-    # try_and_print(message='TeraCopy.exe', function=download_file, other_results=other_results, out_dir=_path, out_name='TeraCopy.exe', source_url='https://ninite.com/teracopy/ninite.exe')
-    # try_and_print(message='WinDirStat.exe', function=download_file, other_results=other_results, out_dir=_path, out_name='WinDirStat.exe', source_url='https://ninite.com/windirstat/ninite.exe')
-
-    # # Ninite - Web Browsers
-    # print_success(' '*4 + 'Web Browsers')
-    # _path = r'{BaseDir}\Installers\Extras\Web Browsers'.format(**global_vars)
-    # try_and_print(message='Google Chrome.exe', function=download_file, other_results=other_results, out_dir=_path, out_name='Google Chrome.exe', source_url='https://ninite.com/chrome/ninite.exe')
-    # try_and_print(message='Mozilla Firefox.exe', function=download_file, other_results=other_results, out_dir=_path, out_name='Mozilla Firefox.exe', source_url='https://ninite.com/firefox/ninite.exe')
-    # try_and_print(message='Opera Chromium.exe', function=download_file, other_results=other_results, out_dir=_path, out_name='Opera Chromium.exe', source_url='https://ninite.com/operaChromium/ninite.exe')
-    pass
-
 ## Misc ##
 def update_everything():
     pass
@@ -452,7 +558,11 @@ def update_notepadplusplus():
     download_to_temp(name, url)
     
     # Extract files
-    extract_to_cbin('npp.7z', 'NotepadPlusPlus')
+    extract_temp_to_cbin('npp.7z', 'NotepadPlusPlus')
+    shutil.move(
+        r'{}\NotepadPlusPlus\notepad++.exe'.format(global_vars['CBinDir']),
+        r'{}\NotepadPlusPlus\notepadplusplus.exe'.format(global_vars['CBinDir'])
+        )
     
     # Cleanup
     remove_from_temp('npp.7z')
