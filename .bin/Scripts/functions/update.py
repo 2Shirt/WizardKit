@@ -1,5 +1,4 @@
 # Wizard Kit: Functions - Build / Update
-## NOTE: This file is full of magic strings!
 
 import requests
 
@@ -441,6 +440,35 @@ def update_adobe_reader_dc():
     # Download
     download_generic(
         dest, 'Adobe Reader DC.exe', SOURCE_URLS['Adobe Reader DC'])
+
+def update_office():
+    # Remove existing folders
+    remove_from_kit('_Office')
+    
+    # Prep
+    dest = r'{}\_Office'.format(global_vars['CBinDir'])
+    include_path = r'{}\_include\_Office'.format(global_vars['CBinDir'])
+    if os.path.exists(include_path):
+        shutil.copytree(include_path, dest)
+    
+    # Download and extract
+    for year in ['2013', '2016']:
+        name = 'odt{}.exe'.format(year)
+        url = 'Office Deployment Tool {}'.format(year)
+        download_to_temp(name, SOURCE_URLS[url])
+        cmd = [
+            r'{}\odt{}.exe'.format(global_vars['TmpDir'], year),
+            r'/extract:{}\{}'.format(global_vars['TmpDir'], year),
+            '/quiet',
+            ]
+        run_program(cmd)
+        shutil.move(
+            r'{}\{}'.format(global_vars['TmpDir'], year),
+            r'{}\_Office\{}'.format(global_vars['CBinDir'], year))
+    
+    # Cleanup
+    remove_from_temp('odt2013.exe')
+    remove_from_temp('odt2016.exe')
     
 ## Misc ##
 def update_everything():

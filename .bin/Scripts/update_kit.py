@@ -54,6 +54,7 @@ if __name__ == '__main__':
         # Installers
         print_info('\nInstallers')
         try_and_print(message='Adobe Reader DC...', function=update_adobe_reader_dc, other_results=other_results)
+        try_and_print(message='MS Office...', function=update_office, other_results=other_results)
         print_info('\nNinite')
         for section in sorted(NINITE_SOURCES.keys()):
             print_success('    {}'.format(section))

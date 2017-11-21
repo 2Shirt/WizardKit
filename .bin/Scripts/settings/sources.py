@@ -18,6 +18,8 @@ SOURCE_URLS = {
     'HitmanPro64': 'https://dl.surfright.nl/HitmanPro_x64.exe',
     'HWiNFO32': 'http://app.oldfoss.com:81/download/HWiNFO/hw32_560.zip',
     'HWiNFO64': 'http://app.oldfoss.com:81/download/HWiNFO/hw64_560.zip',
+    'Office Deployment Tool 2013': 'https://download.microsoft.com/download/6/2/3/6230F7A2-D8A9-478B-AC5C-57091B632FCF/officedeploymenttool_x86_4827-1000.exe',
+    'Office Deployment Tool 2016': 'https://download.microsoft.com/download/2/7/A/27AF1BE6-DD20-4CB4-B154-EBAB8A7D4A7E/officedeploymenttool_8529.3600.exe',
     'ProduKey32': 'http://www.nirsoft.net/utils/produkey.zip',
     'ProduKey64': 'http://www.nirsoft.net/utils/produkey-x64.zip',
     'Intel SSD Toolbox': r'https://downloadmirror.intel.com/27330/eng/Intel%20SSD%20Toolbox%20-%20v3.4.9.exe',
