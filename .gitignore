@@ -23,6 +23,7 @@
 .cbin/Caffeine/
 .cbin/Du/
 .cbin/Everything/
+.cbin/FirefoxExtensions/
 .cbin/IObitUninstallerPortable/
 .cbin/ProduKey/
 .cbin/TestDisk/
@@ -31,3 +32,4 @@
 .cbin/XYplorerFree/
 .cbin/_Drivers/
 .cbin/_Office/
+.cbin/_vcredists/

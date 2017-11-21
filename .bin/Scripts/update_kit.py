@@ -21,17 +21,14 @@ if __name__ == '__main__':
         print_info('Updating Kit Tools')
         
         ## Download ##
-        # .bin (Not compressed)
-        print_info('\n.bin')
-        try_and_print(message='FastCopy...', function=update_fastcopy, other_results=other_results)
-        try_and_print(message='HWiNFO...', function=update_hwinfo, other_results=other_results)
-        
         # Data Recovery
         print_info('\nData Recovery')
         try_and_print(message='TestDisk / PhotoRec...', function=update_testdisk, other_results=other_results)
         
         # Data Transfers
         print_info('\nData Transfers')
+        try_and_print(message='FastCopy...', function=update_fastcopy, other_results=other_results)
+        try_and_print(message='wimlib...', function=update_wimlib, other_results=other_results)
         try_and_print(message='XYplorer...', function=update_xyplorer, other_results=other_results)
         
         # Diagnostics
@@ -42,6 +39,7 @@ if __name__ == '__main__':
         try_and_print(message='BlueScreenView...', function=update_bluescreenview, other_results=other_results)
         try_and_print(message='ERUNT...', function=update_erunt, other_results=other_results)
         try_and_print(message='HitmanPro...', function=update_hitmanpro, other_results=other_results)
+        try_and_print(message='HWiNFO...', function=update_hwinfo, other_results=other_results)
         try_and_print(message='ProduKey...', function=update_produkey, other_results=other_results)
         
         # Drivers
@@ -55,6 +53,7 @@ if __name__ == '__main__':
         print_info('\nInstallers')
         try_and_print(message='Adobe Reader DC...', function=update_adobe_reader_dc, other_results=other_results)
         try_and_print(message='MS Office...', function=update_office, other_results=other_results)
+        try_and_print(message='Visual C++ Runtimes...', function=update_vcredists, other_results=other_results)
         print_info('\nNinite')
         for section in sorted(NINITE_SOURCES.keys()):
             print_success('    {}'.format(section))
@@ -68,7 +67,11 @@ if __name__ == '__main__':
         # Misc
         print_info('\nMisc')
         try_and_print(message='Caffeine...', function=update_caffeine, other_results=other_results)
+        try_and_print(message='Classic Start Skin...', function=update_classic_start_skin, other_results=other_results)
+        try_and_print(message='Du...', function=update_du, other_results=other_results)
         try_and_print(message='Everything...', function=update_everything, other_results=other_results)
+        try_and_print(message='PuTTY...', function=update_putty, other_results=other_results)
+        try_and_print(message='Notepad++...', function=update_notepadplusplus, other_results=other_results)
         try_and_print(message='TreeSizeFree...', function=update_treesizefree, other_results=other_results)
         try_and_print(message='XMPlay...', function=update_xmplay, other_results=other_results)
         

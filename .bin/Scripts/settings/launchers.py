@@ -676,6 +676,17 @@ LAUNCHERS = {
             'L_NCMD': 'True',
             'L_WAIT': '',
             },
+        'PuTTY': {
+            'L_TYPE': 'Program',
+            'L_PATH': 'PuTTY',
+            'L_ITEM': 'PUTTY.EXE',
+            'L_ARGS': '',
+            'L_7ZIP': '',
+            'L_CHCK': 'True',
+            'L_ELEV': '',
+            'L_NCMD': 'True',
+            'L_WAIT': '',
+            },
         'TreeSizeFree-Portable': {
             'L_TYPE': 'Program',
             'L_PATH': 'TreeSizeFree',

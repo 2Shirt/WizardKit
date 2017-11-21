@@ -140,6 +140,29 @@ def update_fastcopy():
     remove_from_temp('FastCopy32.zip')
     remove_from_temp('FastCopy64.zip')
 
+def update_wimlib():
+    # Stop running processes
+    kill_process('wimlib-imagex.exe')
+    
+    # Remove existing folders
+    remove_from_kit('wimlib')
+    
+    # Download
+    download_to_temp('wimlib32.zip', SOURCE_URLS['wimlib32'])
+    download_to_temp('wimlib64.zip', SOURCE_URLS['wimlib64'])
+    
+    # Extract
+    extract_generic(
+        r'{}\wimlib32.zip'.format(global_vars['TmpDir']),
+        r'{}\wimlib\x32'.format(global_vars['CBinDir']))
+    extract_generic(
+        r'{}\wimlib64.zip'.format(global_vars['TmpDir']),
+        r'{}\wimlib\x64'.format(global_vars['CBinDir']))
+    
+    # Cleanup
+    remove_from_temp('wimlib32.zip')
+    remove_from_temp('wimlib64.zip')
+
 def update_xyplorer():
     # Stop running processes
     kill_process('XYplorerFree.exe')
@@ -243,23 +266,6 @@ def update_bluescreenview():
     # Cleanup
     remove_from_temp('bluescreenview32.zip')
     remove_from_temp('bluescreenview64.zip')
-
-def update_du():
-    # Stop running processes
-    kill_process('du.exe')
-    kill_process('du64.exe')
-    
-    # Remove existing folders
-    remove_from_kit('Du')
-    
-    # Download
-    download_to_temp('du.zip', SOURCE_URLS['Du'])
-    
-    # Extract files
-    extract_temp_to_cbin('du.zip', 'Du')
-    
-    # Cleanup
-    remove_from_temp('du.zip')
 
 def update_erunt():
     # Stop running processes
@@ -469,8 +475,71 @@ def update_office():
     # Cleanup
     remove_from_temp('odt2013.exe')
     remove_from_temp('odt2016.exe')
+
+def update_classic_start_skin():
+    # Remove existing folders
+    remove_from_kit('ClassicStartSkin')
     
+    # Download
+    download_generic(
+        r'{}\ClassicStartSkin'.format(global_vars['CBinDir']),
+        'Metro-Win10-Black.skin7',
+        SOURCE_URLS['ClassicStartSkin'])
+
+def update_vcredists():
+    # Remove existing folders
+    remove_from_kit('_vcredists')
+    
+    # Prep
+    dest = r'{}\_vcredists'.format(global_vars['CBinDir'])
+    include_path = r'{}\_include\_vcredists'.format(global_vars['CBinDir'])
+    if os.path.exists(include_path):
+        shutil.copytree(include_path, dest)
+    
+    # Download
+    for year in VCREDIST_SOURCES.keys():
+        for bit in ['32', '64']:
+            dest = r'{}\_vcredists\{}\x{}'.format(
+                global_vars['CBinDir'], year, bit)
+            download_generic(
+                dest,
+                'vcredist.exe',
+                VCREDIST_SOURCES[year][bit])
+
 ## Misc ##
+def update_caffeine():
+    # Stop running processes
+    kill_process('caffeine.exe')
+    
+    # Remove existing folders
+    remove_from_kit('Caffeine')
+    
+    # Download
+    download_to_temp('caffeine.zip', SOURCE_URLS['Caffeine'])
+    
+    # Extract files
+    extract_temp_to_cbin('caffeine.zip', 'Caffeine')
+    
+    # Cleanup
+    remove_from_temp('caffeine.zip')
+
+def update_du():
+    # Stop running processes
+    kill_process('du.exe')
+    kill_process('du64.exe')
+    
+    # Remove existing folders
+    remove_from_kit('Du')
+    
+    # Download
+    download_to_temp('du.zip', SOURCE_URLS['Du'])
+    
+    # Extract files
+    extract_temp_to_cbin('du.zip', 'Du')
+    
+    # Cleanup
+    remove_from_temp('du.zip')
+
 def update_everything():
     # Stop running processes
     for exe in ['Everything.exe', 'Everything64.exe']:
@@ -494,6 +563,22 @@ def update_everything():
     remove_from_temp('everything32.zip')
     remove_from_temp('everything64.zip')
 
+def update_firefox_ublock_origin():
+    # Remove existing folders
+    remove_from_kit('FirefoxExtensions')
+    
+    # Download
+    download_to_temp('ff-uBO.xpi', SOURCE_URLS['Firefox uBO'])
+    
+    # Extract files
+    extract_generic(
+        r'{}\ff-uBO.xpi'.format(global_vars['TmpDir']),
+        r'{}\FirefoxExtensions\uBlock0@raymondhill.net'.format(
+            global_vars['CBinDir']))
+    
+    # Cleanup
+    remove_from_temp('ff-uBO.xpi')
+
 def update_notepadplusplus():
     # Stop running processes
     kill_process('notepadplusplus.exe')
@@ -513,6 +598,22 @@ def update_notepadplusplus():
     
     # Cleanup
     remove_from_temp('npp.7z')
+
+def update_putty():
+    # Stop running processes
+    kill_process('PUTTY.EXE')
+    
+    # Remove existing folders
+    remove_from_kit('PuTTY')
+    
+    # Download
+    download_to_temp('putty.zip', SOURCE_URLS['PuTTY'])
+    
+    # Extract files
+    extract_temp_to_cbin('putty.zip', 'PuTTY')
+    
+    # Cleanup
+    remove_from_temp('putty.zip')
 
 def update_treesizefree():
     # Stop running processes
