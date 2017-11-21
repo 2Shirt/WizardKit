@@ -164,28 +164,33 @@ def mount_backup_shares():
         if server['Mounted']:
             continue
         
-        # Else, test connection
-        try:
-            ping(server['IP'])
-        except subprocess.CalledProcessError:
-            print_error(
-                r'Failed to mount \\{Name}\{Share}, {IP} unreachable.'.format(
-                    **server))
-            sleep(1)
-            continue # Continue to next server
+        mount_network_share(server)
+        
 
-        # Mount
-        cmd = r'net use \\{IP}\{Share} /user:{User} {Pass}'.format(**server)
-        cmd = cmd.split(' ')
-        try:
-            run_program(cmd)
-        except Exception:
-            print_warning(r'Failed to mount \\{Name}\{Share} ({IP})'.format(
+def mount_network_share(server):
+    """Mount a network share defined by server."""
+    # Test connection
+    try:
+        ping(server['IP'])
+    except subprocess.CalledProcessError:
+        print_error(
+            r'Failed to mount \\{Name}\{Share}, {IP} unreachable.'.format(
                 **server))
-            sleep(1)
-        else:
-            print_info('Mounted {Name}'.format(**server))
-            server['Mounted'] = True
+        sleep(1)
+        return False
+
+    # Mount
+    cmd = r'net use \\{IP}\{Share} /user:{User} {Pass}'.format(**server)
+    cmd = cmd.split(' ')
+    try:
+        run_program(cmd)
+    except Exception:
+        print_warning(r'Failed to mount \\{Name}\{Share} ({IP})'.format(
+            **server))
+        sleep(1)
+    else:
+        print_info('Mounted {Name}'.format(**server))
+        server['Mounted'] = True
 
 def run_fast_copy(items, dest):
     """Copy items to dest using FastCopy."""
@@ -560,14 +565,20 @@ def transfer_source(source_obj, dest_path, selected_items):
 def umount_backup_shares():
     """Unnount the backup shares regardless of current status."""
     for server in BACKUP_SERVERS:
-        try:
-            # Umount
-            run_program(r'net use \\{IP}\{Share} /delete'.format(**server))
-            print_info('Umounted {Name}'.format(**server))
-            server['Mounted'] = False
-        except Exception:
-            print_error(r'Failed to umount \\{Name}\{Share}.'.format(**server))
-            sleep(1)
+        umount_network_share(server)
+
+def umount_network_share(server):
+    """Unnount a network share defined by server."""
+    cmd = r'net use \\{IP}\{Share} /delete'.format(**server)
+    cmd = cmd.split(' ')
+    try:
+        run_program(cmd)
+    except Exception:
+        print_error(r'Failed to umount \\{Name}\{Share}.'.format(**server))
+        sleep(1)
+    else:
+        print_info('Umounted {Name}'.format(**server))
+        server['Mounted'] = False
 
 def wim_contains(source_path, file_path):
     """Check if the WIM contains a file or folder."""
