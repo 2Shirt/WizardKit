@@ -18,6 +18,10 @@ if __name__ == '__main__':
             }}
         stay_awake()
         os.system('cls')
+        print_info('Starting {} Full Update\n'.format(KIT_NAME_FULL))
+        
+        ## Prep ##
+        update_sdio = ask('Update SDI Origin?')
         
         ## Download ##
         print_success('Downloading tools')
@@ -48,7 +52,8 @@ if __name__ == '__main__':
         try_and_print(message='Intel RST...', function=update_intel_rst, other_results=other_results, width=40)
         try_and_print(message='Intel SSD Toolbox...', function=update_intel_ssd_toolbox, other_results=other_results, width=40)
         try_and_print(message='Samsing Magician...', function=update_samsung_magician, other_results=other_results, width=40)
-        try_and_print(message='Snappy Driver Installer Origin...', function=update_sdi_origin, other_results=other_results, width=40)
+        if update_sdio:
+            try_and_print(message='Snappy Driver Installer Origin...', function=update_sdi_origin, other_results=other_results, width=40)
         
         # Installers
         print_info('    Installers')
