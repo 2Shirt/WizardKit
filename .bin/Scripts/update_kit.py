@@ -20,7 +20,7 @@ if __name__ == '__main__':
         os.system('cls')
         
         ## Download ##
-        print_info('Downloading tools')
+        print_success('Downloading tools')
         
         # Data Recovery
         print_info('    Data Recovery')
@@ -57,7 +57,7 @@ if __name__ == '__main__':
         try_and_print(message='Visual C++ Runtimes...', function=update_vcredists, other_results=other_results, width=40)
         print_info('    Ninite')
         for section in sorted(NINITE_SOURCES.keys()):
-            print_success('    {}'.format(section))
+            print_success('      {}'.format(section))
             dest = r'{}\_Ninite\{}'.format(global_vars['CBinDir'], section)
             for name, url in sorted(NINITE_SOURCES[section].items()):
                 url = 'https://ninite.com/{}/ninite.exe'.format(url)
@@ -87,19 +87,24 @@ if __name__ == '__main__':
         print_info('    Uninstallers')
         try_and_print(message='IObit Uninstaller...', function=update_iobit_uninstaller, other_results=other_results, width=40)
         
+        ## Review ##
+        print_standard('Please review the results and download/extract any missing items to .cbin')
+        pause('Press Enter to compress the .cbin items')
+        
         ## Compress ##
-        print_info('Compressing tools')
+        print_success('Compressing tools')
         print_info('    _Drivers')
         for item in os.scandir(r'{}\_Drivers'.format(global_vars['CBinDir'])):
-            try_and_print(
-                message='{}...'.format(item.name),
-                function=compress_and_remove_item,
-                other_results = other_results,
-                width=40,
-                item = item)
+            if not re.search(r'^(_Drivers|.*7z)$', item.name, re.IGNORECASE):
+                try_and_print(
+                    message='{}...'.format(item.name),
+                    function=compress_and_remove_item,
+                    other_results = other_results,
+                    width=40,
+                    item = item)
         print_info('    .cbin')
         for item in os.scandir(global_vars['CBinDir']):
-            if not re.search(r'^_(Drivers|include)$', item.name, re.IGNORECASE):
+            if not re.search(r'^(_Drivers|_include|.*7z)$', item.name, re.IGNORECASE):
                 try_and_print(
                     message='{}...'.format(item.name),
                     function=compress_and_remove_item,

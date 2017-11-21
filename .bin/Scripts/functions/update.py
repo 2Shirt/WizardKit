@@ -661,7 +661,6 @@ def update_treesizefree():
     # Extract files
     ## NOTE: When downloaded using requests it is a .zip.gz?
     source = r'{}\treesizefree.zip.gz'.format(global_vars['TmpDir'])
-    download_to_temp(name, url)
     extract_generic(source, global_vars['TmpDir'])
     extract_temp_to_cbin('treesizefree.zip', 'TreeSizeFree-Portable')
     
