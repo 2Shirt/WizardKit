@@ -16,6 +16,7 @@
 .bin/Tmp/
 .bin/XMPlay/
 .bin/_Drivers/SDIO/
+.cbin/*.7z
 .cbin/AIDA64/
 .cbin/Autoruns/
 .cbin/BleachBit-Portable/

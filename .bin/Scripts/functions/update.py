@@ -7,6 +7,38 @@ from settings.launchers import *
 from settings.music import *
 from settings.sources import *
 
+def compress_and_remove_item(item):
+    try:
+        compress_item(item)
+    except:
+        raise GenericError
+    else:
+        remove_item(item.path)
+
+def compress_item(item):
+    # Prep
+    prev_dir = os.getcwd()
+    dest = '{}.7z'.format(item.path)
+    wd = item.path
+    include_str = '*'
+    if os.path.isfile(wd):
+        wd = os.path.abspath(r'{}\{}'.format(wd, os.path.pardir))
+        include_str = item.name
+    os.chdir(wd)
+    
+    # Compress
+    cmd = [
+        global_vars['Tools']['SevenZip'],
+        'a', dest,
+        '-t7z', '-mx=7', '-myx=7', '-ms=on', '-mhe', '-bso0', '-bse0',
+        '-p{}'.format(ARCHIVE_PASSWORD),
+        include_str,
+        ]
+    run_program(cmd)
+    
+    # Done
+    os.chdir(prev_dir)
+
 def download_generic(out_dir, out_name, source_url):
     """Downloads a file using requests."""
     ## Code based on this Q&A: https://stackoverflow.com/q/16694907

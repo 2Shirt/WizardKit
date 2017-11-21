@@ -18,21 +18,23 @@ if __name__ == '__main__':
             }}
         stay_awake()
         os.system('cls')
-        print_info('Updating Kit Tools')
         
         ## Download ##
+        print_info('Downloading tools')
+        print_warning('\tSkipped?')
+        
         # Data Recovery
-        print_info('\nData Recovery')
+        print_info('    Data Recovery')
         try_and_print(message='TestDisk / PhotoRec...', function=update_testdisk, other_results=other_results)
         
         # Data Transfers
-        print_info('\nData Transfers')
+        print_info('    Data Transfers')
         try_and_print(message='FastCopy...', function=update_fastcopy, other_results=other_results)
         try_and_print(message='wimlib...', function=update_wimlib, other_results=other_results)
         try_and_print(message='XYplorer...', function=update_xyplorer, other_results=other_results)
         
         # Diagnostics
-        print_info('\nDiagnostics')
+        print_info('    Diagnostics')
         try_and_print(message='AIDA64...', function=update_aida64, other_results=other_results)
         try_and_print(message='Autoruns...', function=update_autoruns, other_results=other_results)
         try_and_print(message='BleachBit...', function=update_bleachbit, other_results=other_results)
@@ -43,18 +45,18 @@ if __name__ == '__main__':
         try_and_print(message='ProduKey...', function=update_produkey, other_results=other_results)
         
         # Drivers
-        print_info('\nDrivers')
+        print_info('    Drivers')
         try_and_print(message='Intel RST...', function=update_intel_rst, other_results=other_results)
         try_and_print(message='Intel SSD Toolbox...', function=update_intel_ssd_toolbox, other_results=other_results)
         try_and_print(message='Samsing Magician...', function=update_samsung_magician, other_results=other_results)
         try_and_print(message='Snappy Driver Installer Origin...', function=update_sdi_origin, other_results=other_results)
         
         # Installers
-        print_info('\nInstallers')
+        print_info('    Installers')
         try_and_print(message='Adobe Reader DC...', function=update_adobe_reader_dc, other_results=other_results)
         try_and_print(message='MS Office...', function=update_office, other_results=other_results)
         try_and_print(message='Visual C++ Runtimes...', function=update_vcredists, other_results=other_results)
-        print_info('\nNinite')
+        print_info('    Ninite')
         for section in sorted(NINITE_SOURCES.keys()):
             print_success('    {}'.format(section))
             dest = r'{}\_Ninite\{}'.format(global_vars['CBinDir'], section)
@@ -65,7 +67,7 @@ if __name__ == '__main__':
                     out_dir=dest, out_name=name, source_url=url)
         
         # Misc
-        print_info('\nMisc')
+        print_info('    Misc')
         try_and_print(message='Caffeine...', function=update_caffeine, other_results=other_results)
         try_and_print(message='Classic Start Skin...', function=update_classic_start_skin, other_results=other_results)
         try_and_print(message='Du...', function=update_du, other_results=other_results)
@@ -76,15 +78,36 @@ if __name__ == '__main__':
         try_and_print(message='XMPlay...', function=update_xmplay, other_results=other_results)
         
         # Repairs
-        print_info('\nRepairs')
+        print_info('    Repairs')
         try_and_print(message='AdwCleaner...', function=update_adwcleaner, other_results=other_results)
         try_and_print(message='KVRT...', function=update_kvrt, other_results=other_results)
         try_and_print(message='RKill...', function=update_rkill, other_results=other_results)
         try_and_print(message='TDSSKiller...', function=update_tdsskiller, other_results=other_results)
         
         # Uninstallers
-        print_info('\nUninstallers')
+        print_info('    Uninstallers')
         try_and_print(message='IObit Uninstaller...', function=update_iobit_uninstaller, other_results=other_results)
+        
+        ## Compress ##
+        print_info('Compressing tools')
+        print_info('    _Drivers')
+        for item in os.scandir(r'{}\_Drivers'.format(global_vars['CBinDir'])):
+            try_and_print(
+                message='{}...'.format(item.name),
+                function=compress_and_remove_item,
+                other_results = other_results,
+                item = item)
+        print_info('    .cbin')
+        for item in os.scandir(global_vars['CBinDir']):
+            if not re.search(r'^_(Drivers|include)$', item.name, re.IGNORECASE):
+                try_and_print(
+                    message='{}...'.format(item.name),
+                    function=compress_and_remove_item,
+                    other_results = other_results,
+                    item = item)
+        
+        ## Generate Launchers
+        # TODO
         
         # Done
         print_standard('\nDone.')
