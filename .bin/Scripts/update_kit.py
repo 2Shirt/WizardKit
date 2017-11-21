@@ -67,6 +67,7 @@ if __name__ == '__main__':
         
         # Misc
         print_info('\nMisc')
+        try_and_print(message='Caffeine...', function=update_caffeine, other_results=other_results)
         try_and_print(message='Everything...', function=update_everything, other_results=other_results)
         try_and_print(message='TreeSizeFree...', function=update_treesizefree, other_results=other_results)
         try_and_print(message='XMPlay...', function=update_xmplay, other_results=other_results)

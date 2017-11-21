@@ -369,7 +369,7 @@ def stay_awake():
         if proc.name() == 'caffeine.exe':
             return
     # Extract and run
-    extract_item('caffeine', silent=True)
+    extract_item('Caffeine', silent=True)
     try:
         popen_program(global_vars['Tools']['Caffeine'])
     except Exception:
