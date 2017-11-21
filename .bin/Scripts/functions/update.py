@@ -104,7 +104,7 @@ def generate_launcher(section, name, options):
     os.makedirs(dest, exist_ok=True)
     if os.path.exists(full_path):
         remove_item(full_path)
-        sleep(1)
+        sleep(0.25)
     
     # Read template and update using f_options
     out_text = []
