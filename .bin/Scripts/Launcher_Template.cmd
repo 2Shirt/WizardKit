@@ -14,7 +14,7 @@ call :SetTitle Launcher
 
 :Optional
 :: This section is for any work that needs done before launching L_ITEM
-rem EXTRA_CODE_GOES_HERE
+rem EXTRA_CODE
 
 :DefineLaunch
 :: Set L_TYPE to one of these options:

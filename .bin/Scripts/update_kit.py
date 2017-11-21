@@ -118,7 +118,13 @@ if __name__ == '__main__':
                     item = item)
         
         ## Generate Launchers
-        # TODO
+        print_success('Generating launchers')
+        for section in sorted(LAUNCHERS.keys()):
+            print_info('    {}'.format(section))
+            for name, options in sorted(LAUNCHERS[section].items()):
+                try_and_print(message=name, function=generate_launcher,
+                    section=section, name=name, options=options,
+                    other_results=other_results, width=40)
         
         # Done
         print_standard('\nDone.')

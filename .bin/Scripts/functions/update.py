@@ -81,6 +81,41 @@ def extract_temp_to_cbin(source, item, mode='x', sz_args=[]):
         shutil.copytree(include_path, dest)
     extract_generic(source, dest, mode, sz_args)
 
+def generate_launcher(section, name, options):
+    # Prep
+    dest = r'{}\{}'.format(global_vars['BaseDir'], section)
+    if section == '(Root)':
+        dest = global_vars['BaseDir']
+    full_path = r'{}\{}.cmd'.format(dest, name)
+    template = r'{}\Scripts\Launcher_Template.cmd'.format(global_vars['BinDir'])
+    
+    # Format options
+    f_options = {}
+    for opt in options.keys():
+        if opt == 'Extra Code':
+            f_options['rem EXTRA_CODE'] = '{}\n'.format(
+                '\n'.join(options['Extra Code']))
+        elif re.search(r'^L_\w+', opt, re.IGNORECASE):
+            new_opt = 'set {}='.format(opt)
+            f_options[new_opt] = 'set {}={}\n'.format(opt, options[opt])
+    
+    # Remove existing launcher
+    os.makedirs(dest, exist_ok=True)
+    if os.path.exists(full_path):
+        remove_item(full_path)
+        sleep(1)
+    
+    # Read template and update using f_options
+    out_text = []
+    with open(template, 'r') as f:
+        for line in f.readlines():
+            if line.strip() in f_options:
+                out_text.append(f_options[line.strip()])
+            else:
+                out_text.append(line)
+    with open(full_path, 'w') as f:
+        f.writelines(out_text)
+
 def remove_item(item_path):
     if os.path.exists(item_path):
         if os.path.isdir(item_path):
