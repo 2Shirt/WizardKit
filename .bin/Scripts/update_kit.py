@@ -131,6 +131,16 @@ if __name__ == '__main__':
                     section=section, name=name, options=options,
                     other_results=other_results, width=40)
         
+        # Rename "Copy WizardKit.cmd" (if necessary)
+        source = r'{}\Scripts\Copy WizardKit.cmd'.format(global_vars['BinDir'])
+        dest = r'{}\Copy {}.cmd'.format(global_vars['BaseDir'], KIT_NAME_FULL)
+        if os.path.exists(source):
+            try:
+                shutil.move(source, dest)
+            except Exception:
+                print_error('    Failed to rename "{}.cmd" to "{}.cmd"'.format(
+                    'Copy WizardKit', KIT_NAME_FULL))
+        
         # Done
         print_standard('\nDone.')
         pause("Press Enter to exit...")
