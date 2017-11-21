@@ -3,6 +3,7 @@
 import requests
 
 from functions.common import *
+from functions.data import *
 from settings.launchers import *
 from settings.music import *
 from settings.sources import *
@@ -155,6 +156,29 @@ def resolve_dynamic_url(source_url, regex):
 
     # Return
     return url
+
+def scan_for_net_installers(server, family_name, min_year):
+    if not server['Mounted']:
+        mount_network_share(server)
+    
+    if server['Mounted']:
+        for year in os.scandir(r'\\{IP}\{Share}'.format(**server)):
+            if int(year.name) < min_year:
+                # Don't support outdated installers
+                continue
+            for version in os.scandir(year.path):
+                section = r'Installers\Extras\{}\{}'.format(
+                    family_name, year.name)
+                if section not in LAUNCHERS:
+                    LAUNCHERS[section] = {}
+                if version.name not in LAUNCHERS[section]:
+                    LAUNCHERS[section][version.name] = {
+                        'L_TYPE': family_name,
+                        'L_PATH': year.name,
+                        'L_ITEM': version.name,
+                        'L_CHCK': 'True',
+                        }
+        umount_network_share(server)
 
 ## Data Recovery ##
 def update_testdisk():

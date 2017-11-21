@@ -1,4 +1,5 @@
 **/__pycache__/*
+*.bak
 *.exe
 .bin/7-Zip/
 .bin/AIDA64/
@@ -35,4 +36,4 @@
 .cbin/_Office/
 .cbin/_vcredists/
 .cbin/wimlib/
-OUT/
+OUT*/

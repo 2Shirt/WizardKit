@@ -39,19 +39,19 @@ CLIENT_INFO_SERVER = {
     'Share':        '/srv/ClientInfo',
     'User':         'upload',
 }
-QUICKBOOKS_SERVER = {
-    'IP':           QUICKBOOKS_SERVER_IP,
-    'Name':         'ServerOne',
-    'Mounted':      False,
-    'Share':        'QuickBooks',
-    'User':         'restore',
-    'Pass':         'Abracadabra',
-}
 OFFICE_SERVER = {
     'IP':           OFFICE_SERVER_IP,
     'Name':         'ServerOne',
     'Mounted':      False,
     'Share':        'Office',
+    'User':         'restore',
+    'Pass':         'Abracadabra',
+}
+QUICKBOOKS_SERVER = {
+    'IP':           QUICKBOOKS_SERVER_IP,
+    'Name':         'ServerOne',
+    'Mounted':      False,
+    'Share':        'QuickBooks',
     'User':         'restore',
     'Pass':         'Abracadabra',
 }
