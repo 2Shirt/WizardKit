@@ -4,16 +4,25 @@
 
 :Init
 setlocal
-call :CheckFlags %*
 title Wizard Kit: Build Tool
+call :CheckFlags %*
 
 :LaunchPrep
 rem Verifies the environment before launching item
 if not exist ".bin\Scripts\build_kit.ps1" (goto ErrorBuildKitMissing)
 
+:PrepNewKit
+rem Copy base files to a new folder OUT\%KIT_NAME_FULL%
+robocopy /e . OUT /xd .git .root_items OUT /xf .gitignore "Build Kit.cmd"
+robocopy /e .root_items OUT
+mkdir OUT\.cbin >nul 2>&1
+attrib +h OUT\.bin >nul 2>&1
+attrib +h OUT\.cbin >nul 2>&1
+
 :Launch
 rem Calls the Launch.cmd script using the variables defined above
-powershell -executionpolicy bypass -noprofile -file .bin\Scripts\build_kit.ps1 || goto ErrorUnknown
+set "file=OUT\.bin\Scripts\build_kit.ps1"
+powershell -executionpolicy bypass -noprofile -file %file% || goto ErrorUnknown
 goto Exit
 
 :: Functions ::

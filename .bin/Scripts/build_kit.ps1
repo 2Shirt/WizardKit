@@ -155,17 +155,6 @@ catch {
     Write-Host ("  ERROR: Failed to extract files." ) -foregroundcolor "Red"
 }
 
-## Cleanup ##
-Move-Item "$root\Build Kit.cmd" "$bin\Scripts\Build Kit.cmd"
-Move-Item "$root\.root_items\*" "$root\"
-New-Item "$root\.cbin" 2> $null
-Remove-Item "$root\.root_items"
-foreach ($item in @(".bin", ".cbin")) {
-    if (Test-Path "$root\$item") {
-        (Get-Item "$root\$item").attributes = "Hidden"
-    }
-}
-
 ## Configure ##
 Write-Host "Configuring kit"
 wk_pause "Press Enter to open settings..."
