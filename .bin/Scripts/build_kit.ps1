@@ -158,7 +158,7 @@ catch {
 ## Cleanup ##
 Move-Item "$root\Build Kit.cmd" "$bin\Scripts\Build Kit.cmd"
 Move-Item "$root\.root_items\*" "$root\"
-New-Item "$root\.cbin"
+New-Item "$root\.cbin" 2> $null
 Remove-Item "$root\.root_items"
 foreach ($item in @(".bin", ".cbin")) {
     if (Test-Path "$root\$item") {

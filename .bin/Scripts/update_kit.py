@@ -21,7 +21,6 @@ if __name__ == '__main__':
         
         ## Download ##
         print_info('Downloading tools')
-        print_warning('\tSkipped?')
         
         # Data Recovery
         print_info('    Data Recovery')
@@ -61,7 +60,7 @@ if __name__ == '__main__':
             print_success('    {}'.format(section))
             dest = r'{}\_Ninite\{}'.format(global_vars['CBinDir'], section)
             for name, url in sorted(NINITE_SOURCES[section].items()):
-            url = 'https://ninite.com/{}/ninite.exe'.format(url)
+                url = 'https://ninite.com/{}/ninite.exe'.format(url)
                 try_and_print(message=name, function=download_generic,
                     other_results=other_results,
                     out_dir=dest, out_name=name, source_url=url)
