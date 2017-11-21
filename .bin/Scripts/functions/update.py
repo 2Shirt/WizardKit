@@ -5,134 +5,8 @@ import requests
 
 from functions.common import *
 from settings.launchers import *
-
-NINITE_FILES = {
-    'Bundles': {
-        'Runtimes.exe': '.net4.7-air-java8-silverlight',
-        'Legacy.exe': '.net4.7-7zip-air-chrome-firefox-java8-silverlight-vlc',
-        'Modern.exe': '.net4.7-7zip-air-chrome-classicstart-firefox-java8-silverlight-vlc',
-        },
-    'Audio-Video': {
-        'AIMP.exe': 'aimp',
-        'Audacity.exe': 'audacity',
-        'CCCP.exe': 'cccp',
-        'Foobar2000.exe': 'foobar',
-        'GOM.exe': 'gom',
-        'HandBrake.exe': 'handbrake',
-        'iTunes.exe': 'itunes',
-        'K-Lite Codecs.exe': 'klitecodecs',
-        'MediaMonkey.exe': 'mediamonkey',
-        'MusicBee.exe': 'musicbee',
-        'Spotify.exe': 'spotify',
-        'VLC.exe': 'vlc',
-        'Winamp.exe': 'winamp',
-        },
-    'Cloud Storage': {
-        'Dropbox.exe': 'dropbox',
-        'Google Backup & Sync.exe': 'googlebackupandsync',
-        'Mozy.exe': 'mozy',
-        'OneDrive.exe': 'onedrive',
-        'SugarSync.exe': 'sugarsync',
-        },
-    'Communication': {
-        'Pidgin.exe': 'pidgin',
-        'Skype.exe': 'skype',
-        'Trillian.exe': 'trillian',
-        },
-    'Compression': {
-        '7-Zip.exe': '7zip',
-        'PeaZip.exe': 'peazip',
-        'WinRAR.exe': 'winrar',
-        },
-    'Developer': {
-        'Eclipse.exe': 'eclipse',
-        'FileZilla.exe': 'filezilla',
-        'JDK 8.exe': 'jdk8',
-        'JDK 8 (x64).exe': 'jdkx8',
-        'Notepad++.exe': 'notepadplusplus',
-        'PuTTY.exe': 'putty',
-        'Python 2.exe': 'python',
-        'Visual Studio Code.exe': 'vscode',
-        'WinMerge.exe': 'winmerge',
-        'WinSCP.exe': 'winscp',
-        },
-    'File Sharing': {
-        'qBittorrent.exe': 'qbittorrent',
-        },
-    'Image-Photo': {
-        'Blender.exe': 'blender',
-        'FastStone.exe': 'faststone',
-        'GIMP.exe': 'gimp',
-        'Greenshot.exe': 'greenshot',
-        'Inkscape.exe': 'inkscape',
-        'IrfanView.exe': 'irfanview',
-        'Krita.exe': 'krita',
-        'Paint.NET.exe': 'paint.net',
-        'ShareX.exe': 'sharex',
-        'XnView.exe': 'xnview',
-        },
-    'Misc': {
-        'Evernote.exe': 'evernote',
-        'Everything.exe': 'everything',
-        'KeePass 2.exe': 'keepass2',
-        'Google Earth.exe': 'googleearth',
-        'NV Access.exe': 'nvda',
-        'Steam.exe': 'steam',
-        },
-    'Office': {
-        'CutePDF.exe': 'cutepdf',
-        'Foxit Reader.exe': 'foxit',
-        'LibreOffice.exe': 'libreoffice',
-        'OpenOffice.exe': 'openoffice',
-        'PDFCreator.exe': 'pdfcreator',
-        'SumatraPDF.exe': 'sumatrapdf',
-        'Thunderbird.exe': 'thunderbird',
-        },
-    'Runtimes': {
-        'Adobe Air.exe': 'air',
-        'dotNET.exe': '.net4.7',
-        'Java 8.exe': 'java8',
-        'Shockwave.exe': 'shockwave',
-        'Silverlight.exe': 'silverlight',
-        },
-    'Security': {
-        'Avast.exe': 'avast',
-        'AVG.exe': 'avg',
-        'Avira.exe': 'avira',
-        'Microsoft Security Essentials.exe': 'essentials',
-        'Malwarebytes Anti-Malware.exe': 'malwarebytes',
-        'Spybot 2.exe': 'spybot2',
-        'SUPERAntiSpyware.exe': 'super',
-        },
-    'Utilities': {
-        'CDBurnerXP.exe': 'cdburnerxp',
-        'Classic Start.exe': 'classicstart',
-        'Glary Utilities.exe': 'glary',
-        'ImgBurn.exe': 'imgburn',
-        'InfraRecorder.exe': 'infrarecorder',
-        'Launchy.exe': 'launchy',
-        'RealVNC.exe': 'realvnc',
-        'Revo Uninstaller.exe': 'revo',
-        'TeamViewer 12.exe': 'teamviewer12',
-        'TeraCopy.exe': 'teracopy',
-        'WinDirStat.exe': 'windirstat',
-        },
-    'Web Browsers': {
-        'Google Chrome.exe': 'chrome',
-        'Mozilla Firefox.exe': 'firefox',
-        'Opera Chromium.exe': 'operaChromium',
-        },
-    }
-RST_FILES = {
-    #SetupRST_12.0.exe :  Removed from download center?
-    #SetupRST_12.5.exe :  Removed from download center?
-    #SetupRST_12.8.exe :  Removed from download center?
-    'SetupRST_12.9.exe': 'https://downloadmirror.intel.com/23496/eng/SetupRST.exe',
-    #SetupRST_13.x.exe :  Broken, doesn't support > .NET 4.5
-    'SetupRST_14.0.exe': 'https://downloadmirror.intel.com/25091/eng/SetupRST.exe',
-    'SetupRST_14.8.exe': 'https://downloadmirror.intel.com/26759/eng/setuprst.exe',
-    'SetupRST_15.8.exe': 'https://downloadmirror.intel.com/27147/eng/SetupRST.exe',
-    }
+from settings.music import *
+from settings.sources import *
 
 def download_generic(out_dir, out_name, source_url):
     """Downloads a file using requests."""
@@ -153,29 +27,6 @@ def download_generic(out_dir, out_name, source_url):
 
 def download_to_temp(out_name, source_url):
     download_generic(global_vars['TmpDir'], out_name, source_url)
-
-def resolve_dynamic_url(source_url, regex, tmp_file='webpage.tmp'):
-    """Scan source_url for a url using the regex provided; returns str."""
-    # Download the "download page"
-    try:
-        download_to_temp('webpage.tmp', source_url)
-    except Exception:
-        # "Fail silently as the download_to_temp() function will catch it
-        return None
-
-    # Scan the file for the regex
-    tmp_file = r'{}\{}'.format(global_vars['TmpDir'], tmp_file)
-    with open(tmp_file, 'r') as file:
-        for line in file:
-            if re.search(regex, line):
-                url = line.strip()
-                url = re.sub(r'.*(a |)href="([^"]+)".*', r'\2', url)
-                url = re.sub(r".*(a |)href='([^']+)'.*", r'\2', url)
-                break
-
-    # Cleanup and return
-    os.remove(tmp_file)
-    return url
 
 def extract_generic(source, dest, mode='x', sz_args=[]):
     cmd = [
@@ -199,20 +50,45 @@ def extract_temp_to_cbin(source, item, mode='x', sz_args=[]):
         shutil.copytree(include_path, dest)
     extract_generic(source, dest, mode, sz_args)
 
+def remove_item(item_path):
+    if os.path.exists(item_path):
+        if os.path.isdir(item_path):
+            shutil.rmtree(item_path, ignore_errors=True)
+        else:
+            os.remove(item_path)
+
 def remove_from_kit(item):
     item_locations = []
     for p in [global_vars['BinDir'], global_vars['CBinDir']]:
         item_locations.append(r'{}\{}'.format(p, item))
         item_locations.append(r'{}\_Drivers\{}'.format(p, item))
     for item_path in item_locations:
-        if os.path.exists(item_path):
-            if os.path.isdir(item_path):
-                shutil.rmtree(item_path, ignore_errors=True)
-            else:
-                os.remove(item_path)
+        remove_item(item_path)
 
 def remove_from_temp(item):
-    os.remove(r'{}\{}'.format(global_vars['TmpDir'], item))
+    item_path = r'{}\{}'.format(global_vars['TmpDir'], item)
+    remove_item(item_path)
+
+def resolve_dynamic_url(source_url, regex):
+    """Scan source_url for a url using the regex provided; returns str."""
+    # Load the download page
+    try:
+        download_page = requests.get(source_url)
+    except Exception:
+        # "Fail silently as the download_to_temp() function will catch it
+        return None
+
+    # Scan for the url using the regex provided
+    url = None
+    for line in download_page.content.decode().splitlines():
+        if re.search(regex, line):
+            url = line.strip()
+            url = re.sub(r'.*(a |)href="([^"]+)".*', r'\2', url)
+            url = re.sub(r".*(a |)href='([^']+)'.*", r'\2', url)
+            break
+
+    # Return
+    return url
 
 ## Data Recovery ##
 def update_testdisk():
@@ -225,9 +101,7 @@ def update_testdisk():
     remove_from_kit('TestDisk')
     
     # Download
-    name = 'testdisk_wip.zip'
-    url = 'https://www.cgsecurity.org/testdisk-7.1-WIP.win.zip'
-    download_to_temp(name, url)
+    download_to_temp('testdisk_wip.zip', SOURCE_URLS['TestDisk'])
     
     # Extract files
     extract_temp_to_cbin('testdisk_wip.zip', 'TestDisk')
@@ -253,13 +127,8 @@ def update_fastcopy():
     remove_from_kit('FastCopy')
     
     # Download
-    name = 'FastCopy32.zip'
-    url = 'http://ftp.vector.co.jp/69/28/2323/FastCopy332.zip'
-    download_to_temp(name, url)
-
-    name = 'FastCopy64.zip'
-    url = 'http://ftp.vector.co.jp/69/28/2323/FastCopy332_x64.zip'
-    download_to_temp(name, url)
+    download_to_temp('FastCopy32.zip', SOURCE_URLS['FastCopy32'])
+    download_to_temp('FastCopy64.zip', SOURCE_URLS['FastCopy64'])
     
     # Extract
     extract_temp_to_bin('FastCopy64.zip', 'FastCopy', sz_args=['FastCopy.exe'])
@@ -280,9 +149,7 @@ def update_xyplorer():
     remove_from_kit('XYplorerFree')
     
     # Download
-    name = 'xyplorer_free.zip'
-    url = 'https://www.xyplorer.com/download/xyplorer_free_noinstall.zip'
-    download_to_temp(name, url)
+    download_to_temp('xyplorer_free.zip', SOURCE_URLS['XYplorerFree'])
     
     # Extract files
     extract_temp_to_cbin('xyplorer_free.zip', 'XYplorerFree')
@@ -299,9 +166,7 @@ def update_aida64():
     remove_from_kit('AIDA64')
     
     # Download
-    name = 'aida64.zip'
-    url = 'http://download.aida64.com/aida64engineer592.zip'
-    download_to_temp(name, url)
+    download_to_temp('aida64.zip', SOURCE_URLS['AIDA64'])
     
     # Extract files
     extract_temp_to_cbin('aida64.zip', 'AIDA64')
@@ -318,9 +183,7 @@ def update_autoruns():
     remove_from_kit('Autoruns')
     
     # Download
-    name = 'Autoruns.zip'
-    url = 'https://download.sysinternals.com/files/Autoruns.zip'
-    download_to_temp(name, url)
+    download_to_temp('Autoruns.zip', SOURCE_URLS['Autoruns'])
     
     # Extract files
     extract_temp_to_cbin('Autoruns.zip', 'Autoruns')
@@ -336,15 +199,11 @@ def update_bleachbit():
     remove_from_kit('BleachBit-Portable')
     
     # Download
-    name = 'BleachBit-Portable.zip'
-    url = 'https://download.bleachbit.org/beta/1.17/BleachBit-1.17-portable.zip'
-    download_to_temp(name, url)
-    name = 'Winapp2.zip'
-    url = 'https://github.com/MoscaDotTo/Winapp2/archive/master.zip'
-    download_to_temp(name, url)
+    download_to_temp('bleachbit.zip', SOURCE_URLS['BleachBit'])
+    download_to_temp('Winapp2.zip', SOURCE_URLS['Winapp2'])
     
     # Extract files
-    extract_temp_to_cbin('BleachBit-Portable.zip', 'BleachBit-Portable')
+    extract_temp_to_cbin('bleachbit.zip', 'BleachBit-Portable')
     extract_generic(
         r'{}\Winapp2.zip'.format(global_vars['TmpDir']),
         r'{}\BleachBit-Portable\cleaners'.format(global_vars['CBinDir']),
@@ -360,7 +219,7 @@ def update_bleachbit():
         r'{}\BleachBit-Portable\BleachBit-Portable'.format(global_vars['CBinDir']))
     
     # Cleanup
-    remove_from_temp('BleachBit-Portable.zip')
+    remove_from_temp('bleachbit.zip')
     remove_from_temp('Winapp2.zip')
 
 def update_bluescreenview():
@@ -372,23 +231,18 @@ def update_bluescreenview():
     remove_from_kit('BlueScreenView')
     
     # Download
-    name = 'bluescreenview.zip'
-    url = 'http://www.nirsoft.net/utils/bluescreenview.zip'
-    download_to_temp(name, url)
-    
-    name = 'bluescreenview64.zip'
-    url = 'http://www.nirsoft.net/utils/bluescreenview-x64.zip'
-    download_to_temp(name, url)
+    download_to_temp('bluescreenview32.zip', SOURCE_URLS['BlueScreenView32'])
+    download_to_temp('bluescreenview64.zip', SOURCE_URLS['BlueScreenView64'])
     
     # Extract files
     extract_temp_to_cbin('bluescreenview64.zip', 'BlueScreenView', sz_args=['BlueScreenView.exe'])
     shutil.move(
         r'{}\BlueScreenView\BlueScreenView.exe'.format(global_vars['CBinDir']),
         r'{}\BlueScreenView\BlueScreenView64.exe'.format(global_vars['CBinDir']))
-    extract_temp_to_cbin('bluescreenview.zip', 'BlueScreenView')
+    extract_temp_to_cbin('bluescreenview32.zip', 'BlueScreenView')
     
     # Cleanup
-    remove_from_temp('bluescreenview.zip')
+    remove_from_temp('bluescreenview32.zip')
     remove_from_temp('bluescreenview64.zip')
 
 def update_du():
@@ -400,9 +254,7 @@ def update_du():
     remove_from_kit('Du')
     
     # Download
-    name = 'du.zip'
-    url = 'https://download.sysinternals.com/files/DU.zip'
-    download_to_temp(name, url)
+    download_to_temp('du.zip', SOURCE_URLS['Du'])
     
     # Extract files
     extract_temp_to_cbin('du.zip', 'Du')
@@ -418,9 +270,7 @@ def update_erunt():
     remove_from_kit('ERUNT')
     
     # Download
-    name = 'erunt.zip'
-    url = 'http://www.aumha.org/downloads/erunt.zip'
-    download_to_temp(name, url)
+    download_to_temp('erunt.zip', SOURCE_URLS['ERUNT'])
     
     # Extract files
     extract_temp_to_cbin('erunt.zip', 'ERUNT')
@@ -438,13 +288,8 @@ def update_hitmanpro():
     
     # Download
     dest = r'{}\HitmanPro'.format(global_vars['CBinDir'])
-    name = 'HitmanPro.exe'
-    url = 'https://dl.surfright.nl/HitmanPro.exe'
-    download_generic(dest, name, url)
-    
-    name = 'HitmanPro64.exe'
-    url = 'https://dl.surfright.nl/HitmanPro_x64.exe'
-    download_generic(dest, name, url)
+    download_generic(dest, 'HitmanPro.exe', SOURCE_URLS['HitmanPro32'])
+    download_generic(dest, 'HitmanPro64.exe', SOURCE_URLS['HitmanPro64'])
 
 def update_hwinfo():
     ## NOTE: Lives in .bin uncompressed
@@ -453,13 +298,8 @@ def update_hwinfo():
         kill_process(exe)
     
     # Download
-    name = 'HWiNFO32.zip'
-    url = 'http://app.oldfoss.com:81/download/HWiNFO/hw32_560.zip'
-    download_to_temp(name, url)
-
-    name = 'HWiNFO64.zip'
-    url = 'http://app.oldfoss.com:81/download/HWiNFO/hw64_560.zip'
-    download_to_temp(name, url)
+    download_to_temp('HWiNFO32.zip', SOURCE_URLS['HWiNFO32'])
+    download_to_temp('HWiNFO64.zip', SOURCE_URLS['HWiNFO64'])
     
     # Extract files
     extract_temp_to_bin('HWiNFO32.zip', 'HWiNFO')
@@ -478,23 +318,18 @@ def update_produkey():
     remove_from_kit('ProduKey')
     
     # Download
-    name = 'produkey.zip'
-    url = 'http://www.nirsoft.net/utils/produkey.zip'
-    download_to_temp(name, url)
-    
-    name = 'produkey64.zip'
-    url = 'http://www.nirsoft.net/utils/produkey-x64.zip'
-    download_to_temp(name, url)
+    download_to_temp('produkey32.zip', SOURCE_URLS['ProduKey32'])
+    download_to_temp('produkey64.zip', SOURCE_URLS['ProduKey64'])
     
     # Extract files
     extract_temp_to_cbin('produkey64.zip', 'ProduKey', sz_args=['ProduKey.exe'])
     shutil.move(
         r'{}\ProduKey\ProduKey.exe'.format(global_vars['CBinDir']),
         r'{}\ProduKey\ProduKey64.exe'.format(global_vars['CBinDir']))
-    extract_temp_to_cbin('produkey.zip', 'ProduKey')
+    extract_temp_to_cbin('produkey32.zip', 'ProduKey')
     
     # Cleanup
-    remove_from_temp('produkey.zip')
+    remove_from_temp('produkey32.zip')
     remove_from_temp('produkey64.zip')
 
 ## Drivers ##
@@ -510,7 +345,7 @@ def update_intel_rst():
         shutil.copytree(include_path, dest)
     
     # Download
-    for name, url in RST_FILES.items():
+    for name, url in RST_SOURCES.items():
         download_generic(dest, name, url)
 
 def update_intel_ssd_toolbox():
@@ -518,32 +353,118 @@ def update_intel_ssd_toolbox():
     remove_from_kit('Intel SSD Toolbox.exe')
     
     # Download
-    dest = r'{}\_Drivers'.format(global_vars['CBinDir'])
-    name = 'Intel SSD Toolbox.exe'
-    url = r'https://downloadmirror.intel.com/27330/eng/Intel%20SSD%20Toolbox%20-%20v3.4.9.exe'
-    download_generic(dest, name, url)
+    download_generic(
+        r'{}\_Drivers'.format(global_vars['CBinDir']),
+        'Intel SSD Toolbox.exe',
+        SOURCE_URLS['Intel SSD Toolbox'])
 
 def update_samsung_magician():
     # Remove existing folders
     remove_from_kit('Samsung Magician.exe')
     
     # Download
-    dest = r'{}\_Drivers'.format(global_vars['CBinDir'])
-    name = 'Samsung Magician.exe'
-    url = 'http://downloadcenter.samsung.com/content/SW/201710/20171019164455812/Samsung_Magician_Installer.exe'
-    download_generic(dest, name, url)
+    download_generic(
+        r'{}\_Drivers'.format(global_vars['CBinDir']),
+        'Samsung Magician.exe',
+        SOURCE_URLS['Samsung Magician'])
 
-def update_sdi():
-    #TODO
-    pass
+def update_sdi_origin():
+    # Download aria2
+    download_to_temp('aria2.zip', SOURCE_URLS['aria2'])
+    aria_source = r'{}\aria2.zip'.format(global_vars['TmpDir'])
+    aria_dest = r'{}\aria2'.format(global_vars['TmpDir'])
+    aria = r'{}\aria2c.exe'.format(aria_dest)
+    extract_generic(aria_source, aria_dest, mode='e')
+    
+    # Prep for torrent download
+    download_to_temp('sdio.torrent', SOURCE_URLS['SDIO Torrent'])
+    sdio_torrent = r'{}\sdio.torrent'.format(global_vars['TmpDir'])
+    out = run_program([aria, sdio_torrent, '-S'])
+    indexes = []
+    for line in out.stdout.decode().splitlines():
+        r = re.search(r'^\s*(\d+)\|(.*)', line)
+        if r and not re.search(r'(\.(bat|inf)|Video|Server|Printer|XP)', line, re.IGNORECASE):
+            indexes.append(int(r.group(1)))
+    indexes = [str(i) for i in sorted(indexes)]
+    
+    # Download SDI Origin
+    cmd = [
+        aria,
+        '--select-file={}'.format(','.join(indexes)),
+        '-d', aria_dest,
+        '--seed-time=0',
+        sdio_torrent,
+        '-new_console:n', '-new_console:s33V',
+        ]
+    run_program(cmd, pipe=False, check=False, shell=True)
+    sleep(1)
+    wait_for_process('aria2c')
+    
+    # Download SDI Origin extra themes
+    download_to_temp('sdio_themes.zip', SOURCE_URLS['SDIO Themes'])
+    theme_source = r'{}\sdio_themes.zip'.format(global_vars['TmpDir'])
+    theme_dest = r'{}\SDIO_Update\tools\SDI\themes'.format(aria_dest)
+    extract_generic(theme_source, theme_dest)
+    
+    # Move files into place
+    for item in os.scandir(r'{}\SDIO_Update'.format(aria_dest)):
+        dest_item = '{}\_Drivers\SDIO\{}'.format(
+            global_vars['BinDir'], item.name)
+        r = re.search(r'^SDIO_x?(64|)_?R.*exe$', item.name, re.IGNORECASE)
+        if r:
+            dest_item = dest_item.replace(item.name, 'SDIO{}.exe'.format(
+                r.group(1)))
+        if (not os.path.exists(dest_item)
+            and not re.search(r'\.(inf|bat)$', item.name, re.IGNORECASE)):
+            shutil.move(item.path, dest_item)
+    
+    # Cleanup
+    remove_from_temp('aria2')
+    remove_from_temp('aria2.zip')
+    remove_from_temp('sdio.torrent')
+    remove_from_temp('sdio_themes.zip')
 
 ## Installers ##
 def update_adobe_reader_dc():
-    pass
+    # Prep
+    dest = r'{}\.root_items\Installers\Extras\Office'.format(
+        global_vars['BaseDir'])
+    if os.path.exists(r'{}\Installers'.format(global_vars['BaseDir'])):
+        dest = dest.replace(r'\.root_items', '')
+    
+    # Remove existing folders
+    try:
+        os.remove(r'{}\Adobe Reader DC.exe'.format(dest))
+    except FileNotFoundError:
+        pass
+    
+    # Download
+    download_generic(
+        dest, 'Adobe Reader DC.exe', SOURCE_URLS['Adobe Reader DC'])
     
 ## Misc ##
 def update_everything():
-    pass
+    # Stop running processes
+    for exe in ['Everything.exe', 'Everything64.exe']:
+        kill_process(exe)
+    
+    # Remove existing folders
+    remove_from_kit('Everything')
+    
+    # Download
+    download_to_temp('everything32.zip', SOURCE_URLS['Everything32'])
+    download_to_temp('everything64.zip', SOURCE_URLS['Everything64'])
+    
+    # Extract files
+    extract_temp_to_cbin('everything64.zip', 'Everything', sz_args=['Everything.exe'])
+    shutil.move(
+        r'{}\Everything\Everything.exe'.format(global_vars['CBinDir']),
+        r'{}\Everything\Everything64.exe'.format(global_vars['CBinDir']))
+    extract_temp_to_cbin('everything32.zip', 'Everything')
+    
+    # Cleanup
+    remove_from_temp('everything32.zip')
+    remove_from_temp('everything64.zip')
 
 def update_notepadplusplus():
     # Stop running processes
@@ -553,9 +474,7 @@ def update_notepadplusplus():
     remove_from_kit('NotepadPlusPlus')
     
     # Download
-    name = 'npp.7z'
-    url = 'https://notepad-plus-plus.org/repository/7.x/7.5.1/npp.7.5.1.bin.minimalist.7z'
-    download_to_temp(name, url)
+    download_to_temp('npp.7z', SOURCE_URLS['NotepadPlusPlus'])
     
     # Extract files
     extract_temp_to_cbin('npp.7z', 'NotepadPlusPlus')
@@ -568,52 +487,159 @@ def update_notepadplusplus():
     remove_from_temp('npp.7z')
 
 def update_treesizefree():
-    pass
+    # Stop running processes
+    kill_process('TreeSizeFree.exe')
+    
+    # Remove existing folders
+    remove_from_kit('TreeSizeFree-Portable')
+    
+    # Download
+    download_to_temp(
+        'treesizefree.zip.gz', SOURCE_URLS['TreeSizeFree-Portable'])
+    
+    # Extract files
+    ## NOTE: When downloaded using requests it is a .zip.gz?
+    source = r'{}\treesizefree.zip.gz'.format(global_vars['TmpDir'])
+    download_to_temp(name, url)
+    extract_generic(source, global_vars['TmpDir'])
+    extract_temp_to_cbin('treesizefree.zip', 'TreeSizeFree-Portable')
+    
+    # Cleanup
+    remove_from_temp('treesizefree.zip')
+    remove_from_temp('treesizefree.zip.gz')
 
 def update_xmplay():
-    pass
+    # Stop running processes
+    kill_process('xmplay.exe')
+    
+    # Remove existing folders
+    remove_from_kit('XMPlay')
+    
+    # Download
+    download_to_temp('xmplay.zip', SOURCE_URLS['XMPlay'])
+    download_to_temp('xmp-7z.zip', SOURCE_URLS['XMPlay 7z'])
+    download_to_temp('xmp-gme.zip', SOURCE_URLS['XMPlay Game'])
+    download_to_temp('xmp-rar.zip', SOURCE_URLS['XMPlay RAR'])
+    download_to_temp('WAModern.zip', SOURCE_URLS['XMPlay WAModern'])
+    
+    # Extract files
+    extract_temp_to_cbin('xmplay.zip', 'XMPlay',
+        mode='e', sz_args=['xmplay.exe', 'xmplay.txt'])
+    for item in ['xmp-7z', 'xmp-gme', 'xmp-rar', 'WAModern']:  
+        filter = []
+        if item == 'WAModern':
+            filter.append('WAModern NightVision.xmpskin')
+        extract_generic(
+            r'{}\{}.zip'.format(global_vars['TmpDir'], item),
+            r'{}\XMPlay\plugins'.format(global_vars['CBinDir']),
+            mode='e', sz_args=filter)
+    
+    # Download Music
+    dest = r'{}\XMPlay\music_tmp\MOD'.format(global_vars['CBinDir'])
+    for mod in MUSIC_MOD:
+        name = mod.split('#')[-1]
+        url = 'https://api.modarchive.org/downloads.php?moduleid={}'.format(mod)
+        download_generic(dest, name, url)
+    dest = r'{}\XMPlay\music_tmp\SNES'.format(global_vars['CBinDir'])
+    for game in MUSIC_SNES:
+        name = '{}.rsn'.format(game)
+        url = 'http://snesmusic.org/v2/download.php?spcNow={}'.format(game)
+        download_generic(dest, name, url)
+    
+    # Compress Music
+    cmd = [
+        global_vars['Tools']['SevenZip'],
+        'a', r'{}\XMPlay\music.7z'.format(global_vars['CBinDir']),
+        '-t7z', '-mx=9', '-bso0', '-bse0',
+        r'{}\XMPlay\music_tmp\*'.format(global_vars['CBinDir']),
+        ]
+    run_program(cmd)
+    
+    # Cleanup
+    remove_item(r'{}\XMPlay\music_tmp'.format(global_vars['CBinDir']))
+    remove_from_temp('xmplay.zip')
+    remove_from_temp('xmp-7z.zip')
+    remove_from_temp('xmp-gme.zip')
+    remove_from_temp('xmp-rar.zip')
+    remove_from_temp('WAModern.zip')
 
 ## Repairs ##
 def update_adwcleaner():
-    #def update_adwcleaner():
-    #    path = global_vars['BinDir']
-    #    name = 'AdwCleaner.exe'
-    #    _dl_page = 'http://www.bleepingcomputer.com/download/adwcleaner/dl/125/'
-    #    _regex = r'href=.*http(s|)://download\.bleepingcomputer\.com/dl/[a-zA-Z0-9]+/[a-zA-Z0-9]+/windows/security/security-utilities/a/adwcleaner/AdwCleaner\.exe'
-    #    url = resolve_dynamic_url(_dl_page, _regex)
-    #    download_to_temp(path, name, url)
-    #
-    pass
+    # Stop running processes
+    kill_process('AdwCleaner.exe')
+    
+    # Remove existing folders
+    remove_from_kit('AdwCleaner')
+    
+    # Download
+    url = resolve_dynamic_url(
+        SOURCE_URLS['AdwCleaner'],
+        'id="downloadLink"')
+    download_generic(
+        r'{}\AdwCleaner'.format(global_vars['CBinDir']), 'AdwCleaner.exe', url)
 
 def update_kvrt():
-    #def update_kvrt():
-    #    path = global_vars['BinDir']
-    #    name = 'KVRT.exe'
-    #    url = 'http://devbuilds.kaspersky-labs.com/devbuilds/KVRT/latest/full/KVRT.exe'
-    #    download_to_temp(path, name, url)
-    pass
+    # Stop running processes
+    kill_process('KVRT.exe')
+    
+    # Remove existing folders
+    remove_from_kit('KVRT')
+    
+    # Download
+    download_generic(
+        r'{}\KVRT'.format(global_vars['CBinDir']),
+        'KVRT.exe',
+        SOURCE_URLS['KVRT'])
 
 def update_rkill():
-    #def update_rkill():
-    #    path = '{BinDir}/RKill'.format(**global_vars)
-    #    name = 'RKill.exe'
-    #    _dl_page = 'http://www.bleepingcomputer.com/download/rkill/dl/10/'
-    #    _regex = r'href=.*http(s|)://download\.bleepingcomputer\.com/dl/[a-zA-Z0-9]+/[a-zA-Z0-9]+/windows/security/security-utilities/r/rkill/rkill\.exe'
-    #    url = resolve_dynamic_url(_dl_page, _regex)
-    #    download_to_temp(path, name, url)
-    pass
+    # Stop running processes
+    kill_process('RKill.exe')
+    
+    # Remove existing folders
+    remove_from_kit('RKill')
+    
+    # Download
+    url = resolve_dynamic_url(
+        SOURCE_URLS['RKill'],
+        'href.*rkill\.exe')
+    download_generic(
+        r'{}\RKill'.format(global_vars['CBinDir']), 'RKill.exe', url)
 
 def update_tdsskiller():
-    #def update_tdsskiller():
-    #    path = global_vars['BinDir']
-    #    name = 'TDSSKiller.exe'
-    #    url = 'http://media.kaspersky.com/utilities/VirusUtilities/EN/tdsskiller.exe'
-    #    download_to_temp(path, name, url)
-    pass
+    # Stop running processes
+    kill_process('TDSSKiller.exe')
+    
+    # Remove existing folders
+    remove_from_kit('TDSSKiller')
+    
+    # Download
+    download_generic(
+        r'{}\TDSSKiller'.format(global_vars['CBinDir']),
+        'TDSSKiller.exe',
+        SOURCE_URLS['TDSSKiller'])
 
 ## Uninstallers ##
 def update_iobit_uninstaller():
-    pass
+    # Stop running processes
+    kill_process('IObitUninstallerPortable.exe')
+    
+    # Remove existing folders
+    remove_from_kit('IObitUninstallerPortable')
+    
+    # Download
+    download_generic(
+        global_vars['CBinDir'],
+        'IObitUninstallerPortable.exe',
+        SOURCE_URLS['IOBit_Uninstaller'])
+    
+    # "Install"
+    cmd = r'{}\IObitUninstallerPortable.exe'.format(global_vars['CBinDir'])
+    popen_program(cmd)
+    sleep(1)
+    wait_for_process('IObitUninstallerPortable')
+    
+    # Cleanup
+    remove_from_kit('IObitUninstallerPortable.exe')
 
 if __name__ == '__main__':
     print("This file is not meant to be called directly.")

@@ -15,12 +15,17 @@
 .bin/Python/
 .bin/Tmp/
 .bin/XMPlay/
+.bin/_Drivers/SDIO/
 .cbin/AIDA64/
 .cbin/Autoruns/
 .cbin/BleachBit-Portable/
 .cbin/BlueScreenView/
 .cbin/Du/
+.cbin/Everything/
+.cbin/IObitUninstallerPortable/
 .cbin/ProduKey/
 .cbin/TestDisk/
+.cbin/TreeSizeFree-Portable/
+.cbin/XMPlay/
 .cbin/XYplorerFree/
 .cbin/_Drivers/

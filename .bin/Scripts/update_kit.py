@@ -49,16 +49,16 @@ if __name__ == '__main__':
         try_and_print(message='Intel RST...', function=update_intel_rst, other_results=other_results)
         try_and_print(message='Intel SSD Toolbox...', function=update_intel_ssd_toolbox, other_results=other_results)
         try_and_print(message='Samsing Magician...', function=update_samsung_magician, other_results=other_results)
-        try_and_print(message='Snappy Driver Installer...', function=update_sdi, other_results=other_results)
+        try_and_print(message='Snappy Driver Installer Origin...', function=update_sdi_origin, other_results=other_results)
         
         # Installers
         print_info('\nInstallers')
         try_and_print(message='Adobe Reader DC...', function=update_adobe_reader_dc, other_results=other_results)
         print_info('\nNinite')
-        for section in sorted(NINITE_FILES.keys()):
+        for section in sorted(NINITE_SOURCES.keys()):
             print_success('    {}'.format(section))
             dest = r'{}\_Ninite\{}'.format(global_vars['CBinDir'], section)
-            for name, url in sorted(NINITE_FILES[section].items()):
+            for name, url in sorted(NINITE_SOURCES[section].items()):
             url = 'https://ninite.com/{}/ninite.exe'.format(url)
                 try_and_print(message=name, function=download_generic,
                     other_results=other_results,

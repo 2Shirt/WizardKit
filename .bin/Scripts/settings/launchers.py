@@ -443,10 +443,10 @@ LAUNCHERS = {
             'L_NCMD': 'True',
             'L_WAIT': '',
             },
-        'Snappy Driver Installer': {
+        'Snappy Driver Installer Origin': {
             'L_TYPE': 'Program',
-            'L_PATH': '_Drivers\SDI',
-            'L_ITEM': 'SDI.exe',
+            'L_PATH': '_Drivers\SDIO',
+            'L_ITEM': 'SDIO.exe',
             'L_ARGS': '',
             'L_7ZIP': '',
             'L_CHCK': 'True',
@@ -676,7 +676,7 @@ LAUNCHERS = {
             'L_NCMD': 'True',
             'L_WAIT': '',
             },
-        'TreeSizeFree': {
+        'TreeSizeFree-Portable': {
             'L_TYPE': 'Program',
             'L_PATH': 'TreeSizeFree',
             'L_ITEM': 'TreeSizeFree.exe',
