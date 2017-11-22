@@ -500,9 +500,9 @@ echo.         DEBUG:  %DEBUG%
 echo.         PYTHON: %PYTHON%
 echo Press any key to exit...
 pause>nul
+rem reset color and reset errorlevel to 0
+rem NOTE: This is done to avoid causing a ErrorLaunchCMD in the launcher.cmd
 color
-rem Set errorlevel to 1 by calling color incorrectly
-color 00
 goto Exit
 
 :: Cleanup and exit ::
