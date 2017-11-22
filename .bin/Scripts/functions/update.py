@@ -174,8 +174,11 @@ def scan_for_net_installers(server, family_name, min_year):
                     family_name, year.name)
                 if section not in LAUNCHERS:
                     LAUNCHERS[section] = {}
-                if version.name not in LAUNCHERS[section]:
-                    LAUNCHERS[section][version.name] = {
+                name = version.name
+                if re.search(r'(exe|msi)$', name, re.IGNORECASE):
+                    name = name[:-4]
+                if name not in LAUNCHERS[section]:
+                    LAUNCHERS[section][name] = {
                         'L_TYPE': family_name,
                         'L_PATH': year.name,
                         'L_ITEM': version.name,
