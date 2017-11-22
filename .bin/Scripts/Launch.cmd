@@ -92,21 +92,35 @@ if /i "%L_TYPE%" == "PyScript"      (goto LaunchPyScript)
 goto Usage
 
 :LaunchConsole
-rem Check for a 64-bit version and set args
-set "con_args=-new_console:n"
-if defined DEBUG (set "con_args=%con_args% -new_console:c")
-if defined L_ELEV (set "con_args=%con_args% -new_console:a")
 rem Test L_PATH and set %_path%
 call :TestPath || goto ErrorProgramNotFound
+
 rem Check for 64-bit prog (if running on 64-bit system)
 set "prog=%_path%\%L_ITEM%"
 if %ARCH% equ 64 (
     if exist "%_path%\%L_ITEM:.=64.%" set "prog=%_path%\%L_ITEM:.=64.%"
 )
 if not exist "%prog%" goto ErrorProgramNotFound
+
+rem Run program
 popd && pushd "%_path%"
-rem Run program in console emulator %CON% and catch error(s)
+if defined L_NCMD (
+    goto LaunchConsoleNative
+) else (
+    goto LaunchConsoleConEmu
+)
+
+:LaunchConsoleConEmu
+rem Set args
+set "con_args=-new_console:n"
+if defined DEBUG (set "con_args=%con_args% -new_console:c")
+if defined L_ELEV (set "con_args=%con_args% -new_console:a")
+
 start "" "%CON%" -run "%prog%" %L_ARGS% %con_args% || goto ErrorUnknown
+goto Exit
+
+:LaunchConsoleNative
+start "" /wait "%prog%" %L_ARGS%  || goto ErrorUnknown
 goto Exit
 
 :LaunchFolder
