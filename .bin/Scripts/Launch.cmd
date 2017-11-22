@@ -60,10 +60,8 @@ if not defined L_TYPE (goto Usage)
 if not defined L_PATH (goto Usage)
 if not defined L_ITEM (goto Usage)
 rem Assume if not "True" then False (i.e. undefine variable)
-if /i not "%L_CHCK%" == "True" (set "L_CHCK=")
 if /i not "%L_ELEV%" == "True" (set "L_ELEV=")
 if /i not "%L_NCMD%" == "True" (set "L_NCMD=")
-if /i not "%L_WAIT%" == "True" (set "L_WAIT=")
 
 :RelaunchInConEmu
 set RELOAD_IN_CONEMU=True
@@ -121,11 +119,8 @@ start "" "%CON%" -run "%prog%" %L_ARGS% %con_args% || goto ErrorUnknown
 goto Exit
 
 :LaunchConsoleNative
-rem Prep
-if defined L_WAIT (set "wait=/wait")
-
 rem Run
-start "" %wait% "%prog%" %L_ARGS% || goto ErrorUnknown
+start "" "%prog%" %L_ARGS% || goto ErrorUnknown
 goto Exit
 
 :LaunchFolder
@@ -236,11 +231,8 @@ rem Run
 goto Exit
 
 :LaunchProgramUser
-rem Prep
-if defined L_WAIT (set "wait=/wait")
-
 rem Run
-start "" %wait% "%prog%" %L_ARGS% || goto ErrorUnknown
+start "" "%prog%" %L_ARGS% || goto ErrorUnknown
 goto Exit
 
 :LaunchPSScript
@@ -359,13 +351,13 @@ goto Exit
 echo.
 echo.Usage (via defined variables):
 echo.   L_TYPE      L_PATH       L_ITEM   L_ARGS
-echo.   Console     Working Dir  Program  Args   [L_CHECK] [L_ELEV] [L_NCMD] [L_WAIT]
-echo.   Folder      Folder       '.'             [L_CHECK]          [L_NCMD]
-echo.   Office      Year         Product         [L_CHECK]          [L_NCMD]
-echo.   QuickBooks  Year         Product         [L_CHECK]          [L_NCMD]
-echo.   Program     Working Dir  Program  Args   [L_CHECK] [L_ELEV] [L_NCMD] [L_WAIT]
-echo.   PSScript    Scripts      Script          [L_CHECK] [L_ELEV] [L_NCMD]
-echo.   PyScript    Scripts      Script          [L_CHECK] [L_ELEV] [L_NCMD]
+echo.   Console     Working Dir  Program  Args   [L_ELEV] [L_NCMD]
+echo.   Folder      Folder       '.'                      [L_NCMD]
+echo.   Office      Year         Product                  [L_NCMD]
+echo.   QuickBooks  Year         Product                  [L_NCMD]
+echo.   Program     Working Dir  Program  Args   [L_ELEV] [L_NCMD]
+echo.   PSScript    Scripts      Script          [L_ELEV] [L_NCMD]
+echo.   PyScript    Scripts      Script          [L_ELEV] [L_NCMD]
 echo.
 goto Abort
 
@@ -501,20 +493,13 @@ echo DETAILS: L_TYPE: %L_TYPE%
 echo.         L_PATH: %L_PATH%
 echo.         L_ITEM: %L_ITEM%
 echo.         L_ARGS: %L_ARGS%
-echo.         L_CHCK: %L_CHCK%
 echo.         L_ELEV: %L_ELEV%
 echo.         L_NCMD: %L_NCMD%
-echo.         L_WAIT: %L_WAIT%
 echo.         CON:    %CON%
 echo.         DEBUG:  %DEBUG%
 echo.         PYTHON: %PYTHON%
-rem Pause script only if we want to catch the error AND only when using ConEmu
-if defined L_CHCK (
-    if defined ConEmuBuild (
-        echo Press any key to exit...
-        pause>nul
-    )
-)
+echo Press any key to exit...
+pause>nul
 color
 rem Set errorlevel to 1 by calling color incorrectly
 color 00
