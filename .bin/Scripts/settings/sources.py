@@ -36,7 +36,7 @@ SOURCE_URLS = {
     'Samsung Magician': 'http://downloadcenter.samsung.com/content/SW/201710/20171019164455812/Samsung_Magician_Installer.exe',
     'TDSSKiller': 'https://media.kaspersky.com/utilities/VirusUtilities/EN/tdsskiller.exe',
     'TestDisk': 'https://www.cgsecurity.org/testdisk-7.1-WIP.win.zip',
-    'TreeSizeFree-Portable': 'https://www.jam-software.com/treesize_free/TreeSizeFree-Portable.zip',
+    'TreeSizeFree': 'https://www.jam-software.com/treesize_free/TreeSizeFree-Portable.zip',
     'wimlib32': 'https://wimlib.net/downloads/wimlib-1.12.0-windows-i686-bin.zip',
     'wimlib64': 'https://wimlib.net/downloads/wimlib-1.12.0-windows-x86_64-bin.zip',
     'Winapp2': 'https://github.com/MoscaDotTo/Winapp2/archive/master.zip',

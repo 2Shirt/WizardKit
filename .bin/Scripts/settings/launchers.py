@@ -306,6 +306,8 @@ LAUNCHERS = {
             },
         'HitmanPro': {
             'L_TYPE': 'Program',
+            'L_PATH': 'HitmanPro',
+            'L_ITEM': 'HitmanPro.exe',
             'L_CHCK': 'True',
             'L_NCMD': 'True',
             'Extra Code': [
@@ -345,14 +347,14 @@ LAUNCHERS = {
             },
         'Intel SSD Toolbox': {
             'L_TYPE': 'Program',
-            'L_PATH': '_Drivers',
+            'L_PATH': r'_Drivers\Intel SSD Toolbox',
             'L_ITEM': 'Intel SSD Toolbox.exe',
             'L_CHCK': 'True',
             'L_NCMD': 'True',
             },
         'Samsing Magician': {
             'L_TYPE': 'Program',
-            'L_PATH': '_Drivers',
+            'L_PATH': r'_Drivers\Samsung Magician',
             'L_ITEM': 'Samsung Magician.exe',
             'L_CHCK': 'True',
             'L_NCMD': 'True',
@@ -524,7 +526,7 @@ LAUNCHERS = {
             'L_CHCK': 'True',
             'L_NCMD': 'True',
             },
-        'TreeSizeFree-Portable': {
+        'TreeSizeFree': {
             'L_TYPE': 'Program',
             'L_PATH': 'TreeSizeFree',
             'L_ITEM': 'TreeSizeFree.exe',

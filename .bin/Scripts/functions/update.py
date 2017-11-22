@@ -313,27 +313,27 @@ def update_bleachbit():
     kill_process('bleachbit.exe')
     
     # Remove existing folders
-    remove_from_kit('BleachBit-Portable')
+    remove_from_kit('BleachBit')
     
     # Download
     download_to_temp('bleachbit.zip', SOURCE_URLS['BleachBit'])
     download_to_temp('Winapp2.zip', SOURCE_URLS['Winapp2'])
     
     # Extract files
-    extract_temp_to_cbin('bleachbit.zip', 'BleachBit-Portable')
+    extract_temp_to_cbin('bleachbit.zip', 'BleachBit')
     extract_generic(
         r'{}\Winapp2.zip'.format(global_vars['TmpDir']),
-        r'{}\BleachBit-Portable\cleaners'.format(global_vars['CBinDir']),
+        r'{}\BleachBit\cleaners'.format(global_vars['CBinDir']),
         mode='e', sz_args=[r'Winapp2-master\Non-CCleaner\Winapp2.ini'])
     
     # Move files into place
-    dest = r'{}\BleachBit-Portable'.format(global_vars['CBinDir'])
-    for item in os.scandir(r'{}\BleachBit-Portable'.format(dest)):
+    dest = r'{}\BleachBit'.format(global_vars['CBinDir'])
+    for item in os.scandir(r'{}\BleachBit'.format(dest)):
         dest_item = '{}\{}'.format(dest, item.name)
         if not os.path.exists(dest_item):
             shutil.move(item.path, dest_item)
     shutil.rmtree(
-        r'{}\BleachBit-Portable\BleachBit-Portable'.format(global_vars['CBinDir']))
+        r'{}\BleachBit\BleachBit'.format(global_vars['CBinDir']))
     
     # Cleanup
     remove_from_temp('bleachbit.zip')
@@ -715,17 +715,17 @@ def update_treesizefree():
     kill_process('TreeSizeFree.exe')
     
     # Remove existing folders
-    remove_from_kit('TreeSizeFree-Portable')
+    remove_from_kit('TreeSizeFree')
     
     # Download
     download_to_temp(
-        'treesizefree.zip.gz', SOURCE_URLS['TreeSizeFree-Portable'])
+        'treesizefree.zip.gz', SOURCE_URLS['TreeSizeFree'])
     
     # Extract files
     ## NOTE: When downloaded using requests it is a .zip.gz?
     source = r'{}\treesizefree.zip.gz'.format(global_vars['TmpDir'])
     extract_generic(source, global_vars['TmpDir'])
-    extract_temp_to_cbin('treesizefree.zip', 'TreeSizeFree-Portable')
+    extract_temp_to_cbin('treesizefree.zip', 'TreeSizeFree')
     
     # Cleanup
     remove_from_temp('treesizefree.zip')
