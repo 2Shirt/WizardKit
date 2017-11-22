@@ -246,26 +246,46 @@ goto Exit
 rem Prep
 call :ExtractOrFindPath || goto ErrorProgramNotFound
 set "script=%_path%\%L_ITEM%"
-set "ps_args=-ExecutionPolicy Bypass -NoProfile"
+
+rem Verify
 if not exist "%script%" goto ErrorScriptNotFound
+
+rem Run
+popd && pushd "%_path%"
 if defined L_ELEV (
-    call :DeQuote script
-    mkdir "%bin%\tmp" 2>nul
-    rem Create a temporary VB script to elevate the specified program
-    echo Set UAC = CreateObject^("Shell.Application"^) > "%bin%\tmp\Elevate.vbs"
-    if defined L_NCMD (
-        rem use Powershell's window instead of %CON%
-        echo UAC.ShellExecute "%POWERSHELL%", "%ps_args% -File "!script!"", "", "runas", 3 >> "%bin%\tmp\Elevate.vbs"
-    ) else (
-        echo UAC.ShellExecute "%CON%", "-run %POWERSHELL% %ps_args% -File "!script!" -new_console:n", "", "runas", 1 >> "%bin%\tmp\Elevate.vbs"
-    )
-    "%systemroot%\System32\cscript.exe" //nologo "%bin%\tmp\Elevate.vbs" || goto ErrorUnknown
+    goto LaunchPSScriptElev
 ) else (
-    if defined L_NCMD (
-        start "" "%POWERSHELL%" %ps_args% -File "%script%" || goto ErrorUnknown
-    ) else (
-        start "" "%CON%" -run "%POWERSHELL%" %ps_args% -File "%script%" -new_console:n || goto ErrorUnknown
-    )
+    goto LaunchPSScriptUser
+)
+
+:LaunchPSScriptElev
+rem Prep
+call :DeQuote script
+set "ps_args=-ExecutionPolicy Bypass -NoProfile"
+
+rem Create a temporary VB script to elevate the specified program
+mkdir "%bin%\tmp" 2>nul
+echo Set UAC = CreateObject^("Shell.Application"^) > "%bin%\tmp\Elevate.vbs"
+if defined L_NCMD (
+    rem use Powershell's window instead of %CON%
+    echo UAC.ShellExecute "%POWERSHELL%", "%ps_args% -File "%script%"", "", "runas", 3 >> "%bin%\tmp\Elevate.vbs"
+) else (
+    echo UAC.ShellExecute "%CON%", "-run %POWERSHELL% %ps_args% -File "%script%" -new_console:n", "", "runas", 1 >> "%bin%\tmp\Elevate.vbs"
+)
+
+rem Run
+"%systemroot%\System32\cscript.exe" //nologo "%bin%\tmp\Elevate.vbs" || goto ErrorUnknown
+goto Exit
+
+:LaunchPSScriptUser
+rem Prep
+set "ps_args=-ExecutionPolicy Bypass -NoProfile"
+
+rem Run
+if defined L_NCMD (
+    start "" "%POWERSHELL%" %ps_args% -File "%script%" || goto ErrorUnknown
+) else (
+    start "" "%CON%" -run "%POWERSHELL%" %ps_args% -File "%script%" -new_console:n || goto ErrorUnknown
 )
 goto Exit
 
