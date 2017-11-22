@@ -84,7 +84,7 @@ if defined RELOAD_IN_CONEMU (
 rem Jump to the selected launch type or show usage
 if /i "%L_TYPE%" == "Console"       (goto LaunchConsole)
 if /i "%L_TYPE%" == "Folder"        (goto LaunchFolder)
-if /i "%L_TYPE%" == "Office"        (goto LaunchOfficeSetup)
+if /i "%L_TYPE%" == "Office"        (goto LaunchOffice)
 if /i "%L_TYPE%" == "QuickBooks"    (goto LaunchQuickBooksSetup)
 if /i "%L_TYPE%" == "Program"       (goto LaunchProgram)
 if /i "%L_TYPE%" == "PSScript"      (goto LaunchPSScript)
@@ -92,8 +92,8 @@ if /i "%L_TYPE%" == "PyScript"      (goto LaunchPyScript)
 goto Usage
 
 :LaunchConsole
-rem Test L_PATH and set %_path%
-call :TestPath || goto ErrorProgramNotFound
+rem Prep
+call :ExtractOrFindPath || goto ErrorProgramNotFound
 
 rem Check for 64-bit prog (if running on 64-bit system)
 set "prog=%_path%\%L_ITEM%"
@@ -111,103 +111,140 @@ if defined L_NCMD (
 )
 
 :LaunchConsoleConEmu
-rem Set args
+rem Prep
 set "con_args=-new_console:n"
 if defined DEBUG (set "con_args=%con_args% -new_console:c")
 if defined L_ELEV (set "con_args=%con_args% -new_console:a")
 
+rem Run
 start "" "%CON%" -run "%prog%" %L_ARGS% %con_args% || goto ErrorUnknown
 goto Exit
 
 :LaunchConsoleNative
-start "" /wait "%prog%" %L_ARGS%  || goto ErrorUnknown
+rem Prep
+if defined L_WAIT (set "wait=/wait")
+
+rem Run
+start "" %wait% "%prog%" %L_ARGS% || goto ErrorUnknown
 goto Exit
 
 :LaunchFolder
-rem Test L_PATH and set %_path% (extracts archive in necessary)
-call :TestPath || goto ErrorProgramNotFound
+rem Prep
+call :ExtractOrFindPath || goto ErrorProgramNotFound
+
+rem Run
 start "" "explorer.exe" "%_path%" || goto ErrorUnknown
 goto Exit
 
-:LaunchOfficeSetup
-rem set args and copy setup files to system
-rem NOTE: init_client_dir.cmd sets %client_dir% and creates %client_dir%\Office folder
+:LaunchOffice
 call "%bin%\Scripts\init_client_dir.cmd" /Office
-echo Copying setup file(s) for %L_ITEM%...
-rem NOTE: If L_PATH == "2013" or "2016" extract the ODT setup/xml, otherwise copy from OFFICE_SERVER
 set "_odt=False"
 if %L_PATH% equ 2013 (set "_odt=True")
 if %L_PATH% equ 2016 (set "_odt=True")
 if "%_odt%" == "True" (
-    rem extract setup/xml and start installation
-    set "source=%L_PATH%\setup.exe"
-    set "dest=%client_dir%\Office\%L_PATH%"
-    "%SEVEN_ZIP%" e "%cbin%\_Office.7z" -aoa -bso0 -bse0 -p%ARCHIVE_PASSWORD% -o"!dest!" !source! !L_ITEM! || exit /b 1
-    "%systemroot%\System32\ping.exe" -n 2 127.0.0.1>nul
-    if not exist "!dest!\setup.exe" (goto ErrorOfficeSourceNotFound)
-    if not exist "!dest!\!L_ITEM!" (goto ErrorOfficeSourceNotFound)
-    pushd "!dest!"
-    rem # The line below jumps to ErrorUnknown even though setup.exe is run correctly??
-    rem start "" "setup.exe" /configure !L_ITEM! || popd & goto ErrorUnknown
-    rem # Going to assume it extracted correctly and blindly start setup.exe
-    start "" "setup.exe" /configure !L_ITEM!
-    popd
+    goto LaunchOfficeODT
 ) else (
-    rem copy setup files from OFFICE_SERVER
-    set "fastcopy_args=/cmd=diff /no_ui /auto_close"
-    set "product=%L_PATH%\%L_ITEM%"
-    set "product_name=%L_ITEM%"
-    call :GetBasename product_name || goto ErrorBasename
-    set "source=\\%OFFICE_SERVER%\Office\!product!"
-    set "dest=%client_dir%\Office"
-    rem Verify source
-    if not exist "!source!" (goto ErrorOfficeSourceNotFound)
-    rem Copy setup file(s) to system
-    start "" /wait "%FASTCOPY%" !fastcopy_args! "!source!" /to="!dest!\"
-    rem Run setup
-    if exist "!dest!\!product_name!\setup.exe" (
-        start "" "!dest!\!product_name!\setup.exe" || goto ErrorUnknown
-    ) else if "!product_name:~-3,3!" == "exe" (
-        start "" "!dest!\!product_name!" || goto ErrorUnknown
-    ) else if "!product_name:~-3,3!" == "msi" (
-        start "" "!dest!\!product_name!" || goto ErrorUnknown
-    ) else (
-        rem Office source not supported by this script
-        goto ErrorOfficeUnsupported
-    )
+    goto LaunchOfficeSetup
+)
+
+:LaunchOfficeODT
+rem Prep
+set "args=-aoa -bso0 -bse0 -bsp0 -p%ARCHIVE_PASSWORD%"
+set "config=%L_ITEM%"
+set "dest=%client_dir%\Office\%L_PATH%"
+set "odt_exe=%L_PATH%\setup.exe"
+set "source=%cbin%\_Office.7z"
+
+rem Extract
+if not exist "%source%" (goto ErrorODTSourceNotFound)
+"%SEVEN_ZIP%" e "%source%" %args% -o"%dest%" %odt_exe% %config% || exit /b 1
+"%systemroot%\System32\ping.exe" -n 2 127.0.0.1>nul
+
+rem Verify
+if not exist "%dest%\setup.exe" (goto ErrorODTSourceNotFound)
+if not exist "%dest%\%config%" (goto ErrorODTSourceNotFound)
+pushd "%dest%"
+
+rem Run
+rem # The line below jumps to ErrorUnknown even when it runs correctly??
+rem start "" "setup.exe" /configure %L_ITEM% || popd & goto ErrorUnknown
+rem # Going to assume it extracted correctly and blindly start setup.exe
+start "" "setup.exe" /configure %config%
+popd
+goto Exit
+
+:LaunchOfficeSetup
+rem Prep
+set "fastcopy_args=/cmd=diff /no_ui /auto_close"
+set "product=%L_PATH%\%L_ITEM%"
+set "product_name=%L_ITEM%"
+call :GetBasename product_name || goto ErrorBasename
+set "source=\\%OFFICE_SERVER%\Office\!product!"
+set "dest=%client_dir%\Office"
+
+rem Verify
+if not exist "!source!" (goto ErrorOfficeSourceNotFound)
+
+rem Copy
+start "" /wait "%FASTCOPY%" !fastcopy_args! "!source!" /to="!dest!\"
+
+rem Run
+if exist "!dest!\!product_name!\setup.exe" (
+    start "" "!dest!\!product_name!\setup.exe" || goto ErrorUnknown
+) else if "!product_name:~-3,3!" == "exe" (
+    start "" "!dest!\!product_name!" || goto ErrorUnknown
+) else if "!product_name:~-3,3!" == "msi" (
+    start "" "!dest!\!product_name!" || goto ErrorUnknown
+) else (
+    rem Office source not supported by this script
+    goto ErrorOfficeUnsupported
 )
 goto Exit
 
 :LaunchProgram
-rem Test L_PATH and set %_path%
-call :TestPath || goto ErrorProgramNotFound
+rem Prep
+call :ExtractOrFindPath || goto ErrorProgramNotFound
+
 rem Check for 64-bit prog (if running on 64-bit system)
 set "prog=%_path%\%L_ITEM%"
 if %ARCH% equ 64 (
     if exist "%_path%\%L_ITEM:.=64.%" set "prog=%_path%\%L_ITEM:.=64.%"
 )
 if not exist "%prog%" goto ErrorProgramNotFound
+
+rem Run
 popd && pushd "%_path%"
-rem Run program and catch error(s)
 if defined L_ELEV (
-    call :DeQuote prog
-    call :DeQuote L_ARGS
-    rem Create a temporary VB script to elevate the specified program
-    mkdir "%bin%\tmp" 2>nul
-    echo Set UAC = CreateObject^("Shell.Application"^) > "%bin%\tmp\Elevate.vbs"
-    echo UAC.ShellExecute "!prog!", "!L_ARGS!", "", "runas", 1 >> "%bin%\tmp\Elevate.vbs"
-    "%systemroot%\System32\cscript.exe" //nologo "%bin%\tmp\Elevate.vbs" || goto ErrorUnknown
+    goto LaunchProgramElev
 ) else (
-    if defined L_WAIT (set "wait=/wait")
-    start "" %wait% "%prog%" %L_ARGS% || goto ErrorUnknown
+    goto LaunchProgramUser
 )
+
+:LaunchProgramElev
+rem Prep
+call :DeQuote prog
+call :DeQuote L_ARGS
+
+rem Create a temporary VB script to elevate the specified program
+mkdir "%bin%\tmp" 2>nul
+echo Set UAC = CreateObject^("Shell.Application"^) > "%bin%\tmp\Elevate.vbs"
+echo UAC.ShellExecute "%prog%", "%L_ARGS%", "", "runas", 1 >> "%bin%\tmp\Elevate.vbs"
+
+rem Run (via VB script)
+"%systemroot%\System32\cscript.exe" //nologo "%bin%\tmp\Elevate.vbs" || goto ErrorUnknown
+goto Exit
+
+:LaunchProgramUser
+rem Prep
+if defined L_WAIT (set "wait=/wait")
+
+rem Run
+start "" %wait% "%prog%" %L_ARGS% || goto ErrorUnknown
 goto Exit
 
 :LaunchPSScript
-rem Test L_PATH and set %_path%
-rem NOTE: This should always result in path=%bin%\Scripts. Exceptions are unsupported.
-call :TestPath || goto ErrorProgramNotFound
-rem Set args
+rem Prep
+call :ExtractOrFindPath || goto ErrorProgramNotFound
 set "script=%_path%\%L_ITEM%"
 set "ps_args=-ExecutionPolicy Bypass -NoProfile"
 if not exist "%script%" goto ErrorScriptNotFound
@@ -233,9 +270,8 @@ if defined L_ELEV (
 goto Exit
 
 :LaunchPyScript
-rem Test L_PATH and set %_path%
-rem NOTE: This should always result in path=%bin%\Scripts. Exceptions are unsupported.
-call :TestPath || goto ErrorProgramNotFound
+rem Prep
+call :ExtractOrFindPath || goto ErrorProgramNotFound
 rem Set args
 set "script=%_path%\%L_ITEM%"
 if not exist "%script%" goto ErrorScriptNotFound
@@ -347,12 +383,12 @@ if not "%_tmp%" == "%_tmp:*\=%" (goto GetBasenameInner)
 set "%1=%_tmp%"
 @exit /b 0
 
-:TestPath
+:ExtractOrFindPath
 rem Test L_PATH in the following order:
 rem      1: %cbin%\L_PATH.7z (which will be extracted to %bin%\L_PATH)
 rem      2: %bin%\L_PATH
 rem      3. %L_PATH%         (i.e. treat L_PATH as an absolute path)
-rem NOTE: This function should be called as 'call :TestPath || goto ErrorProgramNotFound' to catch invalid paths.
+rem NOTE: This function should be called as 'call :ExtractOrFindPath || goto ErrorProgramNotFound' to catch invalid paths.
 set _path=
 if exist "%cbin%\%L_PATH%.7z" (
     call :ExtractCBin
@@ -374,6 +410,11 @@ goto Abort
 :ErrorNoBin
 echo.
 echo ERROR: ".bin" folder not found.
+goto Abort
+
+:ErrorODTSourceNotFound
+echo.
+echo ERROR: Office Deployment Tool source not found.
 goto Abort
 
 :ErrorOfficeSourceNotFound
