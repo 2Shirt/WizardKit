@@ -225,12 +225,12 @@ rem Prep
 call :DeQuote prog
 call :DeQuote L_ARGS
 
-rem Create a temporary VB script to elevate the specified program
+rem Create VB script
 mkdir "%bin%\tmp" 2>nul
 echo Set UAC = CreateObject^("Shell.Application"^) > "%bin%\tmp\Elevate.vbs"
 echo UAC.ShellExecute "%prog%", "%L_ARGS%", "", "runas", 1 >> "%bin%\tmp\Elevate.vbs"
 
-rem Run (via VB script)
+rem Run
 "%systemroot%\System32\cscript.exe" //nologo "%bin%\tmp\Elevate.vbs" || goto ErrorUnknown
 goto Exit
 
@@ -246,6 +246,7 @@ goto Exit
 rem Prep
 call :ExtractOrFindPath || goto ErrorProgramNotFound
 set "script=%_path%\%L_ITEM%"
+set "ps_args=-ExecutionPolicy Bypass -NoProfile"
 
 rem Verify
 if not exist "%script%" goto ErrorScriptNotFound
@@ -261,9 +262,8 @@ if defined L_ELEV (
 :LaunchPSScriptElev
 rem Prep
 call :DeQuote script
-set "ps_args=-ExecutionPolicy Bypass -NoProfile"
 
-rem Create a temporary VB script to elevate the specified program
+rem Create VB script
 mkdir "%bin%\tmp" 2>nul
 echo Set UAC = CreateObject^("Shell.Application"^) > "%bin%\tmp\Elevate.vbs"
 if defined L_NCMD (
@@ -278,9 +278,6 @@ rem Run
 goto Exit
 
 :LaunchPSScriptUser
-rem Prep
-set "ps_args=-ExecutionPolicy Bypass -NoProfile"
-
 rem Run
 if defined L_NCMD (
     start "" "%POWERSHELL%" %ps_args% -File "%script%" || goto ErrorUnknown
@@ -292,27 +289,40 @@ goto Exit
 :LaunchPyScript
 rem Prep
 call :ExtractOrFindPath || goto ErrorProgramNotFound
-rem Set args
 set "script=%_path%\%L_ITEM%"
+
+rem Verify
 if not exist "%script%" goto ErrorScriptNotFound
+
+rem Run
 if defined L_ELEV (
-    call :DeQuote script
-    mkdir "%bin%\tmp" 2>nul
-    rem Create a temporary VB script to elevate the specified program
-    echo Set UAC = CreateObject^("Shell.Application"^) > "%bin%\tmp\Elevate.vbs"
-    if defined L_NCMD (
-        rem use Python's window instead of %CON%
-        echo UAC.ShellExecute "%PYTHON%", "!script!", "", "runas", 3 >> "%bin%\tmp\Elevate.vbs"
-    ) else (
-        echo UAC.ShellExecute "%CON%", "-run %PYTHON% !script! -new_console:n", "", "runas", 1 >> "%bin%\tmp\Elevate.vbs"
-    )
-    "%systemroot%\System32\cscript.exe" //nologo "%bin%\tmp\Elevate.vbs" || goto ErrorUnknown
+    goto LaunchPyScriptElev
 ) else (
-    if defined L_NCMD (
-        start "" "%PYTHON%" "%script%" || goto ErrorUnknown
-    ) else (
-        start "" "%CON%" -run "%PYTHON%" "%script%" -new_console:n || goto ErrorUnknown
-    )
+    goto LaunchPyScriptUser
+)
+
+:LaunchPyScriptElev
+rem Prep
+call :DeQuote script
+
+rem Create VB script
+mkdir "%bin%\tmp" 2>nul
+echo Set UAC = CreateObject^("Shell.Application"^) > "%bin%\tmp\Elevate.vbs"
+if defined L_NCMD (
+    echo UAC.ShellExecute "%PYTHON%", "%script%", "", "runas", 3 >> "%bin%\tmp\Elevate.vbs"
+) else (
+    echo UAC.ShellExecute "%CON%", "-run %PYTHON% %script% -new_console:n", "", "runas", 1 >> "%bin%\tmp\Elevate.vbs"
+)
+
+rem Run
+"%systemroot%\System32\cscript.exe" //nologo "%bin%\tmp\Elevate.vbs" || goto ErrorUnknown
+goto Exit
+
+:LaunchPyScriptUser
+if defined L_NCMD (
+    start "" "%PYTHON%" "%script%" || goto ErrorUnknown
+) else (
+    start "" "%CON%" -run "%PYTHON%" "%script%" -new_console:n || goto ErrorUnknown
 )
 goto Exit
 
