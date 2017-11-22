@@ -100,12 +100,6 @@ def generate_launcher(section, name, options):
             new_opt = 'set {}='.format(opt)
             f_options[new_opt] = ['set {}={}'.format(opt, options[opt])]
     
-    # Remove existing launcher
-    os.makedirs(dest, exist_ok=True)
-    if os.path.exists(full_path):
-        remove_item(full_path)
-        sleep(0.25)
-    
     # Read template and update using f_options
     out_text = []
     with open(template, 'r') as f:
@@ -117,8 +111,12 @@ def generate_launcher(section, name, options):
                 out_text.extend(f_options[line])
             else:
                 out_text.append(line)
+    
+    # Write file
+    os.makedirs(dest, exist_ok=True)
     with open(full_path, 'w') as f:
-        f.writelines(out_text)
+        # f.writelines(out_text)
+        f.write('\n'.join(out_text))
 
 def remove_item(item_path):
     if os.path.exists(item_path):
