@@ -328,25 +328,26 @@ if defined L_NCMD (
 goto Exit
 
 :LaunchQuickBooksSetup
-rem set args and copy setup files to system
-rem NOTE: init_client_dir.cmd sets %client_dir% and creates %client_dir%\QuickBooks folder
+rem Prep
 call "%bin%\Scripts\init_client_dir.cmd" /QuickBooks
-echo Copying setup file(s) for %L_ITEM%...
-rem copy setup files from QUICKBOOKS_SERVER_IP
 set "fastcopy_args=/cmd=diff /no_ui /auto_close"
 set "product=%L_PATH%\%L_ITEM%"
 set "product_name=%L_ITEM%"
 call :GetBasename product_name || goto ErrorBasename
-set "source=\\%QUICKBOOKS_SERVER_IP%\QuickBooks\!product!"
+set "source=\\%QUICKBOOKS_SERVER_IP%\QuickBooks\%product%"
 set "dest=%client_dir%\QuickBooks"
-rem Verify source
-if not exist "!source!" (goto ErrorQuickBooksSourceNotFound)
-rem Copy setup file(s) to system
-start "" /wait "%FASTCOPY%" !fastcopy_args! "!source!" /to="!dest!\"
-rem Run setup
-if exist "!dest!\!product_name!\Setup.exe" (
-    pushd "!dest!\!product_name!"
-    start "" "!dest!\!product_name!\Setup.exe" || goto ErrorUnknown
+
+rem Verify
+if not exist "%source%" (goto ErrorQuickBooksSourceNotFound)
+
+rem Copy
+echo Copying setup file(s) for %L_ITEM%...
+start "" /wait "%FASTCOPY%" %fastcopy_args% "%source%" /to="%dest%\"
+
+rem Run
+if exist "%dest%\%product_name%\Setup.exe" (
+    pushd "%dest%\%product_name%"
+    start "" "%dest%\%product_name%\Setup.exe" || goto ErrorUnknown
     popd
 ) else (
     rem QuickBooks source not supported by this script
