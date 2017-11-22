@@ -66,17 +66,16 @@ if /i not "%L_NCMD%" == "True" (set "L_NCMD=")
 if /i not "%L_WAIT%" == "True" (set "L_WAIT=")
 
 :RelaunchInConEmu
-set USE_CONEMU=True
-if defined IN_CONEMU set "USE_CONEMU="
-if defined L_NCMD set "USE_CONEMU="
-if "%L_TYPE%" == "PSScript" set "USE_CONEMU="
-if "%L_TYPE%" == "PyScript" set "USE_CONEMU="
+set RELOAD_IN_CONEMU=True
+if defined ConEmuBuild set "RELOAD_IN_CONEMU="
+if defined L_NCMD set "RELOAD_IN_CONEMU="
+if "%L_TYPE%" == "PSScript" set "RELOAD_IN_CONEMU="
+if "%L_TYPE%" == "PyScript" set "RELOAD_IN_CONEMU="
 
-if defined USE_CONEMU (
+if defined RELOAD_IN_CONEMU (
     set "con_args=-new_console:n"
     rem If in DEBUG state then force ConEmu to stay open
     if defined DEBUG (set "con_args=!con_args! -new_console:c")
-    set IN_CONEMU=True
     start "" "%CON%" -run ""%~0" %*" !con_args! || goto ErrorUnknown
     exit /b 0
 )
@@ -424,7 +423,7 @@ echo.         DEBUG:  %DEBUG%
 echo.         PYTHON: %PYTHON%
 rem Pause script only if we want to catch the error AND only when using ConEmu
 if defined L_CHCK (
-    if not defined L_NCMD (
+    if defined ConEmuBuild (
         echo Press any key to exit...
         pause>nul
     )
