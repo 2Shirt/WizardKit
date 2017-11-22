@@ -93,12 +93,12 @@ def generate_launcher(section, name, options):
     # Format options
     f_options = {}
     for opt in options.keys():
+        # Values need to be a list to support the multi-line extra code sections
         if opt == 'Extra Code':
-            f_options['rem EXTRA_CODE'] = '{}\n'.format(
-                '\n'.join(options['Extra Code']))
+            f_options['rem EXTRA_CODE'] = options['Extra Code']
         elif re.search(r'^L_\w+', opt, re.IGNORECASE):
             new_opt = 'set {}='.format(opt)
-            f_options[new_opt] = 'set {}={}\n'.format(opt, options[opt])
+            f_options[new_opt] = ['set {}={}'.format(opt, options[opt])]
     
     # Remove existing launcher
     os.makedirs(dest, exist_ok=True)
@@ -110,8 +110,11 @@ def generate_launcher(section, name, options):
     out_text = []
     with open(template, 'r') as f:
         for line in f.readlines():
-            if line.strip() in f_options:
-                out_text.append(f_options[line.strip()])
+            # Strip all lines to let Python handle/correct the CRLF endings
+            line = line.strip()
+            if line in f_options:
+                # Extend instead of append to support extra code sections
+                out_text.extend(f_options[line])
             else:
                 out_text.append(line)
     with open(full_path, 'w') as f:
