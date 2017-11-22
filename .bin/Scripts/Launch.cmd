@@ -297,12 +297,12 @@ for /f "delims=" %%a in ('echo %%%1%%') do set %1=%%~a
 
 :ExtractCBin
 rem Extract %cbin% archive into %bin%
-echo Extracting "%L_ITEM%"...
-if exist "%cbin%\%L_PATH%\%L_ITEM:~0,-4%.7z" (
-    "%SEVEN_ZIP%" x "%cbin%\%L_PATH%\%L_ITEM:~0,-4%.7z" -aos -bso0 -bse0 -p%ARCHIVE_PASSWORD% -o"%bin%\%L_PATH%" %L_7ZIP% || exit /b 1
-) else (
-    "%SEVEN_ZIP%" x "%cbin%\%L_PATH%.7z" -aos -bso0 -bse0 -p%ARCHIVE_PASSWORD% -o"%bin%\%L_PATH%" %L_7ZIP% || exit /b 1
-)
+echo Extracting "%L_PATH%"...
+set "source=%cbin%\%L_PATH%.7z"
+set "dest=%bin%\%L_PATH%"
+set "args=-aos -bso0 -bse0 -bsp0 -p%ARCHIVE_PASSWORD%"
+if defined DEBUG (set "args=-aos -p%ARCHIVE_PASSWORD%")
+"%SEVEN_ZIP%" x "%source%" %args% -o"%dest%" %L_7ZIP% || exit /b 1
 ping.exe -n 2 127.0.0.1>nul
 exit /b 0
 
