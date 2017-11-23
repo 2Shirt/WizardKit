@@ -23,8 +23,11 @@ if __name__ == '__main__':
             'Warning': {
                 'GenericRepair':        'Repaired',
             }}
-        try_and_print(message='SFC scan...',
-            function=run_sfc_scan, other_results=other_results)
+        if ask('Run a SFC scan now?'):
+            try_and_print(message='SFC scan...',
+                function=run_sfc_scan, other_results=other_results)
+        else:
+            abort()
         
         # Done
         print_standard('\nDone.')
