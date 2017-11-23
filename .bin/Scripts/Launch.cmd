@@ -62,13 +62,15 @@ if not defined L_ITEM (goto Usage)
 rem Assume if not "True" then False (i.e. undefine variable)
 if /i not "%L_ELEV%" == "True" (set "L_ELEV=")
 if /i not "%L_NCMD%" == "True" (set "L_NCMD=")
+if /i not "%L__CLI%" == "True" (set "L__CLI=")
 
 :RelaunchInConEmu
 set RELOAD_IN_CONEMU=True
-if defined ConEmuBuild set "RELOAD_IN_CONEMU="
-if defined L_NCMD set "RELOAD_IN_CONEMU="
-if "%L_TYPE%" == "PSScript" set "RELOAD_IN_CONEMU="
-if "%L_TYPE%" == "PyScript" set "RELOAD_IN_CONEMU="
+if defined ConEmuBuild          set "RELOAD_IN_CONEMU="
+if defined L_NCMD               set "RELOAD_IN_CONEMU="
+if "%L_TYPE%" == "Executable"   set "RELOAD_IN_CONEMU="
+if "%L_TYPE%" == "PSScript"     set "RELOAD_IN_CONEMU="
+if "%L_TYPE%" == "PyScript"     set "RELOAD_IN_CONEMU="
 
 if defined RELOAD_IN_CONEMU (
     set "con_args=-new_console:n"
@@ -80,16 +82,15 @@ if defined RELOAD_IN_CONEMU (
 
 :CheckLaunchType
 rem Jump to the selected launch type or show usage
-if /i "%L_TYPE%" == "Console"       (goto LaunchConsole)
+if /i "%L_TYPE%" == "Executable"    (goto LaunchExecutable)
 if /i "%L_TYPE%" == "Folder"        (goto LaunchFolder)
 if /i "%L_TYPE%" == "Office"        (goto LaunchOffice)
-if /i "%L_TYPE%" == "QuickBooks"    (goto LaunchQuickBooksSetup)
-if /i "%L_TYPE%" == "Program"       (goto LaunchProgram)
 if /i "%L_TYPE%" == "PSScript"      (goto LaunchPSScript)
 if /i "%L_TYPE%" == "PyScript"      (goto LaunchPyScript)
+if /i "%L_TYPE%" == "QuickBooks"    (goto LaunchQuickBooksSetup)
 goto Usage
 
-:LaunchConsole
+:LaunchExecutable
 rem Prep
 call :ExtractOrFindPath || goto ErrorProgramNotFound
 
@@ -100,15 +101,16 @@ if %ARCH% equ 64 (
 )
 if not exist "%prog%" goto ErrorProgramNotFound
 
-rem Run program
+rem Run
 popd && pushd "%_path%"
-if defined L_NCMD (
-    goto LaunchConsoleNative
+if defined L__CLI goto LaunchExecutableCLI
+if defined L_ELEV (
+    goto LaunchExecutableElev
 ) else (
-    goto LaunchConsoleConEmu
+    goto LaunchExecutableUser
 )
 
-:LaunchConsoleConEmu
+:LaunchExecutableCLI
 rem Prep
 set "con_args=-new_console:n"
 if defined DEBUG (set "con_args=%con_args% -new_console:c")
@@ -118,7 +120,21 @@ rem Run
 start "" "%CON%" -run "%prog%" %L_ARGS% %con_args% || goto ErrorUnknown
 goto Exit
 
-:LaunchConsoleNative
+:LaunchExecutableElev
+rem Prep
+call :DeQuote prog
+call :DeQuote L_ARGS
+
+rem Create VB script
+mkdir "%bin%\tmp" 2>nul
+echo Set UAC = CreateObject^("Shell.Application"^) > "%bin%\tmp\Elevate.vbs"
+echo UAC.ShellExecute "%prog%", "%L_ARGS%", "", "runas", 1 >> "%bin%\tmp\Elevate.vbs"
+
+rem Run
+"%systemroot%\System32\cscript.exe" //nologo "%bin%\tmp\Elevate.vbs" || goto ErrorUnknown
+goto Exit
+
+:LaunchExecutableUser
 rem Run
 start "" "%prog%" %L_ARGS% || goto ErrorUnknown
 goto Exit
@@ -195,44 +211,6 @@ if exist "%dest%\%product_name%\setup.exe" (
     rem Office source not supported by this script
     goto ErrorOfficeUnsupported
 )
-goto Exit
-
-:LaunchProgram
-rem Prep
-call :ExtractOrFindPath || goto ErrorProgramNotFound
-
-rem Check for 64-bit prog (if running on 64-bit system)
-set "prog=%_path%\%L_ITEM%"
-if %ARCH% equ 64 (
-    if exist "%_path%\%L_ITEM:.=64.%" set "prog=%_path%\%L_ITEM:.=64.%"
-)
-if not exist "%prog%" goto ErrorProgramNotFound
-
-rem Run
-popd && pushd "%_path%"
-if defined L_ELEV (
-    goto LaunchProgramElev
-) else (
-    goto LaunchProgramUser
-)
-
-:LaunchProgramElev
-rem Prep
-call :DeQuote prog
-call :DeQuote L_ARGS
-
-rem Create VB script
-mkdir "%bin%\tmp" 2>nul
-echo Set UAC = CreateObject^("Shell.Application"^) > "%bin%\tmp\Elevate.vbs"
-echo UAC.ShellExecute "%prog%", "%L_ARGS%", "", "runas", 1 >> "%bin%\tmp\Elevate.vbs"
-
-rem Run
-"%systemroot%\System32\cscript.exe" //nologo "%bin%\tmp\Elevate.vbs" || goto ErrorUnknown
-goto Exit
-
-:LaunchProgramUser
-rem Run
-start "" "%prog%" %L_ARGS% || goto ErrorUnknown
 goto Exit
 
 :LaunchPSScript
@@ -482,10 +460,10 @@ goto Abort
 
 :Abort
 rem Handle color theme for both the native console and ConEmu
-if defined L_NCMD (
-    color 4e
-) else (
+if defined ConEmuBuild (
     color c4
+) else (
+    color 4e
 )
 echo Aborted.
 echo.
@@ -493,8 +471,10 @@ echo DETAILS: L_TYPE: %L_TYPE%
 echo.         L_PATH: %L_PATH%
 echo.         L_ITEM: %L_ITEM%
 echo.         L_ARGS: %L_ARGS%
+echo.         L_7ZIP: %L_7ZIP%
 echo.         L_ELEV: %L_ELEV%
 echo.         L_NCMD: %L_NCMD%
+echo.         L__CLI: %L__CLI%
 echo.         CON:    %CON%
 echo.         DEBUG:  %DEBUG%
 echo.         PYTHON: %PYTHON%

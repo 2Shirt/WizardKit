@@ -40,28 +40,29 @@ LAUNCHERS = {
         },
     r'Data Recovery': {
         'PhotoRec (CLI)': {
-            'L_TYPE': 'Console',
+            'L_TYPE': 'Executable',
             'L_PATH': 'TestDisk',
             'L_ITEM': 'photorec_win.exe',
             'L_ELEV': 'True',
+            'L__CLI': 'True',
             },
         'PhotoRec': {
-            'L_TYPE': 'Program',
+            'L_TYPE': 'Executable',
             'L_PATH': 'TestDisk',
             'L_ITEM': 'qphotorec_win.exe',
             'L_ELEV': 'True',
-            'L_NCMD': 'True',
             },
         'TestDisk': {
-            'L_TYPE': 'Console',
+            'L_TYPE': 'Executable',
             'L_PATH': 'TestDisk',
             'L_ITEM': 'testdisk_win.exe',
             'L_ELEV': 'True',
+            'L__CLI': 'True',
             },
         },
     r'Data Transfers': {
         'FastCopy (as ADMIN)': {
-            'L_TYPE': 'Program',
+            'L_TYPE': 'Executable',
             'L_PATH': 'FastCopy',
             'L_ITEM': 'FastCopy.exe',
             'L_ARGS': (
@@ -104,13 +105,12 @@ LAUNCHERS = {
                 r' /to=%client_dir%\Transfer_%iso_date%\ '
                 ),
             'L_ELEV': 'True',
-            'L_NCMD': 'True',
             'Extra Code': [
                 r'call "%bin%\Scripts\init_client_dir.cmd" /Info /Transfer',
                 ],
             },
         'FastCopy': {
-            'L_TYPE': 'Program',
+            'L_TYPE': 'Executable',
             'L_PATH': 'FastCopy',
             'L_ITEM': 'FastCopy.exe',
             'L_ARGS': (
@@ -152,13 +152,12 @@ LAUNCHERS = {
                     r'Thumbs.db'
                 r' /to=%client_dir%\Transfer_%iso_date%\ '
                 ),
-            'L_NCMD': 'True',
             'Extra Code': [
                 r'call "%bin%\Scripts\init_client_dir.cmd" /Info /Transfer',
                 ],
             },
         'KVRT': {
-            'L_TYPE': 'Program',
+            'L_TYPE': 'Executable',
             'L_PATH': 'KVRT',
             'L_ITEM': 'KVRT.exe',
             'L_ARGS': (
@@ -168,7 +167,6 @@ LAUNCHERS = {
                 r' -dontcryptsupportinfo'
                 r' -fixednames'
                 ),
-            'L_NCMD': 'True',
             'Extra Code': [
                 r'call "%bin%\Scripts\init_client_dir.cmd" /Quarantine',
                 r'set "q_dir=%client_dir%\Quarantine\KVRT"',
@@ -188,27 +186,24 @@ LAUNCHERS = {
             'L_ELEV': 'True',
             },
         'XYplorer (as ADMIN)': {
-            'L_TYPE': 'Program',
+            'L_TYPE': 'Executable',
             'L_PATH': 'XYplorerFree',
             'L_ITEM': 'XYplorerFree.exe',
             'L_ARGS': r'/exp /win=max %userprofile%',
             'L_ELEV': 'True',
-            'L_NCMD': 'True',
             },
         'XYplorer': {
-            'L_TYPE': 'Program',
+            'L_TYPE': 'Executable',
             'L_PATH': 'XYplorerFree',
             'L_ITEM': 'XYplorerFree.exe',
             'L_ARGS': r'/exp /win=max %userprofile%',
-            'L_NCMD': 'True',
             },
         },
     r'Diagnostics': {
         'HWiNFO': {
-            'L_TYPE': 'Program',
+            'L_TYPE': 'Executable',
             'L_PATH': 'HWiNFO',
             'L_ITEM': 'HWiNFO.exe',
-            'L_NCMD': 'True',
             'Extra Code': [
                 r'for %%a in (32 64) do (',
                 r'    copy /y "%bin%\HWiNFO\general.ini" "%bin%\HWiNFO\HWiNFO%%a.ini"',
@@ -218,11 +213,10 @@ LAUNCHERS = {
                 ],
             },
         'ProduKey': {
-            'L_TYPE': 'Program',
+            'L_TYPE': 'Executable',
             'L_PATH': 'ProduKey',
             'L_ITEM': 'ProduKey.exe',
             'L_ELEV': 'True',
-            'L_NCMD': 'True',
             'Extra Code': [
                 r'if exist "%bin%\ProduKey" (',
                 r'    del "%bin%\ProduKey\ProduKey.cfg" 2>nul',
@@ -233,17 +227,15 @@ LAUNCHERS = {
         },
     r'Diagnostics\Extras': {
         'AIDA64': {
-            'L_TYPE': 'Program',
+            'L_TYPE': 'Executable',
             'L_PATH': 'AIDA64',
             'L_ITEM': 'aida64.exe',
-            'L_NCMD': 'True',
             },
         'Autoruns (with VirusTotal Scan)': {
-            'L_TYPE': 'Program',
+            'L_TYPE': 'Executable',
             'L_PATH': 'Autoruns',
             'L_ITEM': 'Autoruns.exe',
             'L_ARGS': '-e',
-            'L_NCMD': 'True',
             'Extra Code': [
                 r'reg add HKCU\Software\Sysinternals\AutoRuns /v checkvirustotal /t REG_DWORD /d 1 /f >nul',
                 r'reg add HKCU\Software\Sysinternals\AutoRuns /v EulaAccepted /t REG_DWORD /d 1 /f >nul',
@@ -258,43 +250,38 @@ LAUNCHERS = {
                 ],
             },
         'BleachBit': {
-            'L_TYPE': 'Program',
+            'L_TYPE': 'Executable',
             'L_PATH': 'BleachBit',
             'L_ITEM': 'bleachbit.exe',
-            'L_NCMD': 'True',
             },
         'BlueScreenView': {
-            'L_TYPE': 'Program',
+            'L_TYPE': 'Executable',
             'L_PATH': 'BlueScreenView',
             'L_ITEM': 'BlueScreenView.exe',
             'L_ELEV': 'True',
-            'L_NCMD': 'True',
             },
         'ERUNT': {
-            'L_TYPE': 'Program',
+            'L_TYPE': 'Executable',
             'L_PATH': 'erunt',
             'L_ITEM': 'ERUNT.EXE',
             'L_ARGS': '%log_dir%\Registry sysreg curuser otherusers',
             'L_ELEV': 'True',
-            'L_NCMD': 'True',
             'Extra Code': [
                 r'call "%bin%\Scripts\init_client_dir.cmd" /Info',
                 ],
             },
         'HitmanPro': {
-            'L_TYPE': 'Program',
+            'L_TYPE': 'Executable',
             'L_PATH': 'HitmanPro',
             'L_ITEM': 'HitmanPro.exe',
-            'L_NCMD': 'True',
             'Extra Code': [
                 r'call "%bin%\Scripts\init_client_dir.cmd" /Info',
                 ],
             },
         'HWiNFO (Sensors)': {
-            'L_TYPE': 'Program',
+            'L_TYPE': 'Executable',
             'L_PATH': 'HWiNFO',
             'L_ITEM': 'HWiNFO.exe',
-            'L_NCMD': 'True',
             'Extra Code': [
                 r'for %%a in (32 64) do (',
                 r'    copy /y "%bin%\HWiNFO\general.ini" "%bin%\HWiNFO\HWiNFO%%a.ini"',
@@ -306,11 +293,10 @@ LAUNCHERS = {
         },
     r'Drivers': {
         'Intel RST (Current Release)': {
-            'L_TYPE': 'Program',
+            'L_TYPE': 'Executable',
             'L_PATH': '_Drivers\Intel RST',
             'L_ITEM': 'SetupRST_15.8.exe',
             'L_7ZIP': 'SetupRST_15.8.exe',
-            'L_NCMD': 'True',
             },
         'Intel RST (Previous Releases)': {
             'L_TYPE': 'Folder',
@@ -319,30 +305,26 @@ LAUNCHERS = {
             'L_NCMD': 'True',
             },
         'Intel SSD Toolbox': {
-            'L_TYPE': 'Program',
+            'L_TYPE': 'Executable',
             'L_PATH': r'_Drivers\Intel SSD Toolbox',
             'L_ITEM': 'Intel SSD Toolbox.exe',
-            'L_NCMD': 'True',
             },
         'Samsing Magician': {
-            'L_TYPE': 'Program',
+            'L_TYPE': 'Executable',
             'L_PATH': r'_Drivers\Samsung Magician',
             'L_ITEM': 'Samsung Magician.exe',
-            'L_NCMD': 'True',
             },
         'Snappy Driver Installer Origin': {
-            'L_TYPE': 'Program',
+            'L_TYPE': 'Executable',
             'L_PATH': '_Drivers\SDIO',
             'L_ITEM': 'SDIO.exe',
-            'L_NCMD': 'True',
             },
         },
     r'Drivers\Extras': {
         'Acer': {
-            'L_TYPE': 'Program',
+            'L_TYPE': 'Executable',
             'L_PATH': 'HWiNFO',
             'L_ITEM': 'HWiNFO.exe',
-            'L_NCMD': 'True',
             'Extra Code': [
                 r'for %%a in (32 64) do (',
                 r'    copy /y "%bin%\HWiNFO\general.ini" "%bin%\HWiNFO\HWiNFO%%a.ini"',
@@ -353,10 +335,9 @@ LAUNCHERS = {
                 ],
             },
         'Lenovo': {
-            'L_TYPE': 'Program',
+            'L_TYPE': 'Executable',
             'L_PATH': 'HWiNFO',
             'L_ITEM': 'HWiNFO.exe',
-            'L_NCMD': 'True',
             'Extra Code': [
                 r'for %%a in (32 64) do (',
                 r'    copy /y "%bin%\HWiNFO\general.ini" "%bin%\HWiNFO\HWiNFO%%a.ini"',
@@ -367,10 +348,9 @@ LAUNCHERS = {
                 ],
             },
         'Toshiba': {
-            'L_TYPE': 'Program',
+            'L_TYPE': 'Executable',
             'L_PATH': 'HWiNFO',
             'L_ITEM': 'HWiNFO.exe',
-            'L_NCMD': 'True',
             'Extra Code': [
                 r'for %%a in (32 64) do (',
                 r'    copy /y "%bin%\HWiNFO\general.ini" "%bin%\HWiNFO\HWiNFO%%a.ini"',
@@ -394,21 +374,25 @@ LAUNCHERS = {
             'L_TYPE': 'Office',
             'L_PATH': '2013',
             'L_ITEM': 'hb_32.xml',
+            'L_NCMD': 'True',
             },
         'Home and Business 2013 (x64)': {
             'L_TYPE': 'Office',
             'L_PATH': '2013',
             'L_ITEM': 'hb_64.xml',
+            'L_NCMD': 'True',
             },
         'Home and Student 2013 (x32)': {
             'L_TYPE': 'Office',
             'L_PATH': '2013',
             'L_ITEM': 'hs_32.xml',
+            'L_NCMD': 'True',
             },
         'Home and Student 2013 (x64)': {
             'L_TYPE': 'Office',
             'L_PATH': '2013',
             'L_ITEM': 'hs_64.xml',
+            'L_NCMD': 'True',
             },
         },
     r'Installers\Extras\Office\2016': {
@@ -416,73 +400,73 @@ LAUNCHERS = {
             'L_TYPE': 'Office',
             'L_PATH': '2016',
             'L_ITEM': 'hb_32.xml',
+            'L_NCMD': 'True',
             },
         'Home and Business 2016 (x64)': {
             'L_TYPE': 'Office',
             'L_PATH': '2016',
             'L_ITEM': 'hb_64.xml',
+            'L_NCMD': 'True',
             },
         'Home and Student 2016 (x32)': {
             'L_TYPE': 'Office',
             'L_PATH': '2016',
             'L_ITEM': 'hs_32.xml',
+            'L_NCMD': 'True',
             },
         'Home and Student 2016 (x64)': {
             'L_TYPE': 'Office',
             'L_PATH': '2016',
             'L_ITEM': 'hs_64.xml',
+            'L_NCMD': 'True',
             },
         'Office 365 2016 (x32)': {
             'L_TYPE': 'Office',
             'L_PATH': '2016',
             'L_ITEM': '365_32.xml',
+            'L_NCMD': 'True',
             },
         'Office 365 2016 (x64)': {
             'L_TYPE': 'Office',
             'L_PATH': '2016',
             'L_ITEM': '365_64.xml',
+            'L_NCMD': 'True',
             },
         },
     r'Misc': {
         'ConEmu (as ADMIN)': {
-            'L_TYPE': 'Program',
+            'L_TYPE': 'Executable',
             'L_PATH': 'ConEmu',
             'L_ITEM': 'ConEmu.exe',
             'L_ELEV': 'True',
-            'L_NCMD': 'True',
             },
         'ConEmu': {
-            'L_TYPE': 'Program',
+            'L_TYPE': 'Executable',
             'L_PATH': 'ConEmu',
             'L_ITEM': 'ConEmu.exe',
-            'L_NCMD': 'True',
             },
         'Everything': {
-            'L_TYPE': 'Program',
+            'L_TYPE': 'Executable',
             'L_PATH': 'Everything',
             'L_ITEM': 'Everything.exe',
             'L_ARGS': '-nodb',
             'L_ELEV': 'True',
-            'L_NCMD': 'True',
             },
         'Notepad++': {
-            'L_TYPE': 'Program',
+            'L_TYPE': 'Executable',
             'L_PATH': 'notepadplusplus',
             'L_ITEM': 'notepadplusplus.exe',
-            'L_NCMD': 'True',
             },
         'PuTTY': {
-            'L_TYPE': 'Program',
+            'L_TYPE': 'Executable',
             'L_PATH': 'PuTTY',
             'L_ITEM': 'PUTTY.EXE',
-            'L_NCMD': 'True',
             },
         'TreeSizeFree': {
-            'L_TYPE': 'Program',
+            'L_TYPE': 'Executable',
             'L_PATH': 'TreeSizeFree',
             'L_ITEM': 'TreeSizeFree.exe',
             'L_ELEV': 'True',
-            'L_NCMD': 'True',
             },
         'Update Kit': {
             'L_TYPE': 'PyScript',
@@ -490,26 +474,23 @@ LAUNCHERS = {
             'L_ITEM': 'update_kit.py',
             },
         'XMPlay': {
-            'L_TYPE': 'Program',
+            'L_TYPE': 'Executable',
             'L_PATH': 'XMPlay',
             'L_ITEM': 'xmplay.exe',
             'L_ARGS': '"%bin%\XMPlay\music.7z"',
-            'L_NCMD': 'True',
             },
         },
     r'Repairs': {
         'AdwCleaner': {
-            'L_TYPE': 'Program',
+            'L_TYPE': 'Executable',
             'L_PATH': 'AdwCleaner',
             'L_ITEM': 'AdwCleaner.exe',
-            'L_NCMD': 'True',
             },
         'Autoruns': {
-            'L_TYPE': 'Program',
+            'L_TYPE': 'Executable',
             'L_PATH': 'Autoruns',
             'L_ITEM': 'Autoruns.exe',
             'L_ARGS': '-e',
-            'L_NCMD': 'True',
             'Extra Code': [
                 r'reg add HKCU\Software\Sysinternals\AutoRuns /v checkvirustotal /t REG_DWORD /d 0 /f >nul',
                 r'reg add HKCU\Software\Sysinternals\AutoRuns /v EulaAccepted /t REG_DWORD /d 1 /f >nul',
@@ -534,10 +515,9 @@ LAUNCHERS = {
             'L_PATH': 'Scripts',
             'L_ITEM': 'dism.py',
             'L_ELEV': 'True',
-            'L_NCMD': 'TRUE',
             },
         'KVRT': {
-            'L_TYPE': 'Program',
+            'L_TYPE': 'Executable',
             'L_PATH': 'KVRT',
             'L_ITEM': 'KVRT.exe',
             'L_ARGS': (
@@ -547,7 +527,6 @@ LAUNCHERS = {
                 r' -dontcryptsupportinfo'
                 r' -fixednames'
                 ),
-            'L_NCMD': 'True',
             'Extra Code': [
                 r'call "%bin%\Scripts\init_client_dir.cmd" /Quarantine',
                 r'set "q_dir=%client_dir%\Quarantine\KVRT"',
@@ -555,10 +534,9 @@ LAUNCHERS = {
                 ],
             },
         'RKill': {
-            'L_TYPE': 'Program',
+            'L_TYPE': 'Executable',
             'L_PATH': 'RKill',
             'L_ITEM': 'RKill.exe',
-            'L_NCMD': 'True',
             'Extra Code': [
                 r'call "%bin%\Scripts\init_client_dir.cmd" /Info',
                 ],
@@ -568,10 +546,9 @@ LAUNCHERS = {
             'L_PATH': 'Scripts',
             'L_ITEM': 'sfc_scan.py',
             'L_ELEV': 'True',
-            'L_NCMD': 'True',
             },
         'TDSSKiller': {
-            'L_TYPE': 'Program',
+            'L_TYPE': 'Executable',
             'L_PATH': 'TDSSKiller',
             'L_ITEM': 'TDSSKiller.exe',
             'L_ARGS': (
@@ -582,7 +559,6 @@ LAUNCHERS = {
                 r' -dcexact'
                 r' -tdlfs'
                 ),
-            'L_NCMD': 'True',
             'Extra Code': [
                 r'call "%bin%\Scripts\init_client_dir.cmd" /Quarantine',
                 r'set "q_dir=%client_dir%\Quarantine\TDSSKiller"',
@@ -592,10 +568,9 @@ LAUNCHERS = {
         },
     r'Uninstallers': {
         'IObit Uninstaller': {
-            'L_TYPE': 'Program',
+            'L_TYPE': 'Executable',
             'L_PATH': 'IObitUninstallerPortable',
             'L_ITEM': 'IObitUninstallerPortable.exe',
-            'L_NCMD': 'True',
             },
         },
     }

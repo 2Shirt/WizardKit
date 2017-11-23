@@ -22,6 +22,7 @@ set L_TYPE=
 set L_PATH=
 set L_ITEM=
 set L_ARGS=
+set L__CLI=
 set L_7ZIP=
 set L_ELEV=
 set L_NCMD=
