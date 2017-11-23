@@ -327,12 +327,12 @@ def update_bleachbit():
     
     # Move files into place
     dest = r'{}\BleachBit'.format(global_vars['CBinDir'])
-    for item in os.scandir(r'{}\BleachBit'.format(dest)):
+    for item in os.scandir(r'{}\BleachBit-Portable'.format(dest)):
         dest_item = '{}\{}'.format(dest, item.name)
         if not os.path.exists(dest_item):
             shutil.move(item.path, dest_item)
     shutil.rmtree(
-        r'{}\BleachBit\BleachBit'.format(global_vars['CBinDir']))
+        r'{}\BleachBit\BleachBit-Portable'.format(global_vars['CBinDir']))
     
     # Cleanup
     remove_from_temp('bleachbit.zip')

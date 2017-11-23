@@ -8,7 +8,7 @@ TOOLS = {
         '32': r'Autoruns\autoruns.exe',
         '64': r'Autoruns\autoruns64.exe'},
     'BleachBit': {
-        '32': r'BleachBit-Portable\bleachbit_console.exe'},
+        '32': r'BleachBit\bleachbit_console.exe'},
     'Caffeine': {
         '32': r'Caffeine\caffeine.exe'},
     'Du': {
