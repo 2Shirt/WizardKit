@@ -41,11 +41,12 @@ if __name__ == '__main__':
                 main_entries=activation_methods, action_entries=actions)
             
             if (selection.isnumeric()):
-                try_and_print(
+                result = try_and_print(
                     message = activation_methods[int(selection)-1]['Name'],
                     function = activation_methods[int(selection)-1]['Function'],
                     other_results=other_results)
-                break
+                if result['CS']:
+                    break
             elif selection == 'Q':
                 exit_script()
 
