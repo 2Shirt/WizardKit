@@ -17,22 +17,24 @@ if __name__ == '__main__':
     try:
         os.system('cls')
         print_info('{}: SafeMode Tool\n'.format(KIT_NAME_FULL))
-        if ask('Enable booting to SafeMode (with Networking)?'):
-            # Edit BCD to set safeboot as default
-            cmd = ['bcdedit', '/set', '{default}', 'safeboot', 'network']
-            run_program(cmd, check=False)
-            
-            # Enable MSI access under safemode
-            cmd = ['reg', 'add', REG_MSISERVER, '/f']
-            run_program(cmd, check=False)
-            cmd = ['reg', 'add', REG_MSISERVER, '/ve',
-                    '/t', 'REG_SZ', '/d', 'Service', '/f']
-            run_program(cmd, check=False)
+        if not ask('Enable booting to SafeMode (with Networking)?'):
+            abort()
         
-            ## Done ##
-            pause('Press Enter to reboot...')
-            cmd = ['shutdown', '-r', '-t', '3']
-            run_program(cmd, check=False)
+        # Edit BCD to set safeboot as default
+        cmd = ['bcdedit', '/set', '{default}', 'safeboot', 'network']
+        run_program(cmd, check=False)
+        
+        # Enable MSI access under safemode
+        cmd = ['reg', 'add', REG_MSISERVER, '/f']
+        run_program(cmd, check=False)
+        cmd = ['reg', 'add', REG_MSISERVER, '/ve',
+                '/t', 'REG_SZ', '/d', 'Service', '/f']
+        run_program(cmd, check=False)
+    
+        ## Done ##
+        pause('Press Enter to reboot...')
+        cmd = ['shutdown', '-r', '-t', '3']
+        run_program(cmd, check=False)
         
         # Done
         exit_script()
