@@ -186,18 +186,18 @@ goto Exit
 
 :LaunchOfficeSetup
 rem Prep
-echo Copying setup file(s) for %L_ITEM%...
 set "fastcopy_args=/cmd=diff /no_ui /auto_close"
 set "product=%L_PATH%\%L_ITEM%"
 set "product_name=%L_ITEM%"
 call :GetBasename product_name || goto ErrorBasename
-set "source=\\%OFFICE_SERVER%\Office\%product%"
+set "source=\\%OFFICE_SERVER_IP%\Office\%product%"
 set "dest=%client_dir%\Office"
 
 rem Verify
 if not exist "%source%" (goto ErrorOfficeSourceNotFound)
 
 rem Copy
+echo Copying setup file(s) for %product_name%...
 start "" /wait "%FASTCOPY%" %fastcopy_args% "%source%" /to="%dest%\"
 
 rem Run
