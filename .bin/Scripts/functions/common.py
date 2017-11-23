@@ -31,6 +31,9 @@ HKCU = winreg.HKEY_CURRENT_USER
 HKLM = winreg.HKEY_LOCAL_MACHINE
 
 # Error Classes
+class BIOSKeyNotFoundError(Exception):
+    pass
+
 class BinNotFoundError(Exception):
     pass
 
