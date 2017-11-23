@@ -28,7 +28,9 @@ if __name__ == '__main__':
             {'Name': 'Schedule CHKDSK scan (offline repair)', 'Repair': True}]
         actions = [{'Name': 'Quit', 'Letter': 'Q'}]
         selection = menu_select(
-            '{}: Check Disk Menu\n'.format(KIT_NAME_FULL), options, actions)
+            '{}: Check Disk Menu\n'.format(KIT_NAME_FULL),
+            main_entries=options,
+            action_entries=actions)
         print_info('{}: Check Disk Menu\n'.format(KIT_NAME_FULL))
         if selection == 'Q':
             abort()

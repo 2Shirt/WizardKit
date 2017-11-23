@@ -59,6 +59,7 @@ class UnsupportedOSError(Exception):
 def abort():
     """Abort script."""
     print_warning('Aborted.')
+    sleep(5)
     exit_script()
 
 def ask(prompt='Kotaero!'):
@@ -234,7 +235,7 @@ def menu_select(title='~ Untitled Menu ~',
                 width =     width,
                 name =      entry.get('Display Name', entry['Name']))
         if entry.get('Disabled', False):
-            entry_str = '{YELLOW}{entry_str} ({disabled}){CLEAR}\n'.format(
+            entry_str = '{YELLOW}{entry_str} ({disabled}){CLEAR}'.format(
                 entry_str = entry_str,
                 disabled =  disabled_label,
                 **COLORS)

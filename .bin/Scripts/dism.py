@@ -23,12 +23,15 @@ if __name__ == '__main__':
                 'GenericRepair':        'Repaired',
                 'UnsupportedOSError':   'Unsupported OS',
             }}
+        disabled = bool(global_vars['OS']['Version'] not in ['8', '10'])
         options = [
-            {'Name': 'Check Health', 'Repair': False},
-            {'Name': 'Restore Health', 'Repair': True}]
+            {'Name': 'Check Health', 'Repair': False, 'Disabled': disabled},
+            {'Name': 'Restore Health', 'Repair': True, 'Disabled': disabled}]
         actions = [{'Name': 'Quit', 'Letter': 'Q'}]
         selection = menu_select(
-            '{}: DISM Menu\n'.format(KIT_NAME_FULL), options, actions)
+            '{}: DISM Menu\n'.format(KIT_NAME_FULL),
+            main_entries=options,
+            action_entries=actions)
         print_info('{}: DISM Menu\n'.format(KIT_NAME_FULL))
         if selection == 'Q':
             abort()

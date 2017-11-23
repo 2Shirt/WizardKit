@@ -37,11 +37,10 @@ if __name__ == '__main__':
             {'Name': 'Quit', 'Letter': 'Q'},
             ]
 
-        # Main loop
         while True:
             selection = menu_select(
                 '{}: Windows Activation Menu'.format(KIT_NAME_FULL),
-                activation_methods, actions)
+                main_entries=activation_methods, action_entries=actions)
 
             if (selection.isnumeric()):
                 activation_methods[int(selection)-1]['Function']()
