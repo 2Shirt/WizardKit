@@ -329,13 +329,17 @@ goto Exit
 echo.
 echo.Usage (via defined variables):
 echo.   L_TYPE      L_PATH       L_ITEM   L_ARGS
-echo.   Console     Working Dir  Program  Args   [L_ELEV] [L_NCMD]
-echo.   Folder      Folder       '.'                      [L_NCMD]
-echo.   Office      Year         Product                  [L_NCMD]
-echo.   QuickBooks  Year         Product                  [L_NCMD]
-echo.   Program     Working Dir  Program  Args   [L_ELEV] [L_NCMD]
-echo.   PSScript    Scripts      Script          [L_ELEV] [L_NCMD]
-echo.   PyScript    Scripts      Script          [L_ELEV] [L_NCMD]
+echo.   Executable  Working Dir  Program  Args   [L_7ZIP] [L_ELEV] [L__CLI]
+echo.   Folder      Folder       '.'             [L_7ZIP]
+echo.   Office      Year         Product         [L_7ZIP]
+echo.   PSScript    Scripts      Script          [L_7ZIP] [L_ELEV] [L_NCMD]
+echo.   PyScript    Scripts      Script          [L_7ZIP] [L_ELEV] [L_NCMD]
+echo.   QuickBooks  Year         Product         [L_7ZIP]
+echo.
+echo.L_7ZIP:    Extra arguments for 7-Zip (in the :ExtractCBin label)
+echo.L_ELEV:    Elevate to run as Admin
+echo.L_NCMD:    Do not run script inside ConEmu (i.e. use the native window)
+echo.L__CLI:    Run executable in ConEmu
 echo.
 goto Abort
 
