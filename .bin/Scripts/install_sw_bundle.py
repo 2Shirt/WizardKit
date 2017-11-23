@@ -15,6 +15,7 @@ if __name__ == '__main__':
     try:
         stay_awake()
         os.system('cls')
+        print_info('{}: SW Bundle Tool\n'.format(KIT_NAME_FULL))
         other_results = {
             'Error': {
                 'CalledProcessError':   'Unknown Error',

@@ -19,6 +19,8 @@ def activate_with_bios():
 if __name__ == '__main__':
     try:
         stay_awake()
+        os.system('cls')
+        print_info('{}: Windows Activation Tool\n'.format(KIT_NAME_FULL))
         # Bail early if already activated
         if windows_is_activated():
             print_info('This system is already activated')

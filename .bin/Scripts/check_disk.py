@@ -14,6 +14,7 @@ global_vars['LogFile'] = r'{LogDir}\Check Disk.log'.format(**global_vars)
 if __name__ == '__main__':
     try:
         stay_awake()
+        os.system('cls')
         other_results = {
             'Error': {
                 'CalledProcessError':   'Unknown Error',
@@ -27,9 +28,8 @@ if __name__ == '__main__':
             {'Name': 'Schedule CHKDSK scan (offline repair)', 'Repair': True}]
         actions = [{'Name': 'Quit', 'Letter': 'Q'}]
         selection = menu_select(
-            'Please select action to perform', options, actions)
-        os.system('cls')
-        print_info('Check Disk Tool')
+            '{}: Check Disk Menu\n'.format(KIT_NAME_FULL), options, actions)
+        print_info('{}: Check Disk Menu\n'.format(KIT_NAME_FULL))
         if selection == 'Q':
             abort()
         elif selection.isnumeric():

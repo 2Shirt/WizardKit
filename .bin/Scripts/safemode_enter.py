@@ -15,6 +15,8 @@ os.system('title {}: SafeMode Tool'.format(KIT_NAME_FULL))
 
 if __name__ == '__main__':
     try:
+        os.system('cls')
+        print_info('{}: SafeMode Tool\n'.format(KIT_NAME_FULL))
         if ask('Enable booting to SafeMode (with Networking)?'):
             # Edit BCD to set safeboot as default
             cmd = ['bcdedit', '/set', '{default}', 'safeboot', 'network']

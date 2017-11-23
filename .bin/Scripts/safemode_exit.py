@@ -15,6 +15,8 @@ os.system('title {}: SafeMode Tool'.format(KIT_NAME_FULL))
 
 if __name__ == '__main__':
     try:
+        os.system('cls')
+        print_info('{}: SafeMode Tool\n'.format(KIT_NAME_FULL))
         if ask('Disable booting to SafeMode?'):
             # Edit BCD to remove safeboot value
             for boot in ['{current}', '{default}']:

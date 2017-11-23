@@ -18,6 +18,7 @@ if __name__ == '__main__':
     try:
         stay_awake()
         os.system('cls')
+        print_info('{}: User Checklist\n'.format(KIT_NAME_FULL))
         other_results = {
             'Warning': {
                 'NotInstalledError': 'Not installed',

@@ -18,8 +18,9 @@ global_vars['LogFile'] = r'{LogDir}\System Checklist.log'.format(**global_vars)
 if __name__ == '__main__':
     try:
         stay_awake()
-        ticket_number = get_ticket_number()
         os.system('cls')
+        print_info('{}: System Checklist Tool\n'.format(KIT_NAME_FULL))
+        ticket_number = get_ticket_number()
         other_results = {
             'Error': {
                 'CalledProcessError':   'Unknown Error',

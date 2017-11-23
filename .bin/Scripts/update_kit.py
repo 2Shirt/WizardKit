@@ -12,13 +12,12 @@ os.system('title {}: Kit Update Tool'.format(KIT_NAME_FULL))
 
 if __name__ == '__main__':
     try:
+        os.system('cls')
+        print_info('{}: Kit Update Tool\n'.format(KIT_NAME_FULL))
         other_results = {
             'Error': {
                 'CalledProcessError': 'Unknown Error',
             }}
-        stay_awake()
-        os.system('cls')
-        print_info('Starting {} Full Update\n'.format(KIT_NAME_FULL))
         
         ## Prep ##
         update_sdio = ask('Update SDI Origin?')
