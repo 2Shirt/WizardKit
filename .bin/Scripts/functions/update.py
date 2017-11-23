@@ -600,6 +600,32 @@ def update_vcredists():
                 'vcredist.exe',
                 VCREDIST_SOURCES[year][bit])
 
+def update_one_ninite(section, dest, name, url, indent=8, width=40):
+    # Prep
+    url = 'https://ninite.com/{}/ninite.exe'.format(url)
+    
+    # Download
+    download_generic(out_dir=dest, out_name=name, source_url=url)
+    
+    # Copy to Installers folder
+    installer_parent = r'{}\Installers\Extras\{}'.format(
+        global_vars['BaseDir'], section)
+    installer_dest = r'{}\{}'.format(installer_parent, name)
+    os.makedirs(installer_parent, exist_ok=True)
+    if os.path.exists(installer_dest):
+        remove_item(installer_dest)
+    shutil.copy(r'{}\{}'.format(dest, name), installer_dest)
+
+def update_all_ninite(indent=8, width=40, other_results={}):
+    print_info('{}Ninite'.format(' '*int(indent/2)))
+    for section in sorted(NINITE_SOURCES.keys()):
+        print_success('{}{}'.format(' '*int(indent/4*3), section))
+        dest = r'{}\_Ninite\{}'.format(global_vars['CBinDir'], section)
+        for name, url in sorted(NINITE_SOURCES[section].items()):
+            try_and_print(message=name, function=update_one_ninite,
+                other_results=other_results, indent=indent, width=width,
+                section=section, dest=dest, name=name, url=url)
+
 ## Misc ##
 def update_caffeine():
     # Stop running processes

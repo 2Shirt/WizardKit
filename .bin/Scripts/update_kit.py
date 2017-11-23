@@ -59,15 +59,7 @@ if __name__ == '__main__':
         try_and_print(message='Adobe Reader DC...', function=update_adobe_reader_dc, other_results=other_results, width=40)
         try_and_print(message='MS Office...', function=update_office, other_results=other_results, width=40)
         try_and_print(message='Visual C++ Runtimes...', function=update_vcredists, other_results=other_results, width=40)
-        print_info('    Ninite')
-        for section in sorted(NINITE_SOURCES.keys()):
-            print_success('      {}'.format(section))
-            dest = r'{}\_Ninite\{}'.format(global_vars['CBinDir'], section)
-            for name, url in sorted(NINITE_SOURCES[section].items()):
-                url = 'https://ninite.com/{}/ninite.exe'.format(url)
-                try_and_print(message=name, function=download_generic,
-                    other_results=other_results, width=40,
-                    out_dir=dest, out_name=name, source_url=url)
+        update_all_ninite(other_results=other_results, width=40)
         
         # Misc
         print_info('    Misc')
