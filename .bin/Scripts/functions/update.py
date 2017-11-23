@@ -454,7 +454,7 @@ def update_intel_ssd_toolbox():
     
     # Download
     download_generic(
-        r'{}\_Drivers'.format(global_vars['CBinDir']),
+        r'{}\_Drivers\Intel SSD Toolbox'.format(global_vars['CBinDir']),
         'Intel SSD Toolbox.exe',
         SOURCE_URLS['Intel SSD Toolbox'])
 
@@ -464,7 +464,7 @@ def update_samsung_magician():
     
     # Download
     download_generic(
-        r'{}\_Drivers'.format(global_vars['CBinDir']),
+        r'{}\_Drivers\Samsung Magician'.format(global_vars['CBinDir']),
         'Samsung Magician.exe',
         SOURCE_URLS['Samsung Magician'])
 
