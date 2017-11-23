@@ -432,6 +432,14 @@ LAUNCHERS = {
             'L_NCMD': 'True',
             },
         },
+    r'Installers\Extras\Runtimes': {
+        'Visual C++ Runtimes': {
+            'L_TYPE': 'PyScript',
+            'L_PATH': 'Scripts',
+            'L_ITEM': 'install_vcredists.py',
+            'L_ELEV': 'True',
+            },
+        },
     r'Misc': {
         'ConEmu (as ADMIN)': {
             'L_TYPE': 'Executable',
