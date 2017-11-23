@@ -27,7 +27,8 @@ if __name__ == '__main__':
         answer_extensions = ask('Install Extensions?')
         answer_adobe_reader = ask('Install Adobe Reader?')
         answer_vcr = ask('Install Visual C++ Runtimes?')
-        if global_vars['OS']['Version'] in ['7']:
+        answer_ninite = ask('Install Ninite Bundle?')
+        if answer_ninite and global_vars['OS']['Version'] in ['7']:
             # Vista is dead, not going to check for it
             answer_mse = ask('Install MSE?')
         else:
@@ -47,8 +48,9 @@ if __name__ == '__main__':
             install_adobe_reader()
         if answer_vcr:
             install_vcredists()
-        try_and_print(message='Ninite bundle...',
-            function=install_ninite_bundle, cs='Started', mse=answer_mse)
+        if answer_ninite:
+            try_and_print(message='Ninite bundle...',
+                function=install_ninite_bundle, cs='Started', mse=answer_mse)
         print_standard('\nDone.')
         exit_script()
     except SystemExit:

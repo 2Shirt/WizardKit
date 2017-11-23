@@ -108,13 +108,14 @@ VCR_REDISTS = [
             '/passive', '/norestart']},
     {'Name': 'Visual C++ 2015 Update 3 x64...',
         'Cmd': [r'2015u3\x64\vcredist.exe', '/install',
-            '/passive', '/norestart']}]
+            '/passive', '/norestart']},
     {'Name': 'Visual C++ 2017 x32...',
         'Cmd': [r'2017\x32\vcredist.exe', '/install',
             '/passive', '/norestart']},
     {'Name': 'Visual C++ 2017 x64...',
         'Cmd': [r'2017\x64\vcredist.exe', '/install',
-            '/passive', '/norestart']}]
+            '/passive', '/norestart']},
+    ]
 
 def config_classicstart():
     """Configure ClassicStart."""
