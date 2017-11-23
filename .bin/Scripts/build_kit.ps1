@@ -166,5 +166,5 @@ popd
 if ($errors -gt 0) {
     wk_pause "Press Enter to exit..."
 } else {
-    start "$bin\ConEmu\ConEmu.exe" -argumentlist @("-run", "$bin\Python\x32\python.exe", "$bin\Scripts\update_kit.py", "-new_console:c") -verb Runas
+    start "$bin\ConEmu\ConEmu.exe" -argumentlist @("-run", "$bin\Python\x32\python.exe", "$bin\Scripts\update_kit.py", "-new_console:n") -verb Runas
 }

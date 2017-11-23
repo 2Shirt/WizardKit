@@ -22,7 +22,7 @@ A collection of scripts to help technicians service Windows systems.
 * `Repairs`
 * `Uninstallers`
 
-## Setup ##
+## Initial Setup ##
 
 * Replace ConEmu.png if desired
 * Run `Build Kit.cmd` which will do the following:
