@@ -24,6 +24,7 @@ A collection of scripts to help technicians service Windows systems.
 
 ## Setup ##
 
+* Replace ConEmu.png if desired
 * Run `Build Kit.cmd` which will do the following:
   * Download 7-Zip, ConEmu, Notepad++, and Python (including wheel packages)
   * Open `.bin\Scripts\settings\main.py` in Notepad++ for configuration

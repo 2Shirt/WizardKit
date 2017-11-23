@@ -13,8 +13,9 @@ if not exist ".bin\Scripts\build_kit.ps1" (goto ErrorBuildKitMissing)
 
 :PrepNewKit
 rem Copy base files to a new folder OUT\%KIT_NAME_FULL%
-robocopy /e . OUT /xd .git .root_items OUT /xf .gitignore "Build Kit.cmd"
+robocopy /e . OUT /xd .git .root_items OUT /xf .gitignore "Build Kit.cmd" ConEmu.png
 robocopy /e .root_items OUT
+copy ConEmu.png OUT\.bin\ConEmu\
 mkdir OUT\.cbin >nul 2>&1
 attrib +h OUT\.bin >nul 2>&1
 attrib +h OUT\.cbin >nul 2>&1
