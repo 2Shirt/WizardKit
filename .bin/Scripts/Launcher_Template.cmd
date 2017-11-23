@@ -17,32 +17,15 @@ call :SetTitle Launcher
 rem EXTRA_CODE
 
 :DefineLaunch
-:: Set L_TYPE to one of these options:
-::     Console, Folder, Office, Program, PSScript, or PyScript
-:: Set L_PATH to the path to the program folder
-:: NOTE: Launch.cmd will test for L_PATH in the following order:
-::      1: %cbin%\L_PATH.7z (which will be extracted to %bin%\L_PATH)
-::      2: %bin%\L_PATH
-::      3. %L_PATH%         (i.e. treat L_PATH as an absolute path)
-:: Set L_ITEM to one of the following:
-::      1. The filename of the item to launch
-::      2. The Office product to install
-::      3. '.' to open extracted folder
-:: Set L_ARGS to include any necessary arguments (if any)
-:: Set L_7ZIP to include any necessary arguments for extraction
-:: Set L_CHCK to True to have Launch.cmd to stay open if an error is encountered
-:: Set L_ELEV to True to launch with elevated permissions
-:: Set L_NCMD to True to stay in the native console window
-:: Set L_WAIT to True to have the script wait until L_ITEM has comlpeted
+:: See %bin%\SCripts\Launch.cmd for details under :Usage label
 set L_TYPE=
 set L_PATH=
 set L_ITEM=
 set L_ARGS=
+set L__CLI=
 set L_7ZIP=
-set L_CHCK=
 set L_ELEV=
 set L_NCMD=
-set L_WAIT=
 
 :::::::::::::::::::::::::::::::::::::::::::
 :: Do not edit anything below this line! ::

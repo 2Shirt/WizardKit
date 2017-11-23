@@ -180,7 +180,6 @@ def scan_for_net_installers(server, family_name, min_year):
                         'L_TYPE': family_name,
                         'L_PATH': year.name,
                         'L_ITEM': version.name,
-                        'L_CHCK': 'True',
                         }
         umount_network_share(server)
 
