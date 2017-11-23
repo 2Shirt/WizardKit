@@ -258,7 +258,6 @@ LAUNCHERS = {
             'L_TYPE': 'Executable',
             'L_PATH': 'BlueScreenView',
             'L_ITEM': 'BlueScreenView.exe',
-            'L_ELEV': 'True',
             },
         'ERUNT': {
             'L_TYPE': 'Executable',
