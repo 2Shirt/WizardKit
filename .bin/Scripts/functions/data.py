@@ -389,10 +389,12 @@ def select_destination(folder_path, prompt='Select destination'):
 
     return path
 
-def select_disk(prompt='Select disk'):
+def select_disk(title='Select disk', auto_select=True):
     """Select disk from attached disks. returns dict."""
     actions =   [{'Name': 'Quit', 'Letter': 'Q'}]
     disks =     []
+    
+    # Build list of disks
     set_thread_error_mode(silent=True) # Prevents "No disk" popups
     for d in psutil.disk_partitions():
         info = {
@@ -412,8 +414,13 @@ def select_disk(prompt='Select disk'):
             info['Display Name'] = '{}  ({})'.format(info['Name'], free)
             disks.append(info)
     set_thread_error_mode(silent=False) # Return to normal
-
-    selection = menu_select(prompt, disks, actions)
+    
+    # Skip menu?
+    if len(disks) == 1 and auto_select:
+        return disks[0]
+    
+    # Show menu
+    selection = menu_select(title, main_entries=disks, action_entries=actions)
     if selection == 'Q':
         exit_script()
     else:
@@ -510,8 +517,11 @@ def select_source(ticket_number):
 
     # Select backup from sources
     if len(sources) > 0:
-        selection = menu_select('Which backup are we using?',
-            sources, actions, disabled_label='DAMAGED')
+        selection = menu_select(
+            'Which backup are we using?',
+            main_entries=sources,
+            action_entries=actions,
+            disabled_label='DAMAGED')
         if selection == 'Q':
             umount_backup_shares()
             exit_script()
