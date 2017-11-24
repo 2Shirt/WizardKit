@@ -47,6 +47,8 @@ if __name__ == '__main__':
                     other_results=other_results)
                 if result['CS']:
                     break
+                else:
+                    sleep(2)
             elif selection == 'Q':
                 exit_script()
 
