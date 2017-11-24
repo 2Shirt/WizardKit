@@ -3,16 +3,13 @@
 import subprocess
 
 from borrowed import acpi
+from functions.common import *
 from os import environ
 
 # Variables
 SLMGR = r'{}\System32\slmgr.vbs'.format(environ.get('SYSTEMROOT'))
 
-# Error Classes
-class BIOSKeyNotFoundError(Exception):
-    pass
-
-def activate_windows_with_bios():
+def activate_with_bios():
     """Attempt to activate Windows with a key stored in the BIOS."""
     # Code borrowed from https://github.com/aeruder/get_win8key
     #####################################################
@@ -29,8 +26,6 @@ def activate_windows_with_bios():
         #   = Microsoft 'software licensing data structure' \
         #   / 36 + 20 bytes offset from beginning = Win Key
         bios_key = rawtable[56:len(rawtable)].decode("utf-8")
-    else:
-        raise Exception('ACPI table {} not found.'.format(str(table)))
     if bios_key is None:
         raise BIOSKeyNotFoundError
 

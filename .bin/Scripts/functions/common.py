@@ -13,6 +13,7 @@ import winreg
 from subprocess import CalledProcessError
 
 from settings.main import *
+from settings.tools import *
 
 # Global variables
 global_vars = {}
@@ -28,60 +29,11 @@ COLORS = {
 HKU = winreg.HKEY_USERS
 HKCU = winreg.HKEY_CURRENT_USER
 HKLM = winreg.HKEY_LOCAL_MACHINE
-TOOLS = {
-    # NOTE: BinDir will be prepended to these paths at runtime
-    'AIDA64': {
-        '32': r'AIDA64\aida64.exe'},
-    'AutoRuns': {
-        '32': r'Autoruns\autoruns.exe',
-        '64': r'Autoruns\autoruns64.exe'},
-    'BleachBit': {
-        '32': r'BleachBit\bleachbit_console.exe'},
-    'Caffeine': {
-        '32': r'caffeine\caffeine.exe'},
-    'curl': {
-        '32': r'curl\curl.exe'},
-    'Du': {
-        '32': r'du\du.exe',
-        '64': r'du\du64.exe'},
-    'ERUNT': {
-        '32': r'erunt\ERUNT.EXE'},
-    'Everything': {
-        '32': r'Everything\Everything.exe',
-        '64': r'Everything\Everything64.exe'},
-    'FastCopy': {
-        '32': r'FastCopy\FastCopy.exe',
-        '64': r'FastCopy\FastCopy64.exe'},
-    'HitmanPro': {
-        '32': r'HitmanPro\HitmanPro.exe',
-        '64': r'HitmanPro\HitmanPro64.exe'},
-    'HWiNFO': {
-        '32': r'HWiNFO\HWiNFO.exe',
-        '64': r'HWiNFO\HWiNFO64.exe'},
-    'KVRT': {
-        '32': r'KVRT\KVRT.exe'},
-    'NotepadPlusPlus': {
-        '32': r'notepadplusplus\notepadplusplus.exe'},
-    'ProduKey': {
-        '32': r'ProduKey\ProduKey.exe',
-        '64': r'ProduKey\ProduKey64.exe'},
-    'PuTTY-PSFTP': {
-        '32': r'PuTTY\PSFTP.EXE'},
-    'RKill': {
-        '32': r'RKill\RKill.exe'},
-    'SevenZip': {
-        '32': r'7-Zip\7za.exe',
-        '64': r'7-Zip\7za64.exe'},
-    'TDSSKille': {
-        '32': r'TDSSKiller\TDSSKiller.exe'},
-    'wimlib-imagex': {
-        '32': r'wimlib\x32\wimlib-imagex.exe',
-        '64': r'wimlib\x64\wimlib-imagex.exe'},
-    'XMPlay': {
-        '32': r'XMPlay\xmplay.exe'},
-}
 
 # Error Classes
+class BIOSKeyNotFoundError(Exception):
+    pass
+
 class BinNotFoundError(Exception):
     pass
 
@@ -110,6 +62,7 @@ class UnsupportedOSError(Exception):
 def abort():
     """Abort script."""
     print_warning('Aborted.')
+    sleep(5)
     exit_script()
 
 def ask(prompt='Kotaero!'):
@@ -168,6 +121,7 @@ def exit_script(return_value=0):
                 global_vars['LogFile']])
         except Exception:
             print_error('ERROR: Failed to extract Notepad++ and open log.')
+            pause('Press Enter to exit...')
 
     # Kill Caffeine if still running
     kill_process('caffeine.exe')
@@ -284,7 +238,7 @@ def menu_select(title='~ Untitled Menu ~',
                 width =     width,
                 name =      entry.get('Display Name', entry['Name']))
         if entry.get('Disabled', False):
-            entry_str = '{YELLOW}{entry_str} ({disabled}){CLEAR}\n'.format(
+            entry_str = '{YELLOW}{entry_str} ({disabled}){CLEAR}'.format(
                 entry_str = entry_str,
                 disabled =  disabled_label,
                 **COLORS)
@@ -419,7 +373,7 @@ def stay_awake():
         if proc.name() == 'caffeine.exe':
             return
     # Extract and run
-    extract_item('caffeine', silent=True)
+    extract_item('Caffeine', silent=True)
     try:
         popen_program(global_vars['Tools']['Caffeine'])
     except Exception:
@@ -431,7 +385,7 @@ def get_exception(s):
     return getattr(sys.modules[__name__], s)
 
 def try_and_print(message='Trying...',
-    function, cs='CS', ns='NS', other_results={},
+    function=None, cs='CS', ns='NS', other_results={},
     catch_all=True, print_return=False, silent_function=True,
     indent=8, width=32, *args, **kwargs):
     """Run function, print if successful or not, and return dict.

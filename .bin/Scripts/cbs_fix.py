@@ -1,4 +1,4 @@
-# Wizard Kit: Copy user data to the system over the network
+# Wizard Kit: Backup CBS Logs and prep CBS temp data for deletion
 
 import os
 import sys
@@ -16,11 +16,15 @@ if __name__ == '__main__':
     try:
         # Prep
         stay_awake()
-        get_ticket_number()
         os.system('cls')
         folder_path = r'{}\Backups'.format(KIT_NAME_SHORT)
         dest = select_destination(folder_path=folder_path,
             prompt='Which disk are we using for temp data and backup?')
+        
+        # Show details
+        print_info('{}: CBS Cleanup Tool\n'.format(KIT_NAME_FULL))
+        show_info('Backup / Temp path:', dest)
+        print_standard('\n')
         if (not ask('Proceed with CBS cleanup?')):
             abort()
         

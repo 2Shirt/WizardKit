@@ -7,23 +7,23 @@ import sys
 os.chdir(os.path.dirname(os.path.realpath(__file__)))
 sys.path.append(os.getcwd())
 from functions.activation import *
-from functions.common import *
 init_global_vars()
 os.system('title {}: Windows Activation Tool'.format(KIT_NAME_FULL))
-
-def activate_with_bios():
-    """Attempt to activate Windows with a key stored in the BIOS."""
-    try_and_print(message='BIOS Activation:',
-        function=activate_windows_with_bios, other_results=other_results)
 
 if __name__ == '__main__':
     try:
         stay_awake()
+        os.system('cls')
+        print_info('{}: Windows Activation Tool\n'.format(KIT_NAME_FULL))
         # Bail early if already activated
         if windows_is_activated():
             print_info('This system is already activated')
             sleep(5)
             exit_script()
+        other_results = {
+            'Error': {
+                'BIOSKeyNotFoundError':   'BIOS key not found.',
+            }}
 
         # Determine activation method
         activation_methods = [
@@ -35,20 +35,25 @@ if __name__ == '__main__':
             {'Name': 'Quit', 'Letter': 'Q'},
             ]
 
-        # Main loop
         while True:
             selection = menu_select(
                 '{}: Windows Activation Menu'.format(KIT_NAME_FULL),
-                activation_methods, actions)
-
+                main_entries=activation_methods, action_entries=actions)
+            
             if (selection.isnumeric()):
-                activation_methods[int(selection)-1]['Function']()
-                break
+                result = try_and_print(
+                    message = activation_methods[int(selection)-1]['Name'],
+                    function = activation_methods[int(selection)-1]['Function'],
+                    other_results=other_results)
+                if result['CS']:
+                    break
+                else:
+                    sleep(2)
             elif selection == 'Q':
                 exit_script()
 
         # Done
-        print_success('Done.')
+        print_success('\nDone.')
         pause("Press Enter to exit...")
         exit_script()
     except SystemExit:

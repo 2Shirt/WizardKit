@@ -14,6 +14,7 @@ global_vars['LogFile'] = r'{LogDir}\DISM helper tool.log'.format(**global_vars)
 if __name__ == '__main__':
     try:
         stay_awake()
+        os.system('cls')
         other_results = {
             'Error': {
                 'CalledProcessError':   'Unknown Error',
@@ -22,14 +23,16 @@ if __name__ == '__main__':
                 'GenericRepair':        'Repaired',
                 'UnsupportedOSError':   'Unsupported OS',
             }}
+        disabled = bool(global_vars['OS']['Version'] not in ['8', '10'])
         options = [
-            {'Name': 'Check Health', 'Repair': False},
-            {'Name': 'Restore Health', 'Repair': True}]
+            {'Name': 'Check Health', 'Repair': False, 'Disabled': disabled},
+            {'Name': 'Restore Health', 'Repair': True, 'Disabled': disabled}]
         actions = [{'Name': 'Quit', 'Letter': 'Q'}]
         selection = menu_select(
-            'Please select action to perform', options, actions)
-        os.system('cls')
-        print_info('DISM helper tool')
+            '{}: DISM Menu\n'.format(KIT_NAME_FULL),
+            main_entries=options,
+            action_entries=actions)
+        print_info('{}: DISM Menu\n'.format(KIT_NAME_FULL))
         if selection == 'Q':
             abort()
         elif selection.isnumeric():

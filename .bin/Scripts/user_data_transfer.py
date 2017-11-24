@@ -9,15 +9,16 @@ sys.path.append(os.getcwd())
 from functions.data import *
 from functions.repairs import *
 init_global_vars()
-os.system('title {}: Data 1'.format(KIT_NAME_FULL))
-global_vars['LogFile'] = r'{LogDir}\Data 1.log'.format(**global_vars)
+os.system('title {}: User Data Transfer Tool'.format(KIT_NAME_FULL))
+global_vars['LogFile'] = r'{LogDir}\User Data Transfer.log'.format(**global_vars)
 
 if __name__ == '__main__':
     try:
         # Prep
         stay_awake()
-        ticket_number = get_ticket_number()
         os.system('cls')
+        print_info('{}: User Data Transfer Tool\n'.format(KIT_NAME_FULL))
+        ticket_number = get_ticket_number()
         folder_path = r'{}\Transfer'.format(KIT_NAME_SHORT)
         dest = select_destination(folder_path=folder_path,
             prompt='Which disk are we transferring to?')

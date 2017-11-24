@@ -1,0 +1,6 @@
+Windows Registry Editor Version 5.00
+
+;Delete entries acording to http://support.microsoft.com/kb/314060
+[HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Class\{4D36E965-E325-11CE-BFC1-08002BE10318}]
+"UpperFilters"=-
+"LowerFilters"=-

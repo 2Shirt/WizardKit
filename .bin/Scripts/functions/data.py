@@ -37,10 +37,11 @@ REGEX_EXCL_ROOT_ITEMS = re.compile(
     re.IGNORECASE)
 REGEX_INCL_ROOT_ITEMS = re.compile(
     r'^\\?(AdwCleaner|(My\s*|)(Doc(uments?( and Settings|)|s?)|Downloads'
-    r'|{prefix}(-?Info|-?Transfer|)'.format(prefix=KIT_NAME_SHORT)
     r'|Media|Music|Pic(ture|)s?|Vid(eo|)s?)'
+    r'|{prefix}(-?Info|-?Transfer|)'
     r'|(ProgramData|Recovery|Temp.*|Users)$'
-    r'|.*\.(log|txt|rtf|qb\w*|avi|m4a|m4v|mp4|mkv|jpg|png|tiff?)$)',
+    r'|.*\.(log|txt|rtf|qb\w*|avi|m4a|m4v|mp4|mkv|jpg|png|tiff?)$)'
+    r''.format(prefix=KIT_NAME_SHORT),
     re.IGNORECASE)
 REGEX_WIM_FILE = re.compile(
     r'\.wim$',
@@ -163,28 +164,33 @@ def mount_backup_shares():
         if server['Mounted']:
             continue
         
-        # Else, test connection
-        try:
-            ping(server['IP'])
-        except subprocess.CalledProcessError:
-            print_error(
-                r'Failed to mount \\{Name}\{Share}, {IP} unreachable.'.format(
-                    **server))
-            sleep(1)
-            continue # Continue to next server
+        mount_network_share(server)
+        
 
-        # Mount
-        cmd = r'net use \\{IP}\{Share} /user:{User} {Pass}'.format(**server)
-        cmd = cmd.split(' ')
-        try:
-            run_program(cmd)
-        except Exception:
-            print_warning(r'Failed to mount \\{Name}\{Share} ({IP})'.format(
+def mount_network_share(server):
+    """Mount a network share defined by server."""
+    # Test connection
+    try:
+        ping(server['IP'])
+    except subprocess.CalledProcessError:
+        print_error(
+            r'Failed to mount \\{Name}\{Share}, {IP} unreachable.'.format(
                 **server))
-            sleep(1)
-        else:
-            print_info('Mounted {Name}'.format(**server))
-            server['Mounted'] = True
+        sleep(1)
+        return False
+
+    # Mount
+    cmd = r'net use \\{IP}\{Share} /user:{User} {Pass}'.format(**server)
+    cmd = cmd.split(' ')
+    try:
+        run_program(cmd)
+    except Exception:
+        print_warning(r'Failed to mount \\{Name}\{Share} ({IP})'.format(
+            **server))
+        sleep(1)
+    else:
+        print_info('Mounted {Name}'.format(**server))
+        server['Mounted'] = True
 
 def run_fast_copy(items, dest):
     """Copy items to dest using FastCopy."""
@@ -383,10 +389,12 @@ def select_destination(folder_path, prompt='Select destination'):
 
     return path
 
-def select_disk(prompt='Select disk'):
+def select_disk(title='Select disk', auto_select=True):
     """Select disk from attached disks. returns dict."""
     actions =   [{'Name': 'Quit', 'Letter': 'Q'}]
     disks =     []
+    
+    # Build list of disks
     set_thread_error_mode(silent=True) # Prevents "No disk" popups
     for d in psutil.disk_partitions():
         info = {
@@ -406,8 +414,13 @@ def select_disk(prompt='Select disk'):
             info['Display Name'] = '{}  ({})'.format(info['Name'], free)
             disks.append(info)
     set_thread_error_mode(silent=False) # Return to normal
-
-    selection = menu_select(prompt, disks, actions)
+    
+    # Skip menu?
+    if len(disks) == 1 and auto_select:
+        return disks[0]
+    
+    # Show menu
+    selection = menu_select(title, main_entries=disks, action_entries=actions)
     if selection == 'Q':
         exit_script()
     else:
@@ -504,8 +517,11 @@ def select_source(ticket_number):
 
     # Select backup from sources
     if len(sources) > 0:
-        selection = menu_select('Which backup are we using?',
-            sources, actions, disabled_label='DAMAGED')
+        selection = menu_select(
+            'Which backup are we using?',
+            main_entries=sources,
+            action_entries=actions,
+            disabled_label='DAMAGED')
         if selection == 'Q':
             umount_backup_shares()
             exit_script()
@@ -559,14 +575,20 @@ def transfer_source(source_obj, dest_path, selected_items):
 def umount_backup_shares():
     """Unnount the backup shares regardless of current status."""
     for server in BACKUP_SERVERS:
-        try:
-            # Umount
-            run_program(r'net use \\{IP}\{Share} /delete'.format(**server))
-            print_info('Umounted {Name}'.format(**server))
-            server['Mounted'] = False
-        except Exception:
-            print_error(r'Failed to umount \\{Name}\{Share}.'.format(**server))
-            sleep(1)
+        umount_network_share(server)
+
+def umount_network_share(server):
+    """Unnount a network share defined by server."""
+    cmd = r'net use \\{IP}\{Share} /delete'.format(**server)
+    cmd = cmd.split(' ')
+    try:
+        run_program(cmd)
+    except Exception:
+        print_error(r'Failed to umount \\{Name}\{Share}.'.format(**server))
+        sleep(1)
+    else:
+        print_info('Umounted {Name}'.format(**server))
+        server['Mounted'] = False
 
 def wim_contains(source_path, file_path):
     """Check if the WIM contains a file or folder."""

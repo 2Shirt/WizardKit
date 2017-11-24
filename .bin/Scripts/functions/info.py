@@ -355,7 +355,7 @@ def run_bleachbit():
 
 def show_disk_usage(disk):
     """Show free and used space for a specified disk."""
-    print_standard(disk.device.replace('/', ' '),
+    print_standard('{:5}'.format(disk.device.replace('/', ' ')),
         end='', flush=True, timestamp=False)
     try:
         usage = psutil.disk_usage(disk.device)
