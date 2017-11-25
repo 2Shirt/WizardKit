@@ -26,13 +26,14 @@ function wk-exit {
 function menu-tools {
     # Avail tools
     $tools = @(
-        @{Name="Blue Screen View"; Folder="BlueScreenView"; File="BlueScreenView64.exe"},
-        @{Name="Explorer++"; Folder="Explorer++"; File="Explorer++64.exe"},
-        @{Name="Fast Copy"; Folder="FastCopy"; File="FastCopy64.exe"; Args=@('/cmd=noexist_only', '/utf8', '/skip_empty_dir', '/linkdest', '/exclude="desktop.ini;Thumbs.db"')},
-        @{Name="HW Monitor"; Folder="HWMonitor"; File="HWMonitor64.exe"},
-        @{Name="NT Password Editor"; Folder="NT Password Editor"; File="ntpwedit64.exe"},
-        @{Name="Notepad2"; Folder="Notepad2"; File="Notepad2-Mod64.exe"},
+        @{Name="Blue Screen View"; Folder="BlueScreenView"; File="BlueScreenView.exe"},
+        @{Name="Explorer++"; Folder="Explorer++"; File="Explorer++.exe"},
+        @{Name="Fast Copy"; Folder="FastCopy"; File="FastCopy.exe"; Args=@('/cmd=noexist_only', '/utf8', '/skip_empty_dir', '/linkdest', '/exclude="desktop.ini;Thumbs.db"')},
+        @{Name="HW Monitor"; Folder="HWMonitor"; File="HWMonitor.exe"},
+        @{Name="NT Password Editor"; Folder="NT Password Editor"; File="ntpwedit.exe"},
+        @{Name="Notepad2"; Folder="Notepad2"; File="Notepad2-Mod.exe"},
         @{Name="Prime95"; Folder="Prime95"; File="prime95.exe"},
+        @{Name="ProduKey"; Folder="ProduKey"; File="ProduKey.exe"},
         @{Name="PhotoRec (GUI)"; Folder="TestDisk"; File="qphotorec_win.exe"},
         @{Name="PhotoRec (CLI)"; Folder="TestDisk"; File="photorec_win.exe"},
         @{Name="TestDisk (CLI)"; Folder="TestDisk"; File="testdisk_win.exe"}
@@ -98,6 +99,14 @@ function menu-main {
         # Launch sub-menu
         $selection -= 1
         & $menus[$selection].Menu
+    }
+}
+
+# Mount all partitions
+foreach ($_d in @(Get-Disk)) {
+    foreach ($_p in @(Get-Partition -DiskNumber $_d.DiskNumber)) {
+        # Assign letter
+        Add-PartitionAccessPath -DiskNumber $_d.DiskNumber -PartitionNumber $_p.PartitionNumber -AssignDriveLetter 2>&1 | Out-Null
     }
 }
 

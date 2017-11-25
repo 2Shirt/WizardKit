@@ -13,14 +13,16 @@ function apply-image {
     $split_image = $false
     $split_image_pattern = ""
     
-    # Check for local source
+    # Check for source image
+    ##  This checks all drive letters for the source image.
+    ##  It starts with local sources and then tries the server(s) (usually Y: and Z:)
     $volumes = @(Get-Volume | Where-Object {$_.Size -ne 0 -and $_.DriveLetter -imatch '^[C-Z]$'})
     foreach ($v in $volumes) {
         $letter = $v.DriveLetter + ":"
         if (Test-Path "$letter\sources\$image.wim") {
             $path = "$letter\sources\$image.wim"
         } elseif (Test-Path "$letter\sources\$image.esd") {
-            $path = "$letter\sources\$image.wim"
+            $path = "$letter\sources\$image.esd"
         } elseif (Test-Path "$letter\sources\$image.swm") {
             $path = "$letter\sources\$image.swm"
             $split_image = $true
@@ -28,7 +30,7 @@ function apply-image {
         }
     }
     
-    # Check for remote source (if necessary)
+    # Check for FQDN remote source (if necessary)
     if ($path -imatch '^$') {
         # Temporarily set path to network source
         $path = "\\$source_server\Windows\$image"
@@ -36,7 +38,7 @@ function apply-image {
         if (Test-Path "$path.wim") {
             $path = "$path.wim"
         } elseif (Test-Path "$path.esd") {
-            $path = "$path.swm"
+            $path = "$path.esd"
         } elseif (Test-Path "$path.swm") {
             $path = "$path.swm"
             $split_image = $true
@@ -177,6 +179,10 @@ function select-disk {
 function menu-imaging {
     wk-write "Drive Imaging"
     wk-write ""
+
+    # Pre-emptively mount Server(s)
+    ##  Helps ensure a successfull backup and/or setup
+    mount-servers
     
     ## WARNING
     wk-warn "WARNING: This section is experimental"
@@ -256,9 +262,6 @@ function menu-imaging {
     }
     wk-write ""
     
-    # Mount server(s)
-    mount-servers
-    
     # Select Server
     $server = (select-server)
     if (!($server)) {
@@ -310,12 +313,12 @@ function menu-imaging {
                 mkdir "$_imagepath" | out-null
             }
             $_dism_args = @(
-                '/Capture-Image',
-                '/ImageFile:$_imagefile',
-                '/CaptureDir:$_capturedir',
-                '/Name:$_name',
-                '/Compress:fast',
-                '/Quiet')
+                "/Capture-Image",
+                "/ImageFile:$_imagefile",
+                "/CaptureDir:$_capturedir",
+                "/Name:$_name",
+                "/Compress:fast",
+                "/Quiet")
             Start-Process "$windir\System32\Dism.exe" -ArgumentList $_dism_args -NoNewWindow -Wait | out-null
             
             ## The following command fails to capture OS partitions consitantly. Until this is fixed I will use DISM directly (as above).
@@ -341,12 +344,13 @@ function menu-imaging {
             }
         }
     }
-    
-    # Unmount server(s)
-    unmount-servers
     pause "Press Enter to return to main menu... "
 }
 function menu-setup {
+    # Pre-emptively mount Server(s)
+    ##  Helps ensure a successfull backup and/or setup
+    mount-servers
+    
     # Select Disk
     $dest_disk = (select-disk "To which drive are we installing Windows?" -skip_usb=$true)
     
