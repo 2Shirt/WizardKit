@@ -27,16 +27,16 @@ function menu-tools {
     # Avail tools
     $tools = @(
         @{Name="Blue Screen View"; Folder="BlueScreenView"; File="BlueScreenView.exe"},
+        @{Name="CPU-Z"; Folder="CPU-Z"; File="cpuz.exe"},
         @{Name="Explorer++"; Folder="Explorer++"; File="Explorer++.exe"},
         @{Name="Fast Copy"; Folder="FastCopy"; File="FastCopy.exe"; Args=@('/cmd=noexist_only', '/utf8', '/skip_empty_dir', '/linkdest', '/exclude="desktop.ini;Thumbs.db"')},
         @{Name="HW Monitor"; Folder="HWMonitor"; File="HWMonitor.exe"},
         @{Name="NT Password Editor"; Folder="NT Password Editor"; File="ntpwedit.exe"},
         @{Name="Notepad2"; Folder="Notepad2"; File="Notepad2-Mod.exe"},
+        @{Name="PhotoRec"; Folder="TestDisk"; File="photorec_win.exe"},
         @{Name="Prime95"; Folder="Prime95"; File="prime95.exe"},
         @{Name="ProduKey"; Folder="ProduKey"; File="ProduKey.exe"},
-        @{Name="PhotoRec (GUI)"; Folder="TestDisk"; File="qphotorec_win.exe"},
-        @{Name="PhotoRec (CLI)"; Folder="TestDisk"; File="photorec_win.exe"},
-        @{Name="TestDisk (CLI)"; Folder="TestDisk"; File="testdisk_win.exe"}
+        @{Name="TestDisk"; Folder="TestDisk"; File="testdisk_win.exe"}
     )
     
     # Build menu

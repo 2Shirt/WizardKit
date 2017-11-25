@@ -12,7 +12,7 @@ for %%f in (%*) do (
 )
 
 :LaunchMenu
-"%SystemDrive%\WK\ConEmu\ConEmu64.exe" /cmd PowerShell -ExecutionPolicy Bypass "%SystemDrive%\WK\Scripts\WK.ps1" -new_console:n
+"%SystemDrive%\WK\ConEmu\ConEmu.exe" /cmd PowerShell -ExecutionPolicy Bypass "%SystemDrive%\WK\Scripts\WK.ps1" -new_console:n
 goto Done
 
 :Abort

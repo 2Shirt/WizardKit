@@ -19,14 +19,14 @@ function apply-image {
     $volumes = @(Get-Volume | Where-Object {$_.Size -ne 0 -and $_.DriveLetter -imatch '^[C-Z]$'})
     foreach ($v in $volumes) {
         $letter = $v.DriveLetter + ":"
-        if (Test-Path "$letter\sources\$image.wim") {
-            $path = "$letter\sources\$image.wim"
-        } elseif (Test-Path "$letter\sources\$image.esd") {
-            $path = "$letter\sources\$image.esd"
-        } elseif (Test-Path "$letter\sources\$image.swm") {
-            $path = "$letter\sources\$image.swm"
+        if (Test-Path "$letter\images\$image.wim") {
+            $path = "$letter\images\$image.wim"
+        } elseif (Test-Path "$letter\images\$image.esd") {
+            $path = "$letter\images\$image.esd"
+        } elseif (Test-Path "$letter\images\$image.swm") {
+            $path = "$letter\images\$image.swm"
             $split_image = $true
-            $split_image_pattern = "$letter\sources\$image*.swm"
+            $split_image_pattern = "$letter\images\$image*.swm"
         }
     }
     
