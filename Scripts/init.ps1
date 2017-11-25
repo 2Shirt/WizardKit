@@ -3,7 +3,7 @@
 # Some common settings and functions
 
 $host.UI.RawUI.BackgroundColor = "black"
-$host.UI.RawUI.ForegroundColor = "cyan"
+$host.UI.RawUI.ForegroundColor = "white"
 #$appdata = (gci env:appdata).value
 #$localappdata = (gci env:localappdata).value
 #$username = (gci env:username).value

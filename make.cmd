@@ -71,42 +71,11 @@ for %%a in (amd64 x86) do (
     
     rem Copy main files
     call copype.cmd !arch! "!pe_files!"
-    rmdir /s /q "!pe_files!\media\bg-bg"
-    rmdir /s /q "!pe_files!\media\cs-cz"
-    rmdir /s /q "!pe_files!\media\da-dk"
-    rmdir /s /q "!pe_files!\media\de-de"
-    rmdir /s /q "!pe_files!\media\el-gr"
-    rmdir /s /q "!pe_files!\media\en-gb"
-    rmdir /s /q "!pe_files!\media\es-es"
-    rmdir /s /q "!pe_files!\media\es-mx"
-    rmdir /s /q "!pe_files!\media\et-ee"
-    rmdir /s /q "!pe_files!\media\fi-fi"
-    rmdir /s /q "!pe_files!\media\fr-ca"
-    rmdir /s /q "!pe_files!\media\fr-fr"
-    rmdir /s /q "!pe_files!\media\hr-hr"
-    rmdir /s /q "!pe_files!\media\hu-hu"
-    rmdir /s /q "!pe_files!\media\it-it"
-    rmdir /s /q "!pe_files!\media\ja-jp"
-    rmdir /s /q "!pe_files!\media\ko-kr"
-    rmdir /s /q "!pe_files!\media\lt-lt"
-    rmdir /s /q "!pe_files!\media\lv-lv"
-    rmdir /s /q "!pe_files!\media\nb-no"
-    rmdir /s /q "!pe_files!\media\nl-nl"
-    rmdir /s /q "!pe_files!\media\pl-pl"
-    rmdir /s /q "!pe_files!\media\pt-br"
-    rmdir /s /q "!pe_files!\media\pt-pt"
-    rmdir /s /q "!pe_files!\media\ro-ro"
-    rmdir /s /q "!pe_files!\media\ru-ru"
-    rmdir /s /q "!pe_files!\media\sk-sk"
-    rmdir /s /q "!pe_files!\media\sl-si"
-    rmdir /s /q "!pe_files!\media\sr-latn-cs"
-    rmdir /s /q "!pe_files!\media\sr-latn-rs"
-    rmdir /s /q "!pe_files!\media\sv-se"
-    rmdir /s /q "!pe_files!\media\tr-tr"
-    rmdir /s /q "!pe_files!\media\uk-ua"
-    rmdir /s /q "!pe_files!\media\zh-cn"
-    rmdir /s /q "!pe_files!\media\zh-hk"
-    rmdir /s /q "!pe_files!\media\zh-tw"
+    for %%t in (bg-bg cs-cz da-dk de-de el-gr en-gb es-es es-mx et-ee fi-fi fr-ca fr-fr hr-hr hu-hu it-it ja-jp ko-kr lt-lt lv-lv nb-no nl-nl pl-pl pt-br pt-pt ro-ro ru-ru sk-sk sl-si sr-latn-cs sr-latn-rs sv-se tr-tr uk-ua zh-cn zh-hk zh-tw) do (
+        rmdir /s /q "!pe_files!\media\%%t"
+        rmdir /s /q "!pe_files!\media\Boot\%%t"
+        rmdir /s /q "!pe_files!\media\EFI\Microsoft\Boot\%%t"
+    )
     
     rem Mount Image
     mkdir "!mount!"
@@ -136,7 +105,7 @@ for %%a in (amd64 x86) do (
     dism /add-package /image:"!mount!" /packagepath:"!winpe_ocs!\en-us\WinPE-DismCmdlets_en-us.cab" /logpath:"dism.log"
 
     rem   Install WinPE-WMI, WinPE-NetFX, WinPE-Scripting, and WinPE-PowerShell before you install WinPE-SecureBootCmdlets.
-    dism /add-package /image:"!mount!" /packagepath:"!winpe_ocs!\WinPE-SecureBootCmdlets.cab" /logpath:"dism.log"
+    rem dism /add-package /image:"!mount!" /packagepath:"!winpe_ocs!\WinPE-SecureBootCmdlets.cab" /logpath:"dism.log"
 
     rem   Install WinPE-WMI, WinPE-NetFX, WinPE-Scripting, and WinPE-PowerShell before you install WinPE-StorageWMI.
     dism /add-package /image:"!mount!" /packagepath:"!winpe_ocs!\WinPE-StorageWMI.cab" /logpath:"dism.log"

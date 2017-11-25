@@ -87,7 +87,7 @@ function menu-main {
         Start-Process "$windir\System32\cmd.exe" -argumentlist @("-new_console:n") -WorkingDirectory "$WKPath"
         return
     } elseif ($selection -imatch '^P$') {
-        Start-Process "$windir\System32\WindowsPowerShell\v1.0\powershell.exe" -argumentlist @("-ExecutionPolicy", "Bypass", "-new_console:n") -WorkingDirectory "$WKPath"
+        Start-Process "$windir\System32\WindowsPowerShell\v1.0\powershell.exe" -argumentlist @("-ExecutionPolicy", "Bypass", "-NoProfile", "-new_console:n") -WorkingDirectory "$WKPath"
         return
     } elseif ($selection -imatch '^[QRS]$') {
         wk-exit $selection

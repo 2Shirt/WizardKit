@@ -388,8 +388,8 @@ function menu-setup {
         @{Name="Windows 8.1 Pro"; ImageFile="Win8"; ImageName="Windows 8.1 Pro"}
         
         # The ISOs from the MediaCreationTool are apparently Technical Previews
-        @{Name="Windows 10 Home"; ImageFile="Win10"; ImageName="Windows 10 Technical Preview"; CRLF=$true}
-        @{Name="Windows 10 Pro"; ImageFile="Win10"; ImageName="Windows 10 Pro Technical Preview"}
+        @{Name="Windows 10 Home"; ImageFile="Win10"; ImageName="Windows 10 Home"; CRLF=$true}
+        @{Name="Windows 10 Pro"; ImageFile="Win10"; ImageName="Windows 10 Pro"}
     )
     
     # Build menu and get selection
