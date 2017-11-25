@@ -150,13 +150,13 @@ def assign_volume_letters():
     except:
         pass
 
-def remove_volume_letters():
+def remove_volume_letters(keep=None):
     with open(diskpart_script, 'w') as script:
         script.write('list volume\n')
     process_return = run_program('diskpart /s {script}'.format(script=diskpart_script))
     with open(diskpart_script, 'w') as script:
         for tmp in re.findall(r'Volume (\d+)\s+([A-Za-z]?)\s+', process_return.stdout.decode()):
-            if tmp[1] != '':
+            if tmp[1] != '' and tmp[1] != keep:
                 script.write('select volume {number}\n'.format(number=tmp[0]))
                 script.write('remove\n')
     try:
@@ -192,7 +192,7 @@ def select_minidump_path():
 
 def find_windows_image(filename=None):
     """Search for a Windows source image file on local drives and network drives (in that order)"""
-    image_file = None
+    image = {}
 
     # Bail early
     if filename is None:
@@ -203,19 +203,30 @@ def find_windows_image(filename=None):
     for tmp in re.findall(r'.*([A-Za-z]):\\', process_return.stdout.decode()):
         for ext in ['esd', 'wim', 'swm']:
             if os.path.isfile('{drive}:\\images\\{filename}.{ext}'.format(drive=tmp[0], ext=ext, filename=filename)):
-                image_file = '{drive}:\\images\\{filename}.{ext}'.format(drive=tmp[0], ext=ext, filename=filename)
+                image['Ext'] = ext
+                image['File'] = '{drive}:\\images\\{filename}'.format(drive=tmp[0], filename=filename)
+                image['Glob'] = '--ref="{File}*.swm"'.format(**image) if ext == 'swm' else ''
+                image['Source'] = tmp[0]
                 break
 
     # Check for network source (if necessary)
-    if image_file is None:
+    if not any(image):
         if not WINDOWS_SERVER['Mounted']:
             mount_windows_share()
-        for ext in ['esd', 'wim']:
+        for ext in ['esd', 'wim', 'swm']:
             if os.path.isfile('\\\\{IP}\\{Share}\\images\\{filename}.{ext}'.format(ext=ext, filename=filename, **WINDOWS_SERVER)):
-                image_file = '\\\\{IP}\\{Share}\\images\\{filename}.{ext}'.format(ext=ext, filename=filename, **WINDOWS_SERVER)
+                image['Ext'] = ext
+                image['File'] = '\\\\{IP}\\{Share}\\images\\{filename}'.format(filename=filename, **WINDOWS_SERVER)
+                image['Glob'] = '--ref="{File}*.swm"'.format(**image) if ext == 'swm' else ''
+                image['Source'] = None
                 break
-
-    return image_file
+    
+    # Display image to be used (if any) and return
+    if any(image):
+        print_info('Using image: {File}.{Ext}'.format(**image))
+        return image
+    else:
+        return None
 
 def format_gpt(disk=None, windows_family=None):
     """Format disk for use as a Windows OS drive using the GPT (UEFI) layout."""
@@ -431,16 +442,42 @@ def select_disk(prompt='Which disk?'):
 
 def select_windows_version():
     versions = [
-        {'Name': 'Windows 7 Home Basic', 'ImageFile': 'Win7', 'ImageName': 'Windows 7 HOMEBASIC', 'Family': '7'},
-        {'Name': 'Windows 7 Home Premium', 'ImageFile': 'Win7', 'ImageName': 'Windows 7 HOMEPREMIUM', 'Family': '7'},
-        {'Name': 'Windows 7 Professional', 'ImageFile': 'Win7', 'ImageName': 'Windows 7 PROFESSIONAL', 'Family': '7'},
-        {'Name': 'Windows 7 Ultimate', 'ImageFile': 'Win7', 'ImageName': 'Windows 7 ULTIMATE', 'Family': '7'},
+        {'Name': 'Windows 7 Home Basic',
+            'ImageFile': 'Win7',
+            'ImageName': 'Windows 7 HOMEBASIC',
+            'Family': '7'},
+        {'Name': 'Windows 7 Home Premium',
+            'ImageFile': 'Win7',
+            'ImageName': 'Windows 7 HOMEPREMIUM',
+            'Family': '7'},
+        {'Name': 'Windows 7 Professional', 
+            'ImageFile': 'Win7', 
+            'ImageName': 'Windows 7 PROFESSIONAL', 
+            'Family': '7'},
+        {'Name': 'Windows 7 Ultimate', 
+            'ImageFile': 'Win7', 
+            'ImageName': 'Windows 7 ULTIMATE', 
+            'Family': '7'},
 
-        {'Name': 'Windows 8.1', 'ImageFile': 'Win8', 'ImageName': 'Windows 8.1', 'Family': '8', 'CRLF': True},
-        {'Name': 'Windows 8.1 Pro', 'ImageFile': 'Win8', 'ImageName': 'Windows 8.1 Pro', 'Family': '8'},
+        {'Name': 'Windows 8.1', 
+            'ImageFile': 'Win8', 
+            'ImageName': 'Windows 8.1', 
+            'Family': '8',
+            'CRLF': True},
+        {'Name': 'Windows 8.1 Pro', 
+            'ImageFile': 'Win8', 
+            'ImageName': 'Windows 8.1 Pro', 
+            'Family': '8'},
 
-        {'Name': 'Windows 10 Home', 'ImageFile': 'Win10', 'ImageName': 'Windows 10 Home', 'Family': '10', 'CRLF': True},
-        {'Name': 'Windows 10 Pro', 'ImageFile': 'Win10', 'ImageName': 'Windows 10 Pro', 'Family': '10'},
+        {'Name': 'Windows 10 Home', 
+            'ImageFile': 'Win10', 
+            'ImageName': 'Windows 10 Home', 
+            'Family': '10',
+            'CRLF': True},
+        {'Name': 'Windows 10 Pro', 
+            'ImageFile': 'Win10', 
+            'ImageName': 'Windows 10 Pro', 
+            'Family': '10'},
     ]
     actions = [
         {'Name': 'Main Menu', 'Letter': 'M'},

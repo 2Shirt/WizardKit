@@ -64,7 +64,7 @@ def menu_backup_imaging():
 
     # List (and update) partition details for selected drive
     os.system('cls')
-    print('Details for selected drive:\n')
+    print('Create Backup - Details:\n')
     print('    Drive:   {Size}\t[{Table}] ({Type}) {Name}\n'.format(**disk))
     clobber_risk = 0
     width=len(str(len(disk['Partitions'])))
@@ -84,7 +84,8 @@ def menu_backup_imaging():
                 par['ImagePath'] = '\\\\{IP}\\{Share}\\{ticket}'.format(ticket=ticket, **dest)
             else:
                 par['ImagePath'] = '{Letter}:\\{ticket}'.format(ticket=ticket, **dest)
-            par['ImageFile'] = '{Number}_{ImageName}.wim'.format(**par)
+            par['ImageFile'] = '{Number}_{ImageName}'.format(**par)
+            par['ImageFile'] = '{fixed_name}.wim'.format(fixed_name=re.sub(r'\W', '_', par['ImageFile']))
 
             # Check for existing backups
             par['ImageExists'] = False
@@ -108,9 +109,9 @@ def menu_backup_imaging():
     elif len(bad_parts) == 1:
         print_warning('  * Unable to backup this partition')
     if clobber_risk > 1:
-        print_info('  + These partitions already have backup images on {TrueName}:'.format(**dest))
+        print_info('  + These partitions already have backup images on {Display Name}:'.format(**dest))
     elif clobber_risk == 1:
-        print_info('  + This partition already has a backup image on {TrueName}:'.format(**dest))
+        print_info('  + This partition already has a backup image on {Display Name}:'.format(**dest))
     if clobber_risk + len(bad_parts) > 1:
         print_warning('\nIf you continue the partitions marked above will NOT be backed up.\n')
     if clobber_risk + len(bad_parts) == 1:
@@ -131,7 +132,7 @@ def menu_backup_imaging():
         if par['Number'] in bad_parts:
             print_warning('Skipped.')
         else:
-            cmd = '{bin}\\wimlib\\wimlib-imagex capture {Letter}:\\ "{ImagePath}\\{ImageFile}" "{ImageName}" "{ImageName}" --check --compress=fast'.format(bin=bin, **par)
+            cmd = '{bin}\\wimlib\\wimlib-imagex capture {Letter}:\\ "{ImagePath}\\{ImageFile}" "{ImageName}" "{ImageName}" --compress=fast'.format(bin=bin, **par)
             if par['ImageExists']:
                 print_warning('Skipped.')
             else:
@@ -144,9 +145,29 @@ def menu_backup_imaging():
                     errors = True
                     par['Error'] = err.stderr.decode().splitlines()
 
+    # Verify backup(s)
+    if len(par) - len(bad_parts) > 1:
+        print('\n\n  Verifying backups\n')
+    else:
+        print('\n\n  Verifying backup\n')
+    for par in disk['Partitions']:
+        if par['Number'] not in bad_parts:
+            print('    Partition {Number} Image...\t\t'.format(**par), end='', flush=True)
+            cmd = '{bin}\\wimlib\\wimlib-imagex verify "{ImagePath}\\{ImageFile}" --nocheck'.format(bin=bin, **par)
+            if not os.path.exists('{ImagePath}\\{ImageFile}'.format(**par)):
+                print_error('Missing.')
+            else:
+                try:
+                    run_program(cmd)
+                    print_success('OK.')
+                except subprocess.CalledProcessError as err:
+                    print_error('Damaged.')
+                    errors = True
+                    par['Error'] = par.get('Error', []) + err.stderr.decode().splitlines()
+
     # Print summary
     if errors:
-        print_warning('\nErrors were encountered during imaging and are detailed below.')
+        print_warning('\nErrors were encountered and are detailed below.')
         for par in [p for p in disk['Partitions'] if 'Error' in p]:
             print('    Partition {Number} Error:'.format(**par))
             for line in par['Error']:
@@ -169,8 +190,8 @@ def menu_windows_setup():
         abort_to_main_menu('Aborting Windows setup')
 
     # Find Windows image
-    image_file = find_windows_image(selected_windows_version['ImageFile'])
-    if image_file is None:
+    image = find_windows_image(selected_windows_version['ImageFile'])
+    if not any(image):
         print_error('Failed to find Windows source image for {winver}'.format(winver=selected_windows_version['Name']))
         abort_to_main_menu('Aborting Windows setup')
 
@@ -221,7 +242,7 @@ def menu_windows_setup():
         abort_to_main_menu('Aborting Windows setup')
 
     # Release currently used volume letters (ensures that the drives will get S, T, & W as needed below)
-    remove_volume_letters()
+    remove_volume_letters(keep=image['Source'])
 
     # Format and partition drive
     if (use_gpt):
@@ -232,7 +253,7 @@ def menu_windows_setup():
     # Apply Windows image
     errors = False
     print('  Applying image...')
-    cmd = '{bin}\\wimlib\\wimlib-imagex apply "{image_file}" "{ImageName}" W:\\'.format(bin=bin, image_file=image_file, **selected_windows_version)
+    cmd = '{bin}\\wimlib\\wimlib-imagex apply "{File}.{Ext}" "{ImageName}" W:\\ {Glob}'.format(bin=bin, **image, **selected_windows_version)
     try:
         run_program(cmd)
     except subprocess.CalledProcessError:
@@ -251,8 +272,8 @@ def menu_windows_setup():
             try:
                 run_program('W:\\Windows\\System32\\reagentc /setreimage /path T:\\Recovery\\WindowsRE /target W:\\Windows')
             except subprocess.CalledProcessError:
-                errors = True
-                print_error('Failed to setup WindowsRE files.')
+                # errors = True # Changed to warning.
+                print_warning('Failed to setup WindowsRE files.')
 
     # Print summary
     if errors:
