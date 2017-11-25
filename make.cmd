@@ -112,7 +112,7 @@ for %%a in (amd64 x86) do (
     rem dism /add-package /image:"!mount!" /packagepath:"!winpe_ocs!\en-us\WinPE-StorageWMI_en-us.cab" /logpath:"dism.log"
     
     rem Add Drivers
-    dism /add-driver /image:"!mount!" /driver:"!drivers!" /recurse /logpath:"dism.log"
+    REM dism /add-driver /image:"!mount!" /driver:"!drivers!" /recurse /logpath:"dism.log"
     
     rem Force RamDisk size to try and avoid capture-image errors
     dism /image:"!mount!" /set-scratchspace:512
@@ -142,7 +142,7 @@ for %%a in (amd64 x86) do (
     reg add "HKLM\WinPE-SYS\ControlSet001\Control\Session Manager\Environment" /v Path /t REG_EXPAND_SZ /d "%%SystemRoot%%\system32;%%SystemRoot%%;%%SystemRoot%%\System32\Wbem;%%SYSTEMROOT%%\System32\WindowsPowerShell\v1.0\;%%SystemDrive%%\WK\7-Zip;%%SystemDrive%%\WK\python;%%SystemDrive%%\WK\wimlib" /f
 
     rem Replace Notepad
-    reg add "HKLM\WinPE-SW\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\notepad.exe" /v Debugger /t REG_SZ /d "X:\WK\Notepad2\Notepad2-Mod.exe /z" /f
+    reg add "HKLM\WinPE-SW\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\notepad.exe" /v Debugger /t REG_SZ /d "X:\WK\NotepadPlusPlus\notepadplusplus.exe /z" /f
 
     rem Unload registry hives
     reg unload HKLM\WinPE-SW
