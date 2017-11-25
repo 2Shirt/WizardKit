@@ -68,7 +68,7 @@
 		<Setting name="ViewModeGlobal">4</Setting>
 	</Settings>
 	<WindowPosition>
-		<Setting name="Position" Flags="2" ShowCmd="3" MinPositionX="0" MinPositionY="0" MaxPositionX="-1" MaxPositionY="-1" NormalPositionLeft="32" NormalPositionTop="45" NormalPositionRight="1568" NormalPositionBottom="783"/>
+		<Setting name="Position" Flags="2" ShowCmd="3" MinPositionX="0" MinPositionY="4" MaxPositionX="-1" MaxPositionY="-1" NormalPositionLeft="1023" NormalPositionTop="8" NormalPositionRight="1159" NormalPositionBottom="72"/>
 	</WindowPosition>
 	<Tabs>
 		<Tab name="0" Directory="C:\" ApplyFilter="no" AutoArrange="yes" Filter="" FilterCaseSensitive="no" ShowGridlines="yes" ShowHidden="yes" ShowInGroups="no" SortAscending="yes" SortMode="1" ViewMode="4" Locked="no" AddressLocked="no" UseCustomName="no" CustomName="">
@@ -108,5 +108,6 @@
 		<ColorRule name="Encrypted files" FilenamePattern="" Attributes="16384" r="0" g="128" b="0"/>
 	</ColorRules>
 	<State>
+		<DialogState name="MassRename" PosX="717" PosY="376" Width="501" Height="294" ColumnWidth1="250" ColumnWidth2="250"/>
 	</State>
 </ExplorerPlusPlus>

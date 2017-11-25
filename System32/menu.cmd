@@ -12,7 +12,7 @@ for %%f in (%*) do (
 )
 
 :LaunchMenu
-PowerShell -ExecutionPolicy Bypass %systemdrive%\WK\Scripts\WK.ps1
+"%SystemDrive%\WK\ConEmu\ConEmu64.exe" /cmd PowerShell -ExecutionPolicy Bypass "%SystemDrive%\WK\Scripts\WK.ps1" -new_console:n
 goto Done
 
 :Abort
@@ -27,10 +27,5 @@ goto Exit
 
 :Exit
 echo.
-rem echo Press any key to exit...
-rem pause>nul
 popd
 endlocal
-cls
-echo Careful now...
-echo.

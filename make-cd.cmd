@@ -5,6 +5,8 @@ setlocal EnableDelayedExpansion
 title WinPE 10 creation tool
 color 1b
 pushd %~dp0
+set "wd=%cd%"
+set "pe_iso=WinPE-2016-02d.iso"
 
 :Flags
 for %%f in (%*) do (
@@ -12,8 +14,9 @@ for %%f in (%*) do (
 )
 
 :CreateISO
-del winpe10-test.iso
-makewinpemedia.cmd /iso pe_files winpe10-test.iso
+del "!pe_iso!"
+makewinpemedia.cmd /iso "%wd%\pe_files" "!pe_iso!"
+goto Done
 
 :Abort
 echo.

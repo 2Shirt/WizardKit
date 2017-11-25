@@ -7,7 +7,7 @@ color 1b
 pushd %~dp0
 set "wd=%cd%"
 set "winpe_ocs=%programfiles(x86)%\Windows Kits\10\Assessment and Deployment Kit\Windows Preinstallation Environment\amd64\WinPE_OCs"
-
+set "pe_iso=WinPE-2016-02d.iso"
 
 :Flags
 for %%f in (%*) do (
@@ -62,29 +62,38 @@ dism /add-package /image:"%wd%\mount" /packagepath:"%winpe_ocs%\en-us\WinPE-Enha
 del "%wd%\WK\Scripts\WK.log"
 mkdir "%wd%\mount\WK"
 robocopy /e "%wd%\WK" "%wd%\mount\WK"
-mklink "%wd%\mount\System32\explorer.exe" "%wd%\mount\WK\Explorer++.exe"
+del "%wd%\mount\Windows\explorer.exe"
+mklink /h "%wd%\mount\Windows\explorer.exe" "%wd%\mount\WK\Explorer++\Explorer++64.exe"
 
-:MenuLauncher
+:System32Stuff
 copy /y "%wd%\System32\menu.cmd" "%wd%\mount\Windows\System32\menu.cmd"
+copy /y "%wd%\System32\Winpeshl.ini" "%wd%\mount\Windows\System32\Winpeshl.ini"
 
-:ReplaceStartnet
-copy /y "%wd%\System32\startnet.cmd" "%wd%\mount\Windows\System32\startnet.cmd"
-
-:ReplaceNotepad
+:RegistryEdits
 reg load HKLM\WinPE-SW mount\Windows\System32\config\SOFTWARE
-reg add "HKLM\WinPE-SW\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\notepad.exe" /v Debugger /t REG_SZ /d "X:\WK\Notepad2.exe /z" /f
+reg load HKLM\WinPE-SYS mount\Windows\System32\config\SYSTEM
+
+rem Add 7-Zip to path
+reg add "HKLM\WinPE-SYS\ControlSet001\Control\Session Manager\Environment" /v Path /t REG_EXPAND_SZ /d "%%SystemRoot%%\system32;%%SystemRoot%%;%%SystemRoot%%\System32\Wbem;%%SYSTEMROOT%%\System32\WindowsPowerShell\v1.0\;%%SystemDrive%%\WK\7-Zip" /f
+
+rem Replace Notepad
+reg add "HKLM\WinPE-SW\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\notepad.exe" /v Debugger /t REG_SZ /d "X:\WK\Notepad2\Notepad2-Mod64.exe /z" /f
+
+rem Unload registry hives
 reg unload HKLM\WinPE-SW
+reg unload HKLM\WinPE-SYS
 
 :Background
 takeown /f "%wd%\mount\Windows\System32\winpe.jpg" /a
 icacls "%wd%\mount\Windows\System32\winpe.jpg" /grant administrators:F
 copy /y "%wd%\System32\winpe.jpg" "%wd%\mount\Windows\System32\winpe.jpg"
+copy /y "%wd%\System32\winpe.jpg" "%wd%\mount\WK\ConEmu\winpe.jpg"
 
 :ManualStuff
-echo Now is the time to add stuff (optional).
-echo.
-echo Press any key to commit changes...
-pause>nul
+REM echo Now is the time to add stuff (optional).
+REM echo.
+REM echo Press any key to commit changes...
+REM pause>nul
 
 :Set-ScratchSpace
 rem Force RamDisk size to try and avoid capture-image errors
@@ -94,8 +103,8 @@ dism /image:"%wd%\mount" /set-scratchspace:512
 dism /unmount-image /mountdir:"%wd%\mount" /commit
 
 :CreateISO
-del winpe10-2016.iso
-makewinpemedia.cmd /iso "%wd%\pe_files" winpe10-2016.iso
+del "!pe_iso!"
+makewinpemedia.cmd /iso "%wd%\pe_files" "!pe_iso!"
 goto Done
 
 :Abort
