@@ -12,6 +12,14 @@ bin = os.path.abspath('..\\')
 sys.path.append(os.getcwd())
 from functions import *
 
+## Colors
+COLORS = {
+    'CLEAR': '\033[0m',
+    'RED': '\033[31m',
+    'GREEN': '\033[32m',
+    'YELLOW': '\033[33m',
+    'BLUE': '\033[34m'}
+
 def menu_backup_imaging():
     """Take backup images of partition(s) in the WIM format and save them to a backup share"""
     errors = False
@@ -121,8 +129,7 @@ def menu_windows_setup():
     # Safety check    
     print('\nSAFETY CHECK')
     print_warning('All data will be DELETED from the drive and partition(s) listed above.')
-    print_error('This is irreversible and will lead to ', end='', flush=True)
-    print('DATA LOSS.')
+    print_warning('This is irreversible and will lead to {CLEAR}{RED}DATA LOSS.'.format(**COLORS))
     if (not ask('Asking again to confirm, is this correct?')):
         abort_to_main_menu('Aborting Windows setup')
 
