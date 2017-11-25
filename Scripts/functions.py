@@ -136,7 +136,7 @@ def backup_partition(bin=None, disk=None, par=None):
     if par['Number'] in disk['Bad Partitions']:
         print_warning('Skipped.')
     else:
-        cmd = '{bin}\\wimlib\\wimlib-imagex capture {Letter}:\\ "{Image Path}\\{Image File}" "{Image Name}" "{Image Name}" --compress=fast'.format(bin=bin, **par)
+        cmd = '{bin}\\wimlib\\wimlib-imagex capture {Letter}:\\ "{Image Path}\\{Image File}" "{Image Name}" "{Image Name}" --compress=none'.format(bin=bin, **par)
         if par['Image Exists']:
             print_warning('Skipped.')
         else:
