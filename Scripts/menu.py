@@ -16,12 +16,12 @@ def menu_backup_imaging():
     """Take backup images of partition(s) in the WIM format and save them to a backup share"""
     errors = False
 
-    # Mount backup shares
-    os.system('cls')
-    mount_backup_shares()
-
     # Set ticket ID
+    os.system('cls')
     ticket_id = get_ticket_id()
+
+    # Mount backup shares
+    mount_backup_shares()
 
     # Select destination
     dest = select_destination()
@@ -37,11 +37,12 @@ def menu_backup_imaging():
     # Display details for backup task
     os.system('cls')
     print('Create Backup - Details:\n')
-    print('    Drive:   {Size}\t[{Table}] ({Type}) {Name}\n'.format(**disk))
+    print('    Ticket:     \t{ticket_id}'.format(ticket_id=ticket_id))
+    print('    Source:     \t[{Table}] ({Type}) {Name} {Size}\n'.format(**disk))
+    print('    Destination:\t{name}'.format(name=dest.get('Display Name', dest['Name'])))
     for par in disk['Partitions']:
         print(par['Display String'])
     print(disk['Backup Warnings'])
-    print('\n    Destination:\t{name}\n'.format(name=dest.get('Display Name', dest['Name'])))
 
     # Ask to proceed
     if (not ask('Proceed with backup?')):
@@ -51,12 +52,12 @@ def menu_backup_imaging():
     print('\n\nStarting task.\n')
     for par in disk['Partitions']:
         try:
-            backup_partition(bin, par)
-        except BackupException:
+            backup_partition(bin, disk, par)
+        except BackupError:
             errors = True
     
     # Verify backup(s)
-    if len(disk['Valid Partitions']) > 1:
+    if disk['Valid Partitions'] > 1:
         print('\n\n  Verifying backups\n')
     else:
         print('\n\n  Verifying backup\n')
@@ -65,7 +66,7 @@ def menu_backup_imaging():
             continue # Skip verification
         try:
             verify_wim_backup(bin, par)
-        except BackupException:
+        except BackupError:
             errors = True
 
     # Print summary
@@ -85,8 +86,11 @@ def menu_windows_setup():
     """Format a drive, partition for MBR or GPT, apply a Windows image, and rebuild the boot files"""
     errors = False
 
-    # Select the version of Windows to apply
+    # Set ticket ID
     os.system('cls')
+    ticket_id = get_ticket_id()
+
+    # Select the version of Windows to apply
     windows_version = select_windows_version()
     
     # Find Windows image
@@ -96,29 +100,81 @@ def menu_windows_setup():
     dest_disk = select_disk('To which drive are we installing Windows?')
     prep_disk_for_formatting(dest_disk)
 
-    # Safety check
-    print_warning('SAFETY CHECK\n')
-    print_error(dest_disk['Format Warnings'])
+    # Display details for setup task
+    os.system('cls')
+    print('Setup Windows - Details:\n')
+    print('    Ticket:     \t{ticket_id}'.format(ticket_id=ticket_id))
+    print('    Installing: \t{winver}'.format(winver=windows_version['Name']))
+    print('    Boot Method:\t{_type}'.format(
+        _type='UEFI (GPT)' if dest_disk['Use GPT'] else 'Legacy (MBR)'))
+    print('    Using Image:\t{File}.{Ext}'.format(**windows_image))
+    print_warning('    ERASING:    \t[{Table}] ({Type}) {Name} {Size}\n'.format(**dest_disk))
     for par in dest_disk['Partitions']:
-        print_error(par['Display String'])
-    print_info('\n  Installing:\t{winver}'.format(winver=windows_version['Name']))
-    if (not ask('\nIs this correct?')):
+        print_warning(par['Display String'])
+    print_warning(dest_disk['Format Warnings'])
+    
+    if (not ask('Is this correct?')):
+        abort_to_main_menu('Aborting Windows setup')
+    
+    # Safety check    
+    print('\nSAFETY CHECK')
+    print_warning('All data will be DELETED from the drive and partition(s) listed above.')
+    print_error('This is irreversible and will lead to DATA LOSS.')
+    if (not ask('Asking again to confirm, is this correct?')):
         abort_to_main_menu('Aborting Windows setup')
 
     # Release currently used volume letters (ensures that the drives will get S, T, & W as needed below)
     remove_volume_letters(keep=windows_image['Source'])
 
     # Format and partition drive
-    if (dest_disk['Use GPT']):
-        format_gpt(dest_disk, windows_version['Family'])
-    else:
-        format_mbr(dest_disk, windows_version['Family'])
+    print('\n    Formatting Drive...\t\t'.format(**par), end='', flush=True)
+    try:
+        if (dest_disk['Use GPT']):
+            format_gpt(dest_disk, windows_version['Family'])
+        else:
+            format_mbr(dest_disk, windows_version['Family'])
+        print_success('Complete.')
+    except:
+        # We need to crash as the drive is in an unknown state
+        print_error('Failed.')
+        raise
 
-    # Setup Windows
+    # Apply Image
+    print('    Applying Image...\t\t'.format(**par), end='', flush=True)
     try:
         setup_windows(bin, windows_image, windows_version)
-        setup_boot_files(windows_version)
-    except SetupException:
+        print_success('Complete.')
+    except subprocess.CalledProcessError:
+        print_error('Failed.')
+        errors = True
+    except:
+        # We need to crash as the OS is in an unknown state
+        print_error('Failed.')
+        raise
+    
+    # Create Boot files
+    print('    Update Boot Partition...\t\t'.format(**par), end='', flush=True)
+    try:
+        update_boot_partition()
+        print_success('Complete.')
+    except subprocess.CalledProcessError:
+        # Don't need to crash as this is (potentially) recoverable
+        print_error('Failed.')
+        errors = True
+    except:
+        print_error('Failed.')
+        raise
+    
+    # Setup WinRE
+    print('    Update Recovery Tools...\t\t'.format(**par), end='', flush=True)
+    try:
+        setup_windows_re(windows_version)
+        print_success('Complete.')
+    except SetupError:
+        print_error('Skipped.')
+    except:
+        # Don't need to crash as this is (potentially) recoverable
+        print_error('Failed.')
         errors = True
 
     # Print summary
@@ -126,7 +182,7 @@ def menu_windows_setup():
         print_warning('\nErrors were encountered during setup.')
         time.sleep(30)
     else:
-        print_success('\nDone.')
+        print_success('\nNo errors were encountered during setup.')
         time.sleep(5)
     pause('\nPress Enter to return to main menu... ')
 
@@ -173,7 +229,7 @@ def menu_tools():
 def menu_main():
     menus = [
         {'Name': 'Create Backups', 'Menu': menu_backup_imaging},
-        {'Name': 'Install Windows', 'Menu': menu_windows_setup},
+        {'Name': 'Setup Windows', 'Menu': menu_windows_setup},
         {'Name': 'Misc Tools', 'Menu': menu_tools},
         ]
     actions = [
@@ -189,7 +245,7 @@ def menu_main():
         if (selection.isnumeric()):
             try:
                 menus[int(selection)-1]['Menu']()
-            except AbortException:
+            except AbortError:
                 pass
             except:
                 print_error('Major exception in: {menu}'.format(menu=menus[int(selection)-1]['Name']))

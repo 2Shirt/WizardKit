@@ -87,28 +87,28 @@ COLORS = {
     'YELLOW': '\033[33m',
     'BLUE': '\033[34m'}
 
-class AbortException(Exception):
+class AbortError(Exception):
     pass
 
-class BackupException(Exception):
+class BackupError(Exception):
     pass
 
-class SetupException(Exception):
+class SetupError(Exception):
     pass
 
 def abort_to_main_menu(message='Returning to main menu...'):
     print_warning(message)
     pause('Press Enter to return to main menu... ')
-    raise AbortException
+    raise AbortError
 
 def ask(prompt='Kotaero'):
     answer = None
     prompt = prompt + ' [Y/N]: '
     while answer is None:
         tmp = input(prompt)
-        if re.search(r'^y(es|)$', tmp):
+        if re.search(r'^y(es|)$', tmp, re.IGNORECASE):
             answer = True
-        elif re.search(r'^n(o|ope|)$', tmp):
+        elif re.search(r'^n(o|ope|)$', tmp, re.IGNORECASE):
             answer = False
     return answer
 
@@ -123,10 +123,12 @@ def assign_volume_letters():
     except subprocess.CalledProcessError:
         pass
 
-def backup_partition(bin=None, par=None):
+def backup_partition(bin=None, disk=None, par=None):
     # Bail early
     if bin is None:
         raise Exception('bin path not specified.')
+    if disk is None:
+        raise Exception('Disk not specified.')
     if par is None:
         raise Exception('Partition not specified.')
     
@@ -145,7 +147,7 @@ def backup_partition(bin=None, par=None):
             except subprocess.CalledProcessError as err:
                 print_error('Failed.')
                 par['Error'] = err.stderr.decode().splitlines()
-                raise BackupException
+                raise BackupError
 
 def convert_to_bytes(size):
     size = str(size)
@@ -240,7 +242,7 @@ def format_gpt(disk=None, windows_family=None):
         raise Exception('No Windows family provided.')
 
     # Format drive
-    print_info('Drive will use a GPT (UEFI) layout.')
+    # print_info('Drive will use a GPT (UEFI) layout.')
     with open(diskpart_script, 'w') as script:
         # Partition table
         script.write('select disk {number}\n'.format(number=disk['Number']))
@@ -270,7 +272,6 @@ def format_gpt(disk=None, windows_family=None):
             script.write('gpt attributes=0x8000000000000001\n')
 
     # Run script
-    print('  Formatting drive...')
     run_program('diskpart /s {script}'.format(script=diskpart_script))
     time.sleep(2)
 
@@ -284,7 +285,7 @@ def format_mbr(disk=None, windows_family=None):
         raise Exception('No Windows family provided.')
 
     # Format drive
-    print_info('Drive will use a MBR (legacy) layout.')
+    # print_info('Drive will use a MBR (legacy) layout.')
     with open(diskpart_script, 'w') as script:
         # Partition table
         script.write('select disk {number}\n'.format(number=disk['Number']))
@@ -310,7 +311,6 @@ def format_mbr(disk=None, windows_family=None):
             script.write('set id=27\n')
 
     # Run script
-    print('  Formatting drive...')
     run_program('diskpart /s {script}'.format(script=diskpart_script))
     time.sleep(2)
 
@@ -430,7 +430,7 @@ def get_partition_details(disk=None, par=None):
         # Get volume letter or RAW status
         tmp = re.search(r'Volume\s+\d+\s+(\w|RAW)\s+', process_return)
         if tmp:
-            if tmp.group(1) == 'RAW':
+            if tmp.group(1).upper() == 'RAW':
                 details['FileSystem'] = RAW
             else:
                 details['Letter'] = tmp.group(1)
@@ -502,7 +502,7 @@ def get_partitions(disk=None):
         pass
     else:
         # Append partition numbers
-        for tmp in re.findall(r'Partition\s+(\d+)\s+\w+\s+(\d+\s+\w+)\s+', process_return):
+        for tmp in re.findall(r'Partition\s+(\d+)\s+\w+\s+(\d+\s+\w+)\s+', process_return, re.IGNORECASE):
             _num = tmp[0]
             _size = human_readable_size(tmp[1])
             partitions.append({'Number': _num, 'Size': _size})
@@ -525,11 +525,11 @@ def get_table_type(disk=None):
     except subprocess.CalledProcessError:
         pass
     else:
-        if re.findall(r'Disk ID: {[A-Z0-9]+-[A-Z0-9]+-[A-Z0-9]+-[A-Z0-9]+-[A-Z0-9]+}', process_return):
+        if re.findall(r'Disk ID: {[A-Z0-9]+-[A-Z0-9]+-[A-Z0-9]+-[A-Z0-9]+-[A-Z0-9]+}', process_return, re.IGNORECASE):
             _type = 'GPT'
-        elif re.findall(r'Disk ID: 00000000', process_return):
+        elif re.findall(r'Disk ID: 00000000', process_return, re.IGNORECASE):
             _type = 'RAW'
-        elif re.findall(r'Disk ID: [A-Z0-9]+', process_return):
+        elif re.findall(r'Disk ID: [A-Z0-9]+', process_return, re.IGNORECASE):
             _type = 'MBR'
     
     return _type
@@ -704,7 +704,7 @@ def prep_disk_for_backup(dest=None, disk=None, ticket_id=None):
         raise Exception('Ticket ID not provided.')
 
     # Get partition totals
-    disk['Bad Partitions'] = [par['Number'] for par in disk['Partitions'] if 'Letter' not in par or re.search(r'(RAW|Unknown)', par['FileSystem'])]
+    disk['Bad Partitions'] = [par['Number'] for par in disk['Partitions'] if 'Letter' not in par or re.search(r'(RAW|Unknown)', par['FileSystem'], re.IGNORECASE)]
     disk['Valid Partitions'] = len(disk['Partitions']) - len(disk['Bad Partitions'])
     
     # Bail if no valid partitions are found (those that can be imaged)
@@ -749,22 +749,22 @@ def prep_disk_for_backup(dest=None, disk=None, ticket_id=None):
     
     # Set description for bad partitions
     if len(disk['Bad Partitions']) > 1:
-        disk['Backup Warnings'] = '\n{YELLOW}  * Unable to backup these partitions{CLEAR}'.format(**COLORS)
+        disk['Backup Warnings'] += '{YELLOW}  * Unable to backup these partitions{CLEAR}\n'.format(**COLORS)
     elif len(disk['Bad Partitions']) == 1:
         print_warning('  * Unable to backup this partition')
-        disk['Backup Warnings'] = '\n{YELLOW}  * Unable to backup this partition{CLEAR}'.format(**COLORS)
+        disk['Backup Warnings'] += '{YELLOW}  * Unable to backup this partition{CLEAR}\n'.format(**COLORS)
     
     # Set description for partitions that would be clobbered
-    if disk['Clobber Risk'] > 1:
-        disk['Backup Warnings'] = '\n{BLUE}  + These partitions already have backup images on {Display Name}{CLEAR}'.format(**dest, **COLORS)
-    elif disk['Clobber Risk'] == 1:
-        disk['Backup Warnings'] = '\n{BLUE}  + This partition already has a backup image on {Display Name}{CLEAR}'.format(**dest, **COLORS)
+    if len(disk['Clobber Risk']) > 1:
+        disk['Backup Warnings'] += '{BLUE}  + These partitions already have backup images on {Name}{CLEAR}\n'.format(**dest, **COLORS)
+    elif len(disk['Clobber Risk']) == 1:
+        disk['Backup Warnings'] += '{BLUE}  + This partition already has a backup image on {Name}{CLEAR}\n'.format(**dest, **COLORS)
     
     # Set warning for skipped partitions
-    if disk['Clobber Risk'] + len(disk['Bad Partitions']) > 1:
-        disk['Backup Warnings'] = '\n{YELLOW}If you continue the partitions marked above will NOT be backed up.{CLEAR}'.format(**COLORS)
-    if disk['Clobber Risk'] + len(disk['Bad Partitions']) == 1:
-        disk['Backup Warnings'] = '\n{YELLOW}If you continue the partition marked above will NOT be backed up.{CLEAR}'.format(**COLORS)
+    if len(disk['Clobber Risk']) + len(disk['Bad Partitions']) > 1:
+        disk['Backup Warnings'] += '\n{YELLOW}If you continue the partitions marked above will NOT be backed up.{CLEAR}\n'.format(**COLORS)
+    if len(disk['Clobber Risk']) + len(disk['Bad Partitions']) == 1:
+        disk['Backup Warnings'] += '\n{YELLOW}If you continue the partition marked above will NOT be backed up.{CLEAR}\n'.format(**COLORS)
 
 def prep_disk_for_formatting(disk=None):
     disk['Format Warnings'] = '\n'
@@ -774,42 +774,28 @@ def prep_disk_for_formatting(disk=None):
     if disk is None:
         raise Exception('Disk not provided.')
 
-    # Confirm drive format
-    print_warning('All data will be deleted from the following drive:')
-    print_warning('\t{Size}\t({Table}) {Name}'.format(**disk))
-    if (not ask('Is this correct?')):
-        abort_to_main_menu('Aborting Windows setup')
-
-    # MBR/Legacy or GPT/UEFI?
+    # Set boot method and partition table type
     disk['Use GPT'] = True
     if (get_boot_mode() == 'UEFI'):
-        if (not ask("Setup drive using GPT (UEFI) layout?")):
+        if (not ask("Setup Windows to use UEFI booting?")):
             disk['Use GPT'] = False
     else:
-        if (ask("Setup drive using MBR (legacy) layout?")):
+        if (ask("Setup Windows to use BIOS/Legacy booting?")):
             disk['Use GPT'] = False
-
-    # Disk details
-    disk['Format Warnings'] += '  FORMATTING:\tDrive: {Size}\t[{Table}] ({Type}) {Name}\n'.format(**disk)
-    if (disk['Use GPT']):
-        disk['Format Warnings'] += '  Using:     \tGPT (UEFI) layout\n'
-    else:
-        disk['Format Warnings'] += '  Using:     \tMBR (legacy) layout\n'
     
-    # Partition details
+    # Set Display and Warning Strings
     if len(disk['Partitions']) == 0:
-        # Bad color hack that will probably cause (aesthetic) issues in the future
-        disk['Format Warnings'] += '{YELLOW}\t\tNo partitions found{CLEAR}'.format(**COLORS)
-    else:
-        disk['Format Warnings'] += '  ERASING the following partitions:\n'
+        disk['Format Warnings'] += 'No partitions found\n'
     for par in disk['Partitions']:
-        if 'Letter' not in par or par['FileSystem'].upper() == 'RAW':
-            par['Display String'] = '\t\tPartition {Number:>{width}}:\t{Size} {q}{Name}{q} ({FileSystem})\t\t{Description} ({OS})'.format(
+        if 'Letter' not in par or re.search(r'(RAW|Unknown)', par['FileSystem'], re.IGNORECASE):
+            # FileSystem not accessible to WinPE. List partition type / OS info for technician
+            par['Display String'] = '    Partition {Number:>{width}}:\t{Size} {FileSystem}\t\t{q}{Name}{q}\t{Description} ({OS})'.format(
                 width=width,
                 q='"' if par['Name'] != '' else '',
                 **par)
         else:
-            par['Display String'] = '\t\tPartition {Number:>{width}}:\t{Size} {q}{Name}{q} ({FileSystem})\t\t(Used space: {Used Space})'.format(
+            # FileSystem accessible to WinPE. List space used instead of partition type / OS info for technician
+            par['Display String'] = '    Partition {Number:>{width}}:\t{Size} {FileSystem} (Used: {Used Space})\t{q}{Name}{q}'.format(
                 width=width,
                 q='"' if par['Name'] != '' else '',
                 **par)
@@ -892,7 +878,7 @@ def select_disk(prompt='Which disk?'):
             for par in disk['Partitions']:
                 # Show unsupported partition(s) in RED
                 par_skip = False
-                if 'Letter' not in par or re.search(r'(RAW|Unknown)', par['FileSystem']):
+                if 'Letter' not in par or re.search(r'(RAW|Unknown)', par['FileSystem'], re.IGNORECASE):
                     par_skip = True
                 if par_skip:
                     display_name += COLORS['YELLOW']
@@ -957,28 +943,6 @@ def select_windows_version():
     elif selection == 'M':
         abort_to_main_menu()
 
-def setup_boot_files(windows_version=None, system_letter='S', windows_letter='W', tools_letter='T'):
-    # Bail early
-    if windows_version is None:
-        raise Exception('Windows version not specified.')
-    
-    # Setup system partition
-    print('  Creating boot files...')
-    try:
-        run_program('bcdboot {win}:\\Windows /s {sys}: /f ALL'.format(win=windows_letter, sys=system_letter))
-    except subprocess.CalledProcessError:
-        print_error('Failed to create boot files.')
-        raise SetupException
-    if re.search(r'^(8|10)', windows_version['Family']):
-        try:
-            _dest = '{tools}:\\Recovery\\WindowsRE'.format(tools=tools_letter)
-            os.makedirs(_dest, exist_ok=True)
-            shutil.copy('{win}:\\Windows\\System32\\Recovery\\WinRE.wim', '{dest}\\WinRE.wim'.format(dest=_dest, win=windows_letter))
-            run_program('{win}:\\Windows\\System32\\reagentc /setreimage /path {dest} /target {win}:\\Windows'.format(dest=_dest, win=windows_letter))
-        except subprocess.CalledProcessError:
-            print_warning('Failed to setup WindowsRE files.')
-            raise SetupException
-
 def setup_windows(bin=None, windows_image=None, windows_version=None):
     # Bail early
     if bin is None:
@@ -989,13 +953,31 @@ def setup_windows(bin=None, windows_image=None, windows_version=None):
         raise Exception('Windows version not specified.')
     
     # Apply image
-    print('  Applying image...')
     cmd = '{bin}\\wimlib\\wimlib-imagex apply "{File}.{Ext}" "{Image Name}" W:\\ {Glob}'.format(bin=bin, **windows_image, **windows_version)
-    try:
-        run_program(cmd)
-    except subprocess.CalledProcessError:
-        print_error('Failed to apply Windows image.')
-        raise SetupException
+    run_program(cmd)
+
+def setup_windows_re(windows_version=None, windows_letter='W', tools_letter='T'):
+    # Bail early
+    if windows_version is None:
+        raise Exception('Windows version not specified.')
+    
+    _win = '{win}:\\Windows'.format(win=windows_letter)
+    _winre = '{win}\\System32\\Recovery\\WinRE.wim'.format(win=_win)
+    _dest = '{tools}:\\Recovery\\WindowsRE'.format(tools=tools_letter)
+    
+    if re.search(r'^(8|10)', windows_version['Family']):
+        # Copy WinRE.wim
+        os.makedirs(_dest, exist_ok=True)
+        shutil.copy(_winre, '{dest}\\WinRE.wim'.format(dest=_dest))
+        
+        # Set location
+        run_program('{win}\\System32\\reagentc /setreimage /path {dest} /target {win}'.format(dest=_dest, win=_win))
+    else:
+        # Only supported on Windows 8 and above
+        raise SetupError
+
+def update_boot_partition(system_letter='S', windows_letter='W', mode='ALL'):
+    run_program('bcdboot {win}:\\Windows /s {sys}: /f {mode}'.format(win=windows_letter, sys=system_letter, mode=mode))
 
 def verify_wim_backup(bin=None, par=None):
     # Bail early
@@ -1016,7 +998,7 @@ def verify_wim_backup(bin=None, par=None):
         except subprocess.CalledProcessError as err:
             print_error('Damaged.')
             par['Error'] = par.get('Error', []) + err.stderr.decode().splitlines()
-            raise BackupException
+            raise BackupError
 
 if __name__ == '__main__':
     print("This file is not meant to be called directly.")
