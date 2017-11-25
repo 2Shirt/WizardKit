@@ -154,7 +154,7 @@ function mount-servers {
     # Mount servers
     wk-write "Connecting to backup server(s)"
     foreach ($_server in $backup_servers) {
-        if (test-connection $_server.ip -count 1 -quiet) {
+        if (test-connection $_server.ip -count 1 -quiet 2>&1 | out-null) {
             try {
                 $_path = "\\{0}\{1}" -f $_server.ip, $_server.path
                 $_drive = "{0}:" -f $_server.letter
@@ -195,39 +195,79 @@ function menu-imaging {
     pause
     ## WARNING
     
+    # Check if any source drives were detected
+    $disks = get-disk | where {$_.Size -ne 0}
+#    if ($disks.count -eq 0) {
+#        wk-error "No suitable source drives were detected."
+#        pause "Press Enter to return to main menu... " $True
+#        return 1
+#    }
+    
     # Mount server(s)
     mount-servers
     
-    # Select destination
+    # Build server menu
     $avail_servers = @(gdr | where {$_.DisplayRoot -imatch '\\\\'})
-    $menu_disc_imaging = "Which drive are we imaging?`r`n`r`n"
+#    if ($avail_servers.count -eq 0) {
+#        wk-error "No suitable backup servers were detected."
+#        pause "Press Enter to return to main menu... " $True
+#        return 1
+#    }
+    $menu_imaging_server = "Where are we saving the backup image(s)?`r`n`r`n"
     $valid_answers = @("M", "m")
     for ($i=0; $i -lt $avail_servers.length; $i++) {
         $valid_answers += ($i + 1)
-        $menu_disc_imaging += ("{0}: {1} ({2:N2} Gb free)`r`n" -f ($i + 1), $avail_servers[$i].Description, ($avail_servers[$i].Free / 1Gb))
+        $menu_imaging_server += ("{0}: {1} ({2:N2} Gb free)`r`n" -f ($i + 1), $avail_servers[$i].Description, ($avail_servers[$i].Free / 1Gb))
     }
-    $menu_disc_imaging += "`r`n"
-    $menu_disc_imaging += "M: Main Menu`r`n"
-    $menu_disc_imaging += "`r`n"
-    $menu_disc_imaging += "Please make a selection`r`n"
+    $menu_imaging_server += "`r`n"
+    $menu_imaging_server += "M: Main Menu`r`n"
+    $menu_imaging_server += "`r`n"
+    $menu_imaging_server += "Please make a selection`r`n"
+    
+    # Select server
     do {
-        clear
-        $answer = read-host -prompt $menu_disc_imaging
+##testing##        clear
+        $answer = read-host -prompt $menu_imaging_server
     } until ($valid_answers -contains $answer)
     if ($answer -imatch '^M$') {
         # Exit if requested
         unmount-servers
-        popd
         return
     } else {
         $answer -= 1
         $dest_backup_server = $avail_servers[$answer]
     }
     
+    # Build source menu
+    $menu_imaging_source = "For which drive are we creating backup image(s)?`r`n`r`n"
+    $valid_answers = @("M", "m")
+    foreach ($_ in $disks) {
+        $valid_answers += $_.DiskNumber
+        $menu_imaging_source += "{0}: {1:N0} Gb`t({2}) {3} ({4})`r`n" -f $_.DiskNumber, ($_.Size / 1GB), $_.BusType, $_.FriendlyName, $_.PartitionStyle
+    }
+    $menu_imaging_source += "`r`n"
+    $menu_imaging_source += "M: Main Menu`r`n"
+    $menu_imaging_source += "`r`n"
+    $menu_imaging_source += "Please make a selection`r`n"
+    
+    # Select source
+    do {
+##testing##        clear
+        $answer = read-host -prompt $menu_imaging_source
+    } until ($valid_answers -contains $answer)
+    
+    if ($answer -imatch '^M$') {
+        # Exit if requested
+        return
+    } else {
+        ##TODO##
+        get-volume
+    }
+    
     # Service Order
     $menu_service_order += "Please enter the service order`r`n"
     do {
-        clear
+##testing##        clear
         $service_order = read-host -prompt $menu_service_order
     } until ($service_order -imatch '^\d[\w\-]+$')
     
@@ -242,7 +282,14 @@ function menu-imaging {
 function menu-setup {
     wk-write "Windows Setup"
     wk-write ""
-    pushd $WKPath\Setup
+    
+    # Check if any destination drives were detected
+    $disks = get-disk | where {$_.Size -ne 0 -and $_.BusType -inotmatch 'USB'}
+    if ($disks.count -eq 0) {
+        wk-error "No suitable destination drives were detected."
+        pause "Press Enter to return to main menu... " $True
+        return 1
+    }
     
     # Build windows menu
     $windows_versions = @(
@@ -267,13 +314,12 @@ function menu-setup {
     
     # Select Windows version
     do {
-        clear
+##testing##        clear
         $answer = read-host -prompt $menu_setup_windows
     } until ($valid_answers -contains $answer)
     
     if ($answer -imatch '^M$') {
         # Exit if requested
-        popd
         return
     } else {
         $answer -= 1
@@ -283,7 +329,6 @@ function menu-setup {
     # Build disk menu
     $menu_setup_disk = "To which drive are we installing {0}?`r`n`r`n" -f $dest_windows_version.Name
     $valid_answers = @("M", "m")
-    $disks = get-disk | where {$_.Size -ne 0 -and $_.BusType -inotmatch 'USB'}
     foreach ($_ in $disks) {
         $valid_answers += $_.DiskNumber
         $menu_setup_disk += "{0}: {1:N0} Gb`t({2}) {3}`r`n" -f $_.DiskNumber, ($_.Size / 1GB), $_.PartitionStyle, $_.FriendlyName
@@ -295,13 +340,12 @@ function menu-setup {
     
     # Select disk
     do {
-        clear
+##testing##        clear
         $answer = read-host -prompt $menu_setup_disk
     } until ($valid_answers -contains $answer)
     
     if ($answer -imatch '^M$') {
         # Exit if requested
-        popd
         return
     } else {
         # Double check before deleting data
@@ -365,13 +409,12 @@ function menu-setup {
             pause "Press Enter to return to main menu... "
         }
     }
-    popd
 }
 function menu-tools {
     wk-write "Misc Tools"
     wk-write ""
     wk-warn "Be careful."
-    start "explorer" -argumentlist @("$WKPath\Programs")
+    start "$WKPath\explorer++" -argumentlist @("$WKPath")
     wk-exit
 }
 function menu-main {
@@ -391,10 +434,10 @@ Please make a selection
 "@
 
     do {
-        clear
+##testing##        clear
         $answer = read-host -prompt $menu_main
     } until ($answer -imatch '^[123QRS]$')
-    clear
+##testing##    clear
 
     if ($answer.GetType().Name -match "String") {
         $answer = $answer.ToUpper()

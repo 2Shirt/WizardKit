@@ -13,7 +13,7 @@ for %%f in (%*) do (
 
 :CreateISO
 del winpe10-test.iso
-makewinpemedia.cmd /iso wd winpe10-test.iso
+makewinpemedia.cmd /iso pe_files winpe10-test.iso
 
 :Abort
 echo.

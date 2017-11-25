@@ -3,7 +3,7 @@
 # Some common settings and functions
 
 $host.UI.RawUI.BackgroundColor = "black"
-$host.UI.RawUI.ForegroundColor = "green"
+$host.UI.RawUI.ForegroundColor = "cyan"
 $systemdrive = (gci env:systemdrive).value
 $WKPath = "$systemdrive\WK"
 $date = get-date -uformat "%Y-%m-%d"
@@ -42,7 +42,11 @@ function wk-write {
     out-file -filepath $log -inputobject $text -append
 }
 function pause {
-    param([string]$message = "Press Enter to continue... ")
-    write-host $message
+    param([string]$message = "Press Enter to continue... ", [bool]$warning = $False)
+    if ($warning) {
+        write-host ($message) -foreground "yellow"
+    } else {
+        write-host ($message)
+    }
     $x = read-host
 }
