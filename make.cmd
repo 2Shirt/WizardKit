@@ -88,28 +88,28 @@ for %%a in (amd64 x86) do (
     dism /add-package /image:"!mount!" /packagepath:"!winpe_ocs!\en-us\WinPE-EnhancedStorage_en-us.cab" /logpath:"dism.log"
     dism /add-package /image:"!mount!" /packagepath:"!winpe_ocs!\en-us\WinPE-WMI_en-us.cab" /logpath:"dism.log"
 
-    rem   Install WinPE-WMI before you install WinPE-NetFX.
-    dism /add-package /image:"!mount!" /packagepath:"!winpe_ocs!\WinPE-NetFx.cab" /logpath:"dism.log"
-    dism /add-package /image:"!mount!" /packagepath:"!winpe_ocs!\en-us\WinPE-NetFx_en-us.cab" /logpath:"dism.log"
+    rem rem   Install WinPE-WMI before you install WinPE-NetFX.
+    rem dism /add-package /image:"!mount!" /packagepath:"!winpe_ocs!\WinPE-NetFx.cab" /logpath:"dism.log"
+    rem dism /add-package /image:"!mount!" /packagepath:"!winpe_ocs!\en-us\WinPE-NetFx_en-us.cab" /logpath:"dism.log"
 
-    rem   Install WinPE-WMI and WinPE-NetFX before you install WinPE-Scripting.
-    dism /add-package /image:"!mount!" /packagepath:"!winpe_ocs!\WinPE-Scripting.cab" /logpath:"dism.log"
-    dism /add-package /image:"!mount!" /packagepath:"!winpe_ocs!\en-us\WinPE-Scripting_en-us.cab" /logpath:"dism.log"
+    rem rem   Install WinPE-WMI and WinPE-NetFX before you install WinPE-Scripting.
+    rem dism /add-package /image:"!mount!" /packagepath:"!winpe_ocs!\WinPE-Scripting.cab" /logpath:"dism.log"
+    rem dism /add-package /image:"!mount!" /packagepath:"!winpe_ocs!\en-us\WinPE-Scripting_en-us.cab" /logpath:"dism.log"
 
-    rem   Install WinPE-WMI, WinPE-NetFX, and WinPE-Scripting before you install WinPE-PowerShell.
-    dism /add-package /image:"!mount!" /packagepath:"!winpe_ocs!\WinPE-PowerShell.cab" /logpath:"dism.log"
-    dism /add-package /image:"!mount!" /packagepath:"!winpe_ocs!\en-us\WinPE-PowerShell_en-us.cab" /logpath:"dism.log"
+    rem rem   Install WinPE-WMI, WinPE-NetFX, and WinPE-Scripting before you install WinPE-PowerShell.
+    rem dism /add-package /image:"!mount!" /packagepath:"!winpe_ocs!\WinPE-PowerShell.cab" /logpath:"dism.log"
+    rem dism /add-package /image:"!mount!" /packagepath:"!winpe_ocs!\en-us\WinPE-PowerShell_en-us.cab" /logpath:"dism.log"
 
-    rem   Install WinPE-WMI, WinPE-NetFX, WinPE-Scripting, and WinPE-PowerShell before you install WinPE-DismCmdlets.
-    dism /add-package /image:"!mount!" /packagepath:"!winpe_ocs!\WinPE-DismCmdlets.cab" /logpath:"dism.log"
-    dism /add-package /image:"!mount!" /packagepath:"!winpe_ocs!\en-us\WinPE-DismCmdlets_en-us.cab" /logpath:"dism.log"
+    rem rem   Install WinPE-WMI, WinPE-NetFX, WinPE-Scripting, and WinPE-PowerShell before you install WinPE-DismCmdlets.
+    rem dism /add-package /image:"!mount!" /packagepath:"!winpe_ocs!\WinPE-DismCmdlets.cab" /logpath:"dism.log"
+    rem dism /add-package /image:"!mount!" /packagepath:"!winpe_ocs!\en-us\WinPE-DismCmdlets_en-us.cab" /logpath:"dism.log"
 
-    rem   Install WinPE-WMI, WinPE-NetFX, WinPE-Scripting, and WinPE-PowerShell before you install WinPE-SecureBootCmdlets.
-    rem dism /add-package /image:"!mount!" /packagepath:"!winpe_ocs!\WinPE-SecureBootCmdlets.cab" /logpath:"dism.log"
+    rem rem   Install WinPE-WMI, WinPE-NetFX, WinPE-Scripting, and WinPE-PowerShell before you install WinPE-SecureBootCmdlets.
+    rem rem dism /add-package /image:"!mount!" /packagepath:"!winpe_ocs!\WinPE-SecureBootCmdlets.cab" /logpath:"dism.log"
 
-    rem   Install WinPE-WMI, WinPE-NetFX, WinPE-Scripting, and WinPE-PowerShell before you install WinPE-StorageWMI.
-    dism /add-package /image:"!mount!" /packagepath:"!winpe_ocs!\WinPE-StorageWMI.cab" /logpath:"dism.log"
-    dism /add-package /image:"!mount!" /packagepath:"!winpe_ocs!\en-us\WinPE-StorageWMI_en-us.cab" /logpath:"dism.log"
+    rem rem   Install WinPE-WMI, WinPE-NetFX, WinPE-Scripting, and WinPE-PowerShell before you install WinPE-StorageWMI.
+    rem dism /add-package /image:"!mount!" /packagepath:"!winpe_ocs!\WinPE-StorageWMI.cab" /logpath:"dism.log"
+    rem dism /add-package /image:"!mount!" /packagepath:"!winpe_ocs!\en-us\WinPE-StorageWMI_en-us.cab" /logpath:"dism.log"
     
     rem Add Drivers
     dism /add-driver /image:"!mount!" /driver:"!drivers!" /recurse /logpath:"dism.log"
@@ -125,21 +125,20 @@ for %%a in (amd64 x86) do (
     robocopy /s /r:3 /w:0 "!wd!\Scripts" "!mount!\WK\Scripts"
     
     rem Add System32 Stuff
-    copy /y "!wd!\System32\menu.cmd" "!mount!\Windows\System32\menu.cmd"
     copy /y "!wd!\System32\Winpeshl.ini" "!mount!\Windows\System32\Winpeshl.ini"
     
     rem   Background
     takeown /f "!mount!\Windows\System32\winpe.jpg" /a
     icacls "!mount!\Windows\System32\winpe.jpg" /grant administrators:F
     copy /y "!wd!\System32\winpe.jpg" "!mount!\Windows\System32\winpe.jpg"
-    copy /y "!wd!\System32\winpe.jpg" "!mount!\WK\ConEmu\winpe.jpg"
+    copy /y "!wd!\System32\winpe.jpg" "!mount!\WK\conemu-maximus5\winpe.jpg"
     
     rem Registry Edits
     reg load HKLM\WinPE-SW "!mount!\Windows\System32\config\SOFTWARE"
     reg load HKLM\WinPE-SYS "!mount!\Windows\System32\config\SYSTEM"
     
-    rem   Add 7-Zip to path
-    reg add "HKLM\WinPE-SYS\ControlSet001\Control\Session Manager\Environment" /v Path /t REG_EXPAND_SZ /d "%%SystemRoot%%\system32;%%SystemRoot%%;%%SystemRoot%%\System32\Wbem;%%SYSTEMROOT%%\System32\WindowsPowerShell\v1.0\;%%SystemDrive%%\WK\7-Zip" /f
+    rem   Add 7-Zip and Python to path
+    reg add "HKLM\WinPE-SYS\ControlSet001\Control\Session Manager\Environment" /v Path /t REG_EXPAND_SZ /d "%%SystemRoot%%\system32;%%SystemRoot%%;%%SystemRoot%%\System32\Wbem;%%SYSTEMROOT%%\System32\WindowsPowerShell\v1.0\;%%SystemDrive%%\WK\7-Zip;%%SystemDrive%%\WK\python;%%SystemDrive%%\WK\wimlib" /f
 
     rem   Replace Notepad
     reg add "HKLM\WinPE-SW\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\notepad.exe" /v Debugger /t REG_SZ /d "X:\WK\Notepad2\Notepad2-Mod.exe /z" /f
@@ -153,7 +152,7 @@ for %%a in (amd64 x86) do (
     
     rem Create ISO
     del "WinPE-!iso_date!-!arch!.iso"
-    call makewinpemedia.cmd /iso "!pe_files!" "WinPE-!iso_date!-!arch!.iso"
+    call makewinpemedia.cmd /iso "!pe_files!" "WinPE-!iso_date!-!arch!-testing.iso"
 )
 goto Done
 
