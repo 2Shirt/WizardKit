@@ -3,7 +3,7 @@
 :Init
 setlocal EnableDelayedExpansion
 title Menu Launcher
-color 0a
+color 0b
 pushd %~dp0
 
 :Flags
@@ -30,5 +30,7 @@ echo.
 rem echo Press any key to exit...
 rem pause>nul
 popd
-color
 endlocal
+cls
+echo Careful now...
+echo.

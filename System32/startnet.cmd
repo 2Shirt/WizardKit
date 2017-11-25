@@ -1,5 +1,6 @@
 @echo off
 
+color 0b
 echo Initializing...
 wpeinit
 wpeutil updatebootinfo

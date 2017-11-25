@@ -50,6 +50,14 @@ dism /add-package /image:"%wd%\mount" /packagepath:"%winpe_ocs%\en-us\WinPE-Dism
 :: Install WinPE-WMI > WinPE-NetFX > WinPE-Scripting > WinPE-PowerShell before you install WinPE-SecureBootCmdlets.
 dism /add-package /image:"%wd%\mount" /packagepath:"%winpe_ocs%\WinPE-SecureBootCmdlets.cab" /logpath:"dism.log"
 
+:: Install WinPE-WMI > WinPE-NetFX > WinPE-Scripting > WinPE-PowerShell before you install WinPE-StorageWMI.
+dism /add-package /image:"%wd%\mount" /packagepath:"%winpe_ocs%\WinPE-StorageWMI.cab" /logpath:"dism.log"
+dism /add-package /image:"%wd%\mount" /packagepath:"%winpe_ocs%\en-us\WinPE-StorageWMI_en-us.cab" /logpath:"dism.log"
+
+:: Install ?? before you install WinPE-EnhancedStorage.
+dism /add-package /image:"%wd%\mount" /packagepath:"%winpe_ocs%\WinPE-EnhancedStorage.cab" /logpath:"dism.log"
+dism /add-package /image:"%wd%\mount" /packagepath:"%winpe_ocs%\en-us\WinPE-EnhancedStorage_en-us.cab" /logpath:"dism.log"
+
 :Robocopy
 del "%wd%\WK\Scripts\WK.log"
 mkdir "%wd%\mount\WK"
@@ -78,12 +86,16 @@ echo.
 echo Press any key to commit changes...
 pause>nul
 
+:Set-ScratchSpace
+rem Force RamDisk size to try and avoid capture-image errors
+dism /image:"%wd%\mount" /set-scratchspace:512
+
 :Unmount
 dism /unmount-image /mountdir:"%wd%\mount" /commit
 
 :CreateISO
-del winpe10-test.iso
-makewinpemedia.cmd /iso "%wd%\pe_files" winpe10-test.iso
+del winpe10-2016.iso
+makewinpemedia.cmd /iso "%wd%\pe_files" winpe10-2016.iso
 goto Done
 
 :Abort

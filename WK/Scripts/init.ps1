@@ -41,6 +41,21 @@ function wk-write {
     write-host ($text)
     out-file -filepath $log -inputobject $text -append
 }
+function human-size {
+    param($bytes, [int]$decimals = 2)
+    if ($bytes -gt 1Tb) {
+        $size = "{0:N$decimals} Tb" -f ($bytes / 1Tb)
+    } elseif ($bytes -gt 1Gb) {
+        $size = "{0:N$decimals} Gb" -f ($bytes / 1Gb)
+    } elseif ($bytes -gt 1Mb) {
+        $size = "{0:N$decimals} Mb" -f ($bytes / 1Mb)
+    } elseif ($bytes -gt 1Kb) {
+        $size = "{0:N$decimals} Kb" -f ($bytes / 1Kb)
+    } else {
+        $size = "{0:N$decimals}  b" -f $bytes
+    }
+    return $size
+}
 function pause {
     param([string]$message = "Press Enter to continue... ", [bool]$warning = $False)
     if ($warning) {
