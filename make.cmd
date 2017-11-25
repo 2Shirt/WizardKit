@@ -2,7 +2,7 @@
 
 :Init
 setlocal EnableDelayedExpansion
-title WinPE 10 creation tool
+title WK-WinPE creation tool
 color 1b
 pushd %~dp0
 
@@ -125,25 +125,26 @@ for %%a in (amd64 x86) do (
     robocopy /s /r:3 /w:0 "!wd!\Scripts" "!mount!\WK\Scripts"
     
     rem Add System32 Stuff
+    copy /y "!wd!\System32\menu.cmd" "!mount!\Windows\System32\menu.cmd"
     copy /y "!wd!\System32\Winpeshl.ini" "!mount!\Windows\System32\Winpeshl.ini"
     
-    rem   Background
+    rem Background
     takeown /f "!mount!\Windows\System32\winpe.jpg" /a
     icacls "!mount!\Windows\System32\winpe.jpg" /grant administrators:F
     copy /y "!wd!\System32\winpe.jpg" "!mount!\Windows\System32\winpe.jpg"
-    copy /y "!wd!\System32\winpe.jpg" "!mount!\WK\conemu-maximus5\winpe.jpg"
+    copy /y "!wd!\System32\winpe.jpg" "!mount!\WK\ConEmu\ConEmu.jpg"
     
     rem Registry Edits
     reg load HKLM\WinPE-SW "!mount!\Windows\System32\config\SOFTWARE"
     reg load HKLM\WinPE-SYS "!mount!\Windows\System32\config\SYSTEM"
     
-    rem   Add 7-Zip and Python to path
+    rem Add 7-Zip and Python to path
     reg add "HKLM\WinPE-SYS\ControlSet001\Control\Session Manager\Environment" /v Path /t REG_EXPAND_SZ /d "%%SystemRoot%%\system32;%%SystemRoot%%;%%SystemRoot%%\System32\Wbem;%%SYSTEMROOT%%\System32\WindowsPowerShell\v1.0\;%%SystemDrive%%\WK\7-Zip;%%SystemDrive%%\WK\python;%%SystemDrive%%\WK\wimlib" /f
 
-    rem   Replace Notepad
+    rem Replace Notepad
     reg add "HKLM\WinPE-SW\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\notepad.exe" /v Debugger /t REG_SZ /d "X:\WK\Notepad2\Notepad2-Mod.exe /z" /f
 
-    rem   Unload registry hives
+    rem Unload registry hives
     reg unload HKLM\WinPE-SW
     reg unload HKLM\WinPE-SYS
     
@@ -151,8 +152,8 @@ for %%a in (amd64 x86) do (
     dism /unmount-image /mountdir:"!mount!" /commit
     
     rem Create ISO
-    del "WinPE-!iso_date!-!arch!.iso"
-    call makewinpemedia.cmd /iso "!pe_files!" "WinPE-!iso_date!-!arch!-testing.iso"
+    del "wk-winpe-!iso_date!-!arch!.iso"
+    call makewinpemedia.cmd /iso "!pe_files!" "wk-winpe-!iso_date!-!arch!.iso"
 )
 goto Done
 
