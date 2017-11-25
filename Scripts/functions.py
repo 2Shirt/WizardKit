@@ -116,8 +116,8 @@ def assign_volume_letters():
     try:
         # Run script
         with open(diskpart_script, 'w') as script:
-            for vol in get_volume_numbers():
-                script.write('select volume {number}\n'.format(number=vol))
+            for vol in get_volumes():
+                script.write('select volume {Number}\n'.format(**vol))
                 script.write('assign\n')
         run_program('diskpart /s {script}'.format(script=diskpart_script))
     except subprocess.CalledProcessError:
@@ -543,8 +543,8 @@ def get_ticket_id():
     
     return ticket_id
 
-def get_volume_numbers():
-    vol_nums = []
+def get_volumes():
+    vols = []
     
     try:
         # Run script
@@ -557,10 +557,9 @@ def get_volume_numbers():
     else:
         # Append volume numbers
         for tmp in re.findall(r'Volume (\d+)\s+([A-Za-z]?)\s+', process_return):
-            if tmp[1] == '':
-                vol_nums.append(tmp[0])
+            vols.append({'Number': tmp[0], 'Letter': tmp[1]})
     
-    return vol_nums
+    return vols
 
 def human_readable_size(size, decimals=0):
     # Prep string formatting
@@ -812,13 +811,16 @@ def print_success(message='Generic success', **kwargs):
 def print_warning(message='Generic warning', **kwargs):
     print('{YELLOW}{message}{CLEAR}'.format(message=message, **COLORS, **kwargs))
 
-def remove_volume_letters(keep=None):
+def remove_volume_letters(keep=''):
+    if keep is None:
+        keep = ''
     try:
         # Run script
         with open(diskpart_script, 'w') as script:
-            for vol in get_volume_numbers():
-                script.write('select volume {number}\n'.format(number=vol))
-                script.write('remove\n')
+            for vol in get_volumes():
+                if vol['Letter'].upper() != keep.upper():
+                    script.write('select volume {Number}\n'.format(**vol))
+                    script.write('remove noerr\n')
         run_program('diskpart /s {script}'.format(script=diskpart_script))
     except subprocess.CalledProcessError:
         pass

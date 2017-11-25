@@ -92,13 +92,15 @@ def menu_windows_setup():
 
     # Select the version of Windows to apply
     windows_version = select_windows_version()
-    
-    # Find Windows image
-    windows_image = find_windows_image(bin, windows_version)
 
     # Select drive to use as the OS drive
     dest_disk = select_disk('To which drive are we installing Windows?')
     prep_disk_for_formatting(dest_disk)
+    
+    # Find Windows image
+    ## NOTE: Needs to happen AFTER select_disk() is called as there's a hidden assign_volume_letters().
+    ##       This changes the current letters thus preventing installing from a local source.
+    windows_image = find_windows_image(bin, windows_version)
 
     # Display details for setup task
     os.system('cls')
@@ -119,7 +121,8 @@ def menu_windows_setup():
     # Safety check    
     print('\nSAFETY CHECK')
     print_warning('All data will be DELETED from the drive and partition(s) listed above.')
-    print_error('This is irreversible and will lead to DATA LOSS.')
+    print_error('This is irreversible and will lead to ', end='', flush=True)
+    print('DATA LOSS.')
     if (not ask('Asking again to confirm, is this correct?')):
         abort_to_main_menu('Aborting Windows setup')
 
@@ -127,7 +130,7 @@ def menu_windows_setup():
     remove_volume_letters(keep=windows_image['Source'])
 
     # Format and partition drive
-    print('\n    Formatting Drive...\t\t'.format(**par), end='', flush=True)
+    print('\n    Formatting Drive...     \t\t', end='', flush=True)
     try:
         if (dest_disk['Use GPT']):
             format_gpt(dest_disk, windows_version['Family'])
@@ -140,7 +143,7 @@ def menu_windows_setup():
         raise
 
     # Apply Image
-    print('    Applying Image...\t\t'.format(**par), end='', flush=True)
+    print('    Applying Image...       \t\t', end='', flush=True)
     try:
         setup_windows(bin, windows_image, windows_version)
         print_success('Complete.')
@@ -153,7 +156,7 @@ def menu_windows_setup():
         raise
     
     # Create Boot files
-    print('    Update Boot Partition...\t\t'.format(**par), end='', flush=True)
+    print('    Update Boot Partition...\t\t', end='', flush=True)
     try:
         update_boot_partition()
         print_success('Complete.')
@@ -166,12 +169,12 @@ def menu_windows_setup():
         raise
     
     # Setup WinRE
-    print('    Update Recovery Tools...\t\t'.format(**par), end='', flush=True)
+    print('    Update Recovery Tools...\t\t', end='', flush=True)
     try:
         setup_windows_re(windows_version)
         print_success('Complete.')
     except SetupError:
-        print_error('Skipped.')
+        print('Skipped.')
     except:
         # Don't need to crash as this is (potentially) recoverable
         print_error('Failed.')
