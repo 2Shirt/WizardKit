@@ -1,12 +1,12 @@
 # Wizard Kit: Download kit components
 
 ## Init ##
+#Requires -Version 3.0
 clear
 $host.UI.RawUI.WindowTitle = "Wizard Kit: Build Tool"
 $wd = $(Split-Path $MyInvocation.MyCommand.Path)
 $bin = (Get-Item $wd).Parent.FullName
-$root = (Get-Item "$bin\..").FullName # Get-Item $bin fails
-    # (I'm assuming that starting with a '.' is the issue)
+$root = (Get-Item $bin -Force).Parent.FullName
 $tmp = "{0}\tmp" -f $bin
 $errors = 0
 pushd "$wd"
