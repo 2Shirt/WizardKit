@@ -3,69 +3,69 @@
 ## Init ##
 #Requires -Version 3.0
 #Requires -RunAsAdministrator 
-clear
-$host.UI.RawUI.WindowTitle = "Wizard Kit: Windows PE Build Tool"
-$wd = $(Split-Path $MyInvocation.MyCommand.Path)
-$bin = (Get-Item $wd -Force).Parent.FullName
-$root = (Get-Item $bin -Force).Parent.FullName
-$tmp = "{0}\tmp" -f $bin
-$errors = 0
-pushd "$wd"
-$host.UI.RawUI.BackgroundColor = "black"
-$host.UI.RawUI.ForegroundColor = "white"
-$progressPreference = 'silentlyContinue'
-# clear
-foreach ($v in @('SystemDrive', 'USERPROFILE', 'DISMRoot', 'BCDBootRoot', 'ImagingRoot', 'OSCDImgRoot', 'WdsmcastRoot')) {
-    write-host ('{0}: {1}' -f $v, (gci env:$v).value)
+Clear-Host
+$Host.UI.RawUI.WindowTitle = "Wizard Kit: Windows PE Build Tool"
+$WD = $(Split-Path $MyInvocation.MyCommand.Path)
+$Bin = (Get-Item $WD -Force).Parent.FullName
+$Root = (Get-Item $Bin -Force).Parent.FullName
+$Temp = "{0}\tmp" -f $Bin
+$Errors = 0
+Push-Location "$WD"
+$Host.UI.RawUI.BackgroundColor = "black"
+$Host.UI.RawUI.ForegroundColor = "white"
+$ProgressPreference = 'silentlyContinue'
+# Clear-Host
+foreach ($Var in @('SystemDrive', 'USERPROFILE', 'DISMRoot', 'BCDBootRoot', 'ImagingRoot', 'OSCDImgRoot', 'WdsmcastRoot')) {
+    Write-Host ('{0}: {1}' -f $Var, (Get-ChildItem Env:$Var).Value)
 }
-write-host ""
-write-host ("wd:   {0}" -f $wd)
-write-host ("bin:  {0}" -f $bin)
-write-host ("root: {0}" -f $root)
-write-host ("tmp:  {0}" -f $tmp)
-read-host "Bananas?"
+Write-Host ""
+Write-Host ("wd:   {0}" -f $WD)
+Write-Host ("bin:  {0}" -f $Bin)
+Write-Host ("root: {0}" -f $Root)
+Write-Host ("tmp:  {0}" -f $Temp)
+Read-Host "Bananas?"
 exit
 
 ## Functions ##
-function download-file {
-    param ([String]$path, [String]$name, [String]$url)
-    $outfile = "{0}\{1}" -f $path, $name
+function Download-File {
+    param ([String]$Path, [String]$Name, [String]$Url)
+    $OutFile = "{0}\{1}" -f $Path, $Name
 
-    Write-Host ("Downloading: {0}" -f $name)
-    New-Item -Type Directory $path 2>&1 | Out-Null
+    Write-Host ("Downloading: {0}" -f $Name)
+    New-Item -Type Directory $Path 2>&1 | Out-Null
     try {
-        invoke-webrequest -uri $url -outfile $outfile
+        Invoke-Webrequest -Uri $Url -OutFile $OutFile
     }
     catch {
-        Write-Host ("  ERROR: Failed to download file." ) -foregroundcolor "Red"
-        $errors += 1
+        Write-Host ("  ERROR: Failed to download file." ) -ForegroundColor "Red"
+        $Errors += 1
     }
 }
-function find-dynamic-url {
-    param ([String]$source_page, [String]$regex)
-    $d_url = ""
+function Find-DynamicUrl {
+    param ([String]$SourcePage, [String]$RegEx)
+    $Url = ""
 
     # Get source page
-    invoke-webrequest -uri $source_page -outfile "tmp_page"
+    Invoke-Webrequest -Uri $SourcePage -OutFile "tmp_page"
 
     # Search for real url
-    $d_url = Get-Content "tmp_page" | Where-Object {$_ -imatch $regex}
-    $d_url = $d_url -ireplace '.*(a |)href="([^"]+)".*', '$2'
-    $d_url = $d_url -ireplace ".*(a |)href='([^']+)'.*", '$2'
+    $Url = Get-Content "tmp_page" | Where-Object {$_ -imatch $RegEx}
+    $Url = $Url -ireplace '.*(a |)href="([^"]+)".*', '$2'
+    $Url = $Url -ireplace ".*(a |)href='([^']+)'.*", '$2'
 
     # Remove tmp_page
     Remove-Item "tmp_page"
 
-    return $d_url
+    return $Url
 }
-function wk_pause {
-    param([string]$message = "Press Enter to continue... ")
-    Write-Host $message
-    $x = read-host
+function WK-Pause {
+    param([string]$Message = "Press Enter to continue... ")
+    Write-Host $Message
+    Read-Host
 }
 
 ## Build ##
 # TODO #
 
 ## Done ##
-popd
+Pop-Location
