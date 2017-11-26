@@ -1,5 +1,9 @@
-*iso
+*.bak
+*.iso
+.bin/Scripts/__pycache__
+.bin/tmp
+Drivers
+Logs
 Scripts/__pycache__
-dism*
 mount
 pe_files
