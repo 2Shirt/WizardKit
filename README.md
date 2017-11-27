@@ -4,7 +4,7 @@ A collection of scripts to help technicians service Windows systems.
 
 ## Requirements ##
 
-* PowerShell 3.0 or newer
+* PowerShell 3.0 or newer<sup>1</sup>
 * 6 Gb disk space
 
 ## Initial Setup ##
@@ -36,3 +36,6 @@ A collection of scripts to help technicians service Windows systems.
 * `Misc`
 * `Repairs`
 * `Uninstallers`
+
+### Notes ###
+1. PowerShell 6.0 on Windows 7 is not supported by the build script.

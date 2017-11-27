@@ -17,6 +17,15 @@ $host.UI.RawUI.BackgroundColor = "black"
 $host.UI.RawUI.ForegroundColor = "white"
 $progressPreference = 'silentlyContinue'
 
+## Safety Check ##
+if ($PSVersionTable.PSVersion.Major -eq 6 -and $PSVersionTable.OS -imatch "Windows 6.1") {
+    Write-Host -ForegroundColor "Red" "`nAborted."
+    Write-Host "`nThis script doesn't support PowerShell 6.0 on Windows 7."
+	Write-Host "Press Enter to exit... " -NoNewLine
+	Read-Host
+    exit
+}
+
 ## Functions ##
 function download-file {
     param ([String]$path, [String]$name, [String]$url)
