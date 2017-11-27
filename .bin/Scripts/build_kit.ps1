@@ -3,6 +3,9 @@
 ## Init ##
 #Requires -Version 3.0
 clear
+if (Test-Path Env:\DEBUG) {
+    Set-PSDebug -Trace 1
+}
 $host.UI.RawUI.WindowTitle = "Wizard Kit: Build Tool"
 $wd = $(Split-Path $MyInvocation.MyCommand.Path)
 $bin = (Get-Item $wd).Parent.FullName
