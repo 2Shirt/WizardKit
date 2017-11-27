@@ -3,6 +3,9 @@
 ## Init ##
 #Requires -Version 3.0
 clear
+if (Test-Path Env:\DEBUG) {
+    Set-PSDebug -Trace 1
+}
 $host.UI.RawUI.WindowTitle = "Wizard Kit: Build Tool"
 $wd = $(Split-Path $MyInvocation.MyCommand.Path)
 $bin = (Get-Item $wd).Parent.FullName
@@ -13,6 +16,15 @@ pushd "$wd"
 $host.UI.RawUI.BackgroundColor = "black"
 $host.UI.RawUI.ForegroundColor = "white"
 $progressPreference = 'silentlyContinue'
+
+## Safety Check ##
+if ($PSVersionTable.PSVersion.Major -eq 6 -and $PSVersionTable.OS -imatch "Windows 6.1") {
+    Write-Host -ForegroundColor "Red" "`nAborted."
+    Write-Host "`nThis script doesn't support PowerShell 6.0 on Windows 7."
+	Write-Host "Press Enter to exit... " -NoNewLine
+	Read-Host
+    exit
+}
 
 ## Functions ##
 function download-file {
