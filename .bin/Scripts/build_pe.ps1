@@ -478,13 +478,12 @@ if ($MyInvocation.InvocationName -ne ".") {
         Write-Host "Extracting: Q-Dir"
         try {
             $ArgumentList = @(
-                "e", "$Temp\qdir64.zip", "-o$Root\WK\amd64\Q-Dir",
+                "x", "$Temp\qdir64.zip", "-o$Root\WK\amd64",
                 "-aoa", "-bso0", "-bse0", "-bsp0")
             Start-Process -FilePath $SevenZip -ArgumentList $ArgumentList -NoNewWindow -Wait
             $ArgumentList = @(
-                "e", "$Temp\qdir32.zip", "-o$Root\WK\x86\Q-Dir",
-                "-aoa", "-bso0", "-bse0", "-bsp0",
-                "Q-Dir.*")
+                "x", "$Temp\qdir32.zip", "-o$Root\WK\x86",
+                "-aoa", "-bso0", "-bse0", "-bsp0")
             Start-Process -FilePath $SevenZip -ArgumentList $ArgumentList -NoNewWindow -Wait
             Remove-Item "$Temp\qdir*"
         }
