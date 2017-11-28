@@ -15,7 +15,7 @@ $Date = Get-Date -UFormat "%Y-%m-%d"
 $Host.UI.RawUI.BackgroundColor = "Black"
 $Host.UI.RawUI.ForegroundColor = "White"
 # $ProgressPreference = "silentlyContinue"
-$SplitWindow = @()
+$HostSystem32 = "{0}\System32" -f $Env:SystemRoot
 $WinPEPackages = @(
     "WinPE-EnhancedStorage.cab",
     "en-us\WinPE-EnhancedStorage_en-us.cab",
@@ -143,7 +143,7 @@ function WKPause ($Message = "Press Enter to continue... ") {
 # Answer by:    https://stackoverflow.com/users/696808/bacon-bits
 if ($MyInvocation.InvocationName -ne ".") {
     Clear-Host
-    Write-Host "Wizard Kit: Windows PE Build Tool`n"
+    Write-Host "Wizard Kit: Windows PE Build Tool`n`n`n`n`n"
     
     ## Prep ##
     try {
@@ -165,31 +165,77 @@ if ($MyInvocation.InvocationName -ne ".") {
         DownloadFile -Path $Path -Name "7z-installer.msi" -Url "http://www.7-zip.org/a/7z1701.msi"
         DownloadFile -Path $Path -Name "7z-extra.7z" -Url "http://www.7-zip.org/a/7z1701-extra.7z"
 
+        # Blue Screen View
+        $Url = "http://www.nirsoft.net/utils/bluescreenview-x64.zip"
+        DownloadFile -Path $Path -Name "bluescreenview64.zip" -Url $Url
+        $Url = "http://www.nirsoft.net/utils/bluescreenview.zip"
+        DownloadFile -Path $Path -Name "bluescreenview32.zip" -Url $Url
+        
         # ConEmu
         $Url = "https://github.com/Maximus5/ConEmu/releases/download/v17.11.09/ConEmuPack.171109.7z"
         DownloadFile -Path $Path -Name "ConEmuPack.7z" -Url $Url
 
+        # Fast Copy
+        $Url = "http://ftp.vector.co.jp/69/28/2323/FastCopy332_x64.zip"
+        DownloadFile -Path $Path -Name "fastcopy64.zip" -Url $Url
+        $Url = "http://ftp.vector.co.jp/69/28/2323/FastCopy332.zip"
+        DownloadFile -Path $Path -Name "fastcopy32.zip" -Url $Url
+        
+        # HWiNFO
+        $Url = "http://app.oldfoss.com:81/download/HWiNFO/hw64_560.zip"
+        DownloadFile -Path $Path -Name "hwinfo64.zip" -Url $Url
+        $Url = "http://app.oldfoss.com:81/download/HWiNFO/hw32_560.zip"
+        DownloadFile -Path $Path -Name "hwinfo32.zip" -Url $Url
+        
         # Notepad++
         $Url = "https://notepad-plus-plus.org/repository/7.x/7.5.2/npp.7.5.2.bin.minimalist.x64.7z"
-        DownloadFile -Path $Path -Name "nppamd64.7z" -Url $Url
+        DownloadFile -Path $Path -Name "npp_amd64.7z" -Url $Url
         $Url = "https://notepad-plus-plus.org/repository/7.x/7.5.2/npp.7.5.2.bin.minimalist.7z"
-        DownloadFile -Path $Path -Name "nppx86.7z" -Url $Url
+        DownloadFile -Path $Path -Name "npp_x86.7z" -Url $Url
 
+        # NT Password Editor
+        $Url = "http://cdslow.org.ru/files/ntpwedit/ntpwed07.zip"
+        DownloadFile -Path $Path -Name "ntpwed.zip" -Url $Url
+        
+        # Prime95
+        $Url = "http://www.mersenne.org/ftp_root/gimps/p95v294b5.win64.zip"
+        DownloadFile -Path $Path -Name "prime95_64.zip" -Url $Url
+        $Url = "http://www.mersenne.org/ftp_root/gimps/p95v294b5.win32.zip"
+        DownloadFile -Path $Path -Name "prime95_32.zip" -Url $Url
+        
+        # ProduKey
+        $Url = "http://www.nirsoft.net/utils/produkey-x64.zip"
+        DownloadFile -Path $Path -Name "produkey64.zip" -Url $Url
+        $Url = "http://www.nirsoft.net/utils/produkey.zip"
+        DownloadFile -Path $Path -Name "produkey32.zip" -Url $Url
+        
         # Python
-        $Url = "https://www.python.org/ftp/python/3.6.3/python-3.6.3-embed-win32.zip"
-        DownloadFile -Path $Path -Name "python32.zip" -Url $Url
         $Url = "https://www.python.org/ftp/python/3.6.3/python-3.6.3-embed-amd64.zip"
         DownloadFile -Path $Path -Name "python64.zip" -Url $Url
+        $Url = "https://www.python.org/ftp/python/3.6.3/python-3.6.3-embed-win32.zip"
+        DownloadFile -Path $Path -Name "python32.zip" -Url $Url
 
         # Python: psutil
+        $RegEx = "href=.*-cp36-cp36m-win_amd64.whl"
+        $Url = FindDynamicUrl $DownloadPage $RegEx
+        DownloadFile -Path $Path -Name "psutil64.whl" -Url $Url
         $DownloadPage = "https://pypi.python.org/pypi/psutil"
         $RegEx = "href=.*-cp36-cp36m-win32.whl"
         $Url = FindDynamicUrl $DownloadPage $RegEx
         DownloadFile -Path $Path -Name "psutil32.whl" -Url $Url
-        $RegEx = "href=.*-cp36-cp36m-win_amd64.whl"
-        $Url = FindDynamicUrl $DownloadPage $RegEx
-        DownloadFile -Path $Path -Name "psutil64.whl" -Url $Url
-    
+        
+        # Q-Dir
+        $Url = "https://www.softwareok.com/Download/Q-Dir_Portable_x64.zip"
+        DownloadFile -Path $Path -Name "qdir64.zip" -Url $Url
+        $Url = "https://www.softwareok.com/Download/Q-Dir_Portable.zip"
+        DownloadFile -Path $Path -Name "qdir32.zip" -Url $Url
+        
+        # TestDisk / PhotoRec
+        $Url = "https://www.cgsecurity.org/testdisk-7.1-WIP.win64.zip"
+        DownloadFile -Path $Path -Name "testdisk64.zip" -Url $Url
+        $Url = "https://www.cgsecurity.org/testdisk-7.1-WIP.win.zip"
+        DownloadFile -Path $Path -Name "testdisk32.zip" -Url $Url
+        
         ## Bail ##
         # If errors were encountered during downloads
         if ($DownloadErrors -gt 0) {
@@ -201,7 +247,7 @@ if ($MyInvocation.InvocationName -ne ".") {
         Write-Host "Extracting: 7-Zip"
         try {
             $ArgumentList = @("/a", "$Temp\7z-installer.msi", "TARGETDIR=$Temp\7zi", "/qn")
-            Start-Process -FilePath "$System32\msiexec.exe" -ArgumentList $ArgumentList -Wait
+            Start-Process -FilePath "$HostSystem32\msiexec.exe" -ArgumentList $ArgumentList -Wait
             $SevenZip = "$Temp\7zi\Files\7-Zip\7z.exe"
             $ArgumentList = @(
                 "e", "$Temp\7z-extra.7z", "-o$Root\WK\amd64\7-Zip",
@@ -220,25 +266,23 @@ if ($MyInvocation.InvocationName -ne ".") {
             Write-Host ("  ERROR: Failed to extract files." ) -ForegroundColor "Red"
         }
 
-        # Notepad++
-        Write-Host "Extracting: Notepad++"
+        # Blue Screen View
+        Write-Host "Extracting: BlueScreenView"
         try {
             $ArgumentList = @(
-                "x", "$Temp\nppamd64.7z", "-o$Root\WK\amd64\NotepadPlusPlus",
+                "x", "$Temp\bluescreenview64.zip", "-o$Root\WK\amd64\BlueScreenView",
                 "-aoa", "-bso0", "-bse0", "-bsp0")
             Start-Process -FilePath $SevenZip -ArgumentList $ArgumentList -NoNewWindow -Wait
             $ArgumentList = @(
-                "x", "$Temp\nppx86.7z", "-o$Root\WK\x86\NotepadPlusPlus",
+                "x", "$Temp\bluescreenview32.zip", "-o$Root\WK\x86\BlueScreenView",
                 "-aoa", "-bso0", "-bse0", "-bsp0")
             Start-Process -FilePath $SevenZip -ArgumentList $ArgumentList -NoNewWindow -Wait
-            Remove-Item "$Temp\npp*.7z"
-            Move-Item "$Root\WK\amd64\NotepadPlusPlus\notepad++.exe" "$Root\WK\amd64\NotepadPlusPlus\notepadplusplus.exe"
-            Move-Item "$Root\WK\x86\NotepadPlusPlus\notepad++.exe" "$Root\WK\x86\NotepadPlusPlus\notepadplusplus.exe"
+            Remove-Item "$Temp\bluescreenview*"
         }
         catch {
             Write-Host ("  ERROR: Failed to extract files." ) -ForegroundColor "Red"
         }
-
+        
         # ConEmu
         Write-Host "Extracting: ConEmu"
         try {
@@ -256,46 +300,197 @@ if ($MyInvocation.InvocationName -ne ".") {
             Start-Process -FilePath $SevenZip -ArgumentList $ArgumentList -NoNewWindow -Wait
             Remove-Item "$Root\WK\x86\ConEmu\ConEmu64.exe"
             Remove-Item "$Root\WK\x86\ConEmu\ConEmu64.map"
-            Remove-Item "$Temp\ConEmuPack.7z"
+            Remove-Item "$Temp\ConEmuPack*"
         }
         catch {
             Write-Host ("  ERROR: Failed to extract files." ) -ForegroundColor "Red"
         }
 
-        # Python
-        Write-Host "Extracting: Python"
+        # Fast Copy
+        Write-Host "Extracting: FastCopy"
+        try {
+            $ArgumentList = @(
+                "x", "$Temp\fastcopy64.zip", "-o$Root\WK\amd64\FastCopy",
+                "-aoa", "-bso0", "-bse0", "-bsp0",
+                "-x!setup.exe", "-x!*.dll")
+            Start-Process -FilePath $SevenZip -ArgumentList $ArgumentList -NoNewWindow -Wait
+            $ArgumentList = @(
+                "e", "$Temp\fastcopy32.zip", "-o$Root\WK\x86\FastCopy",
+                "-aoa", "-bso0", "-bse0", "-bsp0",
+                "-x!setup.exe", "-x!*.dll")
+            Start-Process -FilePath $SevenZip -ArgumentList $ArgumentList -NoNewWindow -Wait
+            Remove-Item "$Temp\fastcopy*"
+        }
+        catch {
+            Write-Host ("  ERROR: Failed to extract files." ) -ForegroundColor "Red"
+        }
+        
+        # HWiNFO
+        Write-Host "Extracting: HWiNFO"
+        try {
+            $ArgumentList = @(
+                "e", "$Temp\hwinfo64.zip", "-o$Root\WK\amd64\HWiNFO",
+                "-aoa", "-bso0", "-bse0", "-bsp0", "HWiNFO64.exe")
+            Start-Process -FilePath $SevenZip -ArgumentList $ArgumentList -NoNewWindow -Wait
+            $ArgumentList = @(
+                "e", "$Temp\hwinfo32.zip", "-o$Root\WK\x86\HWiNFO",
+                "-aoa", "-bso0", "-bse0", "-bsp0", "HWiNFO32.exe")
+            Start-Process -FilePath $SevenZip -ArgumentList $ArgumentList -NoNewWindow -Wait
+            Remove-Item "$Temp\hwinfo*"
+            Move-Item "$Root\WK\amd64\HWiNFO\HWiNFO64.exe" "$Root\WK\amd64\HWiNFO\HWiNFO.exe"
+            Move-Item "$Root\WK\x86\HWiNFO\HWiNFO32.exe" "$Root\WK\x86\HWiNFO\HWiNFO.exe"
+        }
+        catch {
+            Write-Host ("  ERROR: Failed to extract files." ) -ForegroundColor "Red"
+        }
+        
+        # Notepad++
+        Write-Host "Extracting: Notepad++"
+        try {
+            $ArgumentList = @(
+                "x", "$Temp\npp_amd64.7z", "-o$Root\WK\amd64\NotepadPlusPlus",
+                "-aoa", "-bso0", "-bse0", "-bsp0")
+            Start-Process -FilePath $SevenZip -ArgumentList $ArgumentList -NoNewWindow -Wait
+            $ArgumentList = @(
+                "x", "$Temp\npp_x86.7z", "-o$Root\WK\x86\NotepadPlusPlus",
+                "-aoa", "-bso0", "-bse0", "-bsp0")
+            Start-Process -FilePath $SevenZip -ArgumentList $ArgumentList -NoNewWindow -Wait
+            Remove-Item "$Temp\npp*"
+            Move-Item "$Root\WK\amd64\NotepadPlusPlus\notepad++.exe" "$Root\WK\amd64\NotepadPlusPlus\notepadplusplus.exe"
+            Move-Item "$Root\WK\x86\NotepadPlusPlus\notepad++.exe" "$Root\WK\x86\NotepadPlusPlus\notepadplusplus.exe"
+        }
+        catch {
+            Write-Host ("  ERROR: Failed to extract files." ) -ForegroundColor "Red"
+        }
+
+        # NT Password Editor
+        Write-Host "Extracting: NT Password Editor"
+        try {
+            $ArgumentList = @(
+                "e", "$Temp\ntpwed.zip", ('-o"{0}\WK\amd64\NT Password Editor"' -f $Root),
+                "-aoa", "-bso0", "-bse0", "-bsp0",
+                "ntpwedit64.exe", "*.txt")
+            Start-Process -FilePath $SevenZip -ArgumentList $ArgumentList -NoNewWindow -Wait
+            Move-Item "$Root\WK\amd64\NT Password Editor\ntpwedit64.exe" "$Root\WK\amd64\NT Password Editor\ntpwedit.exe"
+            $ArgumentList = @(
+                "e", "$Temp\ntpwed.zip", ('-o"{0}\WK\x86\NT Password Editor"' -f $Root),
+                "-aoa", "-bso0", "-bse0", "-bsp0",
+                "ntpwedit.exe", "*.txt")
+            Start-Process -FilePath $SevenZip -ArgumentList $ArgumentList -NoNewWindow -Wait
+            Remove-Item "$Temp\ntpwed*"
+        }
+        catch {
+            Write-Host ("  ERROR: Failed to extract files." ) -ForegroundColor "Red"
+        }
+        
+        # PhotoRec / TestDisk
+        Write-Host "Extracting: PhotoRec / TestDisk"
+        try {
+            $ArgumentList = @(
+                "x", "$Temp\testdisk64.zip", "-o$Root\WK\amd64\TestDisk",
+                "-aoa", "-bso0", "-bse0", "-bsp0")
+            Start-Process -FilePath $SevenZip -ArgumentList $ArgumentList -NoNewWindow -Wait
+            Move-Item "$Root\WK\amd64\TestDisk\testdisk-7.1-WIP\*" "$Root\WK\amd64\TestDisk" -Force
+            Remove-Item "$Root\WK\amd64\TestDisk\testdisk-7.1-WIP" -Recurse -Force
+            $ArgumentList = @(
+                "x", "$Temp\testdisk32.zip", "-o$Root\WK\x86\TestDisk",
+                "-aoa", "-bso0", "-bse0", "-bsp0")
+            Start-Process -FilePath $SevenZip -ArgumentList $ArgumentList -NoNewWindow -Wait
+            Move-Item "$Root\WK\x86\TestDisk\testdisk-7.1-WIP\*" "$Root\WK\x86\TestDisk" -Force
+            Remove-Item "$Root\WK\x86\TestDisk\testdisk-7.1-WIP" -Recurse -Force
+            Remove-Item "$Temp\testdisk*"
+        }
+        catch {
+            Write-Host ("  ERROR: Failed to extract files." ) -ForegroundColor "Red"
+        }
+        
+        # Prime95
+        Write-Host "Extracting: Prime95"
+        try {
+            $ArgumentList = @(
+                "x", "$Temp\prime95_64.zip", "-o$Root\WK\amd64\Prime95",
+                "-aoa", "-bso0", "-bse0", "-bsp0")
+            Start-Process -FilePath $SevenZip -ArgumentList $ArgumentList -NoNewWindow -Wait
+            $ArgumentList = @(
+                "x", "$Temp\prime95_32.zip", "-o$Root\WK\x86\Prime95",
+                "-aoa", "-bso0", "-bse0", "-bsp0")
+            Start-Process -FilePath $SevenZip -ArgumentList $ArgumentList -NoNewWindow -Wait
+            Remove-Item "$Temp\prime95*"
+        }
+        catch {
+            Write-Host ("  ERROR: Failed to extract files." ) -ForegroundColor "Red"
+        }
+        
+        # ProduKey
+        try {
+            $ArgumentList = @(
+                "x", "$Temp\produkey64.zip", "-o$Root\WK\amd64\ProduKey",
+                "-aoa", "-bso0", "-bse0", "-bsp0")
+            Start-Process -FilePath $SevenZip -ArgumentList $ArgumentList -NoNewWindow -Wait
+            $ArgumentList = @(
+                "x", "$Temp\produkey32.zip", "-o$Root\WK\x86\ProduKey",
+                "-aoa", "-bso0", "-bse0", "-bsp0")
+            Start-Process -FilePath $SevenZip -ArgumentList $ArgumentList -NoNewWindow -Wait
+            Remove-Item "$Temp\produkey*"
+        }
+        catch {
+            Write-Host ("  ERROR: Failed to extract files." ) -ForegroundColor "Red"
+        }
+        
+        # Python (x64)
+        Write-Host "Extracting: Python (x64)"
         try {
             $ArgumentList = @(
                 "x", "$Temp\python64.zip", "-o$Root\WK\amd64\python",
                 "-aoa", "-bso0", "-bse0", "-bsp0")
             Start-Process -FilePath $SevenZip -ArgumentList $ArgumentList -NoNewWindow -Wait
             $ArgumentList = @(
-                "x", "$Temp\python32.zip", "-o$Root\WK\x86\python",
+                "x", "$Temp\psutil64.whl", "-o$Root\WK\amd64\python",
                 "-aoa", "-bso0", "-bse0", "-bsp0")
             Start-Process -FilePath $SevenZip -ArgumentList $ArgumentList -NoNewWindow -Wait
-            Remove-Item "$Temp\python*.zip"
+            
         }
         catch {
             Write-Host ("  ERROR: Failed to extract files." ) -ForegroundColor "Red"
         }
 
-        # Python: psutil
-        Write-Host "Extracting: Python"
+        # Python (x32)
+        Write-Host "Extracting: Python (x32)"
         try {
             $ArgumentList = @(
-                "x", "$Temp\psutil64.whl", "-o$Root\WK\amd64\python",
+                "x", "$Temp\python32.zip", "-o$Root\WK\x86\python",
                 "-aoa", "-bso0", "-bse0", "-bsp0")
             Start-Process -FilePath $SevenZip -ArgumentList $ArgumentList -NoNewWindow -Wait
             $ArgumentList = @(
                 "x", "$Temp\psutil32.whl", "-o$Root\WK\x86\python",
                 "-aoa", "-bso0", "-bse0", "-bsp0")
             Start-Process -FilePath $SevenZip -ArgumentList $ArgumentList -NoNewWindow -Wait
-            Remove-Item "$Temp\*.whl"
+            
         }
         catch {
             Write-Host ("  ERROR: Failed to extract files." ) -ForegroundColor "Red"
         }
+        Remove-Item "$Temp\python*"
+        Remove-Item "$Temp\*.whl"
     }
+    
+        # Q-Dir
+        Write-Host "Extracting: Q-Dir"
+        try {
+            $ArgumentList = @(
+                "e", "$Temp\qdir64.zip", "-o$Root\WK\amd64\Q-Dir",
+                "-aoa", "-bso0", "-bse0", "-bsp0")
+            Start-Process -FilePath $SevenZip -ArgumentList $ArgumentList -NoNewWindow -Wait
+            $ArgumentList = @(
+                "e", "$Temp\qdir32.zip", "-o$Root\WK\x86\Q-Dir",
+                "-aoa", "-bso0", "-bse0", "-bsp0",
+                "Q-Dir.*")
+            Start-Process -FilePath $SevenZip -ArgumentList $ArgumentList -NoNewWindow -Wait
+            Remove-Item "$Temp\qdir*"
+        }
+        catch {
+            Write-Host ("  ERROR: Failed to extract files." ) -ForegroundColor "Red"
+        }
     
     ## Build ##
     foreach ($Arch in @("amd64", "x86")) {
