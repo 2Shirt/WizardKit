@@ -1,4 +1,4 @@
-# Wizard Kit: Windows PE Build Tool
+﻿# Wizard Kit: Windows PE Build Tool
 
 ## Init ##
 #Requires -Version 3.0
@@ -13,38 +13,55 @@ $Root = (Get-Item $Bin -Force).Parent.FullName
 $Temp = "{0}\tmp" -f $Bin
 $Host.UI.RawUI.BackgroundColor = "Black"
 $Host.UI.RawUI.ForegroundColor = "White"
-$ProgressPreference = "silentlyContinue"
+# $ProgressPreference = "silentlyContinue"
 $SplitWindow = @()
-$DISM = "{0}\DISM.exe" -f $Env:DISMRoot
 $WinPEPackages = @(
     "WinPE-EnhancedStorage.cab",
+    "en-us\WinPE-EnhancedStorage_en-us.cab",
     "WinPE-FMAPI.cab",
     "WinPE-WMI.cab",
-    "WinPE-EnhancedStorage_en-us.cab",
-    "WinPE-WMI_en-us.cab"
+    "en-us\WinPE-WMI_en-us.cab"
 )
     # Install WinPE-WMI before you install WinPE-NetFX.
     # "WinPE-NetFx.cab",
-    # "WinPE-NetFx_en-us.cab",
+    # "en-us\WinPE-NetFx_en-us.cab",
 
     # Install WinPE-WMI and WinPE-NetFX before you install WinPE-Scripting.
     # "WinPE-Scripting.cab",
-    # "WinPE-Scripting_en-us.cab",
+    # "en-us\WinPE-Scripting_en-us.cab",
 
     # Install WinPE-WMI, WinPE-NetFX, and WinPE-Scripting before you install WinPE-PowerShell.
     # "WinPE-PowerShell.cab",
-    # "WinPE-PowerShell_en-us.cab",
+    # "en-us\WinPE-PowerShell_en-us.cab",
 
     # Install WinPE-WMI, WinPE-NetFX, WinPE-Scripting, and WinPE-PowerShell before you install WinPE-DismCmdlets.
     # "WinPE-DismCmdlets.cab",
-    # "WinPE-DismCmdlets_en-us.cab",
+    # "en-us\WinPE-DismCmdlets_en-us.cab",
 
     # Install WinPE-WMI, WinPE-NetFX, WinPE-Scripting, and WinPE-PowerShell before you install WinPE-SecureBootCmdlets.
     # "WinPE-SecureBootCmdlets.cab",
 
     # Install WinPE-WMI, WinPE-NetFX, WinPE-Scripting, and WinPE-PowerShell before you install WinPE-StorageWMI.
     # "WinPE-StorageWMI.cab",
-    # "WinPE-StorageWMI_en-us.cab",
+    # "en-us\WinPE-StorageWMI_en-us.cab",
+
+## Fake DandISetEnv.bat ##
+# $DVars = @(
+    # @("DISMRoot", "C:\Program Files (x86)\Windows Kits\10\Assessment and Deployment Kit\Deployment Tools\amd64\DISM"),
+    # @("BCDBootRoot", "C:\Program Files (x86)\Windows Kits\10\Assessment and Deployment Kit\Deployment Tools\amd64\BCDBoot"),
+    # @("OSCDImgRoot", "C:\Program Files (x86)\Windows Kits\10\Assessment and Deployment Kit\Deployment Tools\amd64\Oscdimg"),
+    # @("WdsmcastRoot", "C:\Program Files (x86)\Windows Kits\10\Assessment and Deployment Kit\Deployment Tools\amd64\Wdsmcast"),
+    # @("HelpIndexerRoot", "C:\Program Files (x86)\Windows Kits\10\Assessment and Deployment Kit\Deployment Tools\HelpIndexer"),
+    # @("WSIMRoot", "C:\Program Files (x86)\Windows Kits\10\Assessment and Deployment Kit\Deployment Tools\WSIM"),
+    # @("WinPERoot", "C:\Program Files (x86)\Windows Kits\10\Assessment and Deployment Kit\Windows Preinstallation Environment")
+# )
+# foreach ($d in $DVars) {
+    # $varName = $d[0]
+    # $varValue = $d[1]
+    # Set-Item -Path Env:$varName -Value $varValue
+    # Set-Item -Path Env:PATH -Value ($Env:PATH + ";$varValue")
+# }
+$DISM = "{0}\DISM.exe" -f $Env:DISMRoot
 
 ## Functions ##
 function Ask-User ($text = "Kotaero") {
@@ -117,16 +134,6 @@ function WKPause ($Message = "Press Enter to continue... ") {
     Write-Host $Message -NoNewLine
     Read-Host
 }
-function WKRun ($Cmd, $ArgumentList) {
-    Start-Process $Cmd -ArgumentList $ArgumentList -NoNewWindow -Wait
-    # Write-Host ("Cmd: == {0} ==" -f $Cmd)
-    # Write-Host ("ArgumentList:")
-    # foreach ($a in $ArgumentList) {
-        # Write-Host ("`t == {0} ==" -f $a)
-    # }
-    # Write-Host ("Check: == {0} ==" -f $Check)
-    # Write-Host ("SplitWindow: == {0} ==" -f $SplitWindow)
-}
 
 ## PowerShell equivalent of Python's "if __name__ == '__main__'"
 # Code based on StackOverflow comments
@@ -135,10 +142,17 @@ function WKRun ($Cmd, $ArgumentList) {
 # Asked by:     https://stackoverflow.com/users/65164/mark-mascolino
 # Answer by:    https://stackoverflow.com/users/696808/bacon-bits
 if ($MyInvocation.InvocationName -ne ".") {
-    Clear-Host
+    # Clear-Host
     Write-Host "Wizard Kit: Windows PE Build Tool`n"
     
     ## Prep ##
+    try {
+        Import-Module -Name $Env:DISMRoot -ErrorAction "stop"
+    }
+    catch {
+        Write-Host -ForegroundColor "Red" "ERROR: Failed to load DISM CmdLet"
+        Abort
+    }
     Push-Location "$WD"
     $Date = Get-Date -UFormat "%Y-%m-%d"
     MakeClean
@@ -152,7 +166,7 @@ if ($MyInvocation.InvocationName -ne ".") {
         # Copy WinPE files
         Write-Host "Copying files..."
         $Cmd = ("{0}\copype.cmd" -f $Env:WinPERoot)
-        WKRun -Cmd $Cmd -ArgumentList @($Arch, $PEFiles)
+        Start-Process $Cmd -ArgumentList @($Arch, $PEFiles) -NoNewWindow -Wait
         
         # Remove unwanted items
         foreach ($SubDir in @("media", "media\Boot", "media\EFI\Microsoft\Boot")) {
@@ -166,24 +180,14 @@ if ($MyInvocation.InvocationName -ne ".") {
         # Mount image
         Write-Host "Mounting image..."
         New-Item -Path $Mount -ItemType "directory" -Force | Out-Null
-        $ArgumentList = @(
-            "/Mount-Image",
-            ('/ImageFile:"{0}\media\sources\boot.wim"' -f $PEFiles),
-            "/Index:1",
-            ('/MountDir:"{0}"' -f $Mount)
-        )
-        WKRun -Cmd $DISM -ArgumentList $ArgumentList
+        Mount-WindowsImage -Path $Mount -ImagePath "$PEFiles\media\sources\boot.wim" -Index 1 | Out-Null
         
         # Add packages
-        Write-Host "Adding packages..."
+        Write-Host "Adding packages:"
         foreach ($Package in $WinPEPackages) {
-            $PackagePath = "{0}\{1}\WinPE_OCs" -f $Env:WinPERoot, $Arch
-            $ArgumentList = @(
-                "/Add-Package",
-                ('/Image:"{0}"' -f $Mount),
-                ('/PackagePath:"{0}"' -f $PackagePath)
-            )
-            WKRun -Cmd $DISM -ArgumentList $ArgumentList
+            $PackagePath = ("{0}\{1}\WinPE_OCs\{2}" -f $Env:WinPERoot, $Arch, $Package)
+            Write-Host "    $Package..."
+            Add-WindowsPackage –PackagePath $PackagePath –Path $Mount | Out-Null
         }
         
         # Set RamDisk size
@@ -191,7 +195,7 @@ if ($MyInvocation.InvocationName -ne ".") {
             ('/Image:"{0}"' -f $Mount),
             "/Set-ScratchSpace:512"
         )
-        WKRun -Cmd $DISM -ArgumentList $ArgumentList
+        Start-Process $DISM -ArgumentList $ArgumentList -NoNewWindow -Wait
         
         # Add WK tools
         Write-Host "Copying tools..."
@@ -202,55 +206,57 @@ if ($MyInvocation.InvocationName -ne ".") {
         } else {
             $DestIni = "$Mount\WK\HWiNFO\HWiNFO32.INI"
         }
-        Move-Item -Path "$Root\WK\HWiNFO\HWiNFO.INI" -Destination $DestIni -Force
+        Move-Item -Path "$Mount\WK\HWiNFO\HWiNFO.INI" -Destination $DestIni -Force
         Copy-Item -Path "$Root\WinPE.jpg" -Destination "$Mount\WK\ConEmu\ConEmu.jpg" -Recurse -Force
         Copy-Item -Path "$Root\Scripts" -Destination "$Mount\WK\Scripts" -Recurse -Force
         
         # Add System32 items
-        Copy-Item -Path "$Root\System32" -Destination "$Mount\Windows\System32" -Recurse -Force
+        Copy-Item -Path "$Root\System32\*" -Destination "$Mount\Windows\System32" -Recurse -Force
         $ArgumentList = @("/f", "$Mount\Windows\System32\winpe.jpg", "/a")
-        WKRun -Cmd "C:\Windows\System32\takeown.exe" -ArgumentList $ArgumentList
+        Start-Process "C:\Windows\System32\takeown.exe" -ArgumentList $ArgumentList -NoNewWindow -Wait
         $ArgumentList = @("$Mount\Windows\System32\winpe.jpg", "/grant", "Administrators:F")
-        WKRun -Cmd "C:\Windows\System32\icacls.exe" -ArgumentList $ArgumentList
+        Start-Process "C:\Windows\System32\icacls.exe" -ArgumentList $ArgumentList -NoNewWindow -Wait
         Copy-Item -Path "$Root\WinPE.jpg" -Destination "$Mount\Windows\System32\winpe.jpg" -Recurse -Force
         
         # Update registry
         Write-Host "Updating Registry..."
         $Reg = "C:\Windows\System32\reg.exe"
-        WKRun -Cmd $Reg -ArgumentList @("load", "HKLM\WinPE-SW", "$Mount\Windows\System32\config\SOFTWARE")
-        WKRun -Cmd $Reg -ArgumentList @("load", "HKLM\WinPE-SYS", "$Mount\Windows\System32\config\SYSTEM")
+        Start-Process $Reg -ArgumentList @("load", "HKLM\WinPE-SW", "$Mount\Windows\System32\config\SOFTWARE") -NoNewWindow -Wait
+        Start-Process $Reg -ArgumentList @("load", "HKLM\WinPE-SYS", "$Mount\Windows\System32\config\SYSTEM") -NoNewWindow -Wait
         
             # Add 7-Zip and Python to path
             $RegPath = "HKLM:\WinPE-SYS\ControlSet001\Control\Session Manager\Environment"
             $RegKey = Get-ItemProperty -Path $RegPath
             $NewValue = "{0};%SystemDrive%\WK\7-Zip;%SystemDrive%\WK\python;%SystemDrive%\WK\wimlib" -f $RegKey.Path
-            Set-ItemProperty -Path $RegPath -Name "Path" -Value $NewValue -Force
+            Set-ItemProperty -Path $RegPath -Name "Path" -Value $NewValue -Force | Out-Null
             
             # Replace Notepad
             $RegPath = "HKLM:\WinPE-SW\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\notepad.exe"
             $NewValue = 'wscript "X:\WK\NotepadPlusPlus\npp.vbs"'
-            New-Item -Path $RegPath -Force
-            New-ItemProperty -Path $RegPath -Name "Debugger" -Value $NewValue -Force
+            New-Item -Path $RegPath -Force | Out-Null
+            New-ItemProperty -Path $RegPath -Name "Debugger" -Value $NewValue -Force | Out-Null
+        
+        # Run garbage collection to release potential stale handles
+        ## Credit: https://jrich523.wordpress.com/2012/03/06/powershell-loading-and-unloading-registry-hives/
+        Start-Sleep -Seconds 2
+        [gc]::collect()
 
         # Unload registry hives
-        Start-Sleep -Seconds 1
-        WKRun -Cmd $Reg -ArgumentList @("unload", "HKLM\WinPE-SW")
-        WKRun -Cmd $Reg -ArgumentList @("unload", "HKLM\WinPE-SYS")
+        Start-Sleep -Seconds 2
+        Start-Process $Reg -ArgumentList @("unload", "HKLM\WinPE-SW") -NoNewWindow -Wait
+        Start-Process $Reg -ArgumentList @("unload", "HKLM\WinPE-SYS") -NoNewWindow -Wait
         
         # Unmount image
         Write-Host "Dismounting image..."
-        $ArgumentList = @(
-            "/Unmount-Image",
-            ('/MountDir:"{0}"' -f $Mount),
-            "/Commit")
-        WKRun -Cmd $DISM -ArgumentList $ArgumentList
+        Dismount-WindowsImage -Path $Mount -Save
         
         # Create ISO
-        $ArgumentList = @("/iso", $PEFiles, "wk-winpe-$Date-$Arch.iso")
+        $ArgumentList = @("/iso", $PEFiles, "$Root\wk-winpe-$Date-$Arch.iso")
         $Cmd = "{0}\MakeWinPEMedia.cmd" -f $Env:WinPERoot
-        WKRun -Cmd $Cmd -ArgumentList $ArgumentList
+        Start-Process $Cmd -ArgumentList $ArgumentList -NoNewWindow -Wait
     }
 
     ## Done ##
     Pop-Location
+    WKPause "Press Enter to exit... "
 }
