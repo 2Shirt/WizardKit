@@ -3,6 +3,9 @@
 ## Init ##
 #Requires -Version 3.0
 #Requires -RunAsAdministrator
+if (Test-Path Env:\DEBUG) {
+    Set-PSDebug -Trace 1
+}
 $Host.UI.RawUI.WindowTitle = "Wizard Kit: Windows PE Build Tool"
 $WD = $(Split-Path $MyInvocation.MyCommand.Path)
 $Bin = (Get-Item $WD -Force).Parent.FullName
@@ -10,7 +13,7 @@ $Root = (Get-Item $Bin -Force).Parent.FullName
 $Temp = "{0}\tmp" -f $Bin
 $Host.UI.RawUI.BackgroundColor = "Black"
 $Host.UI.RawUI.ForegroundColor = "White"
-$ProgressPreference = 'silentlyContinue'
+$ProgressPreference = "silentlyContinue"
 $SplitWindow = @()
 $DISM = "{0}\DISM.exe" -f $Env:DISMRoot
 $WinPEPackages = @(
@@ -48,10 +51,10 @@ function Ask-User ($text = "Kotaero") {
     $text += " [Y/N]"
     while ($true) {
         $answer = read-host $text
-        if ($answer -imatch '^(y|yes)$') {
+        if ($answer -imatch "^(y|yes)$") {
             $answer = $true
             break
-        } elseif ($answer -imatch '^(n|no|nope)$') {
+        } elseif ($answer -imatch "^(n|no|nope)$") {
             $answer = $false
             break
         }
@@ -102,8 +105,8 @@ function FindDynamicUrl ($SourcePage, $RegEx) {
 
     # Search for real url
     $Url = Get-Content "tmp_page" | Where-Object {$_ -imatch $RegEx}
-    $Url = $Url -ireplace '.*(a |)href="([^"]+)".*', '$2'
-    $Url = $Url -ireplace ".*(a |)href='([^']+)'.*", '$2'
+    $Url = $Url -ireplace '.*(a |)href="([^"]+)".*', "$2"
+    $Url = $Url -ireplace ".*(a |)href='([^']+)'.*", "$2"
 
     # Remove tmp_page
     Remove-Item "tmp_page"
@@ -114,11 +117,15 @@ function WKPause ($Message = "Press Enter to continue... ") {
     Write-Host $Message -NoNewLine
     Read-Host
 }
-function WKRun ($Cmd, $ArgumentList, [switch]$SplitWindow=$false) {
-    if (Test-Path Env:\ConEmuBuild) {
-        $ArgumentList += "-new_console:ns33V"
-    }
+function WKRun ($Cmd, $ArgumentList) {
     Start-Process $Cmd -ArgumentList $ArgumentList -NoNewWindow -Wait
+    # Write-Host ("Cmd: == {0} ==" -f $Cmd)
+    # Write-Host ("ArgumentList:")
+    # foreach ($a in $ArgumentList) {
+        # Write-Host ("`t == {0} ==" -f $a)
+    # }
+    # Write-Host ("Check: == {0} ==" -f $Check)
+    # Write-Host ("SplitWindow: == {0} ==" -f $SplitWindow)
 }
 
 ## PowerShell equivalent of Python's "if __name__ == '__main__'"
@@ -127,7 +134,7 @@ function WKRun ($Cmd, $ArgumentList, [switch]$SplitWindow=$false) {
 # Using answer: https://stackoverflow.com/a/5582692
 # Asked by:     https://stackoverflow.com/users/65164/mark-mascolino
 # Answer by:    https://stackoverflow.com/users/696808/bacon-bits
-if ($MyInvocation.InvocationName -ne '.') {
+if ($MyInvocation.InvocationName -ne ".") {
     Clear-Host
     Write-Host "Wizard Kit: Windows PE Build Tool`n"
     
@@ -145,12 +152,12 @@ if ($MyInvocation.InvocationName -ne '.') {
         # Copy WinPE files
         Write-Host "Copying files..."
         $Cmd = ("{0}\copype.cmd" -f $Env:WinPERoot)
-        WKRun -Cmd $Cmd -ArgumentList @($Arch, $PEFiles) -SplitWindow
+        WKRun -Cmd $Cmd -ArgumentList @($Arch, $PEFiles)
         
         # Remove unwanted items
         foreach ($SubDir in @("media", "media\Boot", "media\EFI\Microsoft\Boot")) {
             foreach ($Item in Get-ChildItem "$PEFiles\$SubDir") {
-                if ($Item.Name -inotmatch '^(boot|efi|en-us|sources|fonts|resources|bcd|memtest)') {
+                if ($Item.Name -inotmatch "^(boot|efi|en-us|sources|fonts|resources|bcd|memtest)") {
                     Remove-Item -Path $Item.FullName -Recurse -Force
                 }
             }
@@ -158,13 +165,14 @@ if ($MyInvocation.InvocationName -ne '.') {
         
         # Mount image
         Write-Host "Mounting image..."
+        New-Item -Path $Mount -ItemType "directory" -Force | Out-Null
         $ArgumentList = @(
             "/Mount-Image",
-            "/ImageFile:'$PEFiles\media\sources\boot.wim'",
+            ('/ImageFile:"{0}\media\sources\boot.wim"' -f $PEFiles),
             "/Index:1",
-            "/MountDir:'$Mount'"
+            ('/MountDir:"{0}"' -f $Mount)
         )
-        WKRun -Cmd $DISM -ArgumentList $ArgumentList -SplitWindow
+        WKRun -Cmd $DISM -ArgumentList $ArgumentList
         
         # Add packages
         Write-Host "Adding packages..."
@@ -172,14 +180,17 @@ if ($MyInvocation.InvocationName -ne '.') {
             $PackagePath = "{0}\{1}\WinPE_OCs" -f $Env:WinPERoot, $Arch
             $ArgumentList = @(
                 "/Add-Package",
-                "/Image:'$Mount'",
-                "/PackagePath:'$PackagePath'"
+                ('/Image:"{0}"' -f $Mount),
+                ('/PackagePath:"{0}"' -f $PackagePath)
             )
-            WKRun -Cmd $DISM -ArgumentList $ArgumentList -SplitWindow
+            WKRun -Cmd $DISM -ArgumentList $ArgumentList
         }
         
         # Set RamDisk size
-        $ArgumentList = @("/Image:'$Mount'", "/Set-ScratchSpace:512")
+        $ArgumentList = @(
+            ('/Image:"{0}"' -f $Mount),
+            "/Set-ScratchSpace:512"
+        )
         WKRun -Cmd $DISM -ArgumentList $ArgumentList
         
         # Add WK tools
@@ -228,13 +239,16 @@ if ($MyInvocation.InvocationName -ne '.') {
         
         # Unmount image
         Write-Host "Dismounting image..."
-        $ArgumentList = @("/Unmount-Image", "/MountDir:'$Mount'", "/Commit")
-        WKRun -Cmd $DISM -ArgumentList $ArgumentList -SplitWindow
+        $ArgumentList = @(
+            "/Unmount-Image",
+            ('/MountDir:"{0}"' -f $Mount),
+            "/Commit")
+        WKRun -Cmd $DISM -ArgumentList $ArgumentList
         
         # Create ISO
         $ArgumentList = @("/iso", $PEFiles, "wk-winpe-$Date-$Arch.iso")
         $Cmd = "{0}\MakeWinPEMedia.cmd" -f $Env:WinPERoot
-        WKRun -Cmd $Cmd -ArgumentList $ArgumentList -SplitWindow
+        WKRun -Cmd $Cmd -ArgumentList $ArgumentList
     }
 
     ## Done ##
