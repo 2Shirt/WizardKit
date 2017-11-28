@@ -115,80 +115,54 @@ if ($MyInvocation.InvocationName -ne ".") {
         $Path = $Temp
         
         ## Download Tools ##
-        # 7-Zip
-        DownloadFile -Path $Path -Name "7z-installer.msi" -Url "http://www.7-zip.org/a/7z1701.msi"
-        DownloadFile -Path $Path -Name "7z-extra.7z" -Url "http://www.7-zip.org/a/7z1701-extra.7z"
-
-        # Blue Screen View
-        $Url = "http://www.nirsoft.net/utils/bluescreenview-x64.zip"
-        DownloadFile -Path $Path -Name "bluescreenview64.zip" -Url $Url
-        $Url = "http://www.nirsoft.net/utils/bluescreenview.zip"
-        DownloadFile -Path $Path -Name "bluescreenview32.zip" -Url $Url
-        
-        # ConEmu
-        $Url = "https://github.com/Maximus5/ConEmu/releases/download/v17.11.09/ConEmuPack.171109.7z"
-        DownloadFile -Path $Path -Name "ConEmuPack.7z" -Url $Url
-
-        # Fast Copy
-        $Url = "http://ftp.vector.co.jp/69/28/2323/FastCopy332_x64.zip"
-        DownloadFile -Path $Path -Name "fastcopy64.zip" -Url $Url
-        $Url = "http://ftp.vector.co.jp/69/28/2323/FastCopy332.zip"
-        DownloadFile -Path $Path -Name "fastcopy32.zip" -Url $Url
-        
-        # HWiNFO
-        $Url = "http://app.oldfoss.com:81/download/HWiNFO/hw64_560.zip"
-        DownloadFile -Path $Path -Name "hwinfo64.zip" -Url $Url
-        $Url = "http://app.oldfoss.com:81/download/HWiNFO/hw32_560.zip"
-        DownloadFile -Path $Path -Name "hwinfo32.zip" -Url $Url
-        
-        # Notepad++
-        $Url = "https://notepad-plus-plus.org/repository/7.x/7.5.2/npp.7.5.2.bin.minimalist.x64.7z"
-        DownloadFile -Path $Path -Name "npp_amd64.7z" -Url $Url
-        $Url = "https://notepad-plus-plus.org/repository/7.x/7.5.2/npp.7.5.2.bin.minimalist.7z"
-        DownloadFile -Path $Path -Name "npp_x86.7z" -Url $Url
-
-        # NT Password Editor
-        $Url = "http://cdslow.org.ru/files/ntpwedit/ntpwed07.zip"
-        DownloadFile -Path $Path -Name "ntpwed.zip" -Url $Url
-        
-        # Prime95
-        $Url = "http://www.mersenne.org/ftp_root/gimps/p95v294b5.win64.zip"
-        DownloadFile -Path $Path -Name "prime95_64.zip" -Url $Url
-        $Url = "http://www.mersenne.org/ftp_root/gimps/p95v294b5.win32.zip"
-        DownloadFile -Path $Path -Name "prime95_32.zip" -Url $Url
-        
-        # ProduKey
-        $Url = "http://www.nirsoft.net/utils/produkey-x64.zip"
-        DownloadFile -Path $Path -Name "produkey64.zip" -Url $Url
-        $Url = "http://www.nirsoft.net/utils/produkey.zip"
-        DownloadFile -Path $Path -Name "produkey32.zip" -Url $Url
-        
-        # Python
-        $Url = "https://www.python.org/ftp/python/3.6.3/python-3.6.3-embed-amd64.zip"
-        DownloadFile -Path $Path -Name "python64.zip" -Url $Url
-        $Url = "https://www.python.org/ftp/python/3.6.3/python-3.6.3-embed-win32.zip"
-        DownloadFile -Path $Path -Name "python32.zip" -Url $Url
-
-        # Python: psutil
-        $RegEx = "href=.*-cp36-cp36m-win_amd64.whl"
-        $Url = FindDynamicUrl $DownloadPage $RegEx
-        DownloadFile -Path $Path -Name "psutil64.whl" -Url $Url
-        $DownloadPage = "https://pypi.python.org/pypi/psutil"
-        $RegEx = "href=.*-cp36-cp36m-win32.whl"
-        $Url = FindDynamicUrl $DownloadPage $RegEx
-        DownloadFile -Path $Path -Name "psutil32.whl" -Url $Url
-        
-        # Q-Dir
-        $Url = "https://www.softwareok.com/Download/Q-Dir_Portable_x64.zip"
-        DownloadFile -Path $Path -Name "qdir64.zip" -Url $Url
-        $Url = "https://www.softwareok.com/Download/Q-Dir_Portable.zip"
-        DownloadFile -Path $Path -Name "qdir32.zip" -Url $Url
-        
-        # TestDisk / PhotoRec
-        $Url = "https://www.cgsecurity.org/testdisk-7.1-WIP.win64.zip"
-        DownloadFile -Path $Path -Name "testdisk64.zip" -Url $Url
-        $Url = "https://www.cgsecurity.org/testdisk-7.1-WIP.win.zip"
-        DownloadFile -Path $Path -Name "testdisk32.zip" -Url $Url
+        $ToolSources = @(
+            # 7-Zip
+            @("7z-installer.msi", "http://www.7-zip.org/a/7z1701.msi"),
+            @("7z-extra.7z", "http://www.7-zip.org/a/7z1701-extra.7z"),
+            # Blue Screen View
+            @("bluescreenview64.zip", "http://www.nirsoft.net/utils/bluescreenview-x64.zip"),
+            @("bluescreenview32.zip", "http://www.nirsoft.net/utils/bluescreenview.zip"),
+            # ConEmu
+            @("ConEmuPack.7z", "https://github.com/Maximus5/ConEmu/releases/download/v17.11.09/ConEmuPack.171109.7z"),
+            # Fast Copy
+            @("fastcopy64.zip", "http://ftp.vector.co.jp/69/28/2323/FastCopy332_x64.zip"),
+            @("fastcopy32.zip", "http://ftp.vector.co.jp/69/28/2323/FastCopy332.zip"),
+            # HWiNFO
+            @("hwinfo64.zip", "http://app.oldfoss.com:81/download/HWiNFO/hw64_560.zip"),
+            @("hwinfo32.zip", "http://app.oldfoss.com:81/download/HWiNFO/hw32_560.zip"),
+            # Notepad++
+            @("npp_amd64.7z", "https://notepad-plus-plus.org/repository/7.x/7.5.2/npp.7.5.2.bin.minimalist.x64.7z"),
+            @("npp_x86.7z", "https://notepad-plus-plus.org/repository/7.x/7.5.2/npp.7.5.2.bin.minimalist.7z"),
+            # NT Password Editor
+            @("ntpwed.zip", "http://cdslow.org.ru/files/ntpwedit/ntpwed07.zip"),
+            # Prime95
+            @("prime95_64.zip", "http://www.mersenne.org/ftp_root/gimps/p95v294b5.win64.zip"),
+            @("prime95_32.zip", "http://www.mersenne.org/ftp_root/gimps/p95v294b5.win32.zip"),
+            # ProduKey
+            @("produkey64.zip", "http://www.nirsoft.net/utils/produkey-x64.zip"),
+            @("produkey32.zip", "http://www.nirsoft.net/utils/produkey.zip"),
+            # Python
+            @("python64.zip", "https://www.python.org/ftp/python/3.6.3/python-3.6.3-embed-amd64.zip"),
+            @("python32.zip", "https://www.python.org/ftp/python/3.6.3/python-3.6.3-embed-win32.zip"),
+            # Python: psutil
+            @(
+                "psutil64.whl",
+                (FindDynamicUrl "https://pypi.python.org/pypi/psutil" "href=.*-cp36-cp36m-win_amd64.whl")
+            ),
+            @(
+                "psutil32.whl",
+                (FindDynamicUrl "https://pypi.python.org/pypi/psutil" "href=.*-cp36-cp36m-win32.whl")
+            ),
+            # Q-Dir
+            @("qdir64.zip", "https://www.softwareok.com/Download/Q-Dir_Portable_x64.zip"),
+            @("qdir32.zip", "https://www.softwareok.com/Download/Q-Dir_Portable.zip"),
+            # TestDisk / PhotoRec
+            @("testdisk64.zip", "https://www.cgsecurity.org/testdisk-7.1-WIP.win64.zip"),
+            @("testdisk32.zip", "https://www.cgsecurity.org/testdisk-7.1-WIP.win.zip")
+        )
+        foreach ($Tool in $ToolSources) {
+            DownloadFile -Path $Temp -Name $Tool[0] -Url $Tool[1]
+        }
         
         ## Bail ##
         # If errors were encountered during downloads
@@ -426,7 +400,6 @@ if ($MyInvocation.InvocationName -ne ".") {
         }
         Remove-Item "$Temp\python*"
         Remove-Item "$Temp\*.whl"
-    }
     
         # Q-Dir
         Write-Host "Extracting: Q-Dir"
@@ -444,6 +417,7 @@ if ($MyInvocation.InvocationName -ne ".") {
         catch {
             Write-Host ("  ERROR: Failed to extract files." ) -ForegroundColor "Red"
         }
+    }
     
     ## Build ##
     foreach ($Arch in @("amd64", "x86")) {
