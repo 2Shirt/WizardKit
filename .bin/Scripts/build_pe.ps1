@@ -10,7 +10,7 @@ $Host.UI.RawUI.WindowTitle = "Wizard Kit: Windows PE Build Tool"
 $WD = $(Split-Path $MyInvocation.MyCommand.Path)
 $Bin = (Get-Item $WD -Force).Parent.FullName
 $Root = (Get-Item $Bin -Force).Parent.FullName
-$Temp = "{0}\tmp" -f $Bin
+$Temp = "$Bin\tmp"
 $Date = Get-Date -UFormat "%Y-%m-%d"
 $Host.UI.RawUI.BackgroundColor = "Black"
 $Host.UI.RawUI.ForegroundColor = "White"
@@ -106,30 +106,29 @@ function MakeClean {
 function DownloadFile ($Path, $Name, $Url) {
     $OutFile = "{0}\{1}" -f $Path, $Name
 
-    Write-Host ("Downloading: {0}" -f $Name)
+    Write-Host ("Downloading: $Name")
     New-Item -Type Directory $Path 2>&1 | Out-Null
     try {
-        Invoke-Webrequest -Uri $Url -OutFile $OutFile
+        Invoke-WebRequest -Uri $Url -OutFile $OutFile
     }
     catch {
         Write-Host ("  ERROR: Failed to download file." ) -ForegroundColor "Red"
+        $DownloadErrors += 1
     }
 }
 function FindDynamicUrl ($SourcePage, $RegEx) {
-    $Url = ""
-
     # Get source page
     Invoke-Webrequest -Uri $SourcePage -OutFile "tmp_page"
 
     # Search for real url
     $Url = Get-Content "tmp_page" | Where-Object {$_ -imatch $RegEx}
-    $Url = $Url -ireplace '.*(a |)href="([^"]+)".*', "$2"
-    $Url = $Url -ireplace ".*(a |)href='([^']+)'.*", "$2"
+    $Url = $Url -ireplace '.*(a |)href="([^"]+)".*', '$2'
+    $Url = $Url -ireplace ".*(a |)href='([^']+)'.*", '$2'
 
     # Remove tmp_page
     Remove-Item "tmp_page"
 
-    return $Url
+    $Url | Select-Object -First 1
 }
 function WKPause ($Message = "Press Enter to continue... ") {
     Write-Host $Message -NoNewLine
@@ -143,7 +142,7 @@ function WKPause ($Message = "Press Enter to continue... ") {
 # Asked by:     https://stackoverflow.com/users/65164/mark-mascolino
 # Answer by:    https://stackoverflow.com/users/696808/bacon-bits
 if ($MyInvocation.InvocationName -ne ".") {
-    # Clear-Host
+    Clear-Host
     Write-Host "Wizard Kit: Windows PE Build Tool`n"
     
     ## Prep ##
@@ -157,6 +156,147 @@ if ($MyInvocation.InvocationName -ne ".") {
     Push-Location "$WD"
     MakeClean
     
+    if (Ask-User "Update Tools?") {
+        $DownloadErrors = 0
+        $Path = $Temp
+        
+        ## Download Tools ##
+        # 7-Zip
+        DownloadFile -Path $Path -Name "7z-installer.msi" -Url "http://www.7-zip.org/a/7z1701.msi"
+        DownloadFile -Path $Path -Name "7z-extra.7z" -Url "http://www.7-zip.org/a/7z1701-extra.7z"
+
+        # ConEmu
+        $Url = "https://github.com/Maximus5/ConEmu/releases/download/v17.11.09/ConEmuPack.171109.7z"
+        DownloadFile -Path $Path -Name "ConEmuPack.7z" -Url $Url
+
+        # Notepad++
+        $Url = "https://notepad-plus-plus.org/repository/7.x/7.5.2/npp.7.5.2.bin.minimalist.x64.7z"
+        DownloadFile -Path $Path -Name "nppamd64.7z" -Url $Url
+        $Url = "https://notepad-plus-plus.org/repository/7.x/7.5.2/npp.7.5.2.bin.minimalist.7z"
+        DownloadFile -Path $Path -Name "nppx86.7z" -Url $Url
+
+        # Python
+        $Url = "https://www.python.org/ftp/python/3.6.3/python-3.6.3-embed-win32.zip"
+        DownloadFile -Path $Path -Name "python32.zip" -Url $Url
+        $Url = "https://www.python.org/ftp/python/3.6.3/python-3.6.3-embed-amd64.zip"
+        DownloadFile -Path $Path -Name "python64.zip" -Url $Url
+
+        # Python: psutil
+        $DownloadPage = "https://pypi.python.org/pypi/psutil"
+        $RegEx = "href=.*-cp36-cp36m-win32.whl"
+        $Url = FindDynamicUrl $DownloadPage $RegEx
+        DownloadFile -Path $Path -Name "psutil32.whl" -Url $Url
+        $RegEx = "href=.*-cp36-cp36m-win_amd64.whl"
+        $Url = FindDynamicUrl $DownloadPage $RegEx
+        DownloadFile -Path $Path -Name "psutil64.whl" -Url $Url
+    
+        ## Bail ##
+        # If errors were encountered during downloads
+        if ($DownloadErrors -gt 0) {
+            Abort
+        }
+        
+        ## Extract ##
+        # 7-Zip
+        Write-Host "Extracting: 7-Zip"
+        try {
+            $ArgumentList = @("/a", "$Temp\7z-installer.msi", "TARGETDIR=$Temp\7zi", "/qn")
+            Start-Process -FilePath "$System32\msiexec.exe" -ArgumentList $ArgumentList -Wait
+            $SevenZip = "$Temp\7zi\Files\7-Zip\7z.exe"
+            $ArgumentList = @(
+                "e", "$Temp\7z-extra.7z", "-o$Root\WK\amd64\7-Zip",
+                "-aoa", "-bso0", "-bse0", "-bsp0",
+                "x64\7za.exe", "*.txt")
+            Start-Process -FilePath $SevenZip -ArgumentList $ArgumentList -NoNewWindow -Wait
+            $ArgumentList = @(
+                "e", "$Temp\7z-extra.7z", "-o$Root\WK\x86\7-Zip",
+                "-aoa", "-bso0", "-bse0", "-bsp0",
+                "7za.exe", "*.txt")
+            Start-Process -FilePath $SevenZip -ArgumentList $ArgumentList -NoNewWindow -Wait
+            Remove-Item "$Temp\7z*" -Recurse
+            $SevenZip = "$Root\WK\x86\7-Zip\7za.exe"
+        }
+        catch {
+            Write-Host ("  ERROR: Failed to extract files." ) -ForegroundColor "Red"
+        }
+
+        # Notepad++
+        Write-Host "Extracting: Notepad++"
+        try {
+            $ArgumentList = @(
+                "x", "$Temp\nppamd64.7z", "-o$Root\WK\amd64\NotepadPlusPlus",
+                "-aoa", "-bso0", "-bse0", "-bsp0")
+            Start-Process -FilePath $SevenZip -ArgumentList $ArgumentList -NoNewWindow -Wait
+            $ArgumentList = @(
+                "x", "$Temp\nppx86.7z", "-o$Root\WK\x86\NotepadPlusPlus",
+                "-aoa", "-bso0", "-bse0", "-bsp0")
+            Start-Process -FilePath $SevenZip -ArgumentList $ArgumentList -NoNewWindow -Wait
+            Remove-Item "$Temp\npp*.7z"
+            Move-Item "$Root\WK\amd64\NotepadPlusPlus\notepad++.exe" "$Root\WK\amd64\NotepadPlusPlus\notepadplusplus.exe"
+            Move-Item "$Root\WK\x86\NotepadPlusPlus\notepad++.exe" "$Root\WK\x86\NotepadPlusPlus\notepadplusplus.exe"
+        }
+        catch {
+            Write-Host ("  ERROR: Failed to extract files." ) -ForegroundColor "Red"
+        }
+
+        # ConEmu
+        Write-Host "Extracting: ConEmu"
+        try {
+            $ArgumentList = @(
+                "x", "$Temp\ConEmuPack.7z", "-o$Root\WK\amd64\ConEmu",
+                "-aoa", "-bso0", "-bse0", "-bsp0")
+            Start-Process -FilePath $SevenZip -ArgumentList $ArgumentList -NoNewWindow -Wait
+            Remove-Item "$Root\WK\amd64\ConEmu\ConEmu.exe"
+            Remove-Item "$Root\WK\amd64\ConEmu\ConEmu.map"
+            Move-Item "$Root\WK\amd64\ConEmu\ConEmu64.exe" "$Root\WK\amd64\ConEmu\ConEmu.exe"
+            Move-Item "$Root\WK\amd64\ConEmu\ConEmu64.map" "$Root\WK\amd64\ConEmu\ConEmu.map"
+            $ArgumentList = @(
+                "x", "$Temp\ConEmuPack.7z", "-o$Root\WK\x86\ConEmu",
+                "-aoa", "-bso0", "-bse0", "-bsp0")
+            Start-Process -FilePath $SevenZip -ArgumentList $ArgumentList -NoNewWindow -Wait
+            Remove-Item "$Root\WK\x86\ConEmu\ConEmu64.exe"
+            Remove-Item "$Root\WK\x86\ConEmu\ConEmu64.map"
+            Remove-Item "$Temp\ConEmuPack.7z"
+        }
+        catch {
+            Write-Host ("  ERROR: Failed to extract files." ) -ForegroundColor "Red"
+        }
+
+        # Python
+        Write-Host "Extracting: Python"
+        try {
+            $ArgumentList = @(
+                "x", "$Temp\python64.zip", "-o$Root\WK\amd64\python",
+                "-aoa", "-bso0", "-bse0", "-bsp0")
+            Start-Process -FilePath $SevenZip -ArgumentList $ArgumentList -NoNewWindow -Wait
+            $ArgumentList = @(
+                "x", "$Temp\python32.zip", "-o$Root\WK\x86\python",
+                "-aoa", "-bso0", "-bse0", "-bsp0")
+            Start-Process -FilePath $SevenZip -ArgumentList $ArgumentList -NoNewWindow -Wait
+            Remove-Item "$Temp\python*.zip"
+        }
+        catch {
+            Write-Host ("  ERROR: Failed to extract files." ) -ForegroundColor "Red"
+        }
+
+        # Python: psutil
+        Write-Host "Extracting: Python"
+        try {
+            $ArgumentList = @(
+                "x", "$Temp\psutil64.whl", "-o$Root\WK\amd64\python",
+                "-aoa", "-bso0", "-bse0", "-bsp0")
+            Start-Process -FilePath $SevenZip -ArgumentList $ArgumentList -NoNewWindow -Wait
+            $ArgumentList = @(
+                "x", "$Temp\psutil32.whl", "-o$Root\WK\x86\python",
+                "-aoa", "-bso0", "-bse0", "-bsp0")
+            Start-Process -FilePath $SevenZip -ArgumentList $ArgumentList -NoNewWindow -Wait
+            Remove-Item "$Temp\*.whl"
+        }
+        catch {
+            Write-Host ("  ERROR: Failed to extract files." ) -ForegroundColor "Red"
+        }
+    }
+    
     ## Build ##
     foreach ($Arch in @("amd64", "x86")) {
         $Drivers = "$Root\Drivers\%arch"
@@ -166,7 +306,7 @@ if ($MyInvocation.InvocationName -ne ".") {
         # Copy WinPE files
         Write-Host "Copying files..."
         $Cmd = ("{0}\copype.cmd" -f $Env:WinPERoot)
-        Start-Process $Cmd -ArgumentList @($Arch, $PEFiles) -NoNewWindow -Wait
+        Start-Process -FilePath $Cmd -ArgumentList @($Arch, $PEFiles) -NoNewWindow -Wait
         
         # Remove unwanted items
         foreach ($SubDir in @("media", "media\Boot", "media\EFI\Microsoft\Boot")) {
@@ -195,7 +335,7 @@ if ($MyInvocation.InvocationName -ne ".") {
             ('/Image:"{0}"' -f $Mount),
             "/Set-ScratchSpace:512"
         )
-        Start-Process $DISM -ArgumentList $ArgumentList -NoNewWindow -Wait
+        Start-Process -FilePath $DISM -ArgumentList $ArgumentList -NoNewWindow -Wait
         
         # Add WK tools
         Write-Host "Copying tools..."
@@ -211,30 +351,33 @@ if ($MyInvocation.InvocationName -ne ".") {
         Copy-Item -Path "$Root\Scripts" -Destination "$Mount\WK\Scripts" -Recurse -Force
         
         # Add System32 items
+        $HostSystem32 = "{0}\System32" -f $Env:SystemRoot
         Copy-Item -Path "$Root\System32\*" -Destination "$Mount\Windows\System32" -Recurse -Force
         $ArgumentList = @("/f", "$Mount\Windows\System32\winpe.jpg", "/a")
-        Start-Process "C:\Windows\System32\takeown.exe" -ArgumentList $ArgumentList -NoNewWindow -Wait
+        Start-Process -FilePath "$HostSystem32\takeown.exe" -ArgumentList $ArgumentList -NoNewWindow -Wait
         $ArgumentList = @("$Mount\Windows\System32\winpe.jpg", "/grant", "Administrators:F")
-        Start-Process "C:\Windows\System32\icacls.exe" -ArgumentList $ArgumentList -NoNewWindow -Wait
+        Start-Process -FilePath "$HostSystem32\icacls.exe" -ArgumentList $ArgumentList -NoNewWindow -Wait
         Copy-Item -Path "$Root\WinPE.jpg" -Destination "$Mount\Windows\System32\winpe.jpg" -Recurse -Force
         
-        # Update registry
+        # Load registry hives
         Write-Host "Updating Registry..."
-        $Reg = "C:\Windows\System32\reg.exe"
-        Start-Process $Reg -ArgumentList @("load", "HKLM\WinPE-SW", "$Mount\Windows\System32\config\SOFTWARE") -NoNewWindow -Wait
-        Start-Process $Reg -ArgumentList @("load", "HKLM\WinPE-SYS", "$Mount\Windows\System32\config\SYSTEM") -NoNewWindow -Wait
+        $Reg = "$HostSystem32\reg.exe"
+        $ArgumentList = @("load", "HKLM\WinPE-SW", "$Mount\Windows\System32\config\SOFTWARE")
+        Start-Process -FilePath $Reg -ArgumentList $ArgumentList -NoNewWindow -Wait
+        $ArgumentList = @("load", "HKLM\WinPE-SYS", "$Mount\Windows\System32\config\SYSTEM")
+        Start-Process -FilePath $Reg -ArgumentList $ArgumentList -NoNewWindow -Wait
         
-            # Add 7-Zip and Python to path
-            $RegPath = "HKLM:\WinPE-SYS\ControlSet001\Control\Session Manager\Environment"
-            $RegKey = Get-ItemProperty -Path $RegPath
-            $NewValue = "{0};%SystemDrive%\WK\7-Zip;%SystemDrive%\WK\python;%SystemDrive%\WK\wimlib" -f $RegKey.Path
-            Set-ItemProperty -Path $RegPath -Name "Path" -Value $NewValue -Force | Out-Null
-            
-            # Replace Notepad
-            $RegPath = "HKLM:\WinPE-SW\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\notepad.exe"
-            $NewValue = 'wscript "X:\WK\NotepadPlusPlus\npp.vbs"'
-            New-Item -Path $RegPath -Force | Out-Null
-            New-ItemProperty -Path $RegPath -Name "Debugger" -Value $NewValue -Force | Out-Null
+        # Add tools to path
+        $RegPath = "HKLM:\WinPE-SYS\ControlSet001\Control\Session Manager\Environment"
+        $RegKey = Get-ItemProperty -Path $RegPath
+        $NewValue = "{0};%SystemDrive%\WK\7-Zip;%SystemDrive%\WK\python;%SystemDrive%\WK\wimlib" -f $RegKey.Path
+        Set-ItemProperty -Path $RegPath -Name "Path" -Value $NewValue -Force | Out-Null
+        
+        # Replace Notepad
+        $RegPath = "HKLM:\WinPE-SW\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\notepad.exe"
+        $NewValue = 'wscript "X:\WK\NotepadPlusPlus\npp.vbs"'
+        New-Item -Path $RegPath -Force | Out-Null
+        New-ItemProperty -Path $RegPath -Name "Debugger" -Value $NewValue -Force | Out-Null
         
         # Run garbage collection to release potential stale handles
         ## Credit: https://jrich523.wordpress.com/2012/03/06/powershell-loading-and-unloading-registry-hives/
@@ -243,8 +386,8 @@ if ($MyInvocation.InvocationName -ne ".") {
 
         # Unload registry hives
         Start-Sleep -Seconds 2
-        Start-Process $Reg -ArgumentList @("unload", "HKLM\WinPE-SW") -NoNewWindow -Wait
-        Start-Process $Reg -ArgumentList @("unload", "HKLM\WinPE-SYS") -NoNewWindow -Wait
+        Start-Process -FilePath $Reg -ArgumentList @("unload", "HKLM\WinPE-SW") -NoNewWindow -Wait
+        Start-Process -FilePath $Reg -ArgumentList @("unload", "HKLM\WinPE-SYS") -NoNewWindow -Wait
         
         # Unmount image
         Write-Host "Dismounting image..."
@@ -253,7 +396,7 @@ if ($MyInvocation.InvocationName -ne ".") {
         # Create ISO
         $ArgumentList = @("/iso", $PEFiles, "$Root\wk-winpe-$Date-$Arch.iso")
         $Cmd = "{0}\MakeWinPEMedia.cmd" -f $Env:WinPERoot
-        Start-Process $Cmd -ArgumentList $ArgumentList -NoNewWindow -Wait
+        Start-Process -FilePath $Cmd -ArgumentList $ArgumentList -NoNewWindow -Wait
     }
 
     ## Done ##
