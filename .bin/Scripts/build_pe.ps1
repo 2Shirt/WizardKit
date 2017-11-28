@@ -16,52 +16,6 @@ $Host.UI.RawUI.BackgroundColor = "Black"
 $Host.UI.RawUI.ForegroundColor = "White"
 # $ProgressPreference = "silentlyContinue"
 $HostSystem32 = "{0}\System32" -f $Env:SystemRoot
-$WinPEPackages = @(
-    "WinPE-EnhancedStorage.cab",
-    "en-us\WinPE-EnhancedStorage_en-us.cab",
-    "WinPE-FMAPI.cab",
-    "WinPE-WMI.cab",
-    "en-us\WinPE-WMI_en-us.cab"
-)
-    # Install WinPE-WMI before you install WinPE-NetFX.
-    # "WinPE-NetFx.cab",
-    # "en-us\WinPE-NetFx_en-us.cab",
-
-    # Install WinPE-WMI and WinPE-NetFX before you install WinPE-Scripting.
-    # "WinPE-Scripting.cab",
-    # "en-us\WinPE-Scripting_en-us.cab",
-
-    # Install WinPE-WMI, WinPE-NetFX, and WinPE-Scripting before you install WinPE-PowerShell.
-    # "WinPE-PowerShell.cab",
-    # "en-us\WinPE-PowerShell_en-us.cab",
-
-    # Install WinPE-WMI, WinPE-NetFX, WinPE-Scripting, and WinPE-PowerShell before you install WinPE-DismCmdlets.
-    # "WinPE-DismCmdlets.cab",
-    # "en-us\WinPE-DismCmdlets_en-us.cab",
-
-    # Install WinPE-WMI, WinPE-NetFX, WinPE-Scripting, and WinPE-PowerShell before you install WinPE-SecureBootCmdlets.
-    # "WinPE-SecureBootCmdlets.cab",
-
-    # Install WinPE-WMI, WinPE-NetFX, WinPE-Scripting, and WinPE-PowerShell before you install WinPE-StorageWMI.
-    # "WinPE-StorageWMI.cab",
-    # "en-us\WinPE-StorageWMI_en-us.cab",
-
-## Fake DandISetEnv.bat ##
-# $DVars = @(
-    # @("DISMRoot", "C:\Program Files (x86)\Windows Kits\10\Assessment and Deployment Kit\Deployment Tools\amd64\DISM"),
-    # @("BCDBootRoot", "C:\Program Files (x86)\Windows Kits\10\Assessment and Deployment Kit\Deployment Tools\amd64\BCDBoot"),
-    # @("OSCDImgRoot", "C:\Program Files (x86)\Windows Kits\10\Assessment and Deployment Kit\Deployment Tools\amd64\Oscdimg"),
-    # @("WdsmcastRoot", "C:\Program Files (x86)\Windows Kits\10\Assessment and Deployment Kit\Deployment Tools\amd64\Wdsmcast"),
-    # @("HelpIndexerRoot", "C:\Program Files (x86)\Windows Kits\10\Assessment and Deployment Kit\Deployment Tools\HelpIndexer"),
-    # @("WSIMRoot", "C:\Program Files (x86)\Windows Kits\10\Assessment and Deployment Kit\Deployment Tools\WSIM"),
-    # @("WinPERoot", "C:\Program Files (x86)\Windows Kits\10\Assessment and Deployment Kit\Windows Preinstallation Environment")
-# )
-# foreach ($d in $DVars) {
-    # $varName = $d[0]
-    # $varValue = $d[1]
-    # Set-Item -Path Env:$varName -Value $varValue
-    # Set-Item -Path Env:PATH -Value ($Env:PATH + ";$varValue")
-# }
 $DISM = "{0}\DISM.exe" -f $Env:DISMRoot
 
 ## Functions ##
@@ -518,10 +472,20 @@ if ($MyInvocation.InvocationName -ne ".") {
         
         # Add packages
         Write-Host "Adding packages:"
+        $WinPEPackages = @(
+            "WinPE-EnhancedStorage",
+            "WinPE-FMAPI",
+            "WinPE-WMI",
+            "WinPE-SecureStartup"
+        )
         foreach ($Package in $WinPEPackages) {
-            $PackagePath = ("{0}\{1}\WinPE_OCs\{2}" -f $Env:WinPERoot, $Arch, $Package)
+            $PackagePath = ("{0}\{1}\WinPE_OCs\{2}.cab" -f $Env:WinPERoot, $Arch, $Package)
             Write-Host "    $Package..."
             Add-WindowsPackage –PackagePath $PackagePath –Path $Mount | Out-Null
+            $LangPackagePath = ("{0}\{1}\WinPE_OCs\en-us\{2}_en-us.cab" -f $Env:WinPERoot, $Arch, $Package)
+            if (Test-Path $LangPackagePath) {
+                Add-WindowsPackage –PackagePath $LangPackagePath –Path $Mount | Out-Null
+            }
         }
         
         # Set RamDisk size
