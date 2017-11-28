@@ -1,182 +1,207 @@
-# Wizard Kit: Download kit components
+﻿# Wizard Kit: Download kit components
 
 ## Init ##
 #Requires -Version 3.0
-clear
 if (Test-Path Env:\DEBUG) {
     Set-PSDebug -Trace 1
 }
-$host.UI.RawUI.WindowTitle = "Wizard Kit: Build Tool"
-$wd = $(Split-Path $MyInvocation.MyCommand.Path)
-$bin = (Get-Item $wd).Parent.FullName
-$root = (Get-Item $bin -Force).Parent.FullName
-$tmp = "{0}\tmp" -f $bin
-$errors = 0
-pushd "$wd"
-$host.UI.RawUI.BackgroundColor = "black"
-$host.UI.RawUI.ForegroundColor = "white"
-$progressPreference = 'silentlyContinue'
+$Host.UI.RawUI.WindowTitle = "Wizard Kit: Build Tool"
+$WD = $(Split-Path $MyInvocation.MyCommand.Path)
+$Bin = (Get-Item $WD).Parent.FullName
+$Root = (Get-Item $Bin -Force).Parent.FullName
+$Temp = "$Bin\tmp"
+$System32 = "{0}\System32" -f $Env:SystemRoot
+Push-Location "$WD"
+$Host.UI.RawUI.BackgroundColor = "black"
+$Host.UI.RawUI.ForegroundColor = "white"
 
-## Safety Check ##
-if ($PSVersionTable.PSVersion.Major -eq 6 -and $PSVersionTable.OS -imatch "Windows 6.1") {
-    Write-Host -ForegroundColor "Red" "`nAborted."
-    Write-Host "`nThis script doesn't support PowerShell 6.0 on Windows 7."
-	Write-Host "Press Enter to exit... " -NoNewLine
-	Read-Host
-    exit
-}
 
 ## Functions ##
-function download-file {
-    param ([String]$path, [String]$name, [String]$url)
-    $outfile = "{0}\{1}" -f $path, $name
+function Abort {
+    Write-Host -ForegroundColor "Red" "`nAborted."
+    WKPause "Press Enter to exit..."
+    exit
+}
+function DownloadFile ($Path, $Name, $Url) {
+    $OutFile = "{0}\{1}" -f $Path, $Name
 
-    Write-Host ("Downloading: {0}" -f $name)
-    New-Item -Type Directory $path 2>&1 | Out-Null
+    Write-Host ("Downloading: $Name")
+    New-Item -Type Directory $Path 2>&1 | Out-Null
     try {
-        invoke-webrequest -uri $url -outfile $outfile
+        Invoke-WebRequest -Uri $Url -OutFile $OutFile
     }
     catch {
-        Write-Host ("  ERROR: Failed to download file." ) -foregroundcolor "Red"
-        $errors += 1
+        Write-Host ("  ERROR: Failed to download file." ) -ForegroundColor "Red"
+        $DownloadErrors += 1
     }
 }
-function find-dynamic-url {
-    param ([String]$source_page, [String]$regex)
-    $d_url = ""
-
+function FindDynamicUrl ($SourcePage, $RegEx) {
     # Get source page
-    invoke-webrequest -uri $source_page -outfile "tmp_page"
+    Invoke-Webrequest -Uri $SourcePage -OutFile "tmp_page"
 
     # Search for real url
-    $d_url = Get-Content "tmp_page" | Where-Object {$_ -imatch $regex}
-    $d_url = $d_url -ireplace '.*(a |)href="([^"]+)".*', '$2'
-    $d_url = $d_url -ireplace ".*(a |)href='([^']+)'.*", '$2'
+    $Url = Get-Content "tmp_page" | Where-Object {$_ -imatch $RegEx}
+    $Url = $Url -ireplace '.*(a |)href="([^"]+)".*', '$2'
+    $Url = $Url -ireplace ".*(a |)href='([^']+)'.*", '$2'
 
     # Remove tmp_page
     Remove-Item "tmp_page"
 
-    return $d_url
+    $Url | Select-Object -First 1
 }
-function wk_pause {
-    param([string]$message = "Press Enter to continue... ")
-    Write-Host $message
-    $x = read-host
-}
-
-## Download ##
-$path = $tmp
-
-# 7-Zip
-$url = "http://www.7-zip.org/a/7z1701.msi"
-download-file $path "7z-installer.msi" $url
-$url = "http://www.7-zip.org/a/7z1701-extra.7z"
-download-file $path "7z-extra.7z" $url
-
-# ConEmu
-$url = "https://github.com/Maximus5/ConEmu/releases/download/v17.11.09/ConEmuPack.171109.7z"
-download-file $path "ConEmuPack.7z" $url
-
-# Notepad++
-$url = "https://notepad-plus-plus.org/repository/7.x/7.5.1/npp.7.5.1.bin.minimalist.7z"
-download-file $path "npp.7z" $url
-
-# Python
-$url = "https://www.python.org/ftp/python/3.6.3/python-3.6.3-embed-win32.zip"
-download-file $path "python32.zip" $url
-$url = "https://www.python.org/ftp/python/3.6.3/python-3.6.3-embed-amd64.zip"
-download-file $path "python64.zip" $url
-
-# Python: psutil
-$dl_page = "https://pypi.python.org/pypi/psutil"
-$regex = "href=.*-cp36-cp36m-win32.whl"
-$url = find-dynamic-url $dl_page $regex
-download-file $path "psutil32.whl" $url
-$regex = "href=.*-cp36-cp36m-win_amd64.whl"
-$url = find-dynamic-url $dl_page $regex
-download-file $path "psutil64.whl" $url
-
-# Python: requests & dependancies
-$regex = "href=.*.py3-none-any.whl"
-foreach ($mod in @("chardet", "certifi", "idna", "urllib3", "requests")) {
-    $dl_page = "https://pypi.python.org/pypi/{0}" -f $mod
-    $name = "{0}.whl" -f $mod
-    $url = find-dynamic-url $dl_page $regex
-    download-file $path $name $url
+function WKPause ($Message = "Press Enter to continue... ") {
+    Write-Host $Message -NoNewLine
+    Read-Host
 }
 
-## Extract ##
-# 7-Zip
-Write-Host "Extracting: 7-Zip"
-try {
-    start "msiexec" -argumentlist @("/a", "$tmp\7z-installer.msi", "TARGETDIR=$tmp\7zi", "/qn") -wait
-    $sz = "$tmp\7zi\Files\7-Zip\7z.exe"
-    start $sz -argumentlist @("x", "$tmp\7z-extra.7z", "-o$bin\7-Zip", "-aoa", "-bso0", "-bse0", "-bsp0", "-x!x64\*.dll", "-x!Far", "-x!*.dll") -nonewwindow -wait
-    Start-Sleep 1
-    Move-Item "$bin\7-Zip\x64\7za.exe" "$bin\7-Zip\7za64.exe"
-    Remove-Item "$bin\7-Zip\x64" -Recurse
-    Remove-Item "$tmp\7z*" -Recurse
-    $sz = "$bin\7-Zip\7za.exe"
-}
-catch {
-    Write-Host ("  ERROR: Failed to extract files." ) -foregroundcolor "Red"
+## Safety Check ##
+if ($PSVersionTable.PSVersion.Major -eq 6 -and $PSVersionTable.OS -imatch "Windows 6.1") {
+    Write-Host "`nThis script doesn't support PowerShell 6.0 on Windows 7."
+	Write-Host "Press Enter to exit... " -NoNewLine
+    Abort
 }
 
-# Notepad++
-Write-Host "Extracting: Notepad++"
-try {
-    start $sz -argumentlist @("x", "$tmp\npp.7z", "-o$bin\NotepadPlusPlus", "-aoa", "-bso0", "-bse0", "-bsp0") -nonewwindow -wait
-    Remove-Item "$tmp\npp.7z"
-    Move-Item "$bin\NotepadPlusPlus\notepad++.exe" "$bin\NotepadPlusPlus\notepadplusplus.exe"
-}
-catch {
-    Write-Host ("  ERROR: Failed to extract files." ) -foregroundcolor "Red"
-}
+## PowerShell equivalent of Python's "if __name__ == '__main__'"
+# Code based on StackOverflow comments
+# Question:     https://stackoverflow.com/q/4693947
+# Using answer: https://stackoverflow.com/a/5582692
+# Asked by:     https://stackoverflow.com/users/65164/mark-mascolino
+# Answer by:    https://stackoverflow.com/users/696808/bacon-bits
+if ($MyInvocation.InvocationName -ne ".") {
+    Clear-Host
+    Write-Host "Wizard Kit: Build Tool`n`n`n`n`n"
+    
+    ## Download ##
+    $DownloadErrors = 0
+    $Path = $Temp
 
-# ConEmu
-Write-Host "Extracting: ConEmu"
-try {
-    start $sz -argumentlist @("x", "$tmp\ConEmuPack.7z", "-o$bin\ConEmu", "-aoa", "-bso0", "-bse0", "-bsp0") -nonewwindow -wait
-    Remove-Item "$tmp\ConEmuPack.7z"
-}
-catch {
-    Write-Host ("  ERROR: Failed to extract files." ) -foregroundcolor "Red"
-}
+    # 7-Zip
+    DownloadFile -Path $Path -Name "7z-installer.msi" -Url "http://www.7-zip.org/a/7z1701.msi"
+    DownloadFile -Path $Path -Name "7z-extra.7z" -Url "http://www.7-zip.org/a/7z1701-extra.7z"
 
-# Python x32
-Write-Host "Extracting: Python (x32)"
-try {
-    foreach ($file in @("python32.zip", "certifi.whl", "chardet.whl", "idna.whl", "psutil32.whl", "requests.whl", "urllib3.whl")) {
-        start $sz -argumentlist @("x", "$tmp\$file", "-o$bin\Python\x32", "-aoa", "-bso0", "-bse0", "-bsp0") -nonewwindow -wait
+    # ConEmu
+    $Url = "https://github.com/Maximus5/ConEmu/releases/download/v17.11.09/ConEmuPack.171109.7z"
+    DownloadFile -Path $Path -Name "ConEmuPack.7z" -Url $Url
+
+    # Notepad++
+    $Url = "https://notepad-plus-plus.org/repository/7.x/7.5.1/npp.7.5.1.bin.minimalist.7z"
+    DownloadFile -Path $Path -Name "npp.7z" -Url $Url
+
+    # Python
+    $Url = "https://www.python.org/ftp/python/3.6.3/python-3.6.3-embed-win32.zip"
+    DownloadFile -Path $Path -Name "python32.zip" -Url $Url
+    $Url = "https://www.python.org/ftp/python/3.6.3/python-3.6.3-embed-amd64.zip"
+    DownloadFile -Path $Path -Name "python64.zip" -Url $Url
+
+    # Python: psutil
+    $DownloadPage = "https://pypi.python.org/pypi/psutil"
+    $RegEx = "href=.*-cp36-cp36m-win32.whl"
+    $Url = FindDynamicUrl $DownloadPage $RegEx
+    DownloadFile -Path $Path -Name "psutil32.whl" -Url $Url
+    $RegEx = "href=.*-cp36-cp36m-win_amd64.whl"
+    $Url = FindDynamicUrl $DownloadPage $RegEx
+    DownloadFile -Path $Path -Name "psutil64.whl" -Url $Url
+
+    # Python: requests & dependancies
+    $RegEx = "href=.*.py3-none-any.whl"
+    foreach ($Module in @("chardet", "certifi", "idna", "urllib3", "requests")) {
+        $DownloadPage = "https://pypi.python.org/pypi/$Module"
+        $Name = "$Module.whl"
+        $Url = FindDynamicUrl -SourcePage $DownloadPage -RegEx $RegEx
+        DownloadFile -Path $Path -Name $Name -Url $Url
     }
-}
-catch {
-    Write-Host ("  ERROR: Failed to extract files." ) -foregroundcolor "Red"
-}
+    
+    ## Bail ##
+    # If errors were encountered during downloads
+    if ($DownloadErrors -gt 0) {
+        Abort
+    }
+    
+    ## Extract ##
+    # 7-Zip
+    Write-Host "Extracting: 7-Zip"
+    try {
+        $ArgumentList = @("/a", "$Temp\7z-installer.msi", "TARGETDIR=$Temp\7zi", "/qn")
+        Start-Process -FilePath "$System32\msiexec.exe" -ArgumentList $ArgumentList -Wait
+        $SevenZip = "$Temp\7zi\Files\7-Zip\7z.exe"
+        $ArgumentList = @(
+            "x", "$Temp\7z-extra.7z", "-o$Bin\7-Zip",
+            "-aoa", "-bso0", "-bse0", "-bsp0",
+            "-x!x64\*.dll", "-x!Far", "-x!*.dll")
+        Start-Process -FilePath $SevenZip -ArgumentList $ArgumentList -NoNewWindow -Wait
+        Start-Sleep 1
+        Move-Item "$Bin\7-Zip\x64\7za.exe" "$Bin\7-Zip\7za64.exe"
+        Remove-Item "$Bin\7-Zip\x64" -Recurse
+        Remove-Item "$Temp\7z*" -Recurse
+        $SevenZip = "$Bin\7-Zip\7za.exe"
+    }
+    catch {
+        Write-Host ("  ERROR: Failed to extract files." ) -ForegroundColor "Red"
+    }
 
-# Python x64
-Write-Host "Extracting: Python (x64)"
-try {
-    foreach ($file in @("python64.zip", "certifi.whl", "chardet.whl", "idna.whl", "psutil64.whl", "requests.whl", "urllib3.whl")) {
-         start $sz -argumentlist @("x", "$tmp\$file", "-o$bin\Python\x64", "-aoa", "-bso0", "-bse0", "-bsp0") -nonewwindow -wait
-         }
-    Remove-Item "$tmp\python*.zip"
-    Remove-Item "$tmp\*.whl"
-}
-catch {
-    Write-Host ("  ERROR: Failed to extract files." ) -foregroundcolor "Red"
-}
+    # Notepad++
+    Write-Host "Extracting: Notepad++"
+    try {
+        $ArgumentList = @(
+            "x", "$Temp\npp.7z", "-o$Bin\NotepadPlusPlus",
+            "-aoa", "-bso0", "-bse0", "-bsp0")
+        Start-Process -FilePath $SevenZip -ArgumentList $ArgumentList -NoNewWindow -Wait
+        Remove-Item "$Temp\npp.7z"
+        Move-Item "$Bin\NotepadPlusPlus\notepad++.exe" "$Bin\NotepadPlusPlus\notepadplusplus.exe"
+    }
+    catch {
+        Write-Host ("  ERROR: Failed to extract files." ) -ForegroundColor "Red"
+    }
 
-## Configure ##
-Write-Host "Configuring kit"
-wk_pause "Press Enter to open settings..."
-start "$bin\NotepadPlusPlus\notepadplusplus.exe" -argumentlist @("$bin\Scripts\settings\main.py") -wait
-Start-Sleep 1
+    # ConEmu
+    Write-Host "Extracting: ConEmu"
+    try {
+        $ArgumentList = @(
+            "x", "$Temp\ConEmuPack.7z", "-o$Bin\ConEmu",
+            "-aoa", "-bso0", "-bse0", "-bsp0")
+        Start-Process -FilePath $SevenZip -ArgumentList $ArgumentList -NoNewWindow -Wait
+        Remove-Item "$Temp\ConEmuPack.7z"
+    }
+    catch {
+        Write-Host ("  ERROR: Failed to extract files." ) -ForegroundColor "Red"
+    }
 
-## Done ##
-popd
-if ($errors -gt 0) {
-    wk_pause "Press Enter to exit..."
-} else {
-    start "$bin\ConEmu\ConEmu.exe" -argumentlist @("-run", "$bin\Python\x32\python.exe", "$bin\Scripts\update_kit.py", "-new_console:n") -verb Runas
+    # Python
+    foreach ($Arch in @("32", "64")) {
+        Write-Host "Extracting: Python (x$Arch)"
+        $Files = @(
+            "python$Arch.zip",
+            "certifi.whl",
+            "chardet.whl",
+            "idna.whl",
+            "psutil$Arch.whl",
+            "requests.whl",
+            "urllib3.whl"
+        )
+        try {
+            foreach ($File in $Files) {
+                $ArgumentList = @(
+                    "x", "$Temp\$File", "-o$Bin\Python\x$Arch",
+                    "-aoa", "-bso0", "-bse0", "-bsp0")
+                Start-Process -FilePath $SevenZip -ArgumentList $ArgumentList -NoNewWindow -Wait
+            }
+        }
+        catch {
+            Write-Host ("  ERROR: Failed to extract files." ) -ForegroundColor "Red"
+        }
+    }
+    Remove-Item "$Temp\python*.zip"
+    Remove-Item "$Temp\*.whl"
+
+    ## Configure ##
+    Write-Host "Configuring kit"
+    WKPause "Press Enter to open settings..."
+    $Cmd = "$Bin\NotepadPlusPlus\notepadplusplus.exe"
+    Start-Process -FilePath $Cmd -ArgumentList @("$Bin\Scripts\settings\main.py") -Wait
+    Start-Sleep 1
+
+    ## Done ##
+    Pop-Location
+    $ArgumentList = @("-run", "$Bin\Python\x32\python.exe", "$Bin\Scripts\update_kit.py", "-new_console:n")
+    Start-Process -FilePath "$Bin\ConEmu\ConEmu.exe" -ArgumentList $ArgumentList -verb RunAs
 }
