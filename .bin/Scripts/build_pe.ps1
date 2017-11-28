@@ -568,10 +568,11 @@ if ($MyInvocation.InvocationName -ne ".") {
         Set-ItemProperty -Path $RegPath -Name "Path" -Value $NewValue -Force | Out-Null
         
         # Replace Notepad
-        $RegPath = "HKLM:\WinPE-SW\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\notepad.exe"
-        $NewValue = 'wscript "X:\WK\NotepadPlusPlus\npp.vbs"'
-        New-Item -Path $RegPath -Force | Out-Null
-        New-ItemProperty -Path $RegPath -Name "Debugger" -Value $NewValue -Force | Out-Null
+        ## Currently broken ##
+        # $RegPath = "HKLM:\WinPE-SW\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\notepad.exe"
+        # $NewValue = 'wscript "X:\WK\NotepadPlusPlus\npp.vbs"'
+        # New-Item -Path $RegPath -Force | Out-Null
+        # New-ItemProperty -Path $RegPath -Name "Debugger" -Value $NewValue -Force | Out-Null
         
         # Run garbage collection to release potential stale handles
         ## Credit: https://jrich523.wordpress.com/2012/03/06/powershell-loading-and-unloading-registry-hives/
