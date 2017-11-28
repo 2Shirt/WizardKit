@@ -526,10 +526,18 @@ if ($MyInvocation.InvocationName -ne ".") {
         Start-Process -FilePath $Reg -ArgumentList $ArgumentList -NoNewWindow -Wait
         
         # Add tools to path
-        $RegPath = "HKLM:\WinPE-SYS\ControlSet001\Control\Session Manager\Environment"
-        $RegKey = Get-ItemProperty -Path $RegPath
-        $NewValue = "{0};%SystemDrive%\WK\7-Zip;%SystemDrive%\WK\python;%SystemDrive%\WK\wimlib" -f $RegKey.Path
-        Set-ItemProperty -Path $RegPath -Name "Path" -Value $NewValue -Force | Out-Null
+        ## .NET code to properly handle REG_EXPAND_SZ values
+        ## Credit: https://www.sepago.com/blog/2013/08/22/reading-and-writing-regexpandsz-data-with-powershell
+        ## By: Marius Gawenda
+        $Hive = [Microsoft.Win32.Registry]::LocalMachine
+        $RegPath = "WinPE-SYS\ControlSet001\Control\Session Manager\Environment"
+        $RegKey = $Hive.OpenSubKey($RegPath)
+        $CurValue = $RegKey.GetValue(
+            "Path", $false, [Microsoft.Win32.RegistryValueOptions]::DoNotExpandEnvironmentNames)
+        $NewValue = "$CurValue;%SystemDrive%\WK\7-Zip;%SystemDrive%\WK\python;%SystemDrive%\WK\wimlib"
+        Set-ItemProperty -Path "HKLM:\$RegPath" -Name "Path" -Value $NewValue -Force | Out-Null
+        $Hive.close()
+        $RegKey.close()
         
         # Replace Notepad
         ## Currently broken ##
@@ -560,5 +568,6 @@ if ($MyInvocation.InvocationName -ne ".") {
 
     ## Done ##
     Pop-Location
+    Write-Host "`nDone."
     WKPause "Press Enter to exit... "
 }
