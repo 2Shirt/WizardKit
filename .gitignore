@@ -4,6 +4,6 @@
 .bin/tmp
 Drivers
 Logs
+PEFiles/
 Scripts/__pycache__
 mount
-pe_files
