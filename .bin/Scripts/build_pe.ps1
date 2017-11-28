@@ -11,6 +11,7 @@ $WD = $(Split-Path $MyInvocation.MyCommand.Path)
 $Bin = (Get-Item $WD -Force).Parent.FullName
 $Root = (Get-Item $Bin -Force).Parent.FullName
 $Temp = "{0}\tmp" -f $Bin
+$Date = Get-Date -UFormat "%Y-%m-%d"
 $Host.UI.RawUI.BackgroundColor = "Black"
 $Host.UI.RawUI.ForegroundColor = "White"
 # $ProgressPreference = "silentlyContinue"
@@ -154,7 +155,6 @@ if ($MyInvocation.InvocationName -ne ".") {
         Abort
     }
     Push-Location "$WD"
-    $Date = Get-Date -UFormat "%Y-%m-%d"
     MakeClean
     
     ## Build ##
