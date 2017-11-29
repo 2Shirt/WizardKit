@@ -112,7 +112,6 @@ if ($MyInvocation.InvocationName -ne ".") {
     
     if (Ask-User "Update Tools?") {
         $DownloadErrors = 0
-        $Path = $Temp
         
         ## Download Tools ##
         $ToolSources = @(
@@ -130,6 +129,11 @@ if ($MyInvocation.InvocationName -ne ".") {
             # HWiNFO
             @("hwinfo64.zip", "http://app.oldfoss.com:81/download/HWiNFO/hw64_560.zip"),
             @("hwinfo32.zip", "http://app.oldfoss.com:81/download/HWiNFO/hw32_560.zip"),
+            # Killer Network Drivers
+            @(
+                "killerinf.zip",
+                ("http://www.killernetworking.com"+(FindDynamicUrl "http://www.killernetworking.com/driver-downloads/item/killer-drivers-inf" "Download Killer-Ethernet").replace('&amp;', '&'))
+            ),
             # Notepad++
             @("npp_amd64.7z", "https://notepad-plus-plus.org/repository/7.x/7.5.2/npp.7.5.2.bin.minimalist.x64.7z"),
             @("npp_x86.7z", "https://notepad-plus-plus.org/repository/7.x/7.5.2/npp.7.5.2.bin.minimalist.7z"),
@@ -220,8 +224,8 @@ if ($MyInvocation.InvocationName -ne ".") {
             Start-Process -FilePath $SevenZip -ArgumentList $ArgumentList -NoNewWindow -Wait
             Remove-Item "$Root\WK\amd64\ConEmu\ConEmu.exe"
             Remove-Item "$Root\WK\amd64\ConEmu\ConEmu.map"
-            Move-Item "$Root\WK\amd64\ConEmu\ConEmu64.exe" "$Root\WK\amd64\ConEmu\ConEmu.exe"
-            Move-Item "$Root\WK\amd64\ConEmu\ConEmu64.map" "$Root\WK\amd64\ConEmu\ConEmu.map"
+            Move-Item "$Root\WK\amd64\ConEmu\ConEmu64.exe" "$Root\WK\amd64\ConEmu\ConEmu.exe" -Force
+            Move-Item "$Root\WK\amd64\ConEmu\ConEmu64.map" "$Root\WK\amd64\ConEmu\ConEmu.map" -Force
             $ArgumentList = @(
                 "x", "$Temp\ConEmuPack.7z", "-o$Root\WK\x86\ConEmu",
                 "-aoa", "-bso0", "-bse0", "-bsp0")
@@ -253,6 +257,25 @@ if ($MyInvocation.InvocationName -ne ".") {
             Write-Host ("  ERROR: Failed to extract files." ) -ForegroundColor "Red"
         }
         
+        # Killer Network Driver
+        Write-Host "Extracting: Killer Network Driver"
+        try {
+            $ArgumentList = @(
+                "e", "$Temp\killerinf.zip", "-o$Root\Drivers\amd64\Killer",
+                "-aoa", "-bso0", "-bse0", "-bsp0",
+                "Production\Windows10-x64\Eth\*")
+            Start-Process -FilePath $SevenZip -ArgumentList $ArgumentList -NoNewWindow -Wait
+            $ArgumentList = @(
+                "e", "$Temp\killerinf.zip", "-o$Root\Drivers\x86\Killer",
+                "-aoa", "-bso0", "-bse0", "-bsp0",
+                "Production\Windows10-x86\Eth\*")
+            Start-Process -FilePath $SevenZip -ArgumentList $ArgumentList -NoNewWindow -Wait
+            Remove-Item "$Temp\killerinf*"
+        }
+        catch {
+            Write-Host ("  ERROR: Failed to extract files." ) -ForegroundColor "Red"
+        }
+        
         # HWiNFO
         Write-Host "Extracting: HWiNFO"
         try {
@@ -265,8 +288,8 @@ if ($MyInvocation.InvocationName -ne ".") {
                 "-aoa", "-bso0", "-bse0", "-bsp0", "HWiNFO32.exe")
             Start-Process -FilePath $SevenZip -ArgumentList $ArgumentList -NoNewWindow -Wait
             Remove-Item "$Temp\hwinfo*"
-            Move-Item "$Root\WK\amd64\HWiNFO\HWiNFO64.exe" "$Root\WK\amd64\HWiNFO\HWiNFO.exe"
-            Move-Item "$Root\WK\x86\HWiNFO\HWiNFO32.exe" "$Root\WK\x86\HWiNFO\HWiNFO.exe"
+            Move-Item "$Root\WK\amd64\HWiNFO\HWiNFO64.exe" "$Root\WK\amd64\HWiNFO\HWiNFO.exe" -Force
+            Move-Item "$Root\WK\x86\HWiNFO\HWiNFO32.exe" "$Root\WK\x86\HWiNFO\HWiNFO.exe" -Force
         }
         catch {
             Write-Host ("  ERROR: Failed to extract files." ) -ForegroundColor "Red"
@@ -284,8 +307,8 @@ if ($MyInvocation.InvocationName -ne ".") {
                 "-aoa", "-bso0", "-bse0", "-bsp0")
             Start-Process -FilePath $SevenZip -ArgumentList $ArgumentList -NoNewWindow -Wait
             Remove-Item "$Temp\npp*"
-            Move-Item "$Root\WK\amd64\NotepadPlusPlus\notepad++.exe" "$Root\WK\amd64\NotepadPlusPlus\notepadplusplus.exe"
-            Move-Item "$Root\WK\x86\NotepadPlusPlus\notepad++.exe" "$Root\WK\x86\NotepadPlusPlus\notepadplusplus.exe"
+            Move-Item "$Root\WK\amd64\NotepadPlusPlus\notepad++.exe" "$Root\WK\amd64\NotepadPlusPlus\notepadplusplus.exe" -Force
+            Move-Item "$Root\WK\x86\NotepadPlusPlus\notepad++.exe" "$Root\WK\x86\NotepadPlusPlus\notepadplusplus.exe" -Force
         }
         catch {
             Write-Host ("  ERROR: Failed to extract files." ) -ForegroundColor "Red"
@@ -299,7 +322,7 @@ if ($MyInvocation.InvocationName -ne ".") {
                 "-aoa", "-bso0", "-bse0", "-bsp0",
                 "ntpwedit64.exe", "*.txt")
             Start-Process -FilePath $SevenZip -ArgumentList $ArgumentList -NoNewWindow -Wait
-            Move-Item "$Root\WK\amd64\NT Password Editor\ntpwedit64.exe" "$Root\WK\amd64\NT Password Editor\ntpwedit.exe"
+            Move-Item "$Root\WK\amd64\NT Password Editor\ntpwedit64.exe" "$Root\WK\amd64\NT Password Editor\ntpwedit.exe" -Force
             $ArgumentList = @(
                 "e", "$Temp\ntpwed.zip", ('-o"{0}\WK\x86\NT Password Editor"' -f $Root),
                 "-aoa", "-bso0", "-bse0", "-bsp0",
@@ -317,12 +340,16 @@ if ($MyInvocation.InvocationName -ne ".") {
             $ArgumentList = @(
                 "x", "$Temp\testdisk64.zip", "-o$Root\WK\amd64\TestDisk",
                 "-aoa", "-bso0", "-bse0", "-bsp0")
+            # Remove destination since Move-Item -Force can't handle this recursive merge
+            Remove-Item "$Root\WK\amd64\TestDisk" -Recurse -Force
             Start-Process -FilePath $SevenZip -ArgumentList $ArgumentList -NoNewWindow -Wait
             Move-Item "$Root\WK\amd64\TestDisk\testdisk-7.1-WIP\*" "$Root\WK\amd64\TestDisk" -Force
             Remove-Item "$Root\WK\amd64\TestDisk\testdisk-7.1-WIP" -Recurse -Force
             $ArgumentList = @(
                 "x", "$Temp\testdisk32.zip", "-o$Root\WK\x86\TestDisk",
                 "-aoa", "-bso0", "-bse0", "-bsp0")
+            # Remove destination since Move-Item -Force can't handle this recursive merge
+            Remove-Item "$Root\WK\x86\TestDisk" -Recurse -Force
             Start-Process -FilePath $SevenZip -ArgumentList $ArgumentList -NoNewWindow -Wait
             Move-Item "$Root\WK\x86\TestDisk\testdisk-7.1-WIP\*" "$Root\WK\x86\TestDisk" -Force
             Remove-Item "$Root\WK\x86\TestDisk\testdisk-7.1-WIP" -Recurse -Force
@@ -421,9 +448,9 @@ if ($MyInvocation.InvocationName -ne ".") {
     
     ## Build ##
     foreach ($Arch in @("amd64", "x86")) {
-        $Drivers = "$Root\Drivers\%arch"
+        $Drivers = "$Root\Drivers\$Arch"
         $Mount = "$Root\Mount"
-        $PEFiles = "$Root\PEFiles\$arch"
+        $PEFiles = "$Root\PEFiles\$Arch"
         
         # Copy WinPE files
         Write-Host "Copying files..."
@@ -443,6 +470,9 @@ if ($MyInvocation.InvocationName -ne ".") {
         Write-Host "Mounting image..."
         New-Item -Path $Mount -ItemType "directory" -Force | Out-Null
         Mount-WindowsImage -Path $Mount -ImagePath "$PEFiles\media\sources\boot.wim" -Index 1 | Out-Null
+        
+        # Add drivers
+        Add-WindowsDriver -Path $Mount -Driver $Drivers -Recurse | Out-Null
         
         # Add packages
         Write-Host "Adding packages:"
