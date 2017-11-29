@@ -158,7 +158,6 @@ if ($MyInvocation.InvocationName -ne ".") {
     
     if (Ask-User "Update Tools?") {
         $DownloadErrors = 0
-        $Path = $Temp
         
         ## Download Tools ##
         $ToolSources = @(
@@ -176,6 +175,11 @@ if ($MyInvocation.InvocationName -ne ".") {
             # HWiNFO
             @("hwinfo64.zip", "http://app.oldfoss.com:81/download/HWiNFO/hw64_560.zip"),
             @("hwinfo32.zip", "http://app.oldfoss.com:81/download/HWiNFO/hw32_560.zip"),
+            # Killer Network Drivers
+            @(
+                "killerinf.zip",
+                ("http://www.killernetworking.com"+(FindDynamicUrl "http://www.killernetworking.com/driver-downloads/item/killer-drivers-inf" "Download Killer-Ethernet").replace('&amp;', '&'))
+            ),
             # Notepad++
             @("npp_amd64.7z", "https://notepad-plus-plus.org/repository/7.x/7.5.2/npp.7.5.2.bin.minimalist.x64.7z"),
             @("npp_x86.7z", "https://notepad-plus-plus.org/repository/7.x/7.5.2/npp.7.5.2.bin.minimalist.7z"),
@@ -294,6 +298,25 @@ if ($MyInvocation.InvocationName -ne ".") {
                 "-x!setup.exe", "-x!*.dll")
             Start-Process -FilePath $SevenZip -ArgumentList $ArgumentList -NoNewWindow -Wait
             Remove-Item "$Temp\fastcopy*"
+        }
+        catch {
+            Write-Host ("  ERROR: Failed to extract files." ) -ForegroundColor "Red"
+        }
+        
+        # Killer Network Driver
+        Write-Host "Extracting: Killer Network Driver"
+        try {
+            $ArgumentList = @(
+                "e", "$Temp\killerinf.zip", "-o$Root\Drivers\amd64\Killer",
+                "-aoa", "-bso0", "-bse0", "-bsp0",
+                "Production\Windows10-x64\Eth\*")
+            Start-Process -FilePath $SevenZip -ArgumentList $ArgumentList -NoNewWindow -Wait
+            $ArgumentList = @(
+                "e", "$Temp\killerinf.zip", "-o$Root\Drivers\x86\Killer",
+                "-aoa", "-bso0", "-bse0", "-bsp0",
+                "Production\Windows10-x86\Eth\*")
+            Start-Process -FilePath $SevenZip -ArgumentList $ArgumentList -NoNewWindow -Wait
+            Remove-Item "$Temp\killerinf*"
         }
         catch {
             Write-Host ("  ERROR: Failed to extract files." ) -ForegroundColor "Red"
@@ -467,9 +490,9 @@ if ($MyInvocation.InvocationName -ne ".") {
     
     ## Build ##
     foreach ($Arch in @("amd64", "x86")) {
-        $Drivers = "$Root\Drivers\%arch"
+        $Drivers = "$Root\Drivers\$Arch"
         $Mount = "$Root\Mount"
-        $PEFiles = "$Root\PEFiles\$arch"
+        $PEFiles = "$Root\PEFiles\$Arch"
         
         # Copy WinPE files
         Write-Host "Copying files..."
@@ -489,6 +512,9 @@ if ($MyInvocation.InvocationName -ne ".") {
         Write-Host "Mounting image..."
         New-Item -Path $Mount -ItemType "directory" -Force | Out-Null
         Mount-WindowsImage -Path $Mount -ImagePath "$PEFiles\media\sources\boot.wim" -Index 1 | Out-Null
+        
+        # Add drivers
+        Add-WindowsDriver -Path $Mount -Driver $Drivers -Recurse | Out-Null
         
         # Add packages
         Write-Host "Adding packages:"
