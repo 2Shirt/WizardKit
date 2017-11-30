@@ -1,38 +1,66 @@
-# WK WinPE Menu
+# Wizard Kit PE: Menus
 
-# Init
-import os
-import re
-import subprocess
-import sys
-import time
-import traceback
-os.chdir(os.path.dirname(os.path.realpath(__file__)))
-bin = os.path.abspath('..\\')
-sys.path.append(os.getcwd())
-from functions import *
+from functions.data import *
 
-## Colors
-COLORS = {
-    'CLEAR': '\033[0m',
-    'RED': '\033[31m',
-    'GREEN': '\033[32m',
-    'YELLOW': '\033[33m',
-    'BLUE': '\033[34m'}
+# STATIC VARIABLES
+FAST_COPY_ARGS = [
+    '/cmd=noexist_only',
+    '/utf8',
+    '/skip_empty_dir',
+    '/linkdest',
+    '/no_ui',
+    '/auto_close',
+    '/exclude={}'.format(';'.join(FAST_COPY_EXCLUDES)),
+    ]
+PE_TOOLS = {
+    'BlueScreenView': {
+        'Path': r'BlueScreenView\BlueScreenView.exe',
+        },
+    'FastCopy': {
+        'Path': r'FastCopy\FastCopy.exe',
+        'Args': FAST_COPY_ARGS,
+        },
+    'HWiNFO': {
+        'Path': r'HWiNFO\HWiNFO.exe',
+        },
+    'NT Password Editor': {
+        'Path': r'NT Password Editor\ntpwedit.exe',
+        },
+    'Notepad++': {
+        'Path': r'NotepadPlusPlus\NotepadPlusPlus.exe',
+        },
+    'PhotoRec': {
+        'Path': r'TestDisk\photorec_win.exe',
+        'Args': ['-new_console:n'],
+        },
+    'Prime95': {
+        'Path': r'Prime95\prime95.exe',
+        },
+    'ProduKey': {
+        'Path': r'ProduKey\ProduKey.exe',
+        },
+    'Q-Dir': {
+        'Path': r'Q-Dir\Q-Dir.exe',
+        },
+    'TestDisk': {
+        'Path': r'TestDisk\testdisk_win.exe',
+        'Args': ['-new_console:n'],
+        },
+    }
 
-def menu_backup_imaging():
+def menu_backup():
     """Take backup images of partition(s) in the WIM format and save them to a backup share"""
     errors = False
 
     # Set ticket ID
     os.system('cls')
-    ticket_id = get_ticket_id()
+    ticket_id = get_ticket_number()
 
     # Mount backup shares
     mount_backup_shares()
 
     # Select destination
-    dest = select_destination()
+    dest = select_backup_destination()
     if dest is None:
         abort_to_main_menu('Aborting Backup Creation')
 
@@ -90,13 +118,48 @@ def menu_backup_imaging():
         time.sleep(5)
     pause('\nPress Enter to return to main menu... ')
 
-def menu_windows_setup():
+def menu_root():
+    title = '{}: Main Menu'.format(KIT_NAME_FULL)
+    menus = [
+        {'Name': 'Create Backups', 'Menu': menu_backup},
+        {'Name': 'Setup Windows', 'Menu': menu_setup},
+        {'Name': 'Misc Tools', 'Menu': menu_tools},
+        ]
+    actions = [
+        {'Name': 'Command Prompt', 'Letter': 'C'},
+        {'Name': 'Reboot', 'Letter': 'R'},
+        {'Name': 'Shutdown', 'Letter': 'S'},
+        ]
+
+    # Main loop
+    while True:
+        selection = menu_select(
+            title=title,
+            main_entries=menus,
+            action_entries=actions,
+            secret_exit=True)
+
+        if (selection.isnumeric()):
+            try:
+                menus[int(selection)-1]['Menu']()
+            except AbortError:
+                pass
+        elif (selection == 'C'):
+            run_program(['cmd', '-new_console:n'], check=False)
+        elif (selection == 'R'):
+            run_program(['wpeutil', 'reboot'])
+        elif (selection == 'S'):
+            run_program(['wpeutil', 'shutdown'])
+        else:
+            exit_script()
+
+def menu_setup():
     """Format a drive, partition for MBR or GPT, apply a Windows image, and rebuild the boot files"""
     errors = False
 
     # Set ticket ID
     os.system('cls')
-    ticket_id = get_ticket_id()
+    ticket_id = get_ticket_number()
 
     # Select the version of Windows to apply
     windows_version = select_windows_version()
@@ -197,80 +260,55 @@ def menu_windows_setup():
     pause('\nPress Enter to return to main menu... ')
 
 def menu_tools():
-    tools = [
-        {'Name': 'Blue Screen View', 'Folder': 'BlueScreenView', 'File': 'BlueScreenView.exe'},
-        {'Name': 'Fast Copy', 'Folder': 'FastCopy', 'File': 'FastCopy.exe', 'Args': ['/log', '/logfile=X:\WK\Info\FastCopy.log', '/cmd=noexist_only', '/utf8', '/skip_empty_dir', '/linkdest', '/open_window', '/balloon=FALSE', r'/exclude=$RECYCLE.BIN;$Recycle.Bin;.AppleDB;.AppleDesktop;.AppleDouble;.com.apple.timemachine.supported;.dbfseventsd;.DocumentRevisions-V100*;.DS_Store;.fseventsd;.PKInstallSandboxManager;.Spotlight*;.SymAV*;.symSchedScanLockxz;.TemporaryItems;.Trash*;.vol;.VolumeIcon.icns;desktop.ini;Desktop?DB;Desktop?DF;hiberfil.sys;lost+found;Network?Trash?Folder;pagefile.sys;Recycled;RECYCLER;System?Volume?Information;Temporary?Items;Thumbs.db']},
-        {'Name': 'HWiNFO', 'Folder': 'HWiNFO', 'File': 'HWiNFO.exe'},
-        {'Name': 'NT Password Editor', 'Folder': 'NT Password Editor', 'File': 'ntpwedit.exe'},
-        {'Name': 'Notepad++', 'Folder': 'NotepadPlusPlus', 'File': 'notepadplusplus.exe'},
-        {'Name': 'PhotoRec', 'Folder': 'TestDisk', 'File': 'photorec_win.exe', 'Args': ['-new_console:n']},
-        {'Name': 'Prime95', 'Folder': 'Prime95', 'File': 'prime95.exe'},
-        {'Name': 'ProduKey', 'Folder': 'ProduKey', 'File': 'ProduKey.exe', 'Args': ['/external', '/ExtractEdition:1']},
-        {'Name': 'Q-Dir', 'Folder': 'Q-Dir', 'File': 'Q-Dir.exe'},
-        {'Name': 'TestDisk', 'Folder': 'TestDisk', 'File': 'testdisk_win.exe', 'Args': ['-new_console:n']},
-        ]
-    actions = [
-        {'Name': 'Main Menu', 'Letter': 'M'},
-        ]
+    title = '{}: Tools Menu'.format(KIT_NAME_FULL)
+    tools = [k for k in sorted(PE_TOOLS.keys())]
+    actions = [{'Name': 'Main Menu', 'Letter': 'M'},]
 
     # Menu loop
     while True:
-        selection = menu_select('Tools Menu', tools, actions)
-
+        selection = menu_select(title, tools, actions)
         if (selection.isnumeric()):
             tool = tools[int(selection)-1]
-            cmd = ['{bin}\\{folder}\\{file}'.format(bin=bin, folder=tool['Folder'], file=tool['File'])]
-            if tool['Name'] == 'Blue Screen View':
+            cmd = [PE_TOOLS[tool]['Path']] + PE_TOOLS[tool].get('Args', [])
+            if tool == 'Blue Screen View':
                 # Select path to scan
                 minidump_path = select_minidump_path()
-                if minidump_path is not None:
-                    tool['Args'] = ['/MiniDumpFolder', minidump_path]
-            if 'Args' in tool:
-                cmd += tool['Args']
+                if minidump_path:
+                    cmd.extend(['/MiniDumpFolder', minidump_path])
             try:
-                subprocess.Popen(cmd)
-            except:
+                popen_program(cmd)
+            except Exception:
                 print_error('Failed to run {prog}'.format(prog=tool['Name']))
-            time.sleep(2)
+                time.sleep(2)
+                pause()
         elif (selection == 'M'):
             break
 
-def menu_main():
-    menus = [
-        {'Name': 'Create Backups', 'Menu': menu_backup_imaging},
-        {'Name': 'Setup Windows', 'Menu': menu_windows_setup},
-        {'Name': 'Misc Tools', 'Menu': menu_tools},
-        ]
-    actions = [
-        {'Name': 'Command Prompt', 'Letter': 'C'},
-        {'Name': 'Reboot', 'Letter': 'R'},
-        {'Name': 'Shutdown', 'Letter': 'S'},
-        ]
+def select_minidump_path():
+    dumps = []
 
-    # Main loop
-    while True:
-        selection = menu_select('Main Menu', menus, actions, secret_exit=True)
+    # Assign volume letters first
+    assign_volume_letters()
 
-        if (selection.isnumeric()):
-            try:
-                menus[int(selection)-1]['Menu']()
-            except AbortError:
-                pass
-            except:
-                print_error('Major exception in: {menu}'.format(menu=menus[int(selection)-1]['Name']))
-                print_warning('  Please let The Wizard know and he\'ll look into it (Please include the details below).')
-                print(traceback.print_exc())
-                time.sleep(5)
-                print_info('  You can retry but if this crashes again an alternative approach may be required.')
-                pause('\nPress enter to return to the main menu')
-        elif (selection == 'C'):
-            run_program(['cmd', '-new_console:n'], check=False)
-        elif (selection == 'R'):
-            run_program(['wpeutil', 'reboot'])
-        elif (selection == 'S'):
-            run_program(['wpeutil', 'shutdown'])
-        else:
-            sys.exit(0)
+    # Search for minidumps
+    tmp = run_program('mountvol')
+    tmp = [d for d in re.findall(r'.*([A-Za-z]):\\', tmp.stdout.decode())]
+    # Remove RAMDisk letter
+    if 'X' in tmp:
+        tmp.remove('X')
+    for drive in tmp:
+        if os.path.exists('{drive}:\\Windows\\MiniDump'.format(drive=drive)):
+            dumps.append({'Name': '{drive}:\\Windows\\MiniDump'.format(drive=drive)})
+
+    # Check results before showing menu
+    if len(dumps) == 0:
+        print_error('  No BSoD / MiniDump paths found')
+        time.sleep(2)
+        return None
+
+    # Menu
+    selection = menu_select('Which BSoD / MiniDump path are we scanning?', dumps, [])
+    return dumps[int(selection) - 1]['Name']
 
 if __name__ == '__main__':
-    menu_main()
+    print("This file is not meant to be called directly.")
