@@ -202,14 +202,11 @@ def kill_process(name):
 def major_exception():
     """Display traceback and exit"""
     print_error('Major exception')
-    print_warning(
-        "  Please let {tech} know and they'll look into it"
-        " (include the details below).".format(tech=SUPPORT_TECH))
+    print_warning(SUPPORT_MESSAGE)
     print(traceback.format_exc())
     print_log(traceback.format_exc())
     sleep(30)
     pause('Press Enter to exit...')
-    # sys.exit(1)
     exit_script(1)
 
 def menu_select(title='~ Untitled Menu ~',
