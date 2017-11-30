@@ -17,7 +17,7 @@ global_vars['LogFile'] = r'{LogDir}\User Checklist ({USERNAME}).log'.format(
 if __name__ == '__main__':
     try:
         stay_awake()
-        os.system('cls')
+        clear_screen()
         print_info('{}: User Checklist\n'.format(KIT_NAME_FULL))
         other_results = {
             'Warning': {

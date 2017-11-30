@@ -12,7 +12,7 @@ os.system('title {}: Kit Update Tool'.format(KIT_NAME_FULL))
 
 if __name__ == '__main__':
     try:
-        os.system('cls')
+        clear_screen()
         print_info('{}: Kit Update Tool\n'.format(KIT_NAME_FULL))
         other_results = {
             'Error': {

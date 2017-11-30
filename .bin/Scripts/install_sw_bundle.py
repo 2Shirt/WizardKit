@@ -14,7 +14,7 @@ global_vars['LogFile'] = r'{LogDir}\Install SW Bundle.log'.format(**global_vars)
 if __name__ == '__main__':
     try:
         stay_awake()
-        os.system('cls')
+        clear_screen()
         print_info('{}: SW Bundle Tool\n'.format(KIT_NAME_FULL))
         other_results = {
             'Error': {

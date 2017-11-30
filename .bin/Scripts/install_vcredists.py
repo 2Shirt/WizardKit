@@ -14,7 +14,7 @@ global_vars['LogFile'] = r'{LogDir}\Install Visual C++ Runtimes.log'.format(**gl
 if __name__ == '__main__':
     try:
         stay_awake()
-        os.system('cls')
+        clear_screen()
         print_info('{}: Install Visual C++ Runtimes\n'.format(KIT_NAME_FULL))
         other_results = {
             'Error': {

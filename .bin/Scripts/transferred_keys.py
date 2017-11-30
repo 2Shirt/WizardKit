@@ -14,7 +14,7 @@ global_vars['LogFile'] = r'{LogDir}\Transferred Keys.log'.format(**global_vars)
 if __name__ == '__main__':
     try:
         stay_awake()
-        os.system('cls')
+        clear_screen()
         print_info('{}: Transferred Key Finder\n'.format(KIT_NAME_FULL))
         try_and_print(message='Searching for keys...',
             function=list_clientdir_keys, print_return=True)

@@ -15,7 +15,7 @@ os.system('title {}: SafeMode Tool'.format(KIT_NAME_FULL))
 
 if __name__ == '__main__':
     try:
-        os.system('cls')
+        clear_screen()
         print_info('{}: SafeMode Tool\n'.format(KIT_NAME_FULL))
         if not ask('Enable booting to SafeMode (with Networking)?'):
             abort()

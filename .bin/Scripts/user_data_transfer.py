@@ -16,7 +16,7 @@ if __name__ == '__main__':
     try:
         # Prep
         stay_awake()
-        os.system('cls')
+        clear_screen()
         print_info('{}: User Data Transfer Tool\n'.format(KIT_NAME_FULL))
         ticket_number = get_ticket_number()
         folder_path = r'{}\Transfer'.format(KIT_NAME_SHORT)
@@ -26,7 +26,7 @@ if __name__ == '__main__':
         items = scan_source(source, dest)
         
         # Transfer
-        os.system('cls')
+        clear_screen()
         print_info('Transfer Details:\n')
         show_info('Ticket:',        ticket_number)
         show_info('Source:',        source.path)

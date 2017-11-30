@@ -16,7 +16,7 @@ if __name__ == '__main__':
     try:
         # Prep
         stay_awake()
-        os.system('cls')
+        clear_screen()
         folder_path = r'{}\Backups'.format(KIT_NAME_SHORT)
         dest = select_destination(folder_path=folder_path,
             prompt='Which disk are we using for temp data and backup?')

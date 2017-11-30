@@ -19,7 +19,7 @@ global_vars['LogFile'] = r'{LogDir}\System Diagnostics.log'.format(
 if __name__ == '__main__':
     try:
         stay_awake()
-        os.system('cls')
+        clear_screen()
         print_info('{}: System Diagnostics Tool\n'.format(KIT_NAME_FULL))
         ticket_number = get_ticket_number()
         other_results = {
