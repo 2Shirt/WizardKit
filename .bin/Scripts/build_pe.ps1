@@ -501,16 +501,16 @@ if ($MyInvocation.InvocationName -ne ".") {
         
         # Add WK tools
         Write-Host "Copying tools..."
-        Copy-Item -Path "$Root\WK\$Arch" -Destination "$Mount\WK" -Recurse -Force
-        Copy-Item -Path "$Root\WK\_include\*" -Destination "$Mount\WK" -Recurse -Force
+        Copy-Item -Path "$Root\WK\$Arch" -Destination "$Mount\.bin" -Recurse -Force
+        Copy-Item -Path "$Root\WK\_include\*" -Destination "$Mount\.bin" -Recurse -Force
         if ($Arch -eq "amd64") {
-            $DestIni = "$Mount\WK\HWiNFO\HWiNFO64.INI"
+            $DestIni = "$Mount\.bin\HWiNFO\HWiNFO64.INI"
         } else {
-            $DestIni = "$Mount\WK\HWiNFO\HWiNFO32.INI"
+            $DestIni = "$Mount\.bin\HWiNFO\HWiNFO32.INI"
         }
-        Move-Item -Path "$Mount\WK\HWiNFO\HWiNFO.INI" -Destination $DestIni -Force
-        Copy-Item -Path "$Root\WinPE.jpg" -Destination "$Mount\WK\ConEmu\ConEmu.jpg" -Recurse -Force
-        Copy-Item -Path "$Root\Scripts" -Destination "$Mount\WK\Scripts" -Recurse -Force
+        Move-Item -Path "$Mount\.bin\HWiNFO\HWiNFO.INI" -Destination $DestIni -Force
+        Copy-Item -Path "$Root\WinPE.jpg" -Destination "$Mount\.bin\ConEmu\ConEmu.jpg" -Recurse -Force
+        Copy-Item -Path "$Root\Scripts" -Destination "$Mount\.bin\Scripts" -Recurse -Force
         
         # Add System32 items
         $HostSystem32 = "{0}\System32" -f $Env:SystemRoot
