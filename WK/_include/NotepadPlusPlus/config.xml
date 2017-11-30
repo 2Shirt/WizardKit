@@ -24,7 +24,7 @@
         <GUIConfig name="TaskList">yes</GUIConfig>
         <GUIConfig name="MRU">yes</GUIConfig>
         <GUIConfig name="URL">2</GUIConfig>
-        <GUIConfig name="globalOverride" fg="no" bg="no" font="no" fontSize="no" bold="no" italic="no" underline="no" />
+        <GUIConfig name="globalOverride" fg="no" bg="no" font="yes" fontSize="no" bold="no" italic="no" underline="no" />
         <GUIConfig name="auto-completion" autoCAction="3" triggerFromNbChar="1" autoCIgnoreNumbers="yes" funcParams="yes" />
         <GUIConfig name="auto-insert" parentheses="no" brackets="no" curlyBrackets="no" quotes="no" doubleQuotes="no" htmlXmlTag="no" />
         <GUIConfig name="sessionExt"></GUIConfig>
