@@ -81,6 +81,10 @@ def ask(prompt='Kotaero!'):
     print_log(message=message)
     return answer
 
+def clear_screen():
+    """Simple wrapper for cls."""
+    os.system('cls')
+
 def convert_to_bytes(size):
     """Convert human-readable size str to bytes and return an int."""
     size = str(size)
