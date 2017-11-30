@@ -7,12 +7,12 @@ browser_data = {}
 other_results = {
     'Error': {
         'MultipleInstallationsError': 'Multiple installations detected',
-    },
+        },
     'Warning': {
         'NotInstalledError': 'Not installed',
         'NoProfilesError': 'No profiles found',
+        }
     }
-}
 
 # Regex
 REGEX_BACKUP = re.compile(

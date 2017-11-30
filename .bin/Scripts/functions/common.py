@@ -308,10 +308,6 @@ def print_info(*args, **kwargs):
     """Prints message to screen in BLUE."""
     print_standard(*args, color=COLORS['BLUE'], **kwargs)
 
-def print_warning(*args, **kwargs):
-    """Prints message to screen in YELLOW."""
-    print_standard(*args, color=COLORS['YELLOW'], **kwargs)
-
 def print_standard(message='Generic info',
     color=None, end='\n', timestamp=True, **kwargs):
     """Prints message to screen and log (if set)."""
@@ -325,6 +321,10 @@ def print_standard(message='Generic info',
 def print_success(*args, **kwargs):
     """Prints message to screen in GREEN."""
     print_standard(*args, color=COLORS['GREEN'], **kwargs)
+
+def print_warning(*args, **kwargs):
+    """Prints message to screen in YELLOW."""
+    print_standard(*args, color=COLORS['YELLOW'], **kwargs)
 
 def print_log(message='', end='\n', timestamp=True):
     time_str = time.strftime("%Y-%m-%d %H%M%z: ") if timestamp else ''
@@ -615,8 +615,8 @@ def check_os():
 def check_tools():
     """Set tool variables based on OS bit-depth and tool availability."""
     if global_vars['OS'].get('Arch', 32) == 64:
-        global_vars['Tools'] = {k: v.get('64', v.get('32'))
-            for (k, v) in TOOLS.items()}
+        global_vars['Tools'] = {
+            k: v.get('64', v.get('32')) for (k, v) in TOOLS.items()}
     else:
         global_vars['Tools'] = {k: v.get('32') for (k, v) in TOOLS.items()}
 

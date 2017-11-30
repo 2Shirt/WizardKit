@@ -99,7 +99,7 @@ FAST_COPY_ARGS =        [
     '/linkdest',
     '/no_ui',
     '/auto_close',
-    '/exclude='+';'.join(FAST_COPY_EXCLUDES),
+    '/exclude={}'.format(';'.join(FAST_COPY_EXCLUDES)),
     ]
 # Code borrowed from: https://stackoverflow.com/a/29075319
 SEM_NORMAL = ctypes.c_uint()
@@ -165,7 +165,6 @@ def mount_backup_shares():
             continue
         
         mount_network_share(server)
-        
 
 def mount_network_share(server):
     """Mount a network share defined by server."""
@@ -251,7 +250,7 @@ def scan_source(source_obj, dest_path):
     return selected_items
 
 def scan_source_path(source_path, dest_path, rel_path=None, interactive=True):
-    """Scan source folder for files/folders to transfer.
+    """Scan source folder for files/folders to transfer, returns list.
     
     This will scan the root and (recursively) any Windows.old folders."""
     rel_path = '\\' + rel_path if rel_path else ''
@@ -307,7 +306,7 @@ def scan_source_path(source_path, dest_path, rel_path=None, interactive=True):
     return selected_items
 
 def scan_source_wim(source_wim, dest_path, rel_path=None, interactive=True):
-    """Scan source WIM file for files/folders to transfer.
+    """Scan source WIM file for files/folders to transfer, returns list.
     
     This will scan the root and (recursively) any Windows.old folders."""
     rel_path = '\\' + rel_path if rel_path else ''
