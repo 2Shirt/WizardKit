@@ -1,2 +1,2 @@
 @echo off
-python "%SystemDrive%\WK\Scripts\menu.py"
+python "%SystemDrive%\.bin\Scripts\menu.py"

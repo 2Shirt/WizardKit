@@ -518,18 +518,18 @@ if ($MyInvocation.InvocationName -ne ".") {
         )
         Start-Process -FilePath $DISM -ArgumentList $ArgumentList -NoNewWindow -Wait
         
-        # Add WK tools
+        # Add tools
         Write-Host "Copying tools..."
-        Copy-Item -Path "$Root\WK\$Arch" -Destination "$Mount\WK" -Recurse -Force
-        Copy-Item -Path "$Root\WK\_include\*" -Destination "$Mount\WK" -Recurse -Force
+        Copy-Item -Path "$Root\WK\$Arch" -Destination "$Mount\.bin" -Recurse -Force
+        Copy-Item -Path "$Root\WK\_include\*" -Destination "$Mount\.bin" -Recurse -Force
         if ($Arch -eq "amd64") {
-            $DestIni = "$Mount\WK\HWiNFO\HWiNFO64.INI"
+            $DestIni = "$Mount\.bin\HWiNFO\HWiNFO64.INI"
         } else {
-            $DestIni = "$Mount\WK\HWiNFO\HWiNFO32.INI"
+            $DestIni = "$Mount\.bin\HWiNFO\HWiNFO32.INI"
         }
-        Move-Item -Path "$Mount\WK\HWiNFO\HWiNFO.INI" -Destination $DestIni -Force
-        Copy-Item -Path "$Root\WinPE.jpg" -Destination "$Mount\WK\ConEmu\ConEmu.jpg" -Recurse -Force
-        Copy-Item -Path "$Root\Scripts" -Destination "$Mount\WK\Scripts" -Recurse -Force
+        Move-Item -Path "$Mount\.bin\HWiNFO\HWiNFO.INI" -Destination $DestIni -Force
+        Copy-Item -Path "$Root\WinPE.jpg" -Destination "$Mount\.bin\ConEmu\ConEmu.jpg" -Recurse -Force
+        Copy-Item -Path "$Root\Scripts" -Destination "$Mount\.bin\Scripts" -Recurse -Force
         
         # Add System32 items
         $HostSystem32 = "{0}\System32" -f $Env:SystemRoot
@@ -557,17 +557,16 @@ if ($MyInvocation.InvocationName -ne ".") {
         $RegKey = $Hive.OpenSubKey($RegPath)
         $CurValue = $RegKey.GetValue(
             "Path", $false, [Microsoft.Win32.RegistryValueOptions]::DoNotExpandEnvironmentNames)
-        $NewValue = "$CurValue;%SystemDrive%\WK\7-Zip;%SystemDrive%\WK\python;%SystemDrive%\WK\wimlib"
+        $NewValue = "$CurValue;%SystemDrive%\.bin\7-Zip;%SystemDrive%\.bin\python;%SystemDrive%\.bin\wimlib"
         Set-ItemProperty -Path "HKLM:\$RegPath" -Name "Path" -Value $NewValue -Force | Out-Null
         $Hive.close()
         $RegKey.close()
         
         # Replace Notepad
-        ## Currently broken ##
-        # $RegPath = "HKLM:\WinPE-SW\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\notepad.exe"
-        # $NewValue = 'wscript "X:\WK\NotepadPlusPlus\npp.vbs"'
-        # New-Item -Path $RegPath -Force | Out-Null
-        # New-ItemProperty -Path $RegPath -Name "Debugger" -Value $NewValue -Force | Out-Null
+        $RegPath = "HKLM:\WinPE-SW\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\notepad.exe"
+        $NewValue = 'cmd /c "%SystemDrive%\.bin\NotepadPlusPlus\npp.cmd"'
+        New-Item -Path $RegPath -Force | Out-Null
+        New-ItemProperty -Path $RegPath -Name "Debugger" -Value $NewValue -Force | Out-Null
         
         # Run garbage collection to release potential stale handles
         ## Credit: https://jrich523.wordpress.com/2012/03/06/powershell-loading-and-unloading-registry-hives/

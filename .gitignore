@@ -1,11 +1,10 @@
+**/__pycache__/*
 *.bak
 *.iso
-.bin/Scripts/__pycache__
 .bin/tmp
 Drivers
 Logs
 Mount
 PEFiles
-Scripts/__pycache__
 WK/amd64/
 WK/x86/

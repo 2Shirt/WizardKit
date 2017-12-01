@@ -1,4 +1,4 @@
-# WK WinPE - PARTITION UIDs
+# Wizard Kit PE: Functions - PARTITION UIDs
 # sources:  https://en.wikipedia.org/wiki/GUID_Partition_Table
 #           https://en.wikipedia.org/wiki/Partition_type
 
