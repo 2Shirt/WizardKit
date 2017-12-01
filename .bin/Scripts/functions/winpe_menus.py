@@ -175,6 +175,11 @@ def menu_backup():
     pause('\nPress Enter to return to main menu... ')
 
 def menu_root():
+    # Fix PE_TOOLS paths
+    for k in PE_TOOLS.keys():
+        PE_TOOLS[k]['Path'] = r'{}\{}'.format(
+            global_vars['BinDir'], PE_TOOLS[k]['Path'])
+    
     menus = [
         {'Name': 'Create Backups', 'Menu': menu_backup},
         {'Name': 'Setup Windows', 'Menu': menu_setup},
@@ -344,8 +349,8 @@ def menu_tools():
             main_entries = tools,
             action_entries = actions)
         if (selection.isnumeric()):
-            tool = tools[int(selection)-1]
-            cmd = [PE_TOOLS[tool]['Path']] + PE_TOOLS[tool].get('Args', [])
+            name = tools[int(selection)-1]['Name']
+            cmd = [PE_TOOLS[name]['Path']] + PE_TOOLS[name].get('Args', [])
             if tool == 'Blue Screen View':
                 # Select path to scan
                 minidump_path = select_minidump_path()
@@ -354,7 +359,7 @@ def menu_tools():
             try:
                 popen_program(cmd)
             except Exception:
-                print_error('Failed to run {prog}'.format(prog=tool['Name']))
+                print_error('Failed to run {}'.format(name))
                 time.sleep(2)
                 pause()
         elif (selection == 'M'):
