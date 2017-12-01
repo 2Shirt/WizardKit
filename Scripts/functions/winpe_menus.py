@@ -321,7 +321,7 @@ def menu_setup():
     pause('\nPress Enter to return to main menu... ')
 
 def menu_tools():
-    tools = [k for k in sorted(PE_TOOLS.keys())]
+    tools = [{'Name': k} for k in sorted(PE_TOOLS.keys())]
     actions = [{'Name': 'Main Menu', 'Letter': 'M'},]
     set_title(KIT_NAME_FULL)
 
