@@ -58,7 +58,7 @@ def find_windows_image(windows_version):
         mount_windows_share()
         if WINDOWS_SERVER['Mounted']:
             for ext in ['esd', 'wim', 'swm']:
-                path = r'\\{}\{}\images\{}.ext'.format(
+                path = r'\\{}\{}\images\{}.{}'.format(
                     WINDOWS_SERVER['IP'],
                     WINDOWS_SERVER['Share'],
                     imagefile,
