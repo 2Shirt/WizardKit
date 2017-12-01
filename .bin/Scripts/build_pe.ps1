@@ -11,6 +11,7 @@ $WD = $(Split-Path $MyInvocation.MyCommand.Path)
 $Bin = (Get-Item $WD -Force).Parent.FullName
 $Root = (Get-Item $Bin -Force).Parent.FullName
 $Build = "$Root\BUILD"
+$LogDir = "$Build\Logs"
 $Temp = "$Build\Temp"
 $Date = Get-Date -UFormat "%Y-%m-%d"
 $Host.UI.RawUI.BackgroundColor = "Black"
@@ -109,6 +110,7 @@ if ($MyInvocation.InvocationName -ne ".") {
     }
     Push-Location "$WD"
     MakeClean
+    New-Item -Type Directory $LogDir 2>&1 | Out-Null
     
     if (Ask-User "Update Tools?") {
         $DownloadErrors = 0
@@ -488,10 +490,10 @@ if ($MyInvocation.InvocationName -ne ".") {
         # Mount image
         Write-Host "Mounting image..."
         New-Item -Path $Mount -ItemType "directory" -Force | Out-Null
-        Mount-WindowsImage -Path $Mount -ImagePath "$PEFiles\media\sources\boot.wim" -Index 1 | Out-Null
+        Mount-WindowsImage -Path $Mount -ImagePath "$PEFiles\media\sources\boot.wim" -Index 1 -LogPath "$LogDir\DISM.log"
         
         # Add drivers
-        Add-WindowsDriver -Path $Mount -Driver $Drivers -Recurse | Out-Null
+        Add-WindowsDriver -Path $Mount -Driver $Drivers -Recurse -LogPath "$LogDir\DISM.log"
         
         # Add packages
         Write-Host "Adding packages:"
@@ -504,17 +506,18 @@ if ($MyInvocation.InvocationName -ne ".") {
         foreach ($Package in $WinPEPackages) {
             $PackagePath = ("{0}\{1}\WinPE_OCs\{2}.cab" -f $Env:WinPERoot, $Arch, $Package)
             Write-Host "    $Package..."
-            Add-WindowsPackage –PackagePath $PackagePath –Path $Mount | Out-Null
+            Add-WindowsPackage –PackagePath $PackagePath –Path $Mount -LogPath "$LogDir\DISM.log"
             $LangPackagePath = ("{0}\{1}\WinPE_OCs\en-us\{2}_en-us.cab" -f $Env:WinPERoot, $Arch, $Package)
             if (Test-Path $LangPackagePath) {
-                Add-WindowsPackage –PackagePath $LangPackagePath –Path $Mount | Out-Null
+                Add-WindowsPackage –PackagePath $LangPackagePath –Path $Mount -LogPath "$LogDir\DISM.log"
             }
         }
         
         # Set RamDisk size
         $ArgumentList = @(
             ('/Image:"{0}"' -f $Mount),
-            "/Set-ScratchSpace:512"
+            "/Set-ScratchSpace:512",
+            ('/LogPath:"{0}\DISM.log"' -f $LogDir)
         )
         Start-Process -FilePath $DISM -ArgumentList $ArgumentList -NoNewWindow -Wait
         
@@ -580,7 +583,7 @@ if ($MyInvocation.InvocationName -ne ".") {
         
         # Unmount image
         Write-Host "Dismounting image..."
-        Dismount-WindowsImage -Path $Mount -Save
+        Dismount-WindowsImage -Path $Mount -Save -LogPath "$LogDir\DISM.log"
         
         # Create ISO
         New-Item -Type Directory "$Root\OUT_PE" 2>&1 | Out-Null
