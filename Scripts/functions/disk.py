@@ -300,7 +300,7 @@ def remove_volume_letters(keep=''):
     except subprocess.CalledProcessError:
         pass
 
-def select_disk(prompt='Which disk?'):
+def select_disk(title='Which disk?'):
     """Select a disk from the attached disks"""
     disks = get_attached_disk_info()
 
@@ -334,7 +334,10 @@ def select_disk(prompt='Which disk?'):
         ]
 
     # Menu loop
-    selection = menu_select(prompt, disk_options, actions)
+    selection = menu_select(
+        title = title,
+        main_entries = disk_options,
+        action_entries = actions)
 
     if (selection.isnumeric()):
         return disk_options[int(selection)-1]['Disk']

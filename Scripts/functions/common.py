@@ -224,6 +224,10 @@ def menu_select(title='~ Untitled Menu ~',
     if not main_entries and not action_entries:
         raise Exception("MenuError: No items given")
 
+    # Set title
+    if 'Title' in global_vars:
+        title = '{}\n\n{}'.format(global_vars['Title'])
+
     # Build menu
     menu_splash =   '{}\n\n'.format(title)
     width =         len(str(len(main_entries)))
@@ -360,6 +364,13 @@ def run_program(cmd, args=[], check=True, pipe=True, shell=False):
         process_return = subprocess.run(cmd, check=check, shell=shell)
 
     return process_return
+
+def set_title(title='~Some Title~'):
+    """Set title.
+    
+    Used for window title and menu titles."""
+    global_vars['Title'] = title
+    os.system('title {}'.format(title))
 
 def show_info(message='~Some message~', info='~Some info~', indent=8, width=32):
     """Display info with formatting."""

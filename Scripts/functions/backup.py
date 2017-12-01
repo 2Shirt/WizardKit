@@ -131,7 +131,9 @@ def select_backup_destination(auto_select=True):
         return destinations[0]
     
     selection = menu_select(
-        'Where are we backing up to?', destinations, actions)
+        title = 'Where are we backing up to?',
+        main_entries = destinations,
+        action_entries = actions)
     if selection == 'M':
         raise GenericAbort
     else:

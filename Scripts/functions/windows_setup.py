@@ -180,7 +180,10 @@ def select_windows_version():
     actions = [{'Name': 'Main Menu', 'Letter': 'M'},]
 
     # Menu loop
-    selection = menu_select('Which version of Windows are we installing?', WINDOWS_VERSIONS, actions)
+    selection = menu_select(
+        title = 'Which version of Windows are we installing?',
+        main_entries = WINDOWS_VERSIONS,
+        action_entries = actions)
 
     if selection.isnumeric():
         return WINDOWS_VERSIONS[int(selection)-1]

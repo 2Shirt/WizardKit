@@ -62,6 +62,7 @@ def menu_backup():
             'GenericAbort':         'Skipped',
             'GenericRepair':        'Repaired',
         }}
+    set_title('{}: Backup Menu'.format(KIT_NAME_FULL))
 
     # Set ticket Number
     os.system('cls')
@@ -154,7 +155,6 @@ def menu_backup():
     pause('\nPress Enter to return to main menu... ')
 
 def menu_root():
-    title = '{}: Main Menu'.format(KIT_NAME_FULL)
     menus = [
         {'Name': 'Create Backups', 'Menu': menu_backup},
         {'Name': 'Setup Windows', 'Menu': menu_setup},
@@ -168,11 +168,12 @@ def menu_root():
 
     # Main loop
     while True:
+        set_title(KIT_NAME_FULL)
         selection = menu_select(
-            title=title,
-            main_entries=menus,
-            action_entries=actions,
-            secret_exit=True)
+            title = 'Main Menu',
+            main_entries = menus,
+            action_entries = actions,
+            secret_exit = True)
 
         if (selection.isnumeric()):
             try:
@@ -191,6 +192,7 @@ def menu_root():
 def menu_setup():
     """Format a drive, partition for MBR or GPT, apply a Windows image, and rebuild the boot files"""
     errors = False
+    set_title('{}: Setup Menu'.format(KIT_NAME_FULL))
 
     # Set ticket ID
     os.system('cls')
@@ -295,13 +297,16 @@ def menu_setup():
     pause('\nPress Enter to return to main menu... ')
 
 def menu_tools():
-    title = '{}: Tools Menu'.format(KIT_NAME_FULL)
     tools = [k for k in sorted(PE_TOOLS.keys())]
     actions = [{'Name': 'Main Menu', 'Letter': 'M'},]
+    set_title(KIT_NAME_FULL)
 
     # Menu loop
     while True:
-        selection = menu_select(title, tools, actions)
+        selection = menu_select(
+            title = 'Tools Menu',
+            main_entries = tools,
+            action_entries = actions)
         if (selection.isnumeric()):
             tool = tools[int(selection)-1]
             cmd = [PE_TOOLS[tool]['Path']] + PE_TOOLS[tool].get('Args', [])
@@ -342,7 +347,9 @@ def select_minidump_path():
         return None
 
     # Menu
-    selection = menu_select('Which BSoD / MiniDump path are we scanning?', dumps, [])
+    selection = menu_select(
+        title = 'Which BSoD / MiniDump path are we scanning?',
+        main_entries = dumps)
     return dumps[int(selection) - 1]['Name']
 
 if __name__ == '__main__':
