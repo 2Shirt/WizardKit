@@ -86,25 +86,17 @@ def find_windows_image(windows_version):
             windows_version['Name']))
         raise GeneralAbort
 
-def format_gpt(disk=None, windows_family=None):
-    """Format disk for use as a Windows OS drive using the GPT (UEFI) layout."""
-
-    # Bail early
-    if disk is None:
-        raise Exception('No disk provided.')
-    if windows_family is None:
-        raise Exception('No Windows family provided.')
-
-    # Format drive
-    # print_info('Drive will use a GPT (UEFI) layout.')
+def format_gpt(disk, windows_family):
+    """Format disk for use as a Windows OS drive using the GPT layout."""
     with open(DISKPART_SCRIPT, 'w') as script:
         # Partition table
-        script.write('select disk {number}\n'.format(number=disk['Number']))
+        script.write('select disk {}\n'.format(disk['Number']))
         script.write('clean\n')
         script.write('convert gpt\n')
 
         # System partition
-        script.write('create partition efi size=260\n') # NOTE: Allows for Advanced Format 4K drives
+        # NOTE: ESP needs to be >= 260 for Advanced Format 4K drives
+        script.write('create partition efi size=500\n')
         script.write('format quick fs=fat32 label="System"\n')
         script.write('assign letter="S"\n')
 
@@ -126,23 +118,14 @@ def format_gpt(disk=None, windows_family=None):
             script.write('gpt attributes=0x8000000000000001\n')
 
     # Run script
-    run_program('diskpart /s {script}'.format(script=DISKPART_SCRIPT))
+    run_program(['diskpart', '/s', DISKPART_SCRIPT])
     time.sleep(2)
 
-def format_mbr(disk=None, windows_family=None):
-    """Format disk for use as a Windows OS drive using the MBR (legacy) layout."""
-
-    # Bail early
-    if disk is None:
-        raise Exception('No disk provided.')
-    if windows_family is None:
-        raise Exception('No Windows family provided.')
-
-    # Format drive
-    # print_info('Drive will use a MBR (legacy) layout.')
+def format_mbr(disk, windows_family):
+    """Format disk for use as a Windows OS drive using the MBR layout."""
     with open(DISKPART_SCRIPT, 'w') as script:
         # Partition table
-        script.write('select disk {number}\n'.format(number=disk['Number']))
+        script.write('select disk {}\n'.format(disk['Number']))
         script.write('clean\n')
 
         # System partition
@@ -165,7 +148,7 @@ def format_mbr(disk=None, windows_family=None):
             script.write('set id=27\n')
 
     # Run script
-    run_program('diskpart /s {script}'.format(script=DISKPART_SCRIPT))
+    run_program(['diskpart', '/s', DISKPART_SCRIPT])
     time.sleep(2)
 
 def mount_windows_share():
@@ -177,7 +160,9 @@ def mount_windows_share():
     mount_network_share(WINDOWS_SERVER)
 
 def select_windows_version():
-    actions = [{'Name': 'Main Menu', 'Letter': 'M'},]
+    actions = [
+        {'Name': 'Main Menu', 'Letter': 'M'},
+        ]
 
     # Menu loop
     selection = menu_select(
@@ -188,7 +173,7 @@ def select_windows_version():
     if selection.isnumeric():
         return WINDOWS_VERSIONS[int(selection)-1]
     elif selection == 'M':
-        abort_to_main_menu()
+        raise GeneralAbort
 
 def setup_windows(windows_image, windows_version):
     cmd = [
@@ -201,28 +186,30 @@ def setup_windows(windows_image, windows_version):
         cmd.extend(windows_image['Glob'])
     run_program(cmd)
 
-def setup_windows_re(windows_version=None, windows_letter='W', tools_letter='T'):
-    # Bail early
-    if windows_version is None:
-        raise Exception('Windows version not specified.')
+def setup_windows_re(windows_version, windows_letter='W', tools_letter='T'):
+    win = r'{}:\Windows'.format(windows_letter)
+    winre = r'{}\System32\Recovery\WinRE.wim'.format(win)
+    dest = r'{}:\Recovery\WindowsRE'.format(tools_letter)
     
-    _win = '{win}:\\Windows'.format(win=windows_letter)
-    _winre = '{win}\\System32\\Recovery\\WinRE.wim'.format(win=_win)
-    _dest = '{tools}:\\Recovery\\WindowsRE'.format(tools=tools_letter)
+    # Copy WinRE.wim
+    os.makedirs(dest, exist_ok=True)
+    shutil.copy(winre, r'{}\WinRE.wim'.format(dest))
     
-    if re.search(r'^(8|10)', windows_version['Family']):
-        # Copy WinRE.wim
-        os.makedirs(_dest, exist_ok=True)
-        shutil.copy(_winre, '{dest}\\WinRE.wim'.format(dest=_dest))
-        
-        # Set location
-        run_program('{win}\\System32\\reagentc /setreimage /path {dest} /target {win}'.format(dest=_dest, win=_win))
-    else:
-        # Only supported on Windows 8 and above
-        raise SetupError
+    # Set location
+    cmd = [
+        r'{}\System32\ReAgentc.exe'.format(win),
+        '/setreimage',
+        '/path', dest,
+        '/target', win]
+    run_program(cmd)
 
 def update_boot_partition(system_letter='S', windows_letter='W', mode='ALL'):
-    run_program('bcdboot {win}:\\Windows /s {sys}: /f {mode}'.format(win=windows_letter, sys=system_letter, mode=mode))
+    cmd = [
+        r'{}:\Windows\System32\bcdboot.exe'.format(windows_letter),
+        r'{}:\Windows'.format(windows_letter),
+        '/s', '{}:'.format(system_letter),
+        '/f', mode]
+    run_program(cmd)
 
 def wim_contains_image(filename, imagename):
     cmd = [
