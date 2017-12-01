@@ -36,7 +36,7 @@ def prep_disk_for_backup(destination, disk, ticket_number):
 
     # Get partition totals
     disk['Bad Partitions'] = [par['Number'] for par in disk['Partitions']
-        if is_bad_partition(partition)]
+        if is_bad_partition(par)]
     num_valid_partitions = len(disk['Partitions']) - len(disk['Bad Partitions'])
     disk['Valid Partitions'] = num_valid_partitions
     if disk['Valid Partitions'] <= 0:

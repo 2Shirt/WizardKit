@@ -178,10 +178,17 @@ def menu_backup():
                     pass
                 for line in par['Error']:
                     print_error('\t{}'.format(line))
-        time.sleep(30)
     else:
         print_success('\nNo errors were encountered during imaging.')
-        time.sleep(5)
+    if 'LogFile' in global_vars:
+        cmd = [
+            global_vars['Tools']['NotepadPlusPlus'],
+            global_vars['LogFile']]
+        try:
+            popen_program(cmd)
+        except Exception:
+            print_error('ERROR: Failed to open log.')
+            sleep(30)
     pause('\nPress Enter to return to main menu... ')
 
 def menu_root():
@@ -219,7 +226,7 @@ def menu_root():
         elif (selection == 'S'):
             run_program(['wpeutil', 'shutdown'])
         else:
-            exit_script()
+            sys.exit()
 
 def menu_setup():
     """Format a disk (MBR/GPT), apply a Windows image, and setup boot files."""
@@ -346,6 +353,15 @@ def menu_setup():
 
     # Print summary
     print_standard('\nDone.')
+    if 'LogFile' in global_vars:
+        cmd = [
+            global_vars['Tools']['NotepadPlusPlus'],
+            global_vars['LogFile']]
+        try:
+            popen_program(cmd)
+        except Exception:
+            print_error('ERROR: Failed to open log.')
+            sleep(30)
     pause('\nPress Enter to return to main menu... ')
 
 def menu_tools():
@@ -371,7 +387,7 @@ def menu_tools():
                 popen_program(cmd)
             except Exception:
                 print_error('Failed to run {}'.format(name))
-                time.sleep(2)
+                sleep(2)
                 pause()
         elif (selection == 'M'):
             break
@@ -395,7 +411,7 @@ def select_minidump_path():
     # Check results before showing menu
     if len(dumps) == 0:
         print_error('  No BSoD / MiniDump paths found')
-        time.sleep(2)
+        sleep(2)
         return None
 
     # Menu

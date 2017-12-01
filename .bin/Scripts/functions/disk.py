@@ -300,7 +300,7 @@ def run_diskpart(script):
             global_vars['Env']['SYSTEMDRIVE']),
         '/s', tempfile]
     result = run_program(cmd)
-    time.sleep(2)
+    sleep(2)
     return result
 
 def scan_disks():
