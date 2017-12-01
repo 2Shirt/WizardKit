@@ -137,26 +137,16 @@ def select_backup_destination(auto_select=True):
     else:
         return destinations[int(selection)-1]
 
-def verify_wim_backup(bin=None, par=None):
-    # Bail early
-    if bin is None:
-        raise Exception('bin path not specified.')
-    if par is None:
-        raise Exception('Partition not specified.')
-    
-    # Verify hiding all output for quicker verification
-    print('    Partition {Number} Image...\t\t'.format(**par), end='', flush=True)
-    cmd = '{bin}\\wimlib\\wimlib-imagex verify "{Image Path}" --nocheck'.format(bin=bin, **par)
-    if not os.path.exists('{Image Path}'.format(**par)):
-        print_error('Missing.')
-    else:
-        try:
-            run_program(cmd)
-            print_success('OK.')
-        except subprocess.CalledProcessError as err:
-            print_error('Damaged.')
-            par['Error'] = par.get('Error', []) + err.stderr.decode().splitlines()
-            raise BackupError
+def verify_wim_backup(partition):
+    if not os.path.exists(partition['Image Path']):
+        raise PathNotFoundError
+    cmd = [
+        global_vars['Tools']['wimlib-imagex'],
+        'verify',
+        partition['Image Path'],
+        ' --nocheck',
+        ]
+    run_program(cmd)
 
 if __name__ == '__main__':
     print("This file is not meant to be called directly.")
