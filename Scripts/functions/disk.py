@@ -1,7 +1,7 @@
 # Wizard Kit PE: Functions - Disk
 
 from functions.common import *
-import partition_uids
+from functions import partition_uids
 
 # Regex
 REGEX_BAD_PARTITION = re.compile(r'(RAW|Unknown)', re.IGNORECASE)
