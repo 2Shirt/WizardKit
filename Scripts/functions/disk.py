@@ -197,7 +197,7 @@ def get_table_type(disk):
         elif REGEX_DISK_RAW.search(output):
             part_type = 'RAW'
         else:
-            part_type = 'Unknown
+            part_type = 'Unknown'
     
     return part_type
 
@@ -288,7 +288,7 @@ def remove_volume_letters(keep=None):
     with open(DISKPART_SCRIPT, 'w') as script:
         for vol in get_volumes():
             if vol['Letter'].upper() != keep.upper():
-            script.write('select volume {}\n'.format(vol['Number']))
+                script.write('select volume {}\n'.format(vol['Number']))
                 script.write('remove noerr\n')
     
     # Run script
@@ -319,7 +319,7 @@ def scan_disks():
     # Done
     return disks
 
-def select_disk(title='Which disk?', disks):
+def select_disk(title='Which disk?', disks=[]):
     """Select a disk from the attached disks"""
     # Build menu
     disk_options = []

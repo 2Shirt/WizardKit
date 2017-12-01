@@ -150,11 +150,8 @@ def format_mbr(disk):
 
 def mount_windows_share():
     """Mount the  Windows images share unless labeled as already mounted."""
-    if WINDOWS_SERVER['Mounted']:
-        # Blindly skip if we mounted earlier
-        continue
-    
-    mount_network_share(WINDOWS_SERVER)
+    if not WINDOWS_SERVER['Mounted']:
+        mount_network_share(WINDOWS_SERVER)
 
 def select_windows_version():
     actions = [
