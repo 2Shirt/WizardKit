@@ -10,11 +10,11 @@ $Host.UI.RawUI.WindowTitle = "Wizard Kit: Windows PE Build Tool"
 $WD = $(Split-Path $MyInvocation.MyCommand.Path)
 $Bin = (Get-Item $WD -Force).Parent.FullName
 $Root = (Get-Item $Bin -Force).Parent.FullName
-$Temp = "$Bin\tmp"
+$Build = "$Root\BUILD"
+$Temp = "$Build\Temp"
 $Date = Get-Date -UFormat "%Y-%m-%d"
 $Host.UI.RawUI.BackgroundColor = "Black"
 $Host.UI.RawUI.ForegroundColor = "White"
-# $ProgressPreference = "silentlyContinue"
 $HostSystem32 = "{0}\System32" -f $Env:SystemRoot
 $DISM = "{0}\DISM.exe" -f $Env:DISMRoot
 
@@ -40,8 +40,8 @@ function Abort {
 }
 function MakeClean {
     $Folders = @(
-        "$Root\Mount",
-        "$Root\PEFiles")
+        "$Build\Mount",
+        "$Build\PEFiles")
     $Clean = $false
     foreach ($f in $Folders) {
         if (Test-Path $f) {
@@ -185,17 +185,17 @@ if ($MyInvocation.InvocationName -ne ".") {
             Start-Process -FilePath "$HostSystem32\msiexec.exe" -ArgumentList $ArgumentList -Wait
             $SevenZip = "$Temp\7zi\Files\7-Zip\7z.exe"
             $ArgumentList = @(
-                "e", "$Temp\7z-extra.7z", "-o$Root\WK\amd64\7-Zip",
+                "e", "$Temp\7z-extra.7z", "-o$Build\bin\amd64\7-Zip",
                 "-aoa", "-bso0", "-bse0", "-bsp0",
                 "x64\7za.exe", "*.txt")
             Start-Process -FilePath $SevenZip -ArgumentList $ArgumentList -NoNewWindow -Wait
             $ArgumentList = @(
-                "e", "$Temp\7z-extra.7z", "-o$Root\WK\x86\7-Zip",
+                "e", "$Temp\7z-extra.7z", "-o$Build\bin\x86\7-Zip",
                 "-aoa", "-bso0", "-bse0", "-bsp0",
                 "7za.exe", "*.txt")
             Start-Process -FilePath $SevenZip -ArgumentList $ArgumentList -NoNewWindow -Wait
             Remove-Item "$Temp\7z*" -Recurse
-            $SevenZip = "$Root\WK\x86\7-Zip\7za.exe"
+            $SevenZip = "$Build\bin\x86\7-Zip\7za.exe"
         }
         catch {
             Write-Host ("  ERROR: Failed to extract files." ) -ForegroundColor "Red"
@@ -205,11 +205,11 @@ if ($MyInvocation.InvocationName -ne ".") {
         Write-Host "Extracting: BlueScreenView"
         try {
             $ArgumentList = @(
-                "x", "$Temp\bluescreenview64.zip", "-o$Root\WK\amd64\BlueScreenView",
+                "x", "$Temp\bluescreenview64.zip", "-o$Build\bin\amd64\BlueScreenView",
                 "-aoa", "-bso0", "-bse0", "-bsp0")
             Start-Process -FilePath $SevenZip -ArgumentList $ArgumentList -NoNewWindow -Wait
             $ArgumentList = @(
-                "x", "$Temp\bluescreenview32.zip", "-o$Root\WK\x86\BlueScreenView",
+                "x", "$Temp\bluescreenview32.zip", "-o$Build\bin\x86\BlueScreenView",
                 "-aoa", "-bso0", "-bse0", "-bsp0")
             Start-Process -FilePath $SevenZip -ArgumentList $ArgumentList -NoNewWindow -Wait
             Remove-Item "$Temp\bluescreenview*"
@@ -222,19 +222,19 @@ if ($MyInvocation.InvocationName -ne ".") {
         Write-Host "Extracting: ConEmu"
         try {
             $ArgumentList = @(
-                "x", "$Temp\ConEmuPack.7z", "-o$Root\WK\amd64\ConEmu",
+                "x", "$Temp\ConEmuPack.7z", "-o$Build\bin\amd64\ConEmu",
                 "-aoa", "-bso0", "-bse0", "-bsp0")
             Start-Process -FilePath $SevenZip -ArgumentList $ArgumentList -NoNewWindow -Wait
-            Remove-Item "$Root\WK\amd64\ConEmu\ConEmu.exe"
-            Remove-Item "$Root\WK\amd64\ConEmu\ConEmu.map"
-            Move-Item "$Root\WK\amd64\ConEmu\ConEmu64.exe" "$Root\WK\amd64\ConEmu\ConEmu.exe" -Force
-            Move-Item "$Root\WK\amd64\ConEmu\ConEmu64.map" "$Root\WK\amd64\ConEmu\ConEmu.map" -Force
+            Remove-Item "$Build\bin\amd64\ConEmu\ConEmu.exe"
+            Remove-Item "$Build\bin\amd64\ConEmu\ConEmu.map"
+            Move-Item "$Build\bin\amd64\ConEmu\ConEmu64.exe" "$Build\bin\amd64\ConEmu\ConEmu.exe" -Force
+            Move-Item "$Build\bin\amd64\ConEmu\ConEmu64.map" "$Build\bin\amd64\ConEmu\ConEmu.map" -Force
             $ArgumentList = @(
-                "x", "$Temp\ConEmuPack.7z", "-o$Root\WK\x86\ConEmu",
+                "x", "$Temp\ConEmuPack.7z", "-o$Build\bin\x86\ConEmu",
                 "-aoa", "-bso0", "-bse0", "-bsp0")
             Start-Process -FilePath $SevenZip -ArgumentList $ArgumentList -NoNewWindow -Wait
-            Remove-Item "$Root\WK\x86\ConEmu\ConEmu64.exe"
-            Remove-Item "$Root\WK\x86\ConEmu\ConEmu64.map"
+            Remove-Item "$Build\bin\x86\ConEmu\ConEmu64.exe"
+            Remove-Item "$Build\bin\x86\ConEmu\ConEmu64.map"
             Remove-Item "$Temp\ConEmuPack*"
         }
         catch {
@@ -245,12 +245,12 @@ if ($MyInvocation.InvocationName -ne ".") {
         Write-Host "Extracting: FastCopy"
         try {
             $ArgumentList = @(
-                "x", "$Temp\fastcopy64.zip", "-o$Root\WK\amd64\FastCopy",
+                "x", "$Temp\fastcopy64.zip", "-o$Build\bin\amd64\FastCopy",
                 "-aoa", "-bso0", "-bse0", "-bsp0",
                 "-x!setup.exe", "-x!*.dll")
             Start-Process -FilePath $SevenZip -ArgumentList $ArgumentList -NoNewWindow -Wait
             $ArgumentList = @(
-                "e", "$Temp\fastcopy32.zip", "-o$Root\WK\x86\FastCopy",
+                "e", "$Temp\fastcopy32.zip", "-o$Build\bin\x86\FastCopy",
                 "-aoa", "-bso0", "-bse0", "-bsp0",
                 "-x!setup.exe", "-x!*.dll")
             Start-Process -FilePath $SevenZip -ArgumentList $ArgumentList -NoNewWindow -Wait
@@ -264,12 +264,12 @@ if ($MyInvocation.InvocationName -ne ".") {
         Write-Host "Extracting: Killer Network Driver"
         try {
             $ArgumentList = @(
-                "e", "$Temp\killerinf.zip", "-o$Root\Drivers\amd64\Killer",
+                "e", "$Temp\killerinf.zip", "-o$Build\Drivers\amd64\Killer",
                 "-aoa", "-bso0", "-bse0", "-bsp0",
                 "Production\Windows10-x64\Eth\*")
             Start-Process -FilePath $SevenZip -ArgumentList $ArgumentList -NoNewWindow -Wait
             $ArgumentList = @(
-                "e", "$Temp\killerinf.zip", "-o$Root\Drivers\x86\Killer",
+                "e", "$Temp\killerinf.zip", "-o$Build\Drivers\x86\Killer",
                 "-aoa", "-bso0", "-bse0", "-bsp0",
                 "Production\Windows10-x86\Eth\*")
             Start-Process -FilePath $SevenZip -ArgumentList $ArgumentList -NoNewWindow -Wait
@@ -283,16 +283,16 @@ if ($MyInvocation.InvocationName -ne ".") {
         Write-Host "Extracting: HWiNFO"
         try {
             $ArgumentList = @(
-                "e", "$Temp\hwinfo64.zip", "-o$Root\WK\amd64\HWiNFO",
+                "e", "$Temp\hwinfo64.zip", "-o$Build\bin\amd64\HWiNFO",
                 "-aoa", "-bso0", "-bse0", "-bsp0", "HWiNFO64.exe")
             Start-Process -FilePath $SevenZip -ArgumentList $ArgumentList -NoNewWindow -Wait
             $ArgumentList = @(
-                "e", "$Temp\hwinfo32.zip", "-o$Root\WK\x86\HWiNFO",
+                "e", "$Temp\hwinfo32.zip", "-o$Build\bin\x86\HWiNFO",
                 "-aoa", "-bso0", "-bse0", "-bsp0", "HWiNFO32.exe")
             Start-Process -FilePath $SevenZip -ArgumentList $ArgumentList -NoNewWindow -Wait
             Remove-Item "$Temp\hwinfo*"
-            Move-Item "$Root\WK\amd64\HWiNFO\HWiNFO64.exe" "$Root\WK\amd64\HWiNFO\HWiNFO.exe" -Force
-            Move-Item "$Root\WK\x86\HWiNFO\HWiNFO32.exe" "$Root\WK\x86\HWiNFO\HWiNFO.exe" -Force
+            Move-Item "$Build\bin\amd64\HWiNFO\HWiNFO64.exe" "$Build\bin\amd64\HWiNFO\HWiNFO.exe" -Force
+            Move-Item "$Build\bin\x86\HWiNFO\HWiNFO32.exe" "$Build\bin\x86\HWiNFO\HWiNFO.exe" -Force
         }
         catch {
             Write-Host ("  ERROR: Failed to extract files." ) -ForegroundColor "Red"
@@ -302,16 +302,16 @@ if ($MyInvocation.InvocationName -ne ".") {
         Write-Host "Extracting: Notepad++"
         try {
             $ArgumentList = @(
-                "x", "$Temp\npp_amd64.7z", "-o$Root\WK\amd64\NotepadPlusPlus",
+                "x", "$Temp\npp_amd64.7z", "-o$Build\bin\amd64\NotepadPlusPlus",
                 "-aoa", "-bso0", "-bse0", "-bsp0")
             Start-Process -FilePath $SevenZip -ArgumentList $ArgumentList -NoNewWindow -Wait
             $ArgumentList = @(
-                "x", "$Temp\npp_x86.7z", "-o$Root\WK\x86\NotepadPlusPlus",
+                "x", "$Temp\npp_x86.7z", "-o$Build\bin\x86\NotepadPlusPlus",
                 "-aoa", "-bso0", "-bse0", "-bsp0")
             Start-Process -FilePath $SevenZip -ArgumentList $ArgumentList -NoNewWindow -Wait
             Remove-Item "$Temp\npp*"
-            Move-Item "$Root\WK\amd64\NotepadPlusPlus\notepad++.exe" "$Root\WK\amd64\NotepadPlusPlus\notepadplusplus.exe" -Force
-            Move-Item "$Root\WK\x86\NotepadPlusPlus\notepad++.exe" "$Root\WK\x86\NotepadPlusPlus\notepadplusplus.exe" -Force
+            Move-Item "$Build\bin\amd64\NotepadPlusPlus\notepad++.exe" "$Build\bin\amd64\NotepadPlusPlus\notepadplusplus.exe" -Force
+            Move-Item "$Build\bin\x86\NotepadPlusPlus\notepad++.exe" "$Build\bin\x86\NotepadPlusPlus\notepadplusplus.exe" -Force
         }
         catch {
             Write-Host ("  ERROR: Failed to extract files." ) -ForegroundColor "Red"
@@ -321,13 +321,13 @@ if ($MyInvocation.InvocationName -ne ".") {
         Write-Host "Extracting: NT Password Editor"
         try {
             $ArgumentList = @(
-                "e", "$Temp\ntpwed.zip", ('-o"{0}\WK\amd64\NT Password Editor"' -f $Root),
+                "e", "$Temp\ntpwed.zip", ('-o"{0}\bin\amd64\NT Password Editor"' -f $Build),
                 "-aoa", "-bso0", "-bse0", "-bsp0",
                 "ntpwedit64.exe", "*.txt")
             Start-Process -FilePath $SevenZip -ArgumentList $ArgumentList -NoNewWindow -Wait
-            Move-Item "$Root\WK\amd64\NT Password Editor\ntpwedit64.exe" "$Root\WK\amd64\NT Password Editor\ntpwedit.exe" -Force
+            Move-Item "$Build\bin\amd64\NT Password Editor\ntpwedit64.exe" "$Build\bin\amd64\NT Password Editor\ntpwedit.exe" -Force
             $ArgumentList = @(
-                "e", "$Temp\ntpwed.zip", ('-o"{0}\WK\x86\NT Password Editor"' -f $Root),
+                "e", "$Temp\ntpwed.zip", ('-o"{0}\bin\x86\NT Password Editor"' -f $Build),
                 "-aoa", "-bso0", "-bse0", "-bsp0",
                 "ntpwedit.exe", "*.txt")
             Start-Process -FilePath $SevenZip -ArgumentList $ArgumentList -NoNewWindow -Wait
@@ -341,21 +341,21 @@ if ($MyInvocation.InvocationName -ne ".") {
         Write-Host "Extracting: PhotoRec / TestDisk"
         try {
             $ArgumentList = @(
-                "x", "$Temp\testdisk64.zip", "-o$Root\WK\amd64\TestDisk",
+                "x", "$Temp\testdisk64.zip", "-o$Build\bin\amd64\TestDisk",
                 "-aoa", "-bso0", "-bse0", "-bsp0")
             # Remove destination since Move-Item -Force can't handle this recursive merge
-            Remove-Item "$Root\WK\amd64\TestDisk" -Recurse -Force
+            Remove-Item "$Build\bin\amd64\TestDisk" -Recurse -Force 2>&1 | Out-Null
             Start-Process -FilePath $SevenZip -ArgumentList $ArgumentList -NoNewWindow -Wait
-            Move-Item "$Root\WK\amd64\TestDisk\testdisk-7.1-WIP\*" "$Root\WK\amd64\TestDisk" -Force
-            Remove-Item "$Root\WK\amd64\TestDisk\testdisk-7.1-WIP" -Recurse -Force
+            Move-Item "$Build\bin\amd64\TestDisk\testdisk-7.1-WIP\*" "$Build\bin\amd64\TestDisk" -Force
+            Remove-Item "$Build\bin\amd64\TestDisk\testdisk-7.1-WIP" -Recurse -Force
             $ArgumentList = @(
-                "x", "$Temp\testdisk32.zip", "-o$Root\WK\x86\TestDisk",
+                "x", "$Temp\testdisk32.zip", "-o$Build\bin\x86\TestDisk",
                 "-aoa", "-bso0", "-bse0", "-bsp0")
             # Remove destination since Move-Item -Force can't handle this recursive merge
-            Remove-Item "$Root\WK\x86\TestDisk" -Recurse -Force
+            Remove-Item "$Build\bin\x86\TestDisk" -Recurse -Force 2>&1 | Out-Null
             Start-Process -FilePath $SevenZip -ArgumentList $ArgumentList -NoNewWindow -Wait
-            Move-Item "$Root\WK\x86\TestDisk\testdisk-7.1-WIP\*" "$Root\WK\x86\TestDisk" -Force
-            Remove-Item "$Root\WK\x86\TestDisk\testdisk-7.1-WIP" -Recurse -Force
+            Move-Item "$Build\bin\x86\TestDisk\testdisk-7.1-WIP\*" "$Build\bin\x86\TestDisk" -Force
+            Remove-Item "$Build\bin\x86\TestDisk\testdisk-7.1-WIP" -Recurse -Force
             Remove-Item "$Temp\testdisk*"
         }
         catch {
@@ -366,11 +366,11 @@ if ($MyInvocation.InvocationName -ne ".") {
         Write-Host "Extracting: Prime95"
         try {
             $ArgumentList = @(
-                "x", "$Temp\prime95_64.zip", "-o$Root\WK\amd64\Prime95",
+                "x", "$Temp\prime95_64.zip", "-o$Build\bin\amd64\Prime95",
                 "-aoa", "-bso0", "-bse0", "-bsp0")
             Start-Process -FilePath $SevenZip -ArgumentList $ArgumentList -NoNewWindow -Wait
             $ArgumentList = @(
-                "x", "$Temp\prime95_32.zip", "-o$Root\WK\x86\Prime95",
+                "x", "$Temp\prime95_32.zip", "-o$Build\bin\x86\Prime95",
                 "-aoa", "-bso0", "-bse0", "-bsp0")
             Start-Process -FilePath $SevenZip -ArgumentList $ArgumentList -NoNewWindow -Wait
             Remove-Item "$Temp\prime95*"
@@ -382,11 +382,11 @@ if ($MyInvocation.InvocationName -ne ".") {
         # ProduKey
         try {
             $ArgumentList = @(
-                "x", "$Temp\produkey64.zip", "-o$Root\WK\amd64\ProduKey",
+                "x", "$Temp\produkey64.zip", "-o$Build\bin\amd64\ProduKey",
                 "-aoa", "-bso0", "-bse0", "-bsp0")
             Start-Process -FilePath $SevenZip -ArgumentList $ArgumentList -NoNewWindow -Wait
             $ArgumentList = @(
-                "x", "$Temp\produkey32.zip", "-o$Root\WK\x86\ProduKey",
+                "x", "$Temp\produkey32.zip", "-o$Build\bin\x86\ProduKey",
                 "-aoa", "-bso0", "-bse0", "-bsp0")
             Start-Process -FilePath $SevenZip -ArgumentList $ArgumentList -NoNewWindow -Wait
             Remove-Item "$Temp\produkey*"
@@ -399,11 +399,11 @@ if ($MyInvocation.InvocationName -ne ".") {
         Write-Host "Extracting: Python (x64)"
         try {
             $ArgumentList = @(
-                "x", "$Temp\python64.zip", "-o$Root\WK\amd64\python",
+                "x", "$Temp\python64.zip", "-o$Build\bin\amd64\python",
                 "-aoa", "-bso0", "-bse0", "-bsp0")
             Start-Process -FilePath $SevenZip -ArgumentList $ArgumentList -NoNewWindow -Wait
             $ArgumentList = @(
-                "x", "$Temp\psutil64.whl", "-o$Root\WK\amd64\python",
+                "x", "$Temp\psutil64.whl", "-o$Build\bin\amd64\python",
                 "-aoa", "-bso0", "-bse0", "-bsp0")
             Start-Process -FilePath $SevenZip -ArgumentList $ArgumentList -NoNewWindow -Wait
             
@@ -416,11 +416,11 @@ if ($MyInvocation.InvocationName -ne ".") {
         Write-Host "Extracting: Python (x32)"
         try {
             $ArgumentList = @(
-                "x", "$Temp\python32.zip", "-o$Root\WK\x86\python",
+                "x", "$Temp\python32.zip", "-o$Build\bin\x86\python",
                 "-aoa", "-bso0", "-bse0", "-bsp0")
             Start-Process -FilePath $SevenZip -ArgumentList $ArgumentList -NoNewWindow -Wait
             $ArgumentList = @(
-                "x", "$Temp\psutil32.whl", "-o$Root\WK\x86\python",
+                "x", "$Temp\psutil32.whl", "-o$Build\bin\x86\python",
                 "-aoa", "-bso0", "-bse0", "-bsp0")
             Start-Process -FilePath $SevenZip -ArgumentList $ArgumentList -NoNewWindow -Wait
             
@@ -435,11 +435,11 @@ if ($MyInvocation.InvocationName -ne ".") {
         Write-Host "Extracting: Q-Dir"
         try {
             $ArgumentList = @(
-                "x", "$Temp\qdir64.zip", "-o$Root\WK\amd64",
+                "x", "$Temp\qdir64.zip", "-o$Build\bin\amd64",
                 "-aoa", "-bso0", "-bse0", "-bsp0")
             Start-Process -FilePath $SevenZip -ArgumentList $ArgumentList -NoNewWindow -Wait
             $ArgumentList = @(
-                "x", "$Temp\qdir32.zip", "-o$Root\WK\x86",
+                "x", "$Temp\qdir32.zip", "-o$Build\bin\x86",
                 "-aoa", "-bso0", "-bse0", "-bsp0")
             Start-Process -FilePath $SevenZip -ArgumentList $ArgumentList -NoNewWindow -Wait
             Remove-Item "$Temp\qdir*"
@@ -451,11 +451,11 @@ if ($MyInvocation.InvocationName -ne ".") {
         # wimlib-imagex
         try {
             $ArgumentList = @(
-                "x", "$Temp\wimlib64.zip", "-o$Root\WK\amd64\wimlib",
+                "x", "$Temp\wimlib64.zip", "-o$Build\bin\amd64\wimlib",
                 "-aoa", "-bso0", "-bse0", "-bsp0")
             Start-Process -FilePath $SevenZip -ArgumentList $ArgumentList -NoNewWindow -Wait
             $ArgumentList = @(
-                "x", "$Temp\wimlib32.zip", "-o$Root\WK\x86\wimlib",
+                "x", "$Temp\wimlib32.zip", "-o$Build\bin\x86\wimlib",
                 "-aoa", "-bso0", "-bse0", "-bsp0")
             Start-Process -FilePath $SevenZip -ArgumentList $ArgumentList -NoNewWindow -Wait
             Remove-Item "$Temp\wimlib*"
@@ -467,9 +467,9 @@ if ($MyInvocation.InvocationName -ne ".") {
     
     ## Build ##
     foreach ($Arch in @("amd64", "x86")) {
-        $Drivers = "$Root\Drivers\$Arch"
-        $Mount = "$Root\Mount"
-        $PEFiles = "$Root\PEFiles\$Arch"
+        $Drivers = "$Build\Drivers\$Arch"
+        $Mount = "$Build\Mount"
+        $PEFiles = "$Build\PEFiles\$Arch"
         
         # Copy WinPE files
         Write-Host "Copying files..."
@@ -520,8 +520,8 @@ if ($MyInvocation.InvocationName -ne ".") {
         
         # Add tools
         Write-Host "Copying tools..."
-        Copy-Item -Path "$Root\WK\$Arch" -Destination "$Mount\.bin" -Recurse -Force
-        Copy-Item -Path "$Root\WK\_include\*" -Destination "$Mount\.bin" -Recurse -Force
+        Copy-Item -Path "$Build\bin\$Arch" -Destination "$Mount\.bin" -Recurse -Force
+        Copy-Item -Path "$Root\.pe_items\_include\*" -Destination "$Mount\.bin" -Recurse -Force
         if ($Arch -eq "amd64") {
             $DestIni = "$Mount\.bin\HWiNFO\HWiNFO64.INI"
         } else {
@@ -529,11 +529,11 @@ if ($MyInvocation.InvocationName -ne ".") {
         }
         Move-Item -Path "$Mount\.bin\HWiNFO\HWiNFO.INI" -Destination $DestIni -Force
         Copy-Item -Path "$Root\WinPE.jpg" -Destination "$Mount\.bin\ConEmu\ConEmu.jpg" -Recurse -Force
-        Copy-Item -Path "$Root\Scripts" -Destination "$Mount\.bin\Scripts" -Recurse -Force
+        Copy-Item -Path "$Bin\Scripts" -Destination "$Mount\.bin\Scripts" -Recurse -Force
         
         # Add System32 items
         $HostSystem32 = "{0}\System32" -f $Env:SystemRoot
-        Copy-Item -Path "$Root\System32\*" -Destination "$Mount\Windows\System32" -Recurse -Force
+        Copy-Item -Path "$Root\.pe_items\System32\*" -Destination "$Mount\Windows\System32" -Recurse -Force
         $ArgumentList = @("/f", "$Mount\Windows\System32\winpe.jpg", "/a")
         Start-Process -FilePath "$HostSystem32\takeown.exe" -ArgumentList $ArgumentList -NoNewWindow -Wait
         $ArgumentList = @("$Mount\Windows\System32\winpe.jpg", "/grant", "Administrators:F")
@@ -583,10 +583,15 @@ if ($MyInvocation.InvocationName -ne ".") {
         Dismount-WindowsImage -Path $Mount -Save
         
         # Create ISO
-        $ArgumentList = @("/iso", $PEFiles, "$Root\wk-winpe-$Date-$Arch.iso")
+        New-Item -Type Directory "$Root\OUT_PE" 2>&1 | Out-Null
+        $ArgumentList = @("/iso", $PEFiles, "$Root\OUT_PE\wk-winpe-$Date-$Arch.iso")
         $Cmd = "{0}\MakeWinPEMedia.cmd" -f $Env:WinPERoot
         Start-Process -FilePath $Cmd -ArgumentList $ArgumentList -NoNewWindow -Wait
     }
+    
+    ## Cleanup ##
+    Remove-Item -Path "$Build\Mount" -Recurse -Force
+    Remove-Item -Path "$Build\PEFiles" -Recurse -Force
 
     ## Done ##
     Pop-Location
