@@ -1,9 +1,9 @@
 # Wizard Kit PE: Functions - Windows Setup
 
-from functions.common import *
+from functions.data import *
 
 # STATIC VARIABLES
-DISKPART_SCRIPT = '{tmp}\\diskpart.script'.format(tmp=os.environ['TMP'])
+DISKPART_SCRIPT = r'{}\diskpart.script'.format(global_vars['Env']['TMP'])
 WINDOWS_VERSIONS = [
     {'Name': 'Windows 7 Home Basic',
         'Image File': 'Win7',
@@ -43,24 +43,6 @@ WINDOWS_VERSIONS = [
         'Family': '10'},
     ]
 
-def is_index_in_image(bin=None, filename=None, imagename=None):
-    # Bail early
-    if bin is None:
-        raise Exception('bin not specified.')
-    if filename is None:
-        raise Exception('Filename not specified.')
-    if imagename is None:
-        raise Exception('Image Name not specified.')
-    
-    cmd = '{bin}\\wimlib\\wimlib-imagex info "{filename}" "{imagename}"'.format(bin=bin, filename=filename, imagename=imagename)
-    try:
-        run_program(cmd)
-    except subprocess.CalledProcessError:
-        print_error('Invalid image: {filename}'.format(filename=filename))
-        return False
-    
-    return True
-
 def find_windows_image(bin, windows_version):
     """Search for a Windows source image file on local drives and network drives (in that order)"""
     image = {}
@@ -73,7 +55,7 @@ def find_windows_image(bin, windows_version):
             filename = '{drive}:\\images\\{imagefile}'.format(drive=tmp[0], imagefile=imagefile)
             filename_ext = '{filename}.{ext}'.format(filename=filename, ext=ext)
             if os.path.isfile(filename_ext):
-                if is_index_in_image(bin, filename_ext, windows_version['Image Name']):
+                if wim_contains_image(bin, filename_ext, windows_version['Image Name']):
                     image['Ext'] = ext
                     image['File'] = filename
                     image['Glob'] = '--ref="{File}*.swm"'.format(**image) if ext == 'swm' else ''
@@ -89,7 +71,7 @@ def find_windows_image(bin, windows_version):
             filename = '\\\\{IP}\\{Share}\\images\\{imagefile}'.format(imagefile=imagefile, **WINDOWS_SERVER)
             filename_ext = '{filename}.{ext}'.format(filename=filename, ext=ext)
             if os.path.isfile(filename_ext):
-                if is_index_in_image(bin, filename_ext, windows_version['Image Name']):
+                if wim_contains_image(bin, filename_ext, windows_version['Image Name']):
                     image['Ext'] = ext
                     image['File'] = filename
                     image['Glob'] = '--ref="{File}*.swm"'.format(**image) if ext == 'swm' else ''
@@ -186,18 +168,6 @@ def format_mbr(disk=None, windows_family=None):
     run_program('diskpart /s {script}'.format(script=DISKPART_SCRIPT))
     time.sleep(2)
 
-def get_boot_mode():
-    boot_mode = 'Legacy'
-    try:
-        reg_key = winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, 'System\\CurrentControlSet\\Control')
-        reg_value = winreg.QueryValueEx(reg_key, 'PEFirmwareType')[0]
-        if reg_value == 2:
-            boot_mode = 'UEFI'
-    except:
-        boot_mode = 'Unknown'
-    
-    return boot_mode
-
 def mount_windows_share():
     """Mount the  Windows images share unless labeled as already mounted."""
     if WINDOWS_SERVER['Mounted']:
@@ -252,6 +222,24 @@ def setup_windows_re(windows_version=None, windows_letter='W', tools_letter='T')
 
 def update_boot_partition(system_letter='S', windows_letter='W', mode='ALL'):
     run_program('bcdboot {win}:\\Windows /s {sys}: /f {mode}'.format(win=windows_letter, sys=system_letter, mode=mode))
+
+def wim_contains_image(bin=None, filename=None, imagename=None):
+    # Bail early
+    if bin is None:
+        raise Exception('bin not specified.')
+    if filename is None:
+        raise Exception('Filename not specified.')
+    if imagename is None:
+        raise Exception('Image Name not specified.')
+    
+    cmd = '{bin}\\wimlib\\wimlib-imagex info "{filename}" "{imagename}"'.format(bin=bin, filename=filename, imagename=imagename)
+    try:
+        run_program(cmd)
+    except subprocess.CalledProcessError:
+        print_error('Invalid image: {filename}'.format(filename=filename))
+        return False
+    
+    return True
 
 if __name__ == '__main__':
     print("This file is not meant to be called directly.")

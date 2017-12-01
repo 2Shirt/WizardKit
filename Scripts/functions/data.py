@@ -374,7 +374,7 @@ def scan_source_wim(source_wim, dest_path, rel_path=None, interactive=True):
 
 def select_destination(folder_path, prompt='Select destination'):
     """Select destination drive, returns path as string."""
-    disk = select_disk(prompt)
+    disk = select_volume(prompt)
     if 'fixed' not in disk['Disk'].opts:
         folder_path = folder_path.replace('\\', '-')
     path = '{disk}{folder_path}_{Date}'.format(
@@ -388,7 +388,7 @@ def select_destination(folder_path, prompt='Select destination'):
 
     return path
 
-def select_disk(title='Select disk', auto_select=True):
+def select_volume(title='Select disk', auto_select=True):
     """Select disk from attached disks. returns dict."""
     actions =   [{'Name': 'Quit', 'Letter': 'Q'}]
     disks =     []

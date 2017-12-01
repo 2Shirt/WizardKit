@@ -1,6 +1,8 @@
 # Wizard Kit PE: Menus
 
-from functions.data import *
+from functions.backup import *
+from functions.disk import *
+from functions.windows_setup import *
 
 # STATIC VARIABLES
 FAST_COPY_ARGS = [

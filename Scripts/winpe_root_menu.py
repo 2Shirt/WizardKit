@@ -6,7 +6,6 @@ import sys
 # Init
 os.chdir(os.path.dirname(os.path.realpath(__file__)))
 sys.path.append(os.getcwd())
-from functions.common import *
 from functions.winpe_menus import *
 init_global_vars()
 os.system('title {}: Root Menu'.format(KIT_NAME_FULL))
