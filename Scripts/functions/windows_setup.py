@@ -7,46 +7,38 @@ DISKPART_SCRIPT = r'{}\diskpart.script'.format(global_vars['Env']['TMP'])
 WINDOWS_VERSIONS = [
     {'Name': 'Windows 7 Home Basic',
         'Image File': 'Win7',
-        'Image Name': 'Windows 7 HOMEBASIC',
-        'Family': '7'},
+        'Image Name': 'Windows 7 HOMEBASIC'},
     {'Name': 'Windows 7 Home Premium',
         'Image File': 'Win7',
-        'Image Name': 'Windows 7 HOMEPREMIUM',
-        'Family': '7'},
+        'Image Name': 'Windows 7 HOMEPREMIUM'},
     {'Name': 'Windows 7 Professional', 
         'Image File': 'Win7', 
-        'Image Name': 'Windows 7 PROFESSIONAL', 
-        'Family': '7'},
+        'Image Name': 'Windows 7 PROFESSIONAL'},
     {'Name': 'Windows 7 Ultimate', 
         'Image File': 'Win7', 
-        'Image Name': 'Windows 7 ULTIMATE', 
-        'Family': '7'},
+        'Image Name': 'Windows 7 ULTIMATE'},
     
     {'Name': 'Windows 8.1', 
         'Image File': 'Win8', 
-        'Image Name': 'Windows 8.1', 
-        'Family': '8',
+        'Image Name': 'Windows 8.1',
         'CRLF': True},
     {'Name': 'Windows 8.1 Pro', 
         'Image File': 'Win8', 
-        'Image Name': 'Windows 8.1 Pro', 
-        'Family': '8'},
+        'Image Name': 'Windows 8.1 Pro'},
     
     {'Name': 'Windows 10 Home', 
         'Image File': 'Win10', 
-        'Image Name': 'Windows 10 Home', 
-        'Family': '10',
+        'Image Name': 'Windows 10 Home',
         'CRLF': True},
     {'Name': 'Windows 10 Pro', 
         'Image File': 'Win10', 
-        'Image Name': 'Windows 10 Pro', 
-        'Family': '10'},
+        'Image Name': 'Windows 10 Pro'},
     ]
 
 def find_windows_image(windows_version):
     """Search for a Windows source image file, returns dict.
 
-    Searches on local drives and then the WINDOWS_SERVER share."""
+    Searches on local disks and then the WINDOWS_SERVER share."""
     image = {}
     imagefile = windows_version['Image File']
     imagename = windows_version['Image Name']
@@ -86,8 +78,15 @@ def find_windows_image(windows_version):
             windows_version['Name']))
         raise GeneralAbort
 
-def format_gpt(disk, windows_family):
-    """Format disk for use as a Windows OS drive using the GPT layout."""
+def format_disk(disk, use_gpt):
+    """Format disk for use as a Windows OS disk."""
+    if use_gpt:
+        format_gpt(disk)
+    else:
+        format_mbr(disk)
+
+def format_gpt(disk):
+    """Format disk for use as a Windows OS disk using the GPT layout."""
     with open(DISKPART_SCRIPT, 'w') as script:
         # Partition table
         script.write('select disk {}\n'.format(disk['Number']))
@@ -95,7 +94,7 @@ def format_gpt(disk, windows_family):
         script.write('convert gpt\n')
 
         # System partition
-        # NOTE: ESP needs to be >= 260 for Advanced Format 4K drives
+        # NOTE: ESP needs to be >= 260 for Advanced Format 4K disks
         script.write('create partition efi size=500\n')
         script.write('format quick fs=fat32 label="System"\n')
         script.write('assign letter="S"\n')
@@ -108,21 +107,20 @@ def format_gpt(disk, windows_family):
         script.write('format quick fs=ntfs label="Windows"\n')
         script.write('assign letter="W"\n')
 
-        # Recovery Tools partition (Windows 8+)
-        if re.search(r'^(8|10)', windows_family):
-            script.write('shrink minimum=500\n')
-            script.write('create partition primary\n')
-            script.write('format quick fs=ntfs label="Recovery Tools"\n')
-            script.write('assign letter="T"\n')
-            script.write('set id="de94bba4-06d1-4d40-a16a-bfd50179d6ac"\n')
-            script.write('gpt attributes=0x8000000000000001\n')
+        # Recovery Tools partition
+        script.write('shrink minimum=500\n')
+        script.write('create partition primary\n')
+        script.write('format quick fs=ntfs label="Recovery Tools"\n')
+        script.write('assign letter="T"\n')
+        script.write('set id="de94bba4-06d1-4d40-a16a-bfd50179d6ac"\n')
+        script.write('gpt attributes=0x8000000000000001\n')
 
     # Run script
     run_program(['diskpart', '/s', DISKPART_SCRIPT])
     time.sleep(2)
 
-def format_mbr(disk, windows_family):
-    """Format disk for use as a Windows OS drive using the MBR layout."""
+def format_mbr(disk):
+    """Format disk for use as a Windows OS disk using the MBR layout."""
     with open(DISKPART_SCRIPT, 'w') as script:
         # Partition table
         script.write('select disk {}\n'.format(disk['Number']))
@@ -139,13 +137,12 @@ def format_mbr(disk, windows_family):
         script.write('format fs=ntfs quick label="Windows"\n')
         script.write('assign letter="W"\n')
 
-        # Recovery Tools partition (Windows 8+)
-        if re.search(r'^(8|10)', windows_family):
-            script.write('shrink minimum=500\n')
-            script.write('create partition primary\n')
-            script.write('format quick fs=ntfs label="Recovery"\n')
-            script.write('assign letter="T"\n')
-            script.write('set id=27\n')
+        # Recovery Tools partition
+        script.write('shrink minimum=500\n')
+        script.write('create partition primary\n')
+        script.write('format quick fs=ntfs label="Recovery"\n')
+        script.write('assign letter="T"\n')
+        script.write('set id=27\n')
 
     # Run script
     run_program(['diskpart', '/s', DISKPART_SCRIPT])

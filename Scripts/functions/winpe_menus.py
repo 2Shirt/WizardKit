@@ -5,7 +5,7 @@ from functions.disk import *
 from functions.windows_setup import *
 
 # STATIC VARIABLES
-FAST_COPY_ARGS = [
+FAST_COPY_PE_ARGS = [
     '/cmd=noexist_only',
     '/utf8',
     '/skip_empty_dir',
@@ -20,7 +20,7 @@ PE_TOOLS = {
         },
     'FastCopy': {
         'Path': r'FastCopy\FastCopy.exe',
-        'Args': FAST_COPY_ARGS,
+        'Args': FAST_COPY_PE_ARGS,
         },
     'HWiNFO': {
         'Path': r'HWiNFO\HWiNFO.exe',
@@ -51,7 +51,7 @@ PE_TOOLS = {
     }
 
 def menu_backup():
-    """Take backup images of partition(s) in the WIM format and save them to a backup share"""
+    """Take backup images of partition(s) in the WIM format."""
     errors = False
     other_results = {
         'Error': {
@@ -65,7 +65,7 @@ def menu_backup():
     set_title('{}: Backup Menu'.format(KIT_NAME_FULL))
 
     # Set ticket Number
-    os.system('cls')
+    clear_screen()
     ticket_number = get_ticket_number()
 
     # Mount backup shares
@@ -75,8 +75,14 @@ def menu_backup():
     destination = select_backup_destination()
 
     # Scan disks
-    try_and_print(message='Assigning letters...', function=assign_volume_letters, other_results=other_results)
-    result = try_and_print(message='Getting drive info...', function=scan_disks, other_results=other_results)
+    try_and_print(
+        message = 'Assigning letters...',
+        function = assign_volume_letters,
+        other_results = other_results)
+    result = try_and_print(
+        message = 'Getting disk info...',
+        function = scan_disks,
+        other_results = other_results)
     if result['CS']:
         disks = result['Out']
     else:
@@ -84,7 +90,7 @@ def menu_backup():
         raise GenericAbort
     
     # Select disk to backup
-    disk = select_disk('For which drive are we creating backups?', disks)
+    disk = select_disk('For which disk are we creating backups?', disks)
     if not disk:
         raise GenericAbort
     
@@ -92,9 +98,8 @@ def menu_backup():
     prep_disk_for_backup(destination, disk, ticket_number)
 
     # Display details for backup task
-    os.system('cls')
+    clear_screen()
     print_info('Create Backup - Details:\n')
-    # def show_info(message='~Some message~', info='~Some info~', indent=8, width=32):
     show_info(message='Ticket:', info=ticket_number)
     show_info(
         message = 'Source:',
@@ -115,9 +120,12 @@ def menu_backup():
     # Backup partition(s)
     print_info('\n\nStarting task.\n')
     for par in disk['Partitions']:
-        message = 'Partition {} Backup...'.format(par['Number'])
-        result = try_and_print(message=message, function=backup_partition,
-            other_results=other_results, disk=disk, partition=par)
+        result = try_and_print(
+            message = 'Partition {} Backup...'.format(par['Number']),
+            function = backup_partition,
+            other_results = other_results,
+            disk = disk,
+            partition = par)
         if not result['CS']:
             errors = True
             par['Error'] = result['Error']
@@ -128,9 +136,11 @@ def menu_backup():
         for par in disk['Partitions']:
             if par['Number'] in disk['Bad Partitions']:
                 continue # Skip verification
-            message = 'Partition {} Image...'.format(par['Number'])
-            result = try_and_print(message=message, function=verify_wim_backup,
-                other_results=other_results, partition=par)
+            result = try_and_print(
+                message = 'Partition {} Image...'.format(par['Number']),
+                function = verify_wim_backup,
+                other_results = other_results,
+                partition = par)
             if not result['CS']:
                 errors = True
                 par['Error'] = result['Error']
@@ -199,12 +209,12 @@ def menu_root():
             exit_script()
 
 def menu_setup():
-    """Format a drive, partition for MBR or GPT, apply a Windows image, and rebuild the boot files"""
+    """Format a disk (MBR/GPT), apply a Windows image, and setup boot files."""
     errors = False
     set_title('{}: Setup Menu'.format(KIT_NAME_FULL))
 
     # Set ticket ID
-    os.system('cls')
+    clear_screen()
     ticket_number = get_ticket_number()
 
     # Select the version of Windows to apply
@@ -214,16 +224,22 @@ def menu_setup():
     windows_image = find_windows_image(windows_version)
 
     # Scan disks
-    try_and_print(message='Assigning letters...', function=assign_volume_letters, other_results=other_results)
-    result = try_and_print(message='Getting drive info...', function=scan_disks, other_results=other_results)
+    try_and_print(
+        message = 'Assigning letters...',
+        function = assign_volume_letters,
+        other_results = other_results)
+    result = try_and_print(
+        message = 'Getting disk info...',
+        function = scan_disks,
+        other_results = other_results)
     if result['CS']:
         disks = result['Out']
     else:
         print_error('ERROR: No disks found.')
         raise GenericAbort
     
-    # Select drive to use as the OS drive
-    dest_disk = select_disk('To which drive are we installing Windows?', disks)
+    # Select disk to use as the OS disk
+    dest_disk = select_disk('To which disk are we installing Windows?', disks)
     if not disk:
         raise GenericAbort
     
@@ -231,92 +247,77 @@ def menu_setup():
     prep_disk_for_formatting(dest_disk)
 
     # Display details for setup task
-    os.system('cls')
-    print('Setup Windows - Details:\n')
-    print('    Ticket:     \t{ticket_number}'.format(ticket_number=ticket_number))
-    print('    Installing: \t{winver}'.format(winver=windows_version['Name']))
-    print('    Boot Method:\t{_type}'.format(
-        _type='UEFI (GPT)' if dest_disk['Use GPT'] else 'Legacy (MBR)'))
-    print('    Using Image:\t{}'.format(windows_image['Path']))
-    print_warning('    ERASING:    \t[{Table}] ({Type}) {Name} {Size}\n'.format(**dest_disk))
+    clear_screen()
+    print_info('Setup Windows - Details:\n')
+    show_info(message='Ticket:', info=ticket_number)
+    show_info(message='Installing:', info=windows_version['Name'])
+    show_info(
+        message = 'Boot Method:',
+        info = 'UEFI (GPT)' if dest_disk['Use GPT'] else 'Legacy (MBR)')
+    show_info(message='Using Image:', info=windows_version['Path'])
+    print_warning('    ERASING:    \t[{Table}] ({Type}) {Name} {Size}\n'.format(
+        **dest_disk))
     for par in dest_disk['Partitions']:
         print_warning(par['Display String'])
     print_warning(dest_disk['Format Warnings'])
     
     if (not ask('Is this correct?')):
-        abort_to_main_menu('Aborting Windows setup')
+        raise GeneralAbort
     
-    # Safety check    
-    print('\nSAFETY CHECK')
-    print_warning('All data will be DELETED from the drive and partition(s) listed above.')
-    print_warning('This is irreversible and will lead to {CLEAR}{RED}DATA LOSS.'.format(**COLORS))
+    # Safety check
+    print_standard('\nSAFETY CHECK')
+    print_warning('All data will be DELETED from the '
+                  'disk & partition(s) listed above.')
+    print_warning('This is irreversible and will lead '
+                  'to {CLEAR}{RED}DATA LOSS.'.format(**COLORS))
     if (not ask('Asking again to confirm, is this correct?')):
-        abort_to_main_menu('Aborting Windows setup')
+        raise GeneralAbort
 
-    # Release currently used volume letters (ensures that the drives will get S, T, & W as needed below)
+    # Remove volume letters so S, T, & W can be used below
     remove_volume_letters(keep=windows_image['Source'])
     new_letter = reassign_volume_letter(letter=windows_image['Source'])
     if new_letter:
         windows_image['Source'] = new_letter
 
-    # Format and partition drive
-    print('\n    Formatting Drive...     \t\t', end='', flush=True)
-    try:
-        if (dest_disk['Use GPT']):
-            format_gpt(dest_disk, windows_version['Family'])
-        else:
-            format_mbr(dest_disk, windows_version['Family'])
-        print_success('Complete.')
-    except:
-        # We need to crash as the drive is in an unknown state
-        print_error('Failed.')
-        raise
+    # Format and partition disk
+    result = try_and_print(
+        message = 'Formatting disk...',
+        function = format_disk,
+        other_results = other_results,
+        disk = dest_disk,
+        use_gpt = dest_disk['Use GPT'])
+    if not result['CS']:
+        # We need to crash as the disk is in an unknown state
+        print_error('ERROR: Failed to format disk.')
+        raise GenericAbort
 
     # Apply Image
-    print('    Applying Image...       \t\t', end='', flush=True)
-    try:
-        setup_windows(windows_image, windows_version)
-        print_success('Complete.')
-    except subprocess.CalledProcessError:
-        print_error('Failed.')
-        errors = True
-    except:
-        # We need to crash as the OS is in an unknown state
-        print_error('Failed.')
-        raise
+    result = try_and_print(
+        message = 'Applying image...',
+        function = setup_windows,
+        other_results = other_results,
+        windows_image = windows_image,
+        windows_version = windows_version)
+    if not result['CS']:
+        # We need to crash as the disk is in an unknown state
+        print_error('ERROR: Failed to apply image.')
+        raise GenericAbort
     
     # Create Boot files
-    print('    Update Boot Partition...\t\t', end='', flush=True)
-    try:
-        update_boot_partition()
-        print_success('Complete.')
-    except subprocess.CalledProcessError:
-        # Don't need to crash as this is (potentially) recoverable
-        print_error('Failed.')
-        errors = True
-    except:
-        print_error('Failed.')
-        raise
+    try_and_print(
+        message = 'Updating boot files...',
+        function = update_boot_partition,
+        other_results = other_results)
     
     # Setup WinRE
-    print('    Update Recovery Tools...\t\t', end='', flush=True)
-    try:
-        setup_windows_re(windows_version)
-        print_success('Complete.')
-    except SetupError:
-        print('Skipped.')
-    except:
-        # Don't need to crash as this is (potentially) recoverable
-        print_error('Failed.')
-        errors = True
+    try_and_print(
+        message = 'Updating recovery tools...',
+        function = setup_windows_re,
+        other_results = other_results,
+        windows_version = windows_version)
 
     # Print summary
-    if errors:
-        print_warning('\nErrors were encountered during setup.')
-        time.sleep(30)
-    else:
-        print_success('\nNo errors were encountered during setup.')
-        time.sleep(5)
+    print_standard('\nDone.')
     pause('\nPress Enter to return to main menu... ')
 
 def menu_tools():
@@ -359,9 +360,9 @@ def select_minidump_path():
     # Remove RAMDisk letter
     if 'X' in tmp:
         tmp.remove('X')
-    for drive in tmp:
-        if os.path.exists('{drive}:\\Windows\\MiniDump'.format(drive=drive)):
-            dumps.append({'Name': '{drive}:\\Windows\\MiniDump'.format(drive=drive)})
+    for disk in tmp:
+        if os.path.exists('{}:\\Windows\\MiniDump'.format(disk)):
+            dumps.append({'Name': '{}:\\Windows\\MiniDump'.format(disk)})
 
     # Check results before showing menu
     if len(dumps) == 0:
