@@ -3,7 +3,6 @@
 from functions.data import *
 
 # STATIC VARIABLES
-DISKPART_SCRIPT = r'{}\diskpart.script'.format(global_vars['Env']['TMP'])
 WINDOWS_VERSIONS = [
     {'Name': 'Windows 7 Home Basic',
         'Image File': 'Win7',
