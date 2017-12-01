@@ -66,6 +66,7 @@ def menu_backup():
 
     # Set ticket Number
     clear_screen()
+    print_standard('{}\n'.format(global_vars['Title']))
     ticket_number = get_ticket_number()
 
     # Mount backup shares
@@ -225,6 +226,7 @@ def menu_setup():
 
     # Set ticket ID
     clear_screen()
+    print_standard('{}\n'.format(global_vars['Title']))
     ticket_number = get_ticket_number()
 
     # Select the version of Windows to apply
