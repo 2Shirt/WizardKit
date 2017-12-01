@@ -2,31 +2,21 @@
 
 from functions.common import *
 
-def backup_partition(bin=None, disk=None, par=None):
-    # Bail early
-    if bin is None:
-        raise Exception('bin path not specified.')
-    if disk is None:
-        raise Exception('Disk not specified.')
-    if par is None:
-        raise Exception('Partition not specified.')
+def backup_partition(disk, partition):
+    if par['Image Exists'] or par['Number'] in disk['Bad Partitions']:
+        raise GenericAbort
     
-    print('    Partition {Number} Backup...\t\t'.format(**par), end='', flush=True)
-    if par['Number'] in disk['Bad Partitions']:
-        print_warning('Skipped.')
-    else:
-        cmd = '{bin}\\wimlib\\wimlib-imagex capture {Letter}:\\ "{Image Path}\\{Image File}" "{Image Name}" "{Image Name}" --compress=none'.format(bin=bin, **par)
-        if par['Image Exists']:
-            print_warning('Skipped.')
-        else:
-            try:
-                os.makedirs('{Image Path}'.format(**par), exist_ok=True)
-                run_program(cmd)
-                print_success('Complete.')
-            except subprocess.CalledProcessError as err:
-                print_error('Failed.')
-                par['Error'] = err.stderr.decode().splitlines()
-                raise BackupError
+    cmd = [
+        global_vars['Tools']['wimlib-imagex'],
+        'capture'
+        '{}:\\'.format(par['Letter']),
+        r'{}\{}'.format(par['Image Path'], par['Image File']),
+        par['Image Name'], # Image name
+        par['Image Name'], # Image description
+        ' --compress=none',
+        ]
+    os.makedirs(par['Image Path'], exist_ok=True)
+    run_program(cmd)
 
 def prep_disk_for_backup(dest=None, disk=None, ticket_id=None):
     disk['Backup Warnings'] = '\n'

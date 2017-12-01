@@ -53,6 +53,14 @@ PE_TOOLS = {
 def menu_backup():
     """Take backup images of partition(s) in the WIM format and save them to a backup share"""
     errors = False
+    other_results = {
+        'Error': {
+            'CalledProcessError':   'Unknown Error',
+        },
+        'Warning': {
+            'GenericAbort':         'Skipped',
+            'GenericRepair':        'Repaired',
+        }}
 
     # Set ticket ID
     os.system('cls')
@@ -89,10 +97,12 @@ def menu_backup():
     # Backup partition(s)
     print('\n\nStarting task.\n')
     for par in disk['Partitions']:
-        try:
-            backup_partition(bin, disk, par)
-        except BackupError:
+        message = 'Partition {} Backup...'.format(par['Number'])
+        result = try_and_print(message=message, function=backup_partition,
+            other_results=other_results, disk=disk, partition=par)
+        if not result['CS']:
             errors = True
+            par['Error'] = result['Error']
     
     # Verify backup(s)
     if disk['Valid Partitions'] > 1:

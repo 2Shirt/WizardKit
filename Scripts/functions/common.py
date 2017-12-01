@@ -37,6 +37,9 @@ class BIOSKeyNotFoundError(Exception):
 class BinNotFoundError(Exception):
     pass
 
+class GenericAbort(Exception):
+    pass
+
 class GenericError(Exception):
     pass
 
@@ -52,7 +55,7 @@ class NotInstalledError(Exception):
 class NoProfilesError(Exception):
     pass
 
-class PathNotFoundException(Exception):
+class PathNotFoundError(Exception):
     pass
 
 class UnsupportedOSError(Exception):
@@ -432,7 +435,7 @@ def try_and_print(message='Trying...',
         err = traceback.format_exc()
 
     # Return or raise?
-    if bool(err) and not catch_all:
+    if err and not catch_all:
         raise
     else:
         return {'CS': not bool(err), 'Error': err}
