@@ -61,13 +61,9 @@ def is_index_in_image(bin=None, filename=None, imagename=None):
     
     return True
 
-def find_windows_image(bin, windows_version=None):
+def find_windows_image(bin, windows_version):
     """Search for a Windows source image file on local drives and network drives (in that order)"""
     image = {}
-
-    # Bail early
-    if windows_version is None:
-        raise Exception('Windows version not specified.')
     imagefile = windows_version['Image File']
 
     # Search local source
@@ -85,9 +81,10 @@ def find_windows_image(bin, windows_version=None):
                     break
 
     # Check for network source (if necessary)
-    if not any(image):
+    if not image:
+        mount_windows_share()
         if not WINDOWS_SERVER['Mounted']:
-            mount_windows_share()
+            return None
         for ext in ['esd', 'wim', 'swm']:
             filename = '\\\\{IP}\\{Share}\\images\\{imagefile}'.format(imagefile=imagefile, **WINDOWS_SERVER)
             filename_ext = '{filename}.{ext}'.format(filename=filename, ext=ext)
@@ -202,25 +199,12 @@ def get_boot_mode():
     return boot_mode
 
 def mount_windows_share():
-    """Mount the Windows images share for use in Windows setup"""
-
-    # Blindly skip if we mounted earlier
+    """Mount the  Windows images share unless labeled as already mounted."""
     if WINDOWS_SERVER['Mounted']:
-        return None
-    else:
-        try:
-            # Test connection
-            run_program('ping -w 800 -n 2 {IP}'.format(**WINDOWS_SERVER))
-            # Mount
-            run_program('net use \\\\{IP}\\{Share} /user:{User} {Pass}'.format(**WINDOWS_SERVER))
-            print_info('Mounted {Name}'.format(**WINDOWS_SERVER))
-            WINDOWS_SERVER['Mounted'] = True
-        except subprocess.CalledProcessError:
-            print_error('Failed to mount \\\\{Name}\\{Share}, {IP} unreachable.'.format(**WINDOWS_SERVER))
-            time.sleep(1)
-        except:
-            print_warning('Failed to mount \\\\{Name}\\{Share}'.format(**WINDOWS_SERVER))
-            time.sleep(1)
+        # Blindly skip if we mounted earlier
+        continue
+    
+    mount_network_share(WINDOWS_SERVER)
 
 def select_windows_version():
     actions = [{'Name': 'Main Menu', 'Letter': 'M'},]

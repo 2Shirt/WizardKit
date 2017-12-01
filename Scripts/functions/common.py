@@ -174,7 +174,7 @@ def human_readable_size(size, decimals=0):
         size = convert_to_bytes(size)
 
     # Verify we have a valid size
-    if size <= 0:
+    if size < 0:
         return '{size:>{width}} b'.format(size='???', width=width)
 
     # Convert to sensible units
