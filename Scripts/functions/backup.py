@@ -1,9 +1,8 @@
 # Wizard Kit PE: Functions - Backup
 
-from functions.common import *
+from functions.disk import *
 
 # Regex
-REGEX_BAD_PARTITION = re.compile(r'(RAW|Unknown)', re.IGNORECASE)
 REGEX_BAD_PATH_NAMES = re.compile(
     r'([<>:"/\\\|\?\*]'
     r'|^(CON|PRN|AUX|NUL|COM\d*|LPT\d*)$)'
@@ -37,7 +36,7 @@ def prep_disk_for_backup(destination, disk, ticket_number):
 
     # Get partition totals
     disk['Bad Partitions'] = [par['Number'] for par in disk['Partitions']
-        if 'Letter' not in par or REGEX_BAD_PARTITION.search(par['FileSystem'])]
+        if is_bad_partition(partition)]
     num_valid_partitions = len(disk['Partitions']) - len(disk['Bad Partitions'])
     disk['Valid Partitions'] = num_valid_partitions
     if disk['Valid Partitions'] <= 0:
