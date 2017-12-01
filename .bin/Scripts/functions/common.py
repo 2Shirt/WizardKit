@@ -372,10 +372,17 @@ def set_title(title='~Some Title~'):
     global_vars['Title'] = title
     os.system('title {}'.format(title))
 
-def show_info(message='~Some message~', info='~Some info~', indent=8, width=32):
+def show_info(message='~Some message~', info='~Some info~', indent=8, width=32,
+    warning=False, error=False):
     """Display info with formatting."""
-    print_standard('{indent}{message:<{width}}{info}'.format(
-        indent=' '*indent, width=width, message=message, info=info))
+    message = '{indent}{message:<{width}}{info}'.format(
+        indent=' '*indent, width=width, message=message, info=info)
+    if error:
+        print_error(message)
+    elif warning:
+        print_warning(message)
+    else:
+        print_standard(message)
 
 def sleep(seconds=2):
     """Wait for a while."""

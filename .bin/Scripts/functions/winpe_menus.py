@@ -263,7 +263,7 @@ def menu_setup():
     
     # Select disk to use as the OS disk
     dest_disk = select_disk('To which disk are we installing Windows?', disks)
-    if not disk:
+    if not dest_disk:
         raise GenericAbort
     
     # "Prep" disk
@@ -277,11 +277,16 @@ def menu_setup():
     show_info(
         message = 'Boot Method:',
         info = 'UEFI (GPT)' if dest_disk['Use GPT'] else 'Legacy (MBR)')
-    show_info(message='Using Image:', info=windows_version['Path'])
-    print_warning('    ERASING:    \t[{Table}] ({Type}) {Name} {Size}\n'.format(
-        **dest_disk))
+    show_info(message='Using Image:', info=windows_image['Path'])
+    show_info(
+        message = 'ERASING:',
+        info = '[{Table}] ({Type}) {Name} {Size}\n'.format(**dest_disk),
+        warning = True)
     for par in dest_disk['Partitions']:
-        print_warning(par['Display String'])
+        show_info(
+            message = 'Partition {:>2}:'.format(par['Number']),
+            info = par['Display String'],
+            warning = True)
     print_warning(dest_disk['Format Warnings'])
     
     if (not ask('Is this correct?')):
@@ -290,7 +295,7 @@ def menu_setup():
     # Safety check
     print_standard('\nSAFETY CHECK')
     print_warning('All data will be DELETED from the '
-                  'disk & partition(s) listed above.')
+                  'disk and partition(s) listed above.')
     print_warning('This is irreversible and will lead '
                   'to {CLEAR}{RED}DATA LOSS.'.format(**COLORS))
     if (not ask('Asking again to confirm, is this correct?')):
@@ -357,7 +362,7 @@ def menu_tools():
         if (selection.isnumeric()):
             name = tools[int(selection)-1]['Name']
             cmd = [PE_TOOLS[name]['Path']] + PE_TOOLS[name].get('Args', [])
-            if tool == 'Blue Screen View':
+            if name == 'Blue Screen View':
                 # Select path to scan
                 minidump_path = select_minidump_path()
                 if minidump_path:

@@ -232,7 +232,7 @@ def prep_disk_for_formatting(disk=None):
     if len(disk['Partitions']) == 0:
         disk['Format Warnings'] += 'No partitions found\n'
     for partition in disk['Partitions']:
-        display = '    Partition {num:>{width}}:\t{size} {fs}'.format(
+        display = '{size} {fs}'.format(
             num = partition['Number'],
             width = width,
             size = partition['Size'],
@@ -344,10 +344,10 @@ def select_disk(title='Which disk?', disks=[]):
             
             # Show unsupported partition(s)
             if is_bad_partition(partition):
-                p_display_name = '{YELLOW}{display}{CLEAR}'.format(
-                    display=p_name, **COLORS)
+                p_name = '{YELLOW}{p_name}{CLEAR}'.format(
+                    p_name=p_name, **COLORS)
             
-            display_name += '\n\t\t\t{}'.format(display_name)
+            display_name += '\n\t\t\t{}'.format(p_name)
         if not disk['Partitions']:
             display_name += '\n\t\t\t{}No partitions found.{}'.format(
                 COLORS['YELLOW'], COLORS['CLEAR'])
