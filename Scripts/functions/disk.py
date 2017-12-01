@@ -330,26 +330,25 @@ def select_disk(title='Which disk?', disks):
     disk_options = []
     for disk in disks:
         display_name = '{Size}\t[{Table}] ({Type}) {Name}'.format(**disk)
-        if disk['Partitions']:
-            pwidth=len(str(len(disk['Partitions'])))
-            for par in disk['Partitions']:
-                # Show unsupported partition(s) in RED
-                par_skip = False
-                if 'Letter' not in par or re.search(r'(RAW|Unknown)', par['FileSystem'], re.IGNORECASE):
-                    par_skip = True
-                if par_skip:
-                    display_name += COLORS['YELLOW']
+        pwidth=len(str(len(disk['Partitions'])))
+        for par in disk['Partitions']:
+            # Main text
+            p_name = 'Partition {num:>{width}}: {size} ({fs})'.format(
+                num = par['Number'],
+                width = pwidth,
+                size = par['Size'],
+                fs = par['FileSystem'])
+            if par['Name']:
+                p_name += '\t"{}"'.format(par['Name'])
+            
+            # Show unsupported partition(s)
+            if 'Letter' not in par or REGEX_BAD_PARTITION.search(par['FileSystem']):
+                p_display_name = '{YELLOW}{display}{CLEAR}'.format(display=p_name, **COLORS)
+            
+            display_name += '\n\t\t\t{}'.format(display_name)
+        if not disk['Partitions']:
+            display_name += '\n\t\t\t{YELLOW}No partitions found.{CLEAR}'.format(**COLORS)
 
-                # Main text
-                display_name += '\n\t\t\tPartition {Number:>{pwidth}}: {Size} ({FileSystem})'.format(pwidth=pwidth, **par)
-                if par['Name'] != '':
-                    display_name += '\t"{Name}"'.format(**par)
-
-                # Clear color (if set above)
-                if par_skip:
-                    display_name += COLORS['CLEAR']
-        else:
-            display_name += '{YELLOW}\n\t\t\tNo partitions found.{CLEAR}'.format(**COLORS)
         disk_options.append({'Name': display_name, 'Disk': disk})
     actions = [
         {'Name': 'Main Menu', 'Letter': 'M'},
