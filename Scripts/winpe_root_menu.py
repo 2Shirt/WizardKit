@@ -15,7 +15,8 @@ if __name__ == '__main__':
     try:
         menu_root()
     except GenericAbort:
-        pause('Press Enter to return to main menu... ')
+        # pause('Press Enter to return to main menu... ')
+        pass
     except SystemExit:
         pass
     except:

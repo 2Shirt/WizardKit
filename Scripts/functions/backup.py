@@ -105,35 +105,37 @@ def prep_disk_for_backup(destination, disk, ticket_number):
             COLORS['YELLOW'], COLORS['CLEAR'])
     disk['Backup Warnings'] = warnings
 
-def select_backup_destination():
+def select_backup_destination(auto_select=True):
     # Build menu
-    dests = []
-    for server in BACKUP_SERVERS:
-         if server['Mounted']:
-            dests.append(server)
+    destinations = [s for s in BACKUP_SERVERS if s['Mounted']]
     actions = [
         {'Name': 'Main Menu', 'Letter': 'M'},
         ]
 
     # Size check
-    for dest in dests:
+    for dest in destinations:
         if 'IP' in dest:
-            dest['Usage'] = shutil.disk_usage('\\\\{IP}\\{Share}'.format(**dest))
+            dest['Usage'] = shutil.disk_usage(r'\\{IP}\{Share}'.format(**dest))
         else:
-            dest['Usage'] = shutil.disk_usage('{Letter}:\\'.format(**dest))
+            dest['Usage'] = shutil.disk_usage('{}:\\'.format(dest['Letter']))
         dest['Free Space'] = human_readable_size(dest['Usage'].free)
         dest['Display Name'] = '{Name} ({Free Space} available)'.format(**dest)
 
-    # Show menu or bail
-    if len(dests) > 0:
-        selection = menu_select('Where are we backing up to?', dests, actions)
-        if selection == 'M':
-            return None
-        else:
-            return dests[int(selection)-1]
-    else:
+    # Bail
+    if not destinations:
         print_warning('No backup destinations found.')
-        return None
+        raise GenericAbort
+    
+    # Skip menu?
+    if len(destinations) == 1 and auto_select:
+        return destinations[0]
+    
+    selection = menu_select(
+        'Where are we backing up to?', destinations, actions)
+    if selection == 'M':
+        raise GenericAbort
+    else:
+        return destinations[int(selection)-1]
 
 def verify_wim_backup(bin=None, par=None):
     # Bail early

@@ -71,8 +71,6 @@ def menu_backup():
 
     # Select destination
     destination = select_backup_destination()
-    if not destination:
-        raise GenericAbort
 
     # Select disk to backup
     disk = select_disk('For which drive are we creating backups?')
