@@ -2,6 +2,15 @@
 
 from functions.common import *
 
+# Regex
+REGEX_BAD_PARTITION = re.compile(r'(RAW|Unknown)', re.IGNORECASE)
+REGEX_BAD_PATH_NAMES = re.compile(
+    r'([<>:"/\\\|\?\*]'
+    r'|^(CON|PRN|AUX|NUL|COM\d*|LPT\d*)$)'
+    r'|^\s+'
+    r'|[\s\.]+$',
+    re.IGNORECASE)
+
 def backup_partition(disk, partition):
     if par['Image Exists'] or par['Number'] in disk['Bad Partitions']:
         raise GenericAbort
@@ -10,89 +19,91 @@ def backup_partition(disk, partition):
         global_vars['Tools']['wimlib-imagex'],
         'capture'
         '{}:\\'.format(par['Letter']),
-        r'{}\{}'.format(par['Image Path'], par['Image File']),
+        par['Image Path'],
         par['Image Name'], # Image name
         par['Image Name'], # Image description
         ' --compress=none',
         ]
-    os.makedirs(par['Image Path'], exist_ok=True)
+    dest_dir = re.sub(r'(.*)\\.*$', r'\1', par['Image Path'], re.IGNORECASE)
+    os.makedirs(dest_dir, exist_ok=True)
     run_program(cmd)
 
-def prep_disk_for_backup(dest=None, disk=None, ticket_id=None):
-    disk['Backup Warnings'] = '\n'
+def fix_path(path):
+    return REGEX_BAD_PATH_NAMES.sub('_', path)
+
+def prep_disk_for_backup(destination, disk, ticket_number):
     disk['Clobber Risk'] = []
     width = len(str(len(disk['Partitions'])))
-    
-    # Bail early
-    if dest is None:
-        raise Exception('Destination not provided.')
-    if disk is None:
-        raise Exception('Disk not provided.')
-    if ticket_id is None:
-        raise Exception('Ticket ID not provided.')
 
     # Get partition totals
-    disk['Bad Partitions'] = [par['Number'] for par in disk['Partitions'] if 'Letter' not in par or re.search(r'(RAW|Unknown)', par['FileSystem'], re.IGNORECASE)]
-    disk['Valid Partitions'] = len(disk['Partitions']) - len(disk['Bad Partitions'])
-    
-    # Bail if no valid partitions are found (those that can be imaged)
+    disk['Bad Partitions'] = [par['Number'] for par in disk['Partitions']
+        if 'Letter' not in par or REGEX_BAD_PARTITION.search(par['FileSystem'])]
+    num_valid_partitions = len(disk['Partitions']) - len(disk['Bad Partitions'])
+    disk['Valid Partitions'] = num_valid_partitions
     if disk['Valid Partitions'] <= 0:
-        abort_to_main_menu('  No partitions can be imaged for the selected drive')
+        print_error('ERROR: No partitions can be backed up for this disk')
+        raise GenericAbort
     
     # Prep partitions
     for par in disk['Partitions']:
+        display = 'Partition {num:>{width}}:\t{size} {fs}'.format(
+            num = par['Number'],
+            width = width,
+            size = par['Size'],
+            fs = par['FileSystem'])
+        
         if par['Number'] in disk['Bad Partitions']:
-            par['Display String'] = '{YELLOW}  * Partition {Number:>{width}}:\t{Size} {FileSystem}\t\t{q}{Name}{q}\t{Description} ({OS}){CLEAR}'.format(
-                width=width,
-                q='"' if par['Name'] != '' else '',
-                **par,
-                **COLORS)
+            # Set display string using partition description & OS type
+            display = '  * {display}\t\t{q}{name}{q}\t{desc} ({os})'.format(
+                display = display,
+                q = '"' if par['Name'] != '' else '',
+                name = par['Name'],
+                desc = par['Description'],
+                os = par['OS'])
+            display = '{YELLOW}{display}{CLEAR}'.format(
+                display=display, **COLORS)
         else:
             # Update info for WIM capturing
-            par['Image Name'] = str(par['Name'])
-            if par['Image Name'] == '':
-                par['Image Name'] = 'Unknown'
-            if 'IP' in dest:
-                par['Image Path'] = '\\\\{IP}\\{Share}\\{ticket}'.format(ticket=ticket_id, **dest)
+            par['Image Name'] = par['Name'] if par['Name'] else 'Unknown'
+            if 'IP' in destination:
+                par['Image Path'] = r'\\{}\{}\{}'.format(
+                    destination['IP'], destination['Share'], ticket_number)
             else:
-                par['Image Path'] = '{Letter}:\\{ticket}'.format(ticket=ticket_id, **dest)
-            par['Image File'] = '{Number}_{Image Name}'.format(**par)
-            par['Image File'] = '{fixed_name}.wim'.format(fixed_name=re.sub(r'\W', '_', par['Image File']))
+                par['Image Path'] = r'{}:\{}'.format(
+                    ticket_number, destination['Letter'])
+            par['Image Path'] += r'\{}_{}.wim'.format(
+                par['Number'], par['Image Name'])
+            par['Image Path'] = fix_path(par['Image Path'])
 
             # Check for existing backups
-            par['Image Exists'] = False
-            if os.path.exists('{Image Path}\\{Image File}'.format(**par)):
-                par['Image Exists'] = True
+            par['Image Exists'] = os.path.exists(par['Image Path'])
+            if par['Image Exists']:
                 disk['Clobber Risk'].append(par['Number'])
-                par['Display String'] = '{BLUE}  + '.format(**COLORS)
+                display = '{}  + {}'.format(COLORS['BLUE'], display)
             else:
-                par['Display String'] = '{CLEAR}    '.format(**COLORS)
+                display = '{}    {}'.format(COLORS['CLEAR'], display)
             
             # Append rest of Display String for valid/clobber partitions
-            par['Display String'] += 'Partition {Number:>{width}}:\t{Size} {FileSystem} (Used: {Used Space})\t{q}{Name}{q}{CLEAR}'.format(
-                width=width,
-                q='"' if par['Name'] != '' else '',
-                **par,
+            display += ' (Used: {used})\t{q}{name}{q}{CLEAR}'.format(
+                used = par['Used Space'],
+                q = '"' if par['Name'] != '' else '',
+                name = par['Name'],
                 **COLORS)
+        # For all partitions
+        par['Display String'] = display
     
     # Set description for bad partitions
-    if len(disk['Bad Partitions']) > 1:
-        disk['Backup Warnings'] += '{YELLOW}  * Unable to backup these partitions{CLEAR}\n'.format(**COLORS)
-    elif len(disk['Bad Partitions']) == 1:
-        print_warning('  * Unable to backup this partition')
-        disk['Backup Warnings'] += '{YELLOW}  * Unable to backup this partition{CLEAR}\n'.format(**COLORS)
-    
-    # Set description for partitions that would be clobbered
-    if len(disk['Clobber Risk']) > 1:
-        disk['Backup Warnings'] += '{BLUE}  + These partitions already have backup images on {Name}{CLEAR}\n'.format(**dest, **COLORS)
-    elif len(disk['Clobber Risk']) == 1:
-        disk['Backup Warnings'] += '{BLUE}  + This partition already has a backup image on {Name}{CLEAR}\n'.format(**dest, **COLORS)
-    
-    # Set warning for skipped partitions
-    if len(disk['Clobber Risk']) + len(disk['Bad Partitions']) > 1:
-        disk['Backup Warnings'] += '\n{YELLOW}If you continue the partitions marked above will NOT be backed up.{CLEAR}\n'.format(**COLORS)
-    if len(disk['Clobber Risk']) + len(disk['Bad Partitions']) == 1:
-        disk['Backup Warnings'] += '\n{YELLOW}If you continue the partition marked above will NOT be backed up.{CLEAR}\n'.format(**COLORS)
+    warnings = '\n'
+    if disk['Bad Partitions']:
+        warnings += '{}  * Unsupported filesystem{}\n'.format(
+            COLORS['YELLOW'], COLORS['CLEAR'])
+    if disk['Clobber Risk']:
+        warnings += '{}  + Backup exists on {}{}\n'.format(
+            COLORS['BLUE'], destination['Name'], COLORS['CLEAR'])
+    if disk['Bad Partitions'] or disk['Clobber Risk']:
+        warnings += '\n{}Marked partition(s) will NOT be backed up.{}\n'.format(
+            COLORS['YELLOW'], COLORS['CLEAR'])
+    disk['Backup Warnings'] = warnings
 
 def select_backup_destination():
     # Build menu
@@ -133,8 +144,8 @@ def verify_wim_backup(bin=None, par=None):
     
     # Verify hiding all output for quicker verification
     print('    Partition {Number} Image...\t\t'.format(**par), end='', flush=True)
-    cmd = '{bin}\\wimlib\\wimlib-imagex verify "{Image Path}\\{Image File}" --nocheck'.format(bin=bin, **par)
-    if not os.path.exists('{Image Path}\\{Image File}'.format(**par)):
+    cmd = '{bin}\\wimlib\\wimlib-imagex verify "{Image Path}" --nocheck'.format(bin=bin, **par)
+    if not os.path.exists('{Image Path}'.format(**par)):
         print_error('Missing.')
     else:
         try:

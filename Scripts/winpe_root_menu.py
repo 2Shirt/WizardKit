@@ -14,6 +14,8 @@ global_vars['LogFile'] = r'{LogDir}\WinPE.log'.format(**global_vars)
 if __name__ == '__main__':
     try:
         menu_root()
+    except GenericAbort:
+        pause('Press Enter to return to main menu... ')
     except SystemExit:
         pass
     except:

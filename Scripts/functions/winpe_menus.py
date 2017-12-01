@@ -62,40 +62,49 @@ def menu_backup():
             'GenericRepair':        'Repaired',
         }}
 
-    # Set ticket ID
+    # Set ticket Number
     os.system('cls')
-    ticket_id = get_ticket_number()
+    ticket_number = get_ticket_number()
 
     # Mount backup shares
     mount_backup_shares()
 
     # Select destination
-    dest = select_backup_destination()
-    if dest is None:
-        abort_to_main_menu('Aborting Backup Creation')
+    destination = select_backup_destination()
+    if not destination:
+        raise GenericAbort
 
     # Select disk to backup
     disk = select_disk('For which drive are we creating backups?')
-    if disk is None:
-        abort_to_main_menu()
-    prep_disk_for_backup(dest, disk, ticket_id)
+    if not disk:
+        raise GenericAbort
+    
+    # "Prep" disk?
+    prep_disk_for_backup(destination, disk, ticket_number)
 
     # Display details for backup task
     os.system('cls')
-    print('Create Backup - Details:\n')
-    print('    Ticket:     \t{ticket_id}'.format(ticket_id=ticket_id))
-    print('    Source:     \t[{Table}] ({Type}) {Name} {Size}\n'.format(**disk))
-    print('    Destination:\t{name}'.format(name=dest.get('Display Name', dest['Name'])))
+    print_info('Create Backup - Details:\n')
+    # def show_info(message='~Some message~', info='~Some info~', indent=8, width=32):
+    show_info(message='Ticket:', info=ticket_number)
+    show_info(
+        message = 'Source:',
+        info = '[{Table}] ({Type}) {Name} {Size}'.format(**disk),
+        )
+    show_info(
+        message = 'Destination:',
+        info = destination.get('Display Name', destination['Name']),
+        )
     for par in disk['Partitions']:
-        print(par['Display String'])
-    print(disk['Backup Warnings'])
+        show_info(message='', info=par['Display String'], width=20)
+    print_standard(disk['Backup Warnings'])
 
     # Ask to proceed
     if (not ask('Proceed with backup?')):
-        abort_to_main_menu('Aborting Backup Creation')
+        raise GenericAbort
     
     # Backup partition(s)
-    print('\n\nStarting task.\n')
+    print_info('\n\nStarting task.\n')
     for par in disk['Partitions']:
         message = 'Partition {} Backup...'.format(par['Number'])
         result = try_and_print(message=message, function=backup_partition,
@@ -106,9 +115,9 @@ def menu_backup():
     
     # Verify backup(s)
     if disk['Valid Partitions'] > 1:
-        print('\n\n  Verifying backups\n')
+        print_info('\n\n  Verifying backups\n')
     else:
-        print('\n\n  Verifying backup\n')
+        print_info('\n\n  Verifying backup\n')
     for par in disk['Partitions']:
         if par['Number'] in disk['Bad Partitions']:
             continue # Skip verification
@@ -121,9 +130,9 @@ def menu_backup():
     if errors:
         print_warning('\nErrors were encountered and are detailed below.')
         for par in [p for p in disk['Partitions'] if 'Error' in p]:
-            print('    Partition {Number} Error:'.format(**par))
-            for line in [line.strip() for line in par['Error'] if line.strip() != '']:
-                print_error('\t{line}'.format(line=line))
+            print_standard('    Partition {} Error:'.format(par['Number']))
+            for line in [line.strip() for line in par['Error'] if line.strip()]:
+                print_error('\t{}'.format(line))
         time.sleep(30)
     else:
         print_success('\nNo errors were encountered during imaging.')
@@ -171,7 +180,7 @@ def menu_setup():
 
     # Set ticket ID
     os.system('cls')
-    ticket_id = get_ticket_number()
+    ticket_number = get_ticket_number()
 
     # Select the version of Windows to apply
     windows_version = select_windows_version()
@@ -188,7 +197,7 @@ def menu_setup():
     # Display details for setup task
     os.system('cls')
     print('Setup Windows - Details:\n')
-    print('    Ticket:     \t{ticket_id}'.format(ticket_id=ticket_id))
+    print('    Ticket:     \t{ticket_number}'.format(ticket_number=ticket_number))
     print('    Installing: \t{winver}'.format(winver=windows_version['Name']))
     print('    Boot Method:\t{_type}'.format(
         _type='UEFI (GPT)' if dest_disk['Use GPT'] else 'Legacy (MBR)'))
