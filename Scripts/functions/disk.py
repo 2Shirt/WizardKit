@@ -248,18 +248,28 @@ def prep_disk_for_formatting(disk=None):
     if len(disk['Partitions']) == 0:
         disk['Format Warnings'] += 'No partitions found\n'
     for par in disk['Partitions']:
-        if 'Letter' not in par or re.search(r'(RAW|Unknown)', par['FileSystem'], re.IGNORECASE):
-            # FileSystem not accessible to WinPE. List partition type / OS info for technician
-            par['Display String'] = '    Partition {Number:>{width}}:\t{Size} {FileSystem}\t\t{q}{Name}{q}\t{Description} ({OS})'.format(
-                width=width,
-                q='"' if par['Name'] != '' else '',
-                **par)
+        display = '    Partition {num:>{width}}:\t{size} {fs}'.format(
+            num = par['Number'],
+            width = width,
+            size = par['Size'],
+            fs = par['FileSystem'])
+        
+        if 'Letter' not in par or REGEX_BAD_PARTITION.search(par['FileSystem']):
+            # Set display string using partition description & OS type
+            display += '\t\t{q}{name}{q}\t{desc} ({os})'.format(
+                display = display,
+                q = '"' if par['Name'] != '' else '',
+                name = par['Name'],
+                desc = par['Description'],
+                os = par['OS'])
         else:
-            # FileSystem accessible to WinPE. List space used instead of partition type / OS info for technician
-            par['Display String'] = '    Partition {Number:>{width}}:\t{Size} {FileSystem} (Used: {Used Space})\t{q}{Name}{q}'.format(
-                width=width,
-                q='"' if par['Name'] != '' else '',
-                **par)
+            # List space used instead of partition description & OS type
+            display += ' (Used: {used})\t{q}{name}{q}'.format(
+                used = par['Used Space'],
+                q = '"' if par['Name'] != '' else '',
+                name = par['Name'])
+        # For all partitions
+        par['Display String'] = display
 
 def reassign_volume_letter(letter, new_letter='I'):
     if not letter:
@@ -320,7 +330,7 @@ def select_disk(title='Which disk?', disks):
     disk_options = []
     for disk in disks:
         display_name = '{Size}\t[{Table}] ({Type}) {Name}'.format(**disk)
-        if len(disk['Partitions']) > 0:
+        if disk['Partitions']:
             pwidth=len(str(len(disk['Partitions'])))
             for par in disk['Partitions']:
                 # Show unsupported partition(s) in RED
