@@ -56,6 +56,7 @@ def menu_backup():
     other_results = {
         'Error': {
             'CalledProcessError':   'Unknown Error',
+            'PathNotFoundError':    'Missing',
         },
         'Warning': {
             'GenericAbort':         'Skipped',
@@ -112,25 +113,40 @@ def menu_backup():
             par['Error'] = result['Error']
     
     # Verify backup(s)
-    if disk['Valid Partitions'] > 1:
-        print_info('\n\n  Verifying backups\n')
-    else:
-        print_info('\n\n  Verifying backup\n')
-    for par in disk['Partitions']:
-        if par['Number'] in disk['Bad Partitions']:
-            continue # Skip verification
-        try:
-            verify_wim_backup(bin, par)
-        except BackupError:
-            errors = True
+    if disk['Valid Partitions']:
+        print_info('\n\n  Verifying backup images(s)\n')
+        for par in disk['Partitions']:
+            if par['Number'] in disk['Bad Partitions']:
+                continue # Skip verification
+            message = 'Partition {} Image...'.format(par['Number'])
+            result = try_and_print(message=message, function=verify_wim_backup,
+                other_results=other_results, partition=par)
+            if not result['CS']:
+                errors = True
+                par['Error'] = result['Error']
 
     # Print summary
     if errors:
         print_warning('\nErrors were encountered and are detailed below.')
         for par in [p for p in disk['Partitions'] if 'Error' in p]:
             print_standard('    Partition {} Error:'.format(par['Number']))
-            for line in [line.strip() for line in par['Error'] if line.strip()]:
-                print_error('\t{}'.format(line))
+            if hasattr(par['Error'], 'stderr'):
+                try:
+                    par['Error'] = par['Error'].stderr.decode()
+                except:
+                    # Deal with badly formatted error message
+                    pass
+            if isinstance(par['Error'], basestring):
+                print_error('\t{}'.format(par['Error']))
+            else:
+                try:
+                    par['Error'] = par['Error'].splitlines()
+                    par['Error'] = [line.strip() for line in par['Error']]
+                    par['Error'] = [line for line in par['Error'] if line]
+                except:
+                    pass
+                for line in par['Error']:
+                    print_error('\t{}'.format(line))
         time.sleep(30)
     else:
         print_success('\nNo errors were encountered during imaging.')
