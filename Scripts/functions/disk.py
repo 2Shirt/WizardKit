@@ -4,6 +4,7 @@ from functions.common import *
 import partition_uids
 
 def assign_volume_letters():
+    remove_volume_letters()
     try:
         # Run script
         with open(DISKPART_SCRIPT, 'w') as script:
@@ -18,9 +19,6 @@ def get_attached_disk_info():
     """Get details about the attached disks"""
     disks = []
     print_info('Getting drive info...')
-
-    # Assign all the letters
-    assign_volume_letters()
 
     # Get disks
     disks = get_disks()
@@ -286,8 +284,24 @@ def prep_disk_for_formatting(disk=None):
                 q='"' if par['Name'] != '' else '',
                 **par)
 
-def remove_volume_letters(keep=''):
-    if keep is None:
+def reassign_volume_letter(letter, new_letter='I'):
+    if not letter:
+        # Ignore
+        return None
+    try:
+        # Run script
+        with open(DISKPART_SCRIPT, 'w') as script:
+            script.write('select volume {}\n'.format(letter))
+            script.write('remove noerr\n')
+            script.write('assign letter={}\n'.format(new_letter))
+        run_program('diskpart /s {script}'.format(script=DISKPART_SCRIPT))
+    except subprocess.CalledProcessError:
+        pass
+    else:
+        return new_letter
+
+def remove_volume_letters(keep=None):
+    if not keep:
         keep = ''
     try:
         # Run script

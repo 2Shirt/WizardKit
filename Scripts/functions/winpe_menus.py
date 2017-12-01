@@ -75,6 +75,7 @@ def menu_backup():
     destination = select_backup_destination()
 
     # Select disk to backup
+    assign_volume_letters()
     disk = select_disk('For which drive are we creating backups?')
     if not disk:
         raise GenericAbort
@@ -200,15 +201,14 @@ def menu_setup():
 
     # Select the version of Windows to apply
     windows_version = select_windows_version()
-
-    # Select drive to use as the OS drive
-    dest_disk = select_disk('To which drive are we installing Windows?')
-    prep_disk_for_formatting(dest_disk)
     
     # Find Windows image
-    ## NOTE: Needs to happen AFTER select_disk() is called as there's a hidden assign_volume_letters().
-    ##       This changes the current letters thus preventing installing from a local source.
     windows_image = find_windows_image(bin, windows_version)
+
+    # Select drive to use as the OS drive
+    assign_volume_letters()
+    dest_disk = select_disk('To which drive are we installing Windows?')
+    prep_disk_for_formatting(dest_disk)
 
     # Display details for setup task
     os.system('cls')
@@ -235,6 +235,9 @@ def menu_setup():
 
     # Release currently used volume letters (ensures that the drives will get S, T, & W as needed below)
     remove_volume_letters(keep=windows_image['Source'])
+    new_letter = reassign_volume_letter(letter=windows_image['Source'])
+    if new_letter:
+        windows_image['Source'] = new_letter
 
     # Format and partition drive
     print('\n    Formatting Drive...     \t\t', end='', flush=True)
