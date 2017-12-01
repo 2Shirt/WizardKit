@@ -211,7 +211,7 @@ def menu_setup():
     windows_version = select_windows_version()
     
     # Find Windows image
-    windows_image = find_windows_image(bin, windows_version)
+    windows_image = find_windows_image(windows_version)
 
     # Scan disks
     try_and_print(message='Assigning letters...', function=assign_volume_letters, other_results=other_results)
@@ -237,7 +237,7 @@ def menu_setup():
     print('    Installing: \t{winver}'.format(winver=windows_version['Name']))
     print('    Boot Method:\t{_type}'.format(
         _type='UEFI (GPT)' if dest_disk['Use GPT'] else 'Legacy (MBR)'))
-    print('    Using Image:\t{File}.{Ext}'.format(**windows_image))
+    print('    Using Image:\t{}'.format(windows_image['Path']))
     print_warning('    ERASING:    \t[{Table}] ({Type}) {Name} {Size}\n'.format(**dest_disk))
     for par in dest_disk['Partitions']:
         print_warning(par['Display String'])
@@ -275,7 +275,7 @@ def menu_setup():
     # Apply Image
     print('    Applying Image...       \t\t', end='', flush=True)
     try:
-        setup_windows(bin, windows_image, windows_version)
+        setup_windows(windows_image, windows_version)
         print_success('Complete.')
     except subprocess.CalledProcessError:
         print_error('Failed.')

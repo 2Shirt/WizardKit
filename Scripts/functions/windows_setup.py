@@ -43,48 +43,48 @@ WINDOWS_VERSIONS = [
         'Family': '10'},
     ]
 
-def find_windows_image(bin, windows_version):
-    """Search for a Windows source image file on local drives and network drives (in that order)"""
+def find_windows_image(windows_version):
+    """Search for a Windows source image file, returns dict.
+
+    Searches on local drives and then the WINDOWS_SERVER share."""
     image = {}
     imagefile = windows_version['Image File']
+    imagename = windows_version['Image Name']
 
     # Search local source
-    process_return = run_program('mountvol')
-    for tmp in re.findall(r'.*([A-Za-z]):\\', process_return.stdout.decode()):
+    for d in psutil.disk_partitions():
         for ext in ['esd', 'wim', 'swm']:
-            filename = '{drive}:\\images\\{imagefile}'.format(drive=tmp[0], imagefile=imagefile)
-            filename_ext = '{filename}.{ext}'.format(filename=filename, ext=ext)
-            if os.path.isfile(filename_ext):
-                if wim_contains_image(bin, filename_ext, windows_version['Image Name']):
-                    image['Ext'] = ext
-                    image['File'] = filename
-                    image['Glob'] = '--ref="{File}*.swm"'.format(**image) if ext == 'swm' else ''
-                    image['Source'] = tmp[0]
-                    break
+            path = '{}images\{}.{}'.format(d.mountpoint, imagefile, ext)
+            if os.path.isfile(path) and wim_contains_image(path, imagename):
+                image['Path'] = path
+                image['Source'] = letter
+                if ext == 'swm':
+                    image['Glob'] = '--ref="{}*.swm"'.format(image['Path'][:-4])
+                break
 
-    # Check for network source (if necessary)
+    # Check for network source
     if not image:
         mount_windows_share()
         if not WINDOWS_SERVER['Mounted']:
             return None
         for ext in ['esd', 'wim', 'swm']:
-            filename = '\\\\{IP}\\{Share}\\images\\{imagefile}'.format(imagefile=imagefile, **WINDOWS_SERVER)
-            filename_ext = '{filename}.{ext}'.format(filename=filename, ext=ext)
-            if os.path.isfile(filename_ext):
-                if wim_contains_image(bin, filename_ext, windows_version['Image Name']):
-                    image['Ext'] = ext
-                    image['File'] = filename
-                    image['Glob'] = '--ref="{File}*.swm"'.format(**image) if ext == 'swm' else ''
-                    image['Source'] = None
-                    break
+            path = r'\\{}\{}\images\{}.ext'.format(
+                WINDOWS_SERVER['IP'], WINDOWS_SERVER['Share'], imagefile, ext)
+            if os.path.isfile(path) and wim_contains_image(path, imagename):
+                image['Path'] = path
+                image['Source'] = None
+                if ext == 'swm':
+                    image['Glob'] = '--ref="{}*.swm"'.format(image['Path'][:-4])
+                break
     
     # Display image to be used (if any) and return
-    if any(image):
-        print_info('Using image: {File}.{Ext}'.format(**image))
+    if image:
+        print_info('Using image: {}'.format(image['Path']))
         return image
     else:
-        print_error('Failed to find Windows source image for {winver}'.format(winver=windows_version['Name']))
-        abort_to_main_menu('Aborting Windows setup')
+        print_error('Failed to find Windows source image for {}'.format(
+            windows_version['Name']))
+        raise GeneralAbort
 
 def format_gpt(disk=None, windows_family=None):
     """Format disk for use as a Windows OS drive using the GPT (UEFI) layout."""
@@ -190,17 +190,15 @@ def select_windows_version():
     elif selection == 'M':
         abort_to_main_menu()
 
-def setup_windows(bin=None, windows_image=None, windows_version=None):
-    # Bail early
-    if bin is None:
-        raise Exception('bin path not specified.')
-    if windows_image is None:
-        raise Exception('Windows image not specified.')
-    if windows_version is None:
-        raise Exception('Windows version not specified.')
-    
-    # Apply image
-    cmd = '{bin}\\wimlib\\wimlib-imagex apply "{File}.{Ext}" "{Image Name}" W:\\ {Glob}'.format(bin=bin, **windows_image, **windows_version)
+def setup_windows(windows_image, windows_version):
+    cmd = [
+        global_vars['Tools']['wimlib-imagex'],
+        'apply',
+        windows_image['Path'],
+        windows_version['Image Name'],
+        'W:\\']
+    if 'Glob' in windows_image:
+        cmd.extend(windows_image['Glob'])
     run_program(cmd)
 
 def setup_windows_re(windows_version=None, windows_letter='W', tools_letter='T'):
@@ -226,20 +224,15 @@ def setup_windows_re(windows_version=None, windows_letter='W', tools_letter='T')
 def update_boot_partition(system_letter='S', windows_letter='W', mode='ALL'):
     run_program('bcdboot {win}:\\Windows /s {sys}: /f {mode}'.format(win=windows_letter, sys=system_letter, mode=mode))
 
-def wim_contains_image(bin=None, filename=None, imagename=None):
-    # Bail early
-    if bin is None:
-        raise Exception('bin not specified.')
-    if filename is None:
-        raise Exception('Filename not specified.')
-    if imagename is None:
-        raise Exception('Image Name not specified.')
-    
-    cmd = '{bin}\\wimlib\\wimlib-imagex info "{filename}" "{imagename}"'.format(bin=bin, filename=filename, imagename=imagename)
+def wim_contains_image(filename, imagename):
+    cmd = [
+        global_vars['Tools']['wimlib-imagex'],
+        'info',
+        filename,
+        imagename]
     try:
         run_program(cmd)
     except subprocess.CalledProcessError:
-        print_error('Invalid image: {filename}'.format(filename=filename))
         return False
     
     return True
