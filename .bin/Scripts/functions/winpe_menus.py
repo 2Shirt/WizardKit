@@ -66,6 +66,7 @@ def menu_backup():
 
     # Set ticket Number
     clear_screen()
+    print_standard('{}\n'.format(global_vars['Title']))
     ticket_number = get_ticket_number()
 
     # Mount backup shares
@@ -197,8 +198,9 @@ def menu_root():
         if (selection.isnumeric()):
             try:
                 menus[int(selection)-1]['Menu']()
-            except AbortError:
-                pass
+            except GenericAbort:
+                print_warning('\nAborted\n')
+                pause('Press Enter to return to main menu... ')
         elif (selection == 'C'):
             run_program(['cmd', '-new_console:n'], check=False)
         elif (selection == 'R'):
@@ -211,10 +213,20 @@ def menu_root():
 def menu_setup():
     """Format a disk (MBR/GPT), apply a Windows image, and setup boot files."""
     errors = False
+    other_results = {
+        'Error': {
+            'CalledProcessError':   'Unknown Error',
+            'PathNotFoundError':    'Missing',
+        },
+        'Warning': {
+            'GenericAbort':         'Skipped',
+            'GenericRepair':        'Repaired',
+        }}
     set_title('{}: Setup Menu'.format(KIT_NAME_FULL))
 
     # Set ticket ID
     clear_screen()
+    print_standard('{}\n'.format(global_vars['Title']))
     ticket_number = get_ticket_number()
 
     # Select the version of Windows to apply
@@ -262,7 +274,7 @@ def menu_setup():
     print_warning(dest_disk['Format Warnings'])
     
     if (not ask('Is this correct?')):
-        raise GeneralAbort
+        raise GenericAbort
     
     # Safety check
     print_standard('\nSAFETY CHECK')
@@ -271,7 +283,7 @@ def menu_setup():
     print_warning('This is irreversible and will lead '
                   'to {CLEAR}{RED}DATA LOSS.'.format(**COLORS))
     if (not ask('Asking again to confirm, is this correct?')):
-        raise GeneralAbort
+        raise GenericAbort
 
     # Remove volume letters so S, T, & W can be used below
     remove_volume_letters(keep=windows_image['Source'])
@@ -321,7 +333,7 @@ def menu_setup():
     pause('\nPress Enter to return to main menu... ')
 
 def menu_tools():
-    tools = [k for k in sorted(PE_TOOLS.keys())]
+    tools = [{'Name': k} for k in sorted(PE_TOOLS.keys())]
     actions = [{'Name': 'Main Menu', 'Letter': 'M'},]
     set_title(KIT_NAME_FULL)
 

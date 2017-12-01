@@ -3,7 +3,6 @@
 from functions.data import *
 
 # STATIC VARIABLES
-DISKPART_SCRIPT = r'{}\diskpart.script'.format(global_vars['Env']['TMP'])
 WINDOWS_VERSIONS = [
     {'Name': 'Windows 7 Home Basic',
         'Image File': 'Win7',
@@ -57,17 +56,20 @@ def find_windows_image(windows_version):
     # Check for network source
     if not image:
         mount_windows_share()
-        if not WINDOWS_SERVER['Mounted']:
-            return None
-        for ext in ['esd', 'wim', 'swm']:
-            path = r'\\{}\{}\images\{}.ext'.format(
-                WINDOWS_SERVER['IP'], WINDOWS_SERVER['Share'], imagefile, ext)
-            if os.path.isfile(path) and wim_contains_image(path, imagename):
-                image['Path'] = path
-                image['Source'] = None
-                if ext == 'swm':
-                    image['Glob'] = '--ref="{}*.swm"'.format(image['Path'][:-4])
-                break
+        if WINDOWS_SERVER['Mounted']:
+            for ext in ['esd', 'wim', 'swm']:
+                path = r'\\{}\{}\images\{}.ext'.format(
+                    WINDOWS_SERVER['IP'],
+                    WINDOWS_SERVER['Share'],
+                    imagefile,
+                    ext)
+                if os.path.isfile(path) and wim_contains_image(path, imagename):
+                    image['Path'] = path
+                    image['Source'] = None
+                    if ext == 'swm':
+                        image['Glob'] = '--ref="{}*.swm"'.format(
+                            image['Path'][:-4])
+                    break
     
     # Display image to be used (if any) and return
     if image:
@@ -76,7 +78,7 @@ def find_windows_image(windows_version):
     else:
         print_error('Failed to find Windows source image for {}'.format(
             windows_version['Name']))
-        raise GeneralAbort
+        raise GenericAbort
 
 def format_disk(disk, use_gpt):
     """Format disk for use as a Windows OS disk."""
@@ -150,11 +152,8 @@ def format_mbr(disk):
 
 def mount_windows_share():
     """Mount the  Windows images share unless labeled as already mounted."""
-    if WINDOWS_SERVER['Mounted']:
-        # Blindly skip if we mounted earlier
-        continue
-    
-    mount_network_share(WINDOWS_SERVER)
+    if not WINDOWS_SERVER['Mounted']:
+        mount_network_share(WINDOWS_SERVER)
 
 def select_windows_version():
     actions = [
@@ -170,7 +169,7 @@ def select_windows_version():
     if selection.isnumeric():
         return WINDOWS_VERSIONS[int(selection)-1]
     elif selection == 'M':
-        raise GeneralAbort
+        raise GenericAbort
 
 def setup_windows(windows_image, windows_version):
     cmd = [
