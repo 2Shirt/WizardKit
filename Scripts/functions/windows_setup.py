@@ -56,17 +56,20 @@ def find_windows_image(windows_version):
     # Check for network source
     if not image:
         mount_windows_share()
-        if not WINDOWS_SERVER['Mounted']:
-            return None
-        for ext in ['esd', 'wim', 'swm']:
-            path = r'\\{}\{}\images\{}.ext'.format(
-                WINDOWS_SERVER['IP'], WINDOWS_SERVER['Share'], imagefile, ext)
-            if os.path.isfile(path) and wim_contains_image(path, imagename):
-                image['Path'] = path
-                image['Source'] = None
-                if ext == 'swm':
-                    image['Glob'] = '--ref="{}*.swm"'.format(image['Path'][:-4])
-                break
+        if WINDOWS_SERVER['Mounted']:
+            for ext in ['esd', 'wim', 'swm']:
+                path = r'\\{}\{}\images\{}.ext'.format(
+                    WINDOWS_SERVER['IP'],
+                    WINDOWS_SERVER['Share'],
+                    imagefile,
+                    ext)
+                if os.path.isfile(path) and wim_contains_image(path, imagename):
+                    image['Path'] = path
+                    image['Source'] = None
+                    if ext == 'swm':
+                        image['Glob'] = '--ref="{}*.swm"'.format(
+                            image['Path'][:-4])
+                    break
     
     # Display image to be used (if any) and return
     if image:
