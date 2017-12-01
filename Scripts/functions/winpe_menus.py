@@ -212,6 +212,15 @@ def menu_root():
 def menu_setup():
     """Format a disk (MBR/GPT), apply a Windows image, and setup boot files."""
     errors = False
+    other_results = {
+        'Error': {
+            'CalledProcessError':   'Unknown Error',
+            'PathNotFoundError':    'Missing',
+        },
+        'Warning': {
+            'GenericAbort':         'Skipped',
+            'GenericRepair':        'Repaired',
+        }}
     set_title('{}: Setup Menu'.format(KIT_NAME_FULL))
 
     # Set ticket ID
