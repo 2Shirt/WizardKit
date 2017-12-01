@@ -52,7 +52,7 @@ class NotInstalledError(Exception):
 class NoProfilesError(Exception):
     pass
 
-class PathNotFoundException(Exception):
+class PathNotFoundError(Exception):
     pass
 
 class UnsupportedOSError(Exception):
@@ -174,7 +174,7 @@ def human_readable_size(size, decimals=0):
         size = convert_to_bytes(size)
 
     # Verify we have a valid size
-    if size <= 0:
+    if size < 0:
         return '{size:>{width}} b'.format(size='???', width=width)
 
     # Convert to sensible units
@@ -432,7 +432,7 @@ def try_and_print(message='Trying...',
         err = traceback.format_exc()
 
     # Return or raise?
-    if bool(err) and not catch_all:
+    if err and not catch_all:
         raise
     else:
         return {'CS': not bool(err), 'Error': err}

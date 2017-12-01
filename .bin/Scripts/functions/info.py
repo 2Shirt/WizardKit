@@ -146,7 +146,7 @@ def get_shell_path(folder, user='current'):
     if folderid:
         try:
             path = knownpaths.get_path(folderid, getattr(knownpaths.UserHandle, user))
-        except PathNotFoundException:
+        except PathNotFoundError:
             # Folder not found, ignore and return None
             pass
     

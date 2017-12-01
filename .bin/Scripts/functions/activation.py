@@ -4,10 +4,9 @@ import subprocess
 
 from borrowed import acpi
 from functions.common import *
-from os import environ
 
 # Variables
-SLMGR = r'{}\System32\slmgr.vbs'.format(environ.get('SYSTEMROOT'))
+SLMGR = r'{}\System32\slmgr.vbs'.format(global_vars['Env']['SYSTEMROOT'])
 
 def activate_with_bios():
     """Attempt to activate Windows with a key stored in the BIOS."""
