@@ -75,7 +75,7 @@ def find_windows_image(windows_version):
     else:
         print_error('Failed to find Windows source image for {}'.format(
             windows_version['Name']))
-        raise GeneralAbort
+        raise GenericAbort
 
 def format_disk(disk, use_gpt):
     """Format disk for use as a Windows OS disk."""
@@ -166,7 +166,7 @@ def select_windows_version():
     if selection.isnumeric():
         return WINDOWS_VERSIONS[int(selection)-1]
     elif selection == 'M':
-        raise GeneralAbort
+        raise GenericAbort
 
 def setup_windows(windows_image, windows_version):
     cmd = [

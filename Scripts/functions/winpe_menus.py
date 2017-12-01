@@ -197,8 +197,9 @@ def menu_root():
         if (selection.isnumeric()):
             try:
                 menus[int(selection)-1]['Menu']()
-            except AbortError:
-                pass
+            except GenericAbort:
+                print_warning('\nAborted\n')
+                pause('Press Enter to return to main menu... ')
         elif (selection == 'C'):
             run_program(['cmd', '-new_console:n'], check=False)
         elif (selection == 'R'):
@@ -262,7 +263,7 @@ def menu_setup():
     print_warning(dest_disk['Format Warnings'])
     
     if (not ask('Is this correct?')):
-        raise GeneralAbort
+        raise GenericAbort
     
     # Safety check
     print_standard('\nSAFETY CHECK')
@@ -271,7 +272,7 @@ def menu_setup():
     print_warning('This is irreversible and will lead '
                   'to {CLEAR}{RED}DATA LOSS.'.format(**COLORS))
     if (not ask('Asking again to confirm, is this correct?')):
-        raise GeneralAbort
+        raise GenericAbort
 
     # Remove volume letters so S, T, & W can be used below
     remove_volume_letters(keep=windows_image['Source'])

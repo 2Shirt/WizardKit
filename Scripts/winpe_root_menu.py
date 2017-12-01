@@ -17,9 +17,6 @@ DISKPART_SCRIPT = r'{}\diskpart.script'.format(global_vars['Env']['TMP'])
 if __name__ == '__main__':
     try:
         menu_root()
-    except GenericAbort:
-        # pause('Press Enter to return to main menu... ')
-        pass
     except SystemExit:
         pass
     except:

@@ -360,7 +360,7 @@ def select_disk(title='Which disk?', disks=[]):
     if (selection.isnumeric()):
         return disk_options[int(selection)-1]['Disk']
     elif (selection == 'M'):
-        raise GeneralAbort
+        raise GenericAbort
 
 if __name__ == '__main__':
     print("This file is not meant to be called directly.")
