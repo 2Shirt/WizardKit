@@ -4,13 +4,16 @@ from functions.common import *
 import partition_uids
 
 def assign_volume_letters():
+    with open(DISKPART_SCRIPT, 'w') as script:
+        for vol in get_volumes():
+            script.write('select volume {Number}\n'.format(**vol))
+            script.write('assign\n')
+    
+    # Remove current letters
     remove_volume_letters()
+    
+    # Run script
     try:
-        # Run script
-        with open(DISKPART_SCRIPT, 'w') as script:
-            for vol in get_volumes():
-                script.write('select volume {Number}\n'.format(**vol))
-                script.write('assign\n')
         run_program('diskpart /s {script}'.format(script=DISKPART_SCRIPT))
     except subprocess.CalledProcessError:
         pass
@@ -303,13 +306,14 @@ def reassign_volume_letter(letter, new_letter='I'):
 def remove_volume_letters(keep=None):
     if not keep:
         keep = ''
+    with open(DISKPART_SCRIPT, 'w') as script:
+        for vol in get_volumes():
+            if vol['Letter'].upper() != keep.upper():
+                script.write('select volume {Number}\n'.format(**vol))
+                script.write('remove noerr\n')
+    
+    # Run script
     try:
-        # Run script
-        with open(DISKPART_SCRIPT, 'w') as script:
-            for vol in get_volumes():
-                if vol['Letter'].upper() != keep.upper():
-                    script.write('select volume {Number}\n'.format(**vol))
-                    script.write('remove noerr\n')
         run_program('diskpart /s {script}'.format(script=DISKPART_SCRIPT))
     except subprocess.CalledProcessError:
         pass
