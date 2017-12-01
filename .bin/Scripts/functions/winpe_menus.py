@@ -50,6 +50,16 @@ PE_TOOLS = {
         },
     }
 
+def check_pe_tools():
+    for k in PE_TOOLS.keys():
+        PE_TOOLS[k]['Path'] = r'{}\{}'.format(
+            global_vars['BinDir'], PE_TOOLS[k]['Path'])
+    global_vars['Tools']['wimlib-imagex'] = re.sub(
+        r'\\x(32|64)',
+        r'',
+        global_vars['Tools']['wimlib-imagex'],
+        re.IGNORECASE)
+
 def menu_backup():
     """Take backup images of partition(s) in the WIM format."""
     errors = False
@@ -175,11 +185,7 @@ def menu_backup():
     pause('\nPress Enter to return to main menu... ')
 
 def menu_root():
-    # Fix PE_TOOLS paths
-    for k in PE_TOOLS.keys():
-        PE_TOOLS[k]['Path'] = r'{}\{}'.format(
-            global_vars['BinDir'], PE_TOOLS[k]['Path'])
-    
+    check_pe_tools()
     menus = [
         {'Name': 'Create Backups', 'Menu': menu_backup},
         {'Name': 'Setup Windows', 'Menu': menu_setup},
