@@ -162,7 +162,10 @@ if ($MyInvocation.InvocationName -ne ".") {
             @("qdir32.zip", "https://www.softwareok.com/Download/Q-Dir_Portable.zip"),
             # TestDisk / PhotoRec
             @("testdisk64.zip", "https://www.cgsecurity.org/testdisk-7.1-WIP.win64.zip"),
-            @("testdisk32.zip", "https://www.cgsecurity.org/testdisk-7.1-WIP.win.zip")
+            @("testdisk32.zip", "https://www.cgsecurity.org/testdisk-7.1-WIP.win.zip"),
+            # wimlib-imagex
+            @("wimlib64.zip", "https://wimlib.net/downloads/wimlib-1.12.0-windows-x86_64-bin.zip"),
+            @("wimlib32.zip", "https://wimlib.net/downloads/wimlib-1.12.0-windows-i686-bin.zip")
         )
         foreach ($Tool in $ToolSources) {
             DownloadFile -Path $Temp -Name $Tool[0] -Url $Tool[1]
@@ -440,6 +443,22 @@ if ($MyInvocation.InvocationName -ne ".") {
                 "-aoa", "-bso0", "-bse0", "-bsp0")
             Start-Process -FilePath $SevenZip -ArgumentList $ArgumentList -NoNewWindow -Wait
             Remove-Item "$Temp\qdir*"
+        }
+        catch {
+            Write-Host ("  ERROR: Failed to extract files." ) -ForegroundColor "Red"
+        }
+        
+        # wimlib-imagex
+        try {
+            $ArgumentList = @(
+                "x", "$Temp\wimlib64.zip", "-o$Root\WK\amd64\wimlib",
+                "-aoa", "-bso0", "-bse0", "-bsp0")
+            Start-Process -FilePath $SevenZip -ArgumentList $ArgumentList -NoNewWindow -Wait
+            $ArgumentList = @(
+                "x", "$Temp\wimlib32.zip", "-o$Root\WK\x86\wimlib",
+                "-aoa", "-bso0", "-bse0", "-bsp0")
+            Start-Process -FilePath $SevenZip -ArgumentList $ArgumentList -NoNewWindow -Wait
+            Remove-Item "$Temp\wimlib*"
         }
         catch {
             Write-Host ("  ERROR: Failed to extract files." ) -ForegroundColor "Red"
