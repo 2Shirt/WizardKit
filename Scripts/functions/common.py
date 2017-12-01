@@ -226,7 +226,7 @@ def menu_select(title='~ Untitled Menu ~',
 
     # Set title
     if 'Title' in global_vars:
-        title = '{}\n\n{}'.format(global_vars['Title'])
+        title = '{}\n\n{}'.format(global_vars['Title'], title)
 
     # Build menu
     menu_splash =   '{}\n\n'.format(title)
