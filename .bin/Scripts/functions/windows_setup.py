@@ -1,6 +1,7 @@
 # Wizard Kit PE: Functions - Windows Setup
 
 from functions.data import *
+from functions.disk import *
 
 # STATIC VARIABLES
 WINDOWS_VERSIONS = [
@@ -89,66 +90,66 @@ def format_disk(disk, use_gpt):
 
 def format_gpt(disk):
     """Format disk for use as a Windows OS disk using the GPT layout."""
-    with open(DISKPART_SCRIPT, 'w') as script:
+    script = [
         # Partition table
-        script.write('select disk {}\n'.format(disk['Number']))
-        script.write('clean\n')
-        script.write('convert gpt\n')
+        'select disk {}'.format(disk['Number']),
+        'clean',
+        'convert gpt',
 
         # System partition
         # NOTE: ESP needs to be >= 260 for Advanced Format 4K disks
-        script.write('create partition efi size=500\n')
-        script.write('format quick fs=fat32 label="System"\n')
-        script.write('assign letter="S"\n')
+        'create partition efi size=500',
+        'format quick fs=fat32 label="System"',
+        'assign letter="S"',
 
         # Microsoft Reserved (MSR) partition
-        script.write('create partition msr size=128\n')
+        'create partition msr size=128',
 
         # Windows partition
-        script.write('create partition primary\n')
-        script.write('format quick fs=ntfs label="Windows"\n')
-        script.write('assign letter="W"\n')
+        'create partition primary',
+        'format quick fs=ntfs label="Windows"',
+        'assign letter="W"',
 
         # Recovery Tools partition
-        script.write('shrink minimum=500\n')
-        script.write('create partition primary\n')
-        script.write('format quick fs=ntfs label="Recovery Tools"\n')
-        script.write('assign letter="T"\n')
-        script.write('set id="de94bba4-06d1-4d40-a16a-bfd50179d6ac"\n')
-        script.write('gpt attributes=0x8000000000000001\n')
-
-    # Run script
-    run_program(['diskpart', '/s', DISKPART_SCRIPT])
-    time.sleep(2)
+        'shrink minimum=500',
+        'create partition primary',
+        'format quick fs=ntfs label="Recovery Tools"',
+        'assign letter="T"',
+        'set id="de94bba4-06d1-4d40-a16a-bfd50179d6ac"',
+        'gpt attributes=0x8000000000000001',
+        ]
+    
+    # Run
+    run_diskpart(script)
 
 def format_mbr(disk):
     """Format disk for use as a Windows OS disk using the MBR layout."""
-    with open(DISKPART_SCRIPT, 'w') as script:
+    script = [
         # Partition table
-        script.write('select disk {}\n'.format(disk['Number']))
-        script.write('clean\n')
+        'select disk {}'.format(disk['Number']),
+        'clean',
 
         # System partition
-        script.write('create partition primary size=100\n')
-        script.write('format fs=ntfs quick label="System Reserved"\n')
-        script.write('active\n')
-        script.write('assign letter="S"\n')
+        'create partition primary size=100',
+        'format fs=ntfs quick label="System Reserved"',
+        'active',
+        'assign letter="S"',
 
         # Windows partition
-        script.write('create partition primary\n')
-        script.write('format fs=ntfs quick label="Windows"\n')
-        script.write('assign letter="W"\n')
+        'create partition primary',
+        'format fs=ntfs quick label="Windows"',
+        'assign letter="W"',
 
         # Recovery Tools partition
-        script.write('shrink minimum=500\n')
-        script.write('create partition primary\n')
-        script.write('format quick fs=ntfs label="Recovery"\n')
-        script.write('assign letter="T"\n')
-        script.write('set id=27\n')
-
-    # Run script
-    run_program(['diskpart', '/s', DISKPART_SCRIPT])
-    time.sleep(2)
+        'shrink minimum=500',
+        'create partition primary',
+        'format quick fs=ntfs label="Recovery"',
+        'assign letter="T"',
+        'set id=27',
+        ]
+    
+    # Run
+    run_diskpart(script)
 
 def mount_windows_share():
     """Mount the  Windows images share unless labeled as already mounted."""

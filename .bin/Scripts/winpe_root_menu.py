@@ -11,9 +11,6 @@ init_global_vars()
 set_title('{}: Root Menu'.format(KIT_NAME_FULL))
 global_vars['LogFile'] = r'{LogDir}\WinPE.log'.format(**global_vars)
 
-# STATIC VARIABLES
-DISKPART_SCRIPT = r'{}\diskpart.script'.format(global_vars['Env']['TMP'])
-
 if __name__ == '__main__':
     try:
         menu_root()

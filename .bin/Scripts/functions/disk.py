@@ -12,19 +12,16 @@ REGEX_DISK_MBR = re.compile(r'Disk ID: [A-Z0-9]+', re.IGNORECASE)
 REGEX_DISK_RAW = re.compile(r'Disk ID: 00000000', re.IGNORECASE)
 
 def assign_volume_letters():
-    with open(DISKPART_SCRIPT, 'w') as script:
-        for vol in get_volumes():
-            script.write('select volume {}\n'.format(vol['Number']))
-            script.write('assign\n')
-    
-    # Remove current letters
     remove_volume_letters()
     
-    # Run script
-    try:
-        run_program(['diskpart', '/s', DISKPART_SCRIPT])
-    except subprocess.CalledProcessError:
-        pass
+    # Write script
+    script = []
+    for vol in get_volumes():
+        script.append('select volume {}'.format(vol['Number']))
+        script.append('assign')
+    
+    # Run
+    run_diskpart(script)
 
 def get_boot_mode():
     boot_mode = 'Legacy'
@@ -41,17 +38,17 @@ def get_boot_mode():
 
 def get_disk_details(disk):
     details = {}
-    with open(DISKPART_SCRIPT, 'w') as script:
-        script.write('select disk {}\n'.format(disk['Number']))
-        script.write('detail disk\n')
+    script = [
+        'select disk {}'.format(disk['Number']),
+        'detail disk']
     
+    # Run
     try:
-        # Run script
-        output = run_program(['diskpart', '/s', DISKPART_SCRIPT])
-        output = output.stdout.decode().strip()
+        result = run_diskpart(script)
     except subprocess.CalledProcessError:
         pass
     else:
+        output = result.stdout.decode().strip()
         # Remove empty lines
         tmp = [s.strip() for s in output.splitlines() if s.strip() != '']
         # Set disk name
@@ -65,17 +62,15 @@ def get_disk_details(disk):
     
 def get_disks():
     disks = []
-    with open(DISKPART_SCRIPT, 'w') as script:
-        script.write('list disk\n')
     
     try:
         # Run script
-        output = run_program(['diskpart', '/s', DISKPART_SCRIPT])
-        output = output.stdout.decode().strip()
+        result = run_diskpart(['list disk'])
     except subprocess.CalledProcessError:
         pass
     else:
         # Append disk numbers
+        output = result.stdout.decode().strip()
         for tmp in re.findall(r'Disk (\d+)\s+\w+\s+(\d+\s+\w+)', output):
             num = tmp[0]
             size = human_readable_size(tmp[1])
@@ -85,20 +80,20 @@ def get_disks():
 
 def get_partition_details(disk, partition):
     details = {}
-    with open(DISKPART_SCRIPT, 'w') as script:
-        script.write('select disk {}\n'.format(disk['Number']))
-        script.write('select partition {}\n'.format(partition['Number']))
-        script.write('detail partition\n')
+    script = [
+        'select disk {}'.format(disk['Number']),
+        'select partition {}'.format(partition['Number']),
+        'detail partition']
     
     # Diskpart details
     try:
         # Run script
-        output = run_program(['diskpart', '/s', DISKPART_SCRIPT])
-        output = output.stdout.decode().strip()
+        result = run_diskpart(script)
     except subprocess.CalledProcessError:
         pass
     else:
         # Get volume letter or RAW status
+        output = result.stdout.decode().strip()
         tmp = re.search(r'Volume\s+\d+\s+(\w|RAW)\s+', output)
         if tmp:
             if tmp.group(1).upper() == 'RAW':
@@ -132,11 +127,11 @@ def get_partition_details(disk, partition):
             '{}:'.format(details['Letter'])
             ]
         try:
-            output = run_program(cmd)
-            output = output.stdout.decode().strip()
+            result = run_program(cmd)
         except subprocess.CalledProcessError:
             pass
         else:
+            output = result.stdout.decode().strip()
             # Remove empty lines from output
             tmp = [s.strip() for s in output.splitlines() if s.strip() != '']
             # Add "Feature" lines
@@ -158,18 +153,18 @@ def get_partition_details(disk, partition):
 
 def get_partitions(disk):
     partitions = []
-    with open(DISKPART_SCRIPT, 'w') as script:
-        script.write('select disk {}\n'.format(disk['Number']))
-        script.write('list partition\n')
+    script = [
+        'select disk {}'.format(disk['Number']),
+        'list partition']
     
     try:
         # Run script
-        output = run_program(['diskpart', '/s', DISKPART_SCRIPT])
-        output = output.stdout.decode().strip()
+        result = run_diskpart(script)
     except subprocess.CalledProcessError:
         pass
     else:
         # Append partition numbers
+        output = result.stdout.decode().strip()
         regex = r'Partition\s+(\d+)\s+\w+\s+(\d+\s+\w+)\s+'
         for tmp in re.findall(regex, output, re.IGNORECASE):
             num = tmp[0]
@@ -180,40 +175,34 @@ def get_partitions(disk):
 
 def get_table_type(disk):
     part_type = 'Unknown'
-    with open(DISKPART_SCRIPT, 'w') as script:
-        script.write('select disk {}\n'.format(disk['Number']))
-        script.write('uniqueid disk\n')
+    script = [
+        'select disk {}'.format(disk['Number']),
+        'uniqueid disk']
     
     try:
-        output = run_program(['diskpart', '/s', DISKPART_SCRIPT])
-        output = output.stdout.decode().strip()
+        result = run_diskpart(script)
     except subprocess.CalledProcessError:
         pass
     else:
+        output = result.stdout.decode().strip()
         if REGEX_DISK_GPT.search(output):
             part_type = 'GPT'
         elif REGEX_DISK_MBR.search(output):
             part_type = 'MBR'
         elif REGEX_DISK_RAW.search(output):
             part_type = 'RAW'
-        else:
-            part_type = 'Unknown'
     
     return part_type
 
 def get_volumes():
     vols = []
-    with open(DISKPART_SCRIPT, 'w') as script:
-        script.write('list volume\n')
-    
     try:
-        # Run script
-        output = run_program(['diskpart', '/s', DISKPART_SCRIPT])
-        output = output.stdout.decode().strip()
+        result = run_diskpart(['list volume'])
     except subprocess.CalledProcessError:
         pass
     else:
         # Append volume numbers
+        output = result.stdout.decode().strip()
         for tmp in re.findall(r'Volume (\d+)\s+([A-Za-z]?)\s+', output):
             vols.append({'Number': tmp[0], 'Letter': tmp[1]})
     
@@ -270,13 +259,12 @@ def reassign_volume_letter(letter, new_letter='I'):
     if not letter:
         # Ignore
         return None
+    script = [
+        'select volume {}'.format(letter),
+        'remove noerr',
+        'assign letter={}'.format(new_letter)]
     try:
-        # Run script
-        with open(DISKPART_SCRIPT, 'w') as script:
-            script.write('select volume {}\n'.format(letter))
-            script.write('remove noerr\n')
-            script.write('assign letter={}\n'.format(new_letter))
-        run_program(['diskpart', '/s', DISKPART_SCRIPT])
+        run_diskpart(script)
     except subprocess.CalledProcessError:
         pass
     else:
@@ -285,17 +273,35 @@ def reassign_volume_letter(letter, new_letter='I'):
 def remove_volume_letters(keep=None):
     if not keep:
         keep = ''
-    with open(DISKPART_SCRIPT, 'w') as script:
-        for vol in get_volumes():
-            if vol['Letter'].upper() != keep.upper():
-                script.write('select volume {}\n'.format(vol['Number']))
-                script.write('remove noerr\n')
+    
+    script = []
+    for vol in get_volumes():
+        if vol['Letter'].upper() != keep.upper():
+            script.append('select volume {}'.format(vol['Number']))
+            script.append('remove noerr')
     
     # Run script
     try:
-        run_program(['diskpart', '/s', DISKPART_SCRIPT])
+        run_diskpart(script)
     except subprocess.CalledProcessError:
         pass
+
+def run_diskpart(script):
+    tempfile = r'{}\diskpart.script'.format(global_vars['Env']['TMP'])
+    
+    # Write script
+    with open(tempfile, 'w') as f:
+        for line in script:
+            f.write('{}\n'.format(line))
+    
+    # Run script
+    cmd = [
+        r'{}\Windows\System32\diskpart.exe'.format(
+            global_vars['Env']['SYSTEMDRIVE']),
+        '/s', tempfile]
+    result = run_program(cmd)
+    time.sleep(2)
+    return result
 
 def scan_disks():
     """Get details about the attached disks"""
