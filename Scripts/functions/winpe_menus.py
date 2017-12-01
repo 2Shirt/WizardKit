@@ -74,13 +74,21 @@ def menu_backup():
     # Select destination
     destination = select_backup_destination()
 
+    # Scan disks
+    try_and_print(message='Assigning letters...', function=assign_volume_letters, other_results=other_results)
+    result = try_and_print(message='Getting drive info...', function=scan_disks, other_results=other_results)
+    if result['CS']:
+        disks = result['Out']
+    else:
+        print_error('ERROR: No disks found.')
+        raise GenericAbort
+    
     # Select disk to backup
-    assign_volume_letters()
-    disk = select_disk('For which drive are we creating backups?')
+    disk = select_disk('For which drive are we creating backups?', disks)
     if not disk:
         raise GenericAbort
     
-    # "Prep" disk?
+    # "Prep" disk
     prep_disk_for_backup(destination, disk, ticket_number)
 
     # Display details for backup task
@@ -205,9 +213,21 @@ def menu_setup():
     # Find Windows image
     windows_image = find_windows_image(bin, windows_version)
 
+    # Scan disks
+    try_and_print(message='Assigning letters...', function=assign_volume_letters, other_results=other_results)
+    result = try_and_print(message='Getting drive info...', function=scan_disks, other_results=other_results)
+    if result['CS']:
+        disks = result['Out']
+    else:
+        print_error('ERROR: No disks found.')
+        raise GenericAbort
+    
     # Select drive to use as the OS drive
-    assign_volume_letters()
-    dest_disk = select_disk('To which drive are we installing Windows?')
+    dest_disk = select_disk('To which drive are we installing Windows?', disks)
+    if not disk:
+        raise GenericAbort
+    
+    # "Prep" disk
     prep_disk_for_formatting(dest_disk)
 
     # Display details for setup task

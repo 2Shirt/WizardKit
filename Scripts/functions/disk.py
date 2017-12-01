@@ -18,32 +18,6 @@ def assign_volume_letters():
     except subprocess.CalledProcessError:
         pass
 
-def get_attached_disk_info():
-    """Get details about the attached disks"""
-    disks = []
-    print_info('Getting drive info...')
-
-    # Get disks
-    disks = get_disks()
-
-    # Get disk details
-    for disk in disks:
-        # Get partition style
-        disk['Table'] = get_table_type(disk)
-
-        # Get disk name/model and physical details
-        disk.update(get_disk_details(disk))
-
-        # Get partition info for disk
-        disk['Partitions'] = get_partitions(disk)
-        
-        for par in disk['Partitions']:
-            # Get partition details
-            par.update(get_partition_details(disk, par))
-
-    # Done
-    return disks
-
 def get_boot_mode():
     boot_mode = 'Legacy'
     try:
@@ -318,10 +292,30 @@ def remove_volume_letters(keep=None):
     except subprocess.CalledProcessError:
         pass
 
-def select_disk(title='Which disk?'):
-    """Select a disk from the attached disks"""
-    disks = get_attached_disk_info()
+def scan_disks():
+    """Get details about the attached disks"""
+    disks = get_disks()
 
+    # Get disk details
+    for disk in disks:
+        # Get partition style
+        disk['Table'] = get_table_type(disk)
+
+        # Get disk name/model and physical details
+        disk.update(get_disk_details(disk))
+
+        # Get partition info for disk
+        disk['Partitions'] = get_partitions(disk)
+        
+        for par in disk['Partitions']:
+            # Get partition details
+            par.update(get_partition_details(disk, par))
+
+    # Done
+    return disks
+
+def select_disk(title='Which disk?', disks):
+    """Select a disk from the attached disks"""
     # Build menu
     disk_options = []
     for disk in disks:
