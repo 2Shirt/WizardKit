@@ -92,7 +92,7 @@ FAST_COPY_EXCLUDES = [
     r'Temporary?Items',
     r'Thumbs.db',
     ]
-FAST_COPY_ARGS =        [
+FAST_COPY_ARGS = [
     '/cmd=noexist_only',
     '/utf8',
     '/skip_empty_dir',
@@ -388,43 +388,6 @@ def select_destination(folder_path, prompt='Select destination'):
 
     return path
 
-def select_volume(title='Select disk', auto_select=True):
-    """Select disk from attached disks. returns dict."""
-    actions =   [{'Name': 'Quit', 'Letter': 'Q'}]
-    disks =     []
-    
-    # Build list of disks
-    set_thread_error_mode(silent=True) # Prevents "No disk" popups
-    for d in psutil.disk_partitions():
-        info = {
-            'Disk': d,
-            'Name': d.mountpoint}
-        try:
-            usage = psutil.disk_usage(d.device)
-            free = '{free} / {total} available'.format(
-                free = human_readable_size(usage.free, 2),
-                total = human_readable_size(usage.total, 2))
-        except Exception:
-            # Meh, leaving unsupported destinations out
-            pass
-            # free = 'Unknown'
-            # info['Disabled'] = True
-        else:
-            info['Display Name'] = '{}  ({})'.format(info['Name'], free)
-            disks.append(info)
-    set_thread_error_mode(silent=False) # Return to normal
-    
-    # Skip menu?
-    if len(disks) == 1 and auto_select:
-        return disks[0]
-    
-    # Show menu
-    selection = menu_select(title, main_entries=disks, action_entries=actions)
-    if selection == 'Q':
-        exit_script()
-    else:
-        return disks[int(selection)-1]
-
 def select_source(ticket_number):
     """Select backup from those found on the BACKUP_SERVERS for the ticket."""
     selected_source = None
@@ -535,6 +498,43 @@ def select_source(ticket_number):
     
     # Done
     return selected_source
+
+def select_volume(title='Select disk', auto_select=True):
+    """Select disk from attached disks. returns dict."""
+    actions =   [{'Name': 'Quit', 'Letter': 'Q'}]
+    disks =     []
+    
+    # Build list of disks
+    set_thread_error_mode(silent=True) # Prevents "No disk" popups
+    for d in psutil.disk_partitions():
+        info = {
+            'Disk': d,
+            'Name': d.mountpoint}
+        try:
+            usage = psutil.disk_usage(d.device)
+            free = '{free} / {total} available'.format(
+                free = human_readable_size(usage.free, 2),
+                total = human_readable_size(usage.total, 2))
+        except Exception:
+            # Meh, leaving unsupported destinations out
+            pass
+            # free = 'Unknown'
+            # info['Disabled'] = True
+        else:
+            info['Display Name'] = '{}  ({})'.format(info['Name'], free)
+            disks.append(info)
+    set_thread_error_mode(silent=False) # Return to normal
+    
+    # Skip menu?
+    if len(disks) == 1 and auto_select:
+        return disks[0]
+    
+    # Show menu
+    selection = menu_select(title, main_entries=disks, action_entries=actions)
+    if selection == 'Q':
+        exit_script()
+    else:
+        return disks[int(selection)-1]
 
 def set_thread_error_mode(silent=True):
     """Disable or Enable Windows error message dialogs.

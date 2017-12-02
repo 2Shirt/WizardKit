@@ -37,6 +37,9 @@ class BIOSKeyNotFoundError(Exception):
 class BinNotFoundError(Exception):
     pass
 
+class GenericAbort(Exception):
+    pass
+
 class GenericError(Exception):
     pass
 
@@ -221,6 +224,10 @@ def menu_select(title='~ Untitled Menu ~',
     if not main_entries and not action_entries:
         raise Exception("MenuError: No items given")
 
+    # Set title
+    if 'Title' in global_vars:
+        title = '{}\n\n{}'.format(global_vars['Title'], title)
+
     # Build menu
     menu_splash =   '{}\n\n'.format(title)
     width =         len(str(len(main_entries)))
@@ -263,7 +270,7 @@ def menu_select(title='~ Untitled Menu ~',
     answer = ''
 
     while (answer.upper() not in valid_answers):
-        clear_screen()
+        os.system('cls')
         print(menu_splash)
         answer = input('{}: '.format(prompt))
 
@@ -358,10 +365,29 @@ def run_program(cmd, args=[], check=True, pipe=True, shell=False):
 
     return process_return
 
-def show_info(message='~Some message~', info='~Some info~', indent=8, width=32):
+def set_title(title='~Some Title~'):
+    """Set title.
+    
+    Used for window title and menu titles."""
+    global_vars['Title'] = title
+    os.system('title {}'.format(title))
+
+def show_data(message='~Some message~', data='~Some data~', indent=8, width=32,
+    info=False, warning=False, error=False):
     """Display info with formatting."""
-    print_standard('{indent}{message:<{width}}{info}'.format(
-        indent=' '*indent, width=width, message=message, info=info))
+    message = '{indent}{message:<{width}}{data}'.format(
+        indent=' '*indent, width=width, message=message, data=data)
+    if error:
+        print_error(message)
+    elif warning:
+        print_warning(message)
+    elif info:
+        print_info(message)
+    else:
+        print_standard(message)
+
+def show_info(message='~Some message~', info='~Some info~', indent=8, width=32):
+    show_data(message=message, data=info, indent=indent, width=width)
 
 def sleep(seconds=2):
     """Wait for a while."""
@@ -400,6 +426,7 @@ def try_and_print(message='Trying...',
         and the result string will be printed in the correct color.
     catch_all=False will result in unspecified exceptions being re-raised."""
     err = None
+    out = None
     w_exceptions = other_results.get('Warning', {}).keys()
     w_exceptions = tuple(get_exception(e) for e in w_exceptions)
     e_exceptions = other_results.get('Error', {}).keys()
@@ -435,7 +462,7 @@ def try_and_print(message='Trying...',
     if err and not catch_all:
         raise
     else:
-        return {'CS': not bool(err), 'Error': err}
+        return {'CS': not bool(err), 'Error': err, 'Out': out}
 
 def upload_data(path, file):
     """Add CLIENT_INFO_SERVER to authorized connections and upload file."""
