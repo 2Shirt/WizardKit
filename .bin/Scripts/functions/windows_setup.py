@@ -202,7 +202,7 @@ def setup_windows_re(windows_version, windows_letter='W', tools_letter='T'):
 
 def update_boot_partition(system_letter='S', windows_letter='W', mode='ALL'):
     cmd = [
-        r'{}:\Windows\System32\bcdboot.exe'.format(
+        r'{}\Windows\System32\bcdboot.exe'.format(
             global_vars['Env']['SYSTEMDRIVE']),
         r'{}:\Windows'.format(windows_letter),
         '/s', '{}:'.format(system_letter),
