@@ -1,4 +1,4 @@
-# Wizard Kit PE: Root Menu
+# Wizard Kit: WinPE Root Menu
 
 import os
 import sys

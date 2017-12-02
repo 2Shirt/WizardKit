@@ -1,4 +1,4 @@
-# Wizard Kit PE: Functions - Disk
+# Wizard Kit: Functions - Disk
 
 from functions.common import *
 from functions import partition_uids

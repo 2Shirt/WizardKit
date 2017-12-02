@@ -1,4 +1,4 @@
-# Wizard Kit PE: Functions - Windows Setup
+# Wizard Kit: Functions - Windows Setup
 
 from functions.data import *
 from functions.disk import *

@@ -1,4 +1,4 @@
-# Wizard Kit PE: Menus
+# Wizard Kit: WinPE Menus
 
 from functions.backup import *
 from functions.disk import *

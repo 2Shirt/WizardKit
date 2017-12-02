@@ -1,4 +1,4 @@
-# Wizard Kit PE: Functions - Backup
+# Wizard Kit: Functions - Backup
 
 from functions.disk import *
 
