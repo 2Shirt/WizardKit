@@ -4,14 +4,14 @@ from functions.disk import *
 
 # Regex
 REGEX_BAD_PATH_NAMES = re.compile(
-    r'([<>:"/\\\|\?\*]'
+    r'([<>:"/\|\?\*]'
     r'|^(CON|PRN|AUX|NUL|COM\d*|LPT\d*)$)'
     r'|^\s+'
     r'|[\s\.]+$',
     re.IGNORECASE)
 
-def backup_partition(disk, partition):
-    if par['Image Exists'] or par['Number'] in disk['Bad Partitions']:
+def backup_partition(disk, par):
+    if par.get('Image Exists', False) or par['Number'] in disk['Bad Partitions']:
         raise GenericAbort
     
     cmd = [

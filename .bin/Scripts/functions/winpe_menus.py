@@ -83,7 +83,7 @@ def menu_backup():
     mount_backup_shares()
 
     # Select destination
-    destination = select_backup_destination()
+    destination = select_backup_destination(auto_select=False)
 
     # Scan disks
     try_and_print(
@@ -136,7 +136,7 @@ def menu_backup():
             function = backup_partition,
             other_results = other_results,
             disk = disk,
-            partition = par)
+            par = par)
         if not result['CS']:
             errors = True
             par['Error'] = result['Error']
