@@ -45,7 +45,7 @@ def prep_disk_for_backup(destination, disk, ticket_number):
     
     # Prep partitions
     for par in disk['Partitions']:
-        display = 'Partition {num:>{width}}:\t{size} {fs}'.format(
+        display = '{size} {fs}'.format(
             num = par['Number'],
             width = width,
             size = par['Size'],
@@ -53,14 +53,12 @@ def prep_disk_for_backup(destination, disk, ticket_number):
         
         if par['Number'] in disk['Bad Partitions']:
             # Set display string using partition description & OS type
-            display = '  * {display}\t\t{q}{name}{q}\t{desc} ({os})'.format(
+            display = '* {display}\t\t{q}{name}{q}\t{desc} ({os})'.format(
                 display = display,
                 q = '"' if par['Name'] != '' else '',
                 name = par['Name'],
                 desc = par['Description'],
                 os = par['OS'])
-            display = '{YELLOW}{display}{CLEAR}'.format(
-                display=display, **COLORS)
         else:
             # Update info for WIM capturing
             par['Image Name'] = par['Name'] if par['Name'] else 'Unknown'
@@ -78,16 +76,15 @@ def prep_disk_for_backup(destination, disk, ticket_number):
             par['Image Exists'] = os.path.exists(par['Image Path'])
             if par['Image Exists']:
                 disk['Clobber Risk'].append(par['Number'])
-                display = '{}  + {}'.format(COLORS['BLUE'], display)
+                display = '+ {}'.format(display)
             else:
-                display = '{}    {}'.format(COLORS['CLEAR'], display)
+                display = '  {}'.format(display)
             
             # Append rest of Display String for valid/clobber partitions
-            display += ' (Used: {used})\t{q}{name}{q}{CLEAR}'.format(
+            display += ' (Used: {used})\t{q}{name}{q}'.format(
                 used = par['Used Space'],
                 q = '"' if par['Name'] != '' else '',
-                name = par['Name'],
-                **COLORS)
+                name = par['Name'])
         # For all partitions
         par['Display String'] = display
     

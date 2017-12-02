@@ -111,17 +111,24 @@ def menu_backup():
     # Display details for backup task
     clear_screen()
     print_info('Create Backup - Details:\n')
-    show_info(message='Ticket:', info=ticket_number)
-    show_info(
+    show_data(message='Ticket:', data=ticket_number)
+    show_data(
         message = 'Source:',
-        info = '[{Table}] ({Type}) {Name} {Size}'.format(**disk),
+        data = '[{Table}] ({Type}) {Name} {Size}'.format(**disk),
         )
-    show_info(
+    show_data(
         message = 'Destination:',
-        info = destination.get('Display Name', destination['Name']),
+        data = destination.get('Display Name', destination['Name']),
         )
     for par in disk['Partitions']:
-        show_info(message='', info=par['Display String'], width=20)
+        message = 'Partition {}:'.format(par['Number'])
+        data = par['Display String']
+        if par['Number'] in disk['Bad Partitions']:
+            show_data(message=message, data=data, width=30, warning=True)
+        elif par['Image Exists']:
+            show_data(message=message, data=data, width=30, info=True)
+        else:
+            show_data(message=message, data=data, width=30)
     print_standard(disk['Backup Warnings'])
 
     # Ask to proceed
@@ -167,17 +174,14 @@ def menu_backup():
                 except:
                     # Deal with badly formatted error message
                     pass
-            if isinstance(par['Error'], basestring):
-                print_error('\t{}'.format(par['Error']))
-            else:
-                try:
-                    par['Error'] = par['Error'].splitlines()
-                    par['Error'] = [line.strip() for line in par['Error']]
-                    par['Error'] = [line for line in par['Error'] if line]
-                except:
-                    pass
+            try:
+                par['Error'] = par['Error'].splitlines()
+                par['Error'] = [line.strip() for line in par['Error']]
+                par['Error'] = [line for line in par['Error'] if line]
                 for line in par['Error']:
                     print_error('\t{}'.format(line))
+            except:
+                print_error('\t{}'.format(par['Error']))
     else:
         print_success('\nNo errors were encountered during imaging.')
     if 'LogFile' in global_vars:
@@ -279,20 +283,20 @@ def menu_setup():
     # Display details for setup task
     clear_screen()
     print_info('Setup Windows - Details:\n')
-    show_info(message='Ticket:', info=ticket_number)
-    show_info(message='Installing:', info=windows_version['Name'])
-    show_info(
+    show_data(message='Ticket:', data=ticket_number)
+    show_data(message='Installing:', data=windows_version['Name'])
+    show_data(
         message = 'Boot Method:',
-        info = 'UEFI (GPT)' if dest_disk['Use GPT'] else 'Legacy (MBR)')
-    show_info(message='Using Image:', info=windows_image['Path'])
-    show_info(
+        data = 'UEFI (GPT)' if dest_disk['Use GPT'] else 'Legacy (MBR)')
+    show_data(message='Using Image:', data=windows_image['Path'])
+    show_data(
         message = 'ERASING:',
-        info = '[{Table}] ({Type}) {Name} {Size}\n'.format(**dest_disk),
+        data = '[{Table}] ({Type}) {Name} {Size}\n'.format(**dest_disk),
         warning = True)
     for par in dest_disk['Partitions']:
-        show_info(
-            message = 'Partition {:>2}:'.format(par['Number']),
-            info = par['Display String'],
+        show_data(
+            message = 'Partition {}:'.format(par['Number']),
+            data = par['Display String'],
             warning = True)
     print_warning(dest_disk['Format Warnings'])
     
