@@ -531,7 +531,7 @@ if ($MyInvocation.InvocationName -ne ".") {
             $DestIni = "$Mount\.bin\HWiNFO\HWiNFO32.INI"
         }
         Move-Item -Path "$Mount\.bin\HWiNFO\HWiNFO.INI" -Destination $DestIni -Force
-        Copy-Item -Path "$Root\WinPE.jpg" -Destination "$Mount\.bin\ConEmu\ConEmu.jpg" -Recurse -Force
+        Copy-Item -Path "$Root\Images\WinPE.jpg" -Destination "$Mount\.bin\ConEmu\ConEmu.jpg" -Recurse -Force
         Copy-Item -Path "$Bin\Scripts" -Destination "$Mount\.bin\Scripts" -Recurse -Force
         
         # Add System32 items
@@ -541,7 +541,7 @@ if ($MyInvocation.InvocationName -ne ".") {
         Start-Process -FilePath "$HostSystem32\takeown.exe" -ArgumentList $ArgumentList -NoNewWindow -Wait
         $ArgumentList = @("$Mount\Windows\System32\winpe.jpg", "/grant", "Administrators:F")
         Start-Process -FilePath "$HostSystem32\icacls.exe" -ArgumentList $ArgumentList -NoNewWindow -Wait
-        Copy-Item -Path "$Root\WinPE.jpg" -Destination "$Mount\Windows\System32\winpe.jpg" -Recurse -Force
+        Copy-Item -Path "$Root\Images\WinPE.jpg" -Destination "$Mount\Windows\System32\winpe.jpg" -Recurse -Force
         
         # Load registry hives
         Write-Host "Updating Registry..."
