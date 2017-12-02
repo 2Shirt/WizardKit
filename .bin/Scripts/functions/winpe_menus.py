@@ -144,7 +144,7 @@ def menu_backup():
             other_results = other_results,
             disk = disk,
             par = par)
-        if not result['CS']:
+        if not result['CS'] and not isinstance(result['Error'], GenericAbort):
             errors = True
             par['Error'] = result['Error']
     

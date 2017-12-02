@@ -16,12 +16,12 @@ def backup_partition(disk, par):
     
     cmd = [
         global_vars['Tools']['wimlib-imagex'],
-        'capture'
+        'capture',
         '{}:\\'.format(par['Letter']),
         par['Image Path'],
         par['Image Name'], # Image name
         par['Image Name'], # Image description
-        ' --compress=none',
+        '--compress=none',
         ]
     dest_dir = re.sub(r'(.*)\\.*$', r'\1', par['Image Path'], re.IGNORECASE)
     os.makedirs(dest_dir, exist_ok=True)
@@ -142,7 +142,7 @@ def verify_wim_backup(partition):
         global_vars['Tools']['wimlib-imagex'],
         'verify',
         partition['Image Path'],
-        ' --nocheck',
+        '--nocheck',
         ]
     run_program(cmd)
 
