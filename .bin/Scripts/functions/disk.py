@@ -116,8 +116,13 @@ def get_partition_details(disk, partition):
     
     if 'Letter' in details:
         # Disk usage
-        tmp = shutil.disk_usage('{}:\\'.format(details['Letter']))
-        details['Used Space'] = human_readable_size(tmp.used)
+        try:
+            tmp = psutil.disk_usage('{}:\\'.format(details['Letter']))
+        except OSError as err:
+            details['FileSystem'] = 'Unknown'
+            details['Error'] = err.strerror
+        else:
+            details['Used Space'] = human_readable_size(tmp.used)
         
         # fsutil details
         cmd = [
@@ -146,7 +151,7 @@ def get_partition_details(disk, partition):
     details['Name'] = details.get('Volume Name', '')
     
     # Set FileSystem Type
-    if details.get('FileSystem', '') != 'RAW':
+    if details.get('FileSystem', '') not in ['RAW', 'Unknown']:
         details['FileSystem'] = details.get('File System Name', 'Unknown')
     
     return details

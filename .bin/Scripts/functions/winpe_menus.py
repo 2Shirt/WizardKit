@@ -125,6 +125,8 @@ def menu_backup():
         data = par['Display String']
         if par['Number'] in disk['Bad Partitions']:
             show_data(message=message, data=data, width=30, warning=True)
+            if 'Error' in par:
+                show_data(message='', data=par['Error'], error=True)
         elif par['Image Exists']:
             show_data(message=message, data=data, width=30, info=True)
         else:
