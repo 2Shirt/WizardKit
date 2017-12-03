@@ -157,7 +157,7 @@ def menu_backup():
     
     # Verify backup(s)
     if disk['Valid Partitions']:
-        print_info('\n\n  Verifying backup images(s)\n')
+        print_info('\n\nVerifying backup images(s)\n')
         for par in disk['Partitions']:
             if par['Number'] in disk['Bad Partitions']:
                 continue # Skip verification
@@ -191,7 +191,7 @@ def menu_backup():
                 print_error('\t{}'.format(par['Error']))
     else:
         print_success('\nNo errors were encountered during imaging.')
-    if 'LogFile' in global_vars:
+    if 'LogFile' in global_vars and ask('\nReview log?'):
         cmd = [
             global_vars['Tools']['NotepadPlusPlus'],
             global_vars['LogFile']]
@@ -369,7 +369,7 @@ def menu_setup():
 
     # Print summary
     print_standard('\nDone.')
-    if 'LogFile' in global_vars:
+    if 'LogFile' in global_vars and ask('\nReview log?'):
         cmd = [
             global_vars['Tools']['NotepadPlusPlus'],
             global_vars['LogFile']]
