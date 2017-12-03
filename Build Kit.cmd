@@ -12,9 +12,11 @@ rem Verifies the environment before launching item
 if not exist ".bin\Scripts\build_kit.ps1" (goto ErrorBuildKitMissing)
 
 :PrepNewKit
-rem Copy base files to a new folder OUT_KIT\%KIT_NAME_FULL%
-robocopy /e . OUT_KIT /xd .git .kit_items OUT_KIT /xf .gitignore "Build Kit.cmd"
-robocopy /e .kit_items OUT_KIT
+rem Copy base files to a new folder OUT_KIT
+robocopy /e .bin OUT_KIT\.bin
+robocopy /e .cbin OUT_KIT\.cbin
+copy LICENSE.txt OUT_KIT\LICENSE.txt
+copy README.md OUT_KIT\README.md
 copy Images\ConEmu.png OUT_KIT\.bin\ConEmu\
 mkdir OUT_KIT\.cbin >nul 2>&1
 attrib +h OUT_KIT\.bin >nul 2>&1
