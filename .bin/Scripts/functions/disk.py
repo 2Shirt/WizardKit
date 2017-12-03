@@ -108,7 +108,7 @@ def get_partition_details(disk, partition):
         details.update({key.strip(): value.strip() for (key, value) in tmp})
     
     # Get MBR type / GPT GUID for extra details on "Unknown" partitions
-    guid = partition_uids.lookup_guid(details['Type'])
+    guid = partition_uids.lookup_guid(details.get('Type'))
     if guid:
         details.update({
             'Description':  guid.get('Description', '')[:29],

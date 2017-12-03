@@ -320,7 +320,7 @@ PARTITION_UIDS = {
 }
 
 def lookup_guid(guid):
-    return PARTITION_UIDS.get(guid.upper(), None)
+    return PARTITION_UIDS.get(guid.upper(), {})
 
 if __name__ == '__main__':
     print("This file is not meant to be called directly.")
