@@ -112,7 +112,7 @@ def get_partition_details(disk, partition):
     if guid:
         details.update({
             'Description':  guid.get('Description', '')[:29],
-            'OS':           guid.get('OS', '')[:26]})
+            'OS':           guid.get('OS', 'Unknown')[:27]})
     
     if 'Letter' in details:
         # Disk usage
