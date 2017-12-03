@@ -335,7 +335,12 @@ def select_disk(title='Which disk?', disks=[]):
     # Build menu
     disk_options = []
     for disk in disks:
-        display_name = '{Size}\t[{Table}] ({Type}) {Name}'.format(**disk)
+        display_name = '{}\t[{}] ({}) {}'.format(
+            disk.get('Size', ''),
+            disk.get('Table', ''),
+            disk.get('Type', ''),
+            disk.get('Name', 'Unknown'),
+            )
         pwidth=len(str(len(disk['Partitions'])))
         for partition in disk['Partitions']:
             # Main text

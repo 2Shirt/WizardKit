@@ -114,7 +114,12 @@ def menu_backup():
     show_data(message='Ticket:', data=ticket_number)
     show_data(
         message = 'Source:',
-        data = '[{Table}] ({Type}) {Name} {Size}'.format(**disk),
+        data = '[{}] ({}) {} {}'.format(
+            disk.get('Table', ''),
+            disk.get('Type', ''),
+            disk.get('Name', 'Unknown'),
+            disk.get('Size', ''),
+            ),
         )
     show_data(
         message = 'Destination:',
@@ -293,7 +298,12 @@ def menu_setup():
     show_data(message='Using Image:', data=windows_image['Path'])
     show_data(
         message = 'ERASING:',
-        data = '[{Table}] ({Type}) {Name} {Size}\n'.format(**dest_disk),
+        data = '[{}] ({}) {} {}\n'.format(
+            dest_disk.get('Table', ''),
+            dest_disk.get('Type', ''),
+            dest_disk.get('Name', 'Unknown'),
+            dest_disk.get('Size', ''),
+            ),
         warning = True)
     for par in dest_disk['Partitions']:
         show_data(
