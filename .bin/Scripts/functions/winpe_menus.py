@@ -416,19 +416,17 @@ def select_minidump_path():
 
     # Search for minidumps
     set_thread_error_mode(silent=True) # Prevents "No disk" popups
-    tmp = run_program('mountvol')
-    tmp = [d for d in re.findall(r'.*([A-Za-z]):\\', tmp.stdout.decode())]
-    # Remove RAMDisk letter
-    if 'X' in tmp:
-        tmp.remove('X')
-    for disk in tmp:
-        if os.path.exists('{}:\\Windows\\MiniDump'.format(disk)):
-            dumps.append({'Name': '{}:\\Windows\\MiniDump'.format(disk)})
+    for d in psutil.disk_partitions():
+        if global_vars['Env']['SYSTEMDRIVE'].upper() in d.mountpoint:
+            # Skip RAMDisk
+            continue
+        if os.path.exists(r'{}Windows\MiniDump'.format(d.mountpoint)):
+            dumps.append({'Name': r'{}Windows\MiniDump'.format(d.mountpoint)})
     set_thread_error_mode(silent=False) # Return to normal
 
     # Check results before showing menu
     if len(dumps) == 0:
-        print_error('  No BSoD / MiniDump paths found')
+        print_error('ERROR: No BSoD / MiniDump paths found')
         sleep(2)
         return None
 
