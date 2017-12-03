@@ -44,6 +44,7 @@ def find_windows_image(windows_version):
     imagename = windows_version['Image Name']
 
     # Search local source
+    set_thread_error_mode(silent=True) # Prevents "No disk" popups
     for d in psutil.disk_partitions():
         for ext in ['esd', 'wim', 'swm']:
             path = '{}images\{}.{}'.format(d.mountpoint, imagefile, ext)
@@ -53,6 +54,7 @@ def find_windows_image(windows_version):
                 if ext == 'swm':
                     image['Glob'] = '--ref="{}*.swm"'.format(image['Path'][:-4])
                 break
+    set_thread_error_mode(silent=False) # Return to normal
 
     # Check for network source
     if not image:

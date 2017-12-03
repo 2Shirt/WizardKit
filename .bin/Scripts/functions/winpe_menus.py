@@ -415,6 +415,7 @@ def select_minidump_path():
     assign_volume_letters()
 
     # Search for minidumps
+    set_thread_error_mode(silent=True) # Prevents "No disk" popups
     tmp = run_program('mountvol')
     tmp = [d for d in re.findall(r'.*([A-Za-z]):\\', tmp.stdout.decode())]
     # Remove RAMDisk letter
@@ -423,6 +424,7 @@ def select_minidump_path():
     for disk in tmp:
         if os.path.exists('{}:\\Windows\\MiniDump'.format(disk)):
             dumps.append({'Name': '{}:\\Windows\\MiniDump'.format(disk)})
+    set_thread_error_mode(silent=False) # Return to normal
 
     # Check results before showing menu
     if len(dumps) == 0:
