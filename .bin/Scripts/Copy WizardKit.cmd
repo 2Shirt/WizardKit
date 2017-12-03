@@ -91,7 +91,7 @@ start "" /wait "%fastcopy%" %fastcopy_args% "%source%\Installers\Extras\Office\A
 
 :Ninite
 echo Extracting Ninite installers...
-"%SEVEN_ZIP%" x "%cbin%\_Ninite.7z" -aos -bso0 -bse0 -bsp0 -p%ARCHIVE_PASS% -o"%dest%\Installers\Extras" || goto Abort
+"%SEVEN_ZIP%" x "%cbin%\_Ninite.7z" -aos -bso0 -bse0 -bsp0 -p%ARCHIVE_PASSWORD% -o"%dest%\Installers\Extras" || goto Abort
 
 :OpenFolder
 start "" explorer "%dest%"
