@@ -343,7 +343,7 @@ LAUNCHERS = {
                 r'    (echo SensorsOnly=0)>>"%bin%\HWiNFO\HWiNFO%%a.ini"',
                 r'    (echo SummaryOnly=0)>>"%bin%\HWiNFO\HWiNFO%%a.ini"',
                 r')',
-                r'start "" "http://support.lenovo.com/us/en/products?tabName=Downloads"',
+                r'start "" "https://pcsupport.lenovo.com/us/en/"',
                 ],
             },
         'Toshiba': {
