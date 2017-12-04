@@ -87,7 +87,7 @@ def backup_registry():
     extract_item('erunt', silent=True)
     cmd = [
         global_vars['Tools']['ERUNT'],
-        r'{LogDir}\Registry'.format(**global_vars),
+        r'{BackupDir}\Registry'.format(**global_vars),
         'sysreg',
         'curuser',
         'otherusers',
