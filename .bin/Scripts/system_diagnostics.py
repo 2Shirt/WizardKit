@@ -107,11 +107,12 @@ if __name__ == '__main__':
             print_error('    Unknown error.')
         
         # Upload info
-        print_info('Finalizing')
-        try_and_print(message='Compressing Info...',
-            function=compress_info, cs='Done')
-        try_and_print(message='Uploading to NAS...',
-            function=upload_info, cs='Done')
+        if ENABLED_UPLOAD_DATA:
+            print_info('Finalizing')
+            try_and_print(message='Compressing Info...',
+                function=compress_info, cs='Done')
+            try_and_print(message='Uploading to NAS...',
+                function=upload_info, cs='Done')
         
         # Done
         print_standard('\nDone.')
