@@ -14,7 +14,7 @@ A collection of scripts to help technicians service Windows systems.
 * Replace artwork as desired
 * Run `Build Kit.cmd` which will do the following:
   * Download 7-Zip, ConEmu, Notepad++, and Python (including wheel packages)
-  * Open `.bin\Scripts\settings\main.py` in Notepad++ for configuration
+  * Open `main.py` in Notepad++ for configuration
   * Update the rest of the tools with the `.bin\Scripts\update_kit.py` script
 
 ### Layout ###
@@ -44,18 +44,17 @@ A collection of scripts to help technicians service Windows systems.
 ### Build Requirements ###
 
 * Windows Assessment and Deployment Kit for Windows 10
-* PowerShell 3.0 or newer<sup>1</sup>
+* PowerShell 3.0 or newer
 * 2 Gb disk space
 
 ### Initial Setup ###
 
-* (If not done above)
-  * Replace artwork as desired
-  * Edit `.bin\Scripts\settings\main.py`
+* Replace artwork as desired (if not already done above)
 * Run `Build PE.cmd` which will do the following:
   * Load the WADK environment
+  * Open `main.py` in notepad for configuration
   * Download all tools
   * Build both 32-bit & 64-bit PE images (exported as ISO files)
 
-#### Notes ####
+## Notes ##
 1. PowerShell 6.0 on Windows 7 is not supported by the build script.
