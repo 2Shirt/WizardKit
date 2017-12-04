@@ -211,10 +211,10 @@ def run_wimextract(source, items, dest):
     extract_item('wimlib', silent=True)
 
     # Write files.txt
-    with open(r'{TmpDir}\wim_files.txt'.format(**global_vars), 'w') as f:
+    with open(r'{}\wim_files.txt'.format(global_vars['TmpDir']), 'w') as f:
         # Defaults
         for item in items:
-            f.write('{item}\n'.format(item=item))
+            f.write('{}\n'.format(item))
     sleep(1) # For safety?
 
     # Extract files
@@ -222,7 +222,7 @@ def run_wimextract(source, items, dest):
         global_vars['Tools']['wimlib-imagex'],
         'extract',
         source, '1',
-        r'@{TmpDir}\wim_files.txt'.format(**global_vars),
+        r'@{}\wim_files.txt'.format(global_vars['TmpDir']),
         '--dest-dir={}\\'.format(dest),
         '--no-acls',
         '--nullglob']

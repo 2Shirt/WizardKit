@@ -39,7 +39,7 @@ if __name__ == '__main__':
         print_info('Transferring Data')
         transfer_source(source, dest, items)
         try_and_print(message='Removing extra files...',
-            function=cleanup_transfer, cs='Done')
+            function=cleanup_transfer, cs='Done', dest_path=dest)
         umount_backup_shares()
         
         # Done
