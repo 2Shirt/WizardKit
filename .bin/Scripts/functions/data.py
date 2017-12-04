@@ -391,6 +391,8 @@ def select_destination(folder_path, prompt='Select destination'):
 def select_source(ticket_number):
     """Select backup from those found on the BACKUP_SERVERS for the ticket."""
     selected_source = None
+    local_sources = []
+    remote_sources = []
     sources = []
     mount_backup_shares()
 
@@ -401,36 +403,41 @@ def select_source(ticket_number):
             for d in os.scandir(r'\\{IP}\{Share}'.format(**server)):
                 if (d.is_dir()
                     and d.name.lower().startswith(ticket_number.lower())):
-                    # Add folder to sources
-                    sources.append({
+                    # Add folder to remote_sources
+                    remote_sources.append({
                         'Name': '{:9}| File-Based:     [DIR]  {}'.format(
                             server['Name'], d.name),
                         'Server': server,
+                        'Sort': d.name,
                         'Source': d})
 
     # Check for images and subfolders
-    for ticket_path in sources.copy():
+    for ticket_path in remote_sources.copy():
         for item in os.scandir(ticket_path['Source'].path):
             if item.is_dir():
-                # Add folder to sources
-                sources.append({
+                # Add folder to remote_sources
+                remote_sources.append({
                     'Name': r'{:9}| File-Based:     [DIR]  {}\{}'.format(
                         ticket_path['Server']['Name'],  # Server
                         ticket_path['Source'].name,     # Ticket folder
                         item.name,                      # Sub-folder
                         ),
                     'Server': ticket_path['Server'],
+                    'Sort': r'{}\{}'.format(
+                        ticket_path['Source'].name,     # Ticket folder
+                        item.name,                      # Sub-folder
+                        ),
                     'Source': item})
 
                 # Check for images in folder
                 for subitem in os.scandir(item.path):
                     if REGEX_WIM_FILE.search(item.name):
-                        # Add image to sources
+                        # Add image to remote_sources
                         try:
                             size = human_readable_size(item.stat().st_size)
                         except Exception:
                             size = '  ?  ?' # unknown
-                        sources.append({
+                        remote_sources.append({
                             'Disabled': bool(not is_valid_wim_file(subitem)),
                             'Name': r'{:9}| Image-Based:  {:>7}  {}\{}\{}'.format(
                                 ticket_path['Server']['Name'],  # Server
@@ -440,14 +447,19 @@ def select_source(ticket_number):
                                 subitem.name,                   # Image file
                                 ),
                             'Server': ticket_path['Server'],
+                            'Sort': r'{}\{}\{}'.format(
+                                ticket_path['Source'].name,     # Ticket folder
+                                item.name,                      # Sub-folder
+                                subitem.name,                   # Image file
+                                ),
                             'Source': subitem})
             elif REGEX_WIM_FILE.search(item.name):
-                # Add image to sources
+                # Add image to remote_sources
                 try:
                     size = human_readable_size(item.stat().st_size)
                 except Exception:
                     size = '  ?  ?' # unknown
-                sources.append({
+                remote_sources.append({
                     'Disabled': bool(not is_valid_wim_file(item)),
                     'Name': r'{:9}| Image-Based:  {:>7}  {}\{}'.format(
                         ticket_path['Server']['Name'],  # Server
@@ -456,7 +468,12 @@ def select_source(ticket_number):
                         item.name,                      # Image file
                         ),
                     'Server': ticket_path['Server'],
+                    'Sort': r'{}\{}'.format(
+                        ticket_path['Source'].name,     # Ticket folder
+                        item.name,                      # Image file
+                        ),
                     'Source': item})
+    
     # Check for local sources
     print_standard('Scanning for local sources...')
     set_thread_error_mode(silent=True) # Prevents "No disk" popups
@@ -467,14 +484,18 @@ def select_source(ticket_number):
             continue
         if 'fixed' in d.opts:
             # Skip DVD, etc
-            sources.append({
+            local_sources.append({
                 'Name': '{:9}| File-Based:     [DISK] {}'.format(
                     '  Local', d.mountpoint),
+                'Sort': d.mountpoint,
                 'Source': LocalDisk(d)})
     set_thread_error_mode(silent=False) # Return to normal
 
     # Build Menu
-    sources.sort(key=itemgetter('Name'))
+    local_sources.sort(key=itemgetter('Sort'))
+    remote_sources.sort(key=itemgetter('Sort'))
+    sources.extend(local_sources)
+    sources.extend(remote_sources)
     actions = [{'Name': 'Quit', 'Letter': 'Q'}]
 
     # Select backup from sources
