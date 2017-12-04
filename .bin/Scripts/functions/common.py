@@ -555,27 +555,33 @@ def check_os():
     tmp = {}
     
     # Query registry
-    _reg_path = winreg.OpenKey(
-        HKLM, r'SOFTWARE\Microsoft\Windows NT\CurrentVersion')
-    for key in ['CSDVersion', 'CurrentBuild', 'CurrentBuildNumber',
-        'CurrentVersion', 'ProductName']:
-        try:
-            tmp[key] = winreg.QueryValueEx(_reg_path, key)[0]
-            if key in ['CurrentBuild', 'CurrentBuildNumber']:
-                tmp[key] = int(tmp[key])
-        except ValueError:
-            # Couldn't convert Build to int so this should be interesting...
-            tmp[key] = 0
-        except Exception:
-            tmp[key] = 'Unknown'
+    path = r'SOFTWARE\Microsoft\Windows NT\CurrentVersion'
+    with winreg.OpenKey(HKLM, path) as key:
+        for name in ['CurrentBuild', 'CurrentVersion', 'ProductName']:
+            try:
+                tmp[name] = winreg.QueryValueEx(key, name)[0]
+            except FileNotFoundError:
+                tmp[name] = 'Unknown'
+    try:
+        tmp['CurrentBuild'] = int(tmp['CurrentBuild'])
+    except ValueError:
+        # This should be interesting...
+        tmp['CurrentBuild'] = -1
+    try:
+        tmp['CurrentVersion'] = float(tmp['CurrentVersion'])
+    except ValueError:
+        # This should also be interesting...
+        tmp['CurrentVersion'] = -1
 
-    # Determine OS bit depth
+    # Check bit depth
     tmp['Arch'] = 32
     if 'PROGRAMFILES(X86)' in global_vars['Env']:
         tmp['Arch'] = 64
 
-    # Determine OS Name
-    tmp['Name'] = '{ProductName} {CSDVersion}'.format(**tmp)
+    # Set name
+    tmp['Name'] = tmp['ProductName']
+    if tmp['CurrentBuild'] == 7601:
+        tmp['Name'] += ' SP1' # Win 7
     if tmp['CurrentBuild'] == 9600:
         tmp['Name'] += ' Update' # Win 8.1u
     if tmp['CurrentBuild'] == 10240:
@@ -588,44 +594,40 @@ def check_os():
         tmp['Name'] += ' Release 1703 "Redstone 2" / "Creators Update"'
     if tmp['CurrentBuild'] == 16299:
         tmp['Name'] += ' Release 1709 "Redstone 3" / "Fall Creators Update"'
-    tmp['Name'] = tmp['Name'].replace('Service Pack ', 'SP')
-    tmp['Name'] = tmp['Name'].replace('Unknown Release', 'Release')
     tmp['Name'] = re.sub(r'\s+', ' ', tmp['Name'])
+    
+    # Set display name
+    tmp['DisplayName'] = '{} x{}'.format(tmp['Name'], tmp['Arch'])
+    if tmp['CurrentBuild'] in [7600, 9200, 10240, 10586]:
+        tmp['DisplayName'] += ' (very outdated)'
+    elif tmp['CurrentBuild'] in [7601, 9600, 14393, 15063]:
+        tmp['DisplayName'] += ' (outdated)'
+    elif tmp['CurrentBuild'] == 16299:
+        pass # Current Win10 release
+    else:
+        tmp['DisplayName'] += ' (unrecognized)'
 
-    # Determine OS version
-    name = '{Name} x{Arch}'.format(**tmp)
-    if tmp['CurrentVersion'] == '6.0':
+    # Set version
+    if tmp['CurrentVersion'] == 6.0:
         tmp['Version'] = 'Vista'
-        name += ' (very outdated)'
-    elif tmp['CurrentVersion'] == '6.1':
+    elif tmp['CurrentVersion'] == 6.1:
         tmp['Version'] = '7'
-        if tmp['CSDVersion'] == 'Service Pack 1':
-            name += ' (outdated)'
-        else:
-            name += ' (very outdated)'
-    elif tmp['CurrentVersion'] in ['6.2', '6.3']:
-        if int(tmp['CurrentBuildNumber']) <= 9600:
+    elif 6.2 <= tmp['CurrentVersion'] <= 6.3:
+        if tmp['CurrentBuild'] <= 9600:
             tmp['Version'] = '8'
-        elif int(tmp['CurrentBuildNumber']) >= 10240:
+        elif tmp['CurrentBuild'] >= 10240:
             tmp['Version'] = '10'
-        if tmp['CurrentBuild'] in [9200, 10240, 10586]:
-            name += ' (very outdated)'
-        elif tmp['CurrentBuild'] in [9600, 14393, 15063]:
-            name += ' (outdated)'
-        elif tmp['CurrentBuild'] == 16299:
-            pass # Current Win10
         else:
-            name += ' (unrecognized)'
-    tmp['DisplayName'] = name
+            tmp['Version'] = 'Unknown'
     
     # == vista ==
     # 6.0.6000
-    # 6.0.6001
-    # 6.0.6002
+    # 6.0.6001 # SP1
+    # 6.0.6002 # SP2
     # ==== 7 ====
     # 6.1.7600
-    # 6.1.7601
-    # 6.1.7602
+    # 6.1.7601 # SP1
+    # 6.1.7602 # Umm.. where'd this come from?
     # ==== 8 ====
     # 6.2.9200
     # === 8.1 ===
