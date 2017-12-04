@@ -263,7 +263,7 @@ LAUNCHERS = {
             'L_TYPE': 'Executable',
             'L_PATH': 'erunt',
             'L_ITEM': 'ERUNT.EXE',
-            'L_ARGS': '%log_dir%\Registry sysreg curuser otherusers',
+            'L_ARGS': '%client_dir%\Backups\%iso_date%\Registry sysreg curuser otherusers',
             'L_ELEV': 'True',
             'Extra Code': [
                 r'call "%bin%\Scripts\init_client_dir.cmd" /Info',
