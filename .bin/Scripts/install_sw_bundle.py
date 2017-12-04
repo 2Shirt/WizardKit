@@ -34,15 +34,6 @@ if __name__ == '__main__':
         else:
             answer_mse = False
         
-        if answer_extensions:
-            print_info('Installing Extensions')
-            try_and_print(message='Classic Shell skin...',
-                function=install_classicstart_skin,
-                other_results=other_results)
-            try_and_print(message='Google Chrome extensions...',
-                function=install_chrome_extensions)
-            try_and_print(message='Mozilla Firefox extensions...',
-                function=install_firefox_extensions)
         print_info('Installing Programs')
         if answer_adobe_reader:
             install_adobe_reader()
@@ -51,6 +42,16 @@ if __name__ == '__main__':
         if answer_ninite:
             try_and_print(message='Ninite bundle...',
                 function=install_ninite_bundle, cs='Started', mse=answer_mse)
+        if answer_extensions:
+            wait_for_process('ninite.exe')
+            print_info('Installing Extensions')
+            try_and_print(message='Classic Shell skin...',
+                function=install_classicstart_skin,
+                other_results=other_results)
+            try_and_print(message='Google Chrome extensions...',
+                function=install_chrome_extensions)
+            try_and_print(message='Mozilla Firefox extensions...',
+                function=install_firefox_extensions)
         print_standard('\nDone.')
         exit_script()
     except SystemExit:
