@@ -14,7 +14,7 @@ global_vars['LogFile'] = r'{LogDir}\DISM helper tool.log'.format(**global_vars)
 if __name__ == '__main__':
     try:
         stay_awake()
-        os.system('cls')
+        clear_screen()
         other_results = {
             'Error': {
                 'CalledProcessError':   'Unknown Error',

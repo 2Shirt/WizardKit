@@ -2,20 +2,22 @@
 
 A collection of scripts to help technicians service Windows systems.
 
-## Requirements ##
+## Main Kit ##
+
+### Build Requirements ###
 
 * PowerShell 3.0 or newer<sup>1</sup>
 * 6 Gb disk space
 
-## Initial Setup ##
+### Initial Setup ###
 
-* Replace ConEmu.png if desired
+* Replace artwork as desired
 * Run `Build Kit.cmd` which will do the following:
   * Download 7-Zip, ConEmu, Notepad++, and Python (including wheel packages)
   * Open `.bin\Scripts\settings\main.py` in Notepad++ for configuration
   * Update the rest of the tools with the `.bin\Scripts\update_kit.py` script
 
-## Layout ##
+### Layout ###
 
 * Root
   * Main script launchers:
@@ -37,5 +39,23 @@ A collection of scripts to help technicians service Windows systems.
 * `Repairs`
 * `Uninstallers`
 
-### Notes ###
+## Windows PE ##
+
+### Build Requirements ###
+
+* Windows Assessment and Deployment Kit for Windows 10
+* PowerShell 3.0 or newer<sup>1</sup>
+* 2 Gb disk space
+
+### Initial Setup ###
+
+* (If not done above)
+  * Replace artwork as desired
+  * Edit `.bin\Scripts\settings\main.py`
+* Run `Build PE.cmd` which will do the following:
+  * Load the WADK environment
+  * Download all tools
+  * Build both 32-bit & 64-bit PE images (exported as ISO files)
+
+#### Notes ####
 1. PowerShell 6.0 on Windows 7 is not supported by the build script.

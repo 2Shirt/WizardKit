@@ -13,7 +13,7 @@ os.system('title {}: Windows Activation Tool'.format(KIT_NAME_FULL))
 if __name__ == '__main__':
     try:
         stay_awake()
-        os.system('cls')
+        clear_screen()
         print_info('{}: Windows Activation Tool\n'.format(KIT_NAME_FULL))
         # Bail early if already activated
         if windows_is_activated():

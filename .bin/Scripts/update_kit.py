@@ -12,7 +12,7 @@ os.system('title {}: Kit Update Tool'.format(KIT_NAME_FULL))
 
 if __name__ == '__main__':
     try:
-        os.system('cls')
+        clear_screen()
         print_info('{}: Kit Update Tool\n'.format(KIT_NAME_FULL))
         other_results = {
             'Error': {
@@ -67,6 +67,7 @@ if __name__ == '__main__':
         try_and_print(message='Classic Start Skin...', function=update_classic_start_skin, other_results=other_results, width=40)
         try_and_print(message='Du...', function=update_du, other_results=other_results, width=40)
         try_and_print(message='Everything...', function=update_everything, other_results=other_results, width=40)
+        try_and_print(message='FirefoxExtensions...', function=update_firefox_ublock_origin, other_results=other_results, width=40)
         try_and_print(message='PuTTY...', function=update_putty, other_results=other_results, width=40)
         try_and_print(message='Notepad++...', function=update_notepadplusplus, other_results=other_results, width=40)
         try_and_print(message='TreeSizeFree...', function=update_treesizefree, other_results=other_results, width=40)

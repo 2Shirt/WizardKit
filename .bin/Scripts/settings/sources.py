@@ -1,7 +1,7 @@
 # Wizard Kit: Settings - Sources
 
 SOURCE_URLS = {
-    'AIDA64': 'http://download.aida64.com/aida64engineer592.zip',
+    'AIDA64': 'http://download.aida64.com/aida64engineer595.zip',
     'Adobe Reader DC': 'http://ardownload.adobe.com/pub/adobe/reader/win/AcrobatDC/1800920044/AcroRdrDC1800920044_en_US.exe',
     'AdwCleaner': 'https://toolslib.net/downloads/finish/1-adwcleaner/',
     'Autoruns': 'https://download.sysinternals.com/files/Autoruns.zip',
@@ -24,7 +24,7 @@ SOURCE_URLS = {
     'IOBit_Uninstaller': 'https://portableapps.com/redirect/?a=IObitUninstallerPortable&t=http%3A%2F%2Fdownloads.portableapps.com%2Fportableapps%2Fiobituninstallerportable%2FIObitUninstallerPortable_7.0.2.49.paf.exe',
     'Intel SSD Toolbox': r'https://downloadmirror.intel.com/27330/eng/Intel%20SSD%20Toolbox%20-%20v3.4.9.exe',
     'KVRT': 'http://devbuilds.kaspersky-labs.com/devbuilds/KVRT/latest/full/KVRT.exe',
-    'NotepadPlusPlus': 'https://notepad-plus-plus.org/repository/7.x/7.5.1/npp.7.5.1.bin.minimalist.7z',
+    'NotepadPlusPlus': 'https://notepad-plus-plus.org/repository/7.x/7.5.2/npp.7.5.2.bin.minimalist.7z',
     'Office Deployment Tool 2013': 'https://download.microsoft.com/download/6/2/3/6230F7A2-D8A9-478B-AC5C-57091B632FCF/officedeploymenttool_x86_4827-1000.exe',
     'Office Deployment Tool 2016': 'https://download.microsoft.com/download/2/7/A/27AF1BE6-DD20-4CB4-B154-EBAB8A7D4A7E/officedeploymenttool_8529.3600.exe',
     'ProduKey32': 'http://www.nirsoft.net/utils/produkey.zip',

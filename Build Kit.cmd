@@ -12,17 +12,19 @@ rem Verifies the environment before launching item
 if not exist ".bin\Scripts\build_kit.ps1" (goto ErrorBuildKitMissing)
 
 :PrepNewKit
-rem Copy base files to a new folder OUT\%KIT_NAME_FULL%
-robocopy /e . OUT /xd .git .root_items OUT /xf .gitignore "Build Kit.cmd" ConEmu.png
-robocopy /e .root_items OUT
-copy ConEmu.png OUT\.bin\ConEmu\
-mkdir OUT\.cbin >nul 2>&1
-attrib +h OUT\.bin >nul 2>&1
-attrib +h OUT\.cbin >nul 2>&1
+rem Copy base files to a new folder OUT_KIT
+robocopy /e .bin OUT_KIT\.bin
+robocopy /e .cbin OUT_KIT\.cbin
+copy LICENSE.txt OUT_KIT\LICENSE.txt
+copy README.md OUT_KIT\README.md
+copy Images\ConEmu.png OUT_KIT\.bin\ConEmu\
+mkdir OUT_KIT\.cbin >nul 2>&1
+attrib +h OUT_KIT\.bin >nul 2>&1
+attrib +h OUT_KIT\.cbin >nul 2>&1
 
 :Launch
 rem Calls the Launch.cmd script using the variables defined above
-set "file=OUT\.bin\Scripts\build_kit.ps1"
+set "file=OUT_KIT\.bin\Scripts\build_kit.ps1"
 powershell -executionpolicy bypass -noprofile -file %file% || goto ErrorUnknown
 goto Exit
 

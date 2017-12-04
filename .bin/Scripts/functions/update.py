@@ -526,12 +526,10 @@ def update_sdi_origin():
 ## Installers ##
 def update_adobe_reader_dc():
     # Prep
-    dest = r'{}\.root_items\Installers\Extras\Office'.format(
+    dest = r'{}\Installers\Extras\Office'.format(
         global_vars['BaseDir'])
-    if os.path.exists(r'{}\Installers'.format(global_vars['BaseDir'])):
-        dest = dest.replace(r'\.root_items', '')
     
-    # Remove existing folders
+    # Remove existing installer
     try:
         os.remove(r'{}\Adobe Reader DC.exe'.format(dest))
     except FileNotFoundError:

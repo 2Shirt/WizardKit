@@ -19,7 +19,7 @@ global_vars['LogFile'] = r'{LogDir}\System Diagnostics.log'.format(
 if __name__ == '__main__':
     try:
         stay_awake()
-        os.system('cls')
+        clear_screen()
         print_info('{}: System Diagnostics Tool\n'.format(KIT_NAME_FULL))
         ticket_number = get_ticket_number()
         other_results = {
@@ -35,8 +35,8 @@ if __name__ == '__main__':
         
         # Sanitize Environment
         print_info('Sanitizing Environment')
-        try_and_print(message='Killing processes...',
-            function=run_process_killer, cs='Done')
+        # try_and_print(message='Killing processes...',
+        #     function=run_process_killer, cs='Done')
         try_and_print(message='Running RKill...',
             function=run_rkill, cs='Done')
         try_and_print(message='Running TDSSKiller...',
@@ -107,11 +107,12 @@ if __name__ == '__main__':
             print_error('    Unknown error.')
         
         # Upload info
-        print_info('Finalizing')
-        try_and_print(message='Compressing Info...',
-            function=compress_info, cs='Done')
-        try_and_print(message='Uploading to NAS...',
-            function=upload_info, cs='Done')
+        if ENABLED_UPLOAD_DATA:
+            print_info('Finalizing')
+            try_and_print(message='Compressing Info...',
+                function=compress_info, cs='Done')
+            try_and_print(message='Uploading to NAS...',
+                function=upload_info, cs='Done')
         
         # Done
         print_standard('\nDone.')

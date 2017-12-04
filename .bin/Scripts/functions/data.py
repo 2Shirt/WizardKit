@@ -92,14 +92,14 @@ FAST_COPY_EXCLUDES = [
     r'Temporary?Items',
     r'Thumbs.db',
     ]
-FAST_COPY_ARGS =        [
+FAST_COPY_ARGS = [
     '/cmd=noexist_only',
     '/utf8',
     '/skip_empty_dir',
     '/linkdest',
     '/no_ui',
     '/auto_close',
-    '/exclude='+';'.join(FAST_COPY_EXCLUDES),
+    '/exclude={}'.format(';'.join(FAST_COPY_EXCLUDES)),
     ]
 # Code borrowed from: https://stackoverflow.com/a/29075319
 SEM_NORMAL = ctypes.c_uint()
@@ -165,7 +165,6 @@ def mount_backup_shares():
             continue
         
         mount_network_share(server)
-        
 
 def mount_network_share(server):
     """Mount a network share defined by server."""
@@ -212,10 +211,10 @@ def run_wimextract(source, items, dest):
     extract_item('wimlib', silent=True)
 
     # Write files.txt
-    with open(r'{TmpDir}\wim_files.txt'.format(**global_vars), 'w') as f:
+    with open(r'{}\wim_files.txt'.format(global_vars['TmpDir']), 'w') as f:
         # Defaults
         for item in items:
-            f.write('{item}\n'.format(item=item))
+            f.write('{}\n'.format(item))
     sleep(1) # For safety?
 
     # Extract files
@@ -223,7 +222,7 @@ def run_wimextract(source, items, dest):
         global_vars['Tools']['wimlib-imagex'],
         'extract',
         source, '1',
-        r'@{TmpDir}\wim_files.txt'.format(**global_vars),
+        r'@{}\wim_files.txt'.format(global_vars['TmpDir']),
         '--dest-dir={}\\'.format(dest),
         '--no-acls',
         '--nullglob']
@@ -251,7 +250,7 @@ def scan_source(source_obj, dest_path):
     return selected_items
 
 def scan_source_path(source_path, dest_path, rel_path=None, interactive=True):
-    """Scan source folder for files/folders to transfer.
+    """Scan source folder for files/folders to transfer, returns list.
     
     This will scan the root and (recursively) any Windows.old folders."""
     rel_path = '\\' + rel_path if rel_path else ''
@@ -307,7 +306,7 @@ def scan_source_path(source_path, dest_path, rel_path=None, interactive=True):
     return selected_items
 
 def scan_source_wim(source_wim, dest_path, rel_path=None, interactive=True):
-    """Scan source WIM file for files/folders to transfer.
+    """Scan source WIM file for files/folders to transfer, returns list.
     
     This will scan the root and (recursively) any Windows.old folders."""
     rel_path = '\\' + rel_path if rel_path else ''
@@ -375,7 +374,7 @@ def scan_source_wim(source_wim, dest_path, rel_path=None, interactive=True):
 
 def select_destination(folder_path, prompt='Select destination'):
     """Select destination drive, returns path as string."""
-    disk = select_disk(prompt)
+    disk = select_volume(prompt)
     if 'fixed' not in disk['Disk'].opts:
         folder_path = folder_path.replace('\\', '-')
     path = '{disk}{folder_path}_{Date}'.format(
@@ -389,7 +388,139 @@ def select_destination(folder_path, prompt='Select destination'):
 
     return path
 
-def select_disk(title='Select disk', auto_select=True):
+def select_source(ticket_number):
+    """Select backup from those found on the BACKUP_SERVERS for the ticket."""
+    selected_source = None
+    local_sources = []
+    remote_sources = []
+    sources = []
+    mount_backup_shares()
+
+    # Check for ticket folders on servers
+    for server in BACKUP_SERVERS:
+        if server['Mounted']:
+            print_standard('Scanning {}...'.format(server['Name']))
+            for d in os.scandir(r'\\{IP}\{Share}'.format(**server)):
+                if (d.is_dir()
+                    and d.name.lower().startswith(ticket_number.lower())):
+                    # Add folder to remote_sources
+                    remote_sources.append({
+                        'Name': '{:9}| File-Based:     [DIR]  {}'.format(
+                            server['Name'], d.name),
+                        'Server': server,
+                        'Sort': d.name,
+                        'Source': d})
+
+    # Check for images and subfolders
+    for ticket_path in remote_sources.copy():
+        for item in os.scandir(ticket_path['Source'].path):
+            if item.is_dir():
+                # Add folder to remote_sources
+                remote_sources.append({
+                    'Name': r'{:9}| File-Based:     [DIR]  {}\{}'.format(
+                        ticket_path['Server']['Name'],  # Server
+                        ticket_path['Source'].name,     # Ticket folder
+                        item.name,                      # Sub-folder
+                        ),
+                    'Server': ticket_path['Server'],
+                    'Sort': r'{}\{}'.format(
+                        ticket_path['Source'].name,     # Ticket folder
+                        item.name,                      # Sub-folder
+                        ),
+                    'Source': item})
+
+                # Check for images in folder
+                for subitem in os.scandir(item.path):
+                    if REGEX_WIM_FILE.search(item.name):
+                        # Add image to remote_sources
+                        try:
+                            size = human_readable_size(item.stat().st_size)
+                        except Exception:
+                            size = '  ?  ?' # unknown
+                        remote_sources.append({
+                            'Disabled': bool(not is_valid_wim_file(subitem)),
+                            'Name': r'{:9}| Image-Based:  {:>7}  {}\{}\{}'.format(
+                                ticket_path['Server']['Name'],  # Server
+                                size,                           # Size (duh)
+                                ticket_path['Source'].name,     # Ticket folder
+                                item.name,                      # Sub-folder
+                                subitem.name,                   # Image file
+                                ),
+                            'Server': ticket_path['Server'],
+                            'Sort': r'{}\{}\{}'.format(
+                                ticket_path['Source'].name,     # Ticket folder
+                                item.name,                      # Sub-folder
+                                subitem.name,                   # Image file
+                                ),
+                            'Source': subitem})
+            elif REGEX_WIM_FILE.search(item.name):
+                # Add image to remote_sources
+                try:
+                    size = human_readable_size(item.stat().st_size)
+                except Exception:
+                    size = '  ?  ?' # unknown
+                remote_sources.append({
+                    'Disabled': bool(not is_valid_wim_file(item)),
+                    'Name': r'{:9}| Image-Based:  {:>7}  {}\{}'.format(
+                        ticket_path['Server']['Name'],  # Server
+                        size,                           # Size (duh)
+                        ticket_path['Source'].name,     # Ticket folder
+                        item.name,                      # Image file
+                        ),
+                    'Server': ticket_path['Server'],
+                    'Sort': r'{}\{}'.format(
+                        ticket_path['Source'].name,     # Ticket folder
+                        item.name,                      # Image file
+                        ),
+                    'Source': item})
+    
+    # Check for local sources
+    print_standard('Scanning for local sources...')
+    set_thread_error_mode(silent=True) # Prevents "No disk" popups
+    sys_drive = global_vars['Env']['SYSTEMDRIVE']
+    for d in psutil.disk_partitions():
+        if re.search(r'^{}'.format(sys_drive), d.mountpoint, re.IGNORECASE):
+            # Skip current OS drive
+            continue
+        if 'fixed' in d.opts:
+            # Skip DVD, etc
+            local_sources.append({
+                'Name': '{:9}| File-Based:     [DISK] {}'.format(
+                    '  Local', d.mountpoint),
+                'Sort': d.mountpoint,
+                'Source': LocalDisk(d)})
+    set_thread_error_mode(silent=False) # Return to normal
+
+    # Build Menu
+    local_sources.sort(key=itemgetter('Sort'))
+    remote_sources.sort(key=itemgetter('Sort'))
+    sources.extend(local_sources)
+    sources.extend(remote_sources)
+    actions = [{'Name': 'Quit', 'Letter': 'Q'}]
+
+    # Select backup from sources
+    if len(sources) > 0:
+        selection = menu_select(
+            'Which backup are we using?',
+            main_entries=sources,
+            action_entries=actions,
+            disabled_label='DAMAGED')
+        if selection == 'Q':
+            umount_backup_shares()
+            exit_script()
+        else:
+            selected_source = sources[int(selection)-1]['Source']
+    else:
+        print_error('ERROR: No backups found for ticket: {}.'.format(
+            ticket_number))
+        umount_backup_shares()
+        pause("Press Enter to exit...")
+        exit_script()
+    
+    # Done
+    return selected_source
+
+def select_volume(title='Select disk', auto_select=True):
     """Select disk from attached disks. returns dict."""
     actions =   [{'Name': 'Quit', 'Letter': 'Q'}]
     disks =     []
@@ -425,117 +556,6 @@ def select_disk(title='Select disk', auto_select=True):
         exit_script()
     else:
         return disks[int(selection)-1]
-
-def select_source(ticket_number):
-    """Select backup from those found on the BACKUP_SERVERS for the ticket."""
-    selected_source = None
-    sources = []
-    mount_backup_shares()
-
-    # Check for ticket folders on servers
-    for server in BACKUP_SERVERS:
-        if server['Mounted']:
-            print_standard('Scanning {}...'.format(server['Name']))
-            for d in os.scandir(r'\\{IP}\{Share}'.format(**server)):
-                if (d.is_dir()
-                    and d.name.lower().startswith(ticket_number.lower())):
-                    # Add folder to sources
-                    sources.append({
-                        'Name': '{:9}| File-Based:     [DIR]  {}'.format(
-                            server['Name'], d.name),
-                        'Server': server,
-                        'Source': d})
-
-    # Check for images and subfolders
-    for ticket_path in sources.copy():
-        for item in os.scandir(ticket_path['Source'].path):
-            if item.is_dir():
-                # Add folder to sources
-                sources.append({
-                    'Name': r'{:9}| File-Based:     [DIR]  {}\{}'.format(
-                        ticket_path['Server']['Name'],  # Server
-                        ticket_path['Source'].name,     # Ticket folder
-                        item.name,                      # Sub-folder
-                        ),
-                    'Server': ticket_path['Server'],
-                    'Source': item})
-
-                # Check for images in folder
-                for subitem in os.scandir(item.path):
-                    if REGEX_WIM_FILE.search(item.name):
-                        # Add image to sources
-                        try:
-                            size = human_readable_size(item.stat().st_size)
-                        except Exception:
-                            size = '  ?  ?' # unknown
-                        sources.append({
-                            'Disabled': bool(not is_valid_wim_file(subitem)),
-                            'Name': r'{:9}| Image-Based:  {:>7}  {}\{}\{}'.format(
-                                ticket_path['Server']['Name'],  # Server
-                                size,                           # Size (duh)
-                                ticket_path['Source'].name,     # Ticket folder
-                                item.name,                      # Sub-folder
-                                subitem.name,                   # Image file
-                                ),
-                            'Server': ticket_path['Server'],
-                            'Source': subitem})
-            elif REGEX_WIM_FILE.search(item.name):
-                # Add image to sources
-                try:
-                    size = human_readable_size(item.stat().st_size)
-                except Exception:
-                    size = '  ?  ?' # unknown
-                sources.append({
-                    'Disabled': bool(not is_valid_wim_file(item)),
-                    'Name': r'{:9}| Image-Based:  {:>7}  {}\{}'.format(
-                        ticket_path['Server']['Name'],  # Server
-                        size,                           # Size (duh)
-                        ticket_path['Source'].name,     # Ticket folder
-                        item.name,                      # Image file
-                        ),
-                    'Server': ticket_path['Server'],
-                    'Source': item})
-    # Check for local sources
-    print_standard('Scanning for local sources...')
-    set_thread_error_mode(silent=True) # Prevents "No disk" popups
-    sys_drive = global_vars['Env']['SYSTEMDRIVE']
-    for d in psutil.disk_partitions():
-        if re.search(r'^{}'.format(sys_drive), d.mountpoint, re.IGNORECASE):
-            # Skip current OS drive
-            continue
-        if 'fixed' in d.opts:
-            # Skip DVD, etc
-            sources.append({
-                'Name': '{:9}| File-Based:     [DISK] {}'.format(
-                    '  Local', d.mountpoint),
-                'Source': LocalDisk(d)})
-    set_thread_error_mode(silent=False) # Return to normal
-
-    # Build Menu
-    sources.sort(key=itemgetter('Name'))
-    actions = [{'Name': 'Quit', 'Letter': 'Q'}]
-
-    # Select backup from sources
-    if len(sources) > 0:
-        selection = menu_select(
-            'Which backup are we using?',
-            main_entries=sources,
-            action_entries=actions,
-            disabled_label='DAMAGED')
-        if selection == 'Q':
-            umount_backup_shares()
-            exit_script()
-        else:
-            selected_source = sources[int(selection)-1]['Source']
-    else:
-        print_error('ERROR: No backups found for ticket: {}.'.format(
-            ticket_number))
-        umount_backup_shares()
-        pause("Press Enter to exit...")
-        exit_script()
-    
-    # Done
-    return selected_source
 
 def set_thread_error_mode(silent=True):
     """Disable or Enable Windows error message dialogs.

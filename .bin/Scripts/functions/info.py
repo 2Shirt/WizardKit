@@ -87,7 +87,7 @@ def backup_registry():
     extract_item('erunt', silent=True)
     cmd = [
         global_vars['Tools']['ERUNT'],
-        r'{LogDir}\Registry'.format(**global_vars),
+        r'{BackupDir}\Registry'.format(**global_vars),
         'sysreg',
         'curuser',
         'otherusers',
@@ -146,7 +146,7 @@ def get_shell_path(folder, user='current'):
     if folderid:
         try:
             path = knownpaths.get_path(folderid, getattr(knownpaths.UserHandle, user))
-        except PathNotFoundException:
+        except PathNotFoundError:
             # Folder not found, ignore and return None
             pass
     
@@ -390,12 +390,12 @@ def show_installed_ram():
     mem = psutil.virtual_memory()
     if mem.total > 5905580032:
         # > 5.5 Gb so 6Gb or greater
-        print_standard(human_readable_size(mem.total).strip())
+        print_standard(human_readable_size(mem.total).strip(), timestamp=False)
     elif mem.total > 3758096384:
         # > 3.5 Gb so 4Gb or greater
-        print_warning(human_readable_size(mem.total).strip())
+        print_warning(human_readable_size(mem.total).strip(), timestamp=False)
     else:
-        print_error(human_readable_size(mem.total).strip())
+        print_error(human_readable_size(mem.total).strip(), timestamp=False)
 
 def show_os_activation():
     """Show OS activation info."""
