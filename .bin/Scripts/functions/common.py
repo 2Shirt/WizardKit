@@ -65,7 +65,8 @@ class UnsupportedOSError(Exception):
 def abort():
     """Abort script."""
     print_warning('Aborted.')
-    sleep(5)
+    sleep(1)
+    pause(prompt='Press Enter to exit... ')
     exit_script()
 
 def ask(prompt='Kotaero!'):
