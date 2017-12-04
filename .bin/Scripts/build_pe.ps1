@@ -110,7 +110,17 @@ if ($MyInvocation.InvocationName -ne ".") {
     }
     Push-Location "$WD"
     MakeClean
+    New-Item -Type Directory $Build 2>&1 | Out-Null
     New-Item -Type Directory $LogDir 2>&1 | Out-Null
+    
+    ## main.py ##
+    if (!(Test-Path "$Build\main.py") -or (Ask-User "Replace existing main.py?")) {
+        Copy-Item -Path "$Bin\Scripts\settings\main.py" -Destination "$Build\main.py" -Force
+    }
+    WKPause "Press Enter to open settings..."
+    Start-Process "$HostSystem32\notepad.exe" -ArgumentList @("$Build\main.py") -Wait
+    $KitNameFull = (Get-Content "$Build\main.py" | Where-Object {$_ -match 'FULL'}) -replace ".*'(.*)'$", '$1'
+    $KitNameShort = (Get-Content "$Build\main.py" | Where-Object {$_ -match 'SHORT'}) -replace ".*'(.*)'$", '$1'
     
     if (Ask-User "Update Tools?") {
         $DownloadErrors = 0
@@ -533,6 +543,7 @@ if ($MyInvocation.InvocationName -ne ".") {
         Move-Item -Path "$Mount\.bin\HWiNFO\HWiNFO.INI" -Destination $DestIni -Force
         Copy-Item -Path "$Root\Images\WinPE.jpg" -Destination "$Mount\.bin\ConEmu\ConEmu.jpg" -Recurse -Force
         Copy-Item -Path "$Bin\Scripts" -Destination "$Mount\.bin\Scripts" -Recurse -Force
+        Copy-Item -Path "$Build\main.py" -Destination "$Mount\.bin\Scripts\settings\main.py" -Force
         
         # Add System32 items
         $HostSystem32 = "{0}\System32" -f $Env:SystemRoot
@@ -587,7 +598,7 @@ if ($MyInvocation.InvocationName -ne ".") {
         
         # Create ISO
         New-Item -Type Directory "$Root\OUT_PE" 2>&1 | Out-Null
-        $ArgumentList = @("/iso", $PEFiles, "$Root\OUT_PE\wk-winpe-$Date-$Arch.iso")
+        $ArgumentList = @("/iso", $PEFiles, "$Root\OUT_PE\$KitNameShort-WinPE-$Date-$Arch.iso")
         $Cmd = "{0}\MakeWinPEMedia.cmd" -f $Env:WinPERoot
         Start-Process -FilePath $Cmd -ArgumentList $ArgumentList -NoNewWindow -Wait
     }
