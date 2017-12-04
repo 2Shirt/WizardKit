@@ -390,12 +390,12 @@ def show_installed_ram():
     mem = psutil.virtual_memory()
     if mem.total > 5905580032:
         # > 5.5 Gb so 6Gb or greater
-        print_standard(human_readable_size(mem.total).strip())
+        print_standard(human_readable_size(mem.total).strip(), timestamp=False)
     elif mem.total > 3758096384:
         # > 3.5 Gb so 4Gb or greater
-        print_warning(human_readable_size(mem.total).strip())
+        print_warning(human_readable_size(mem.total).strip(), timestamp=False)
     else:
-        print_error(human_readable_size(mem.total).strip())
+        print_error(human_readable_size(mem.total).strip(), timestamp=False)
 
 def show_os_activation():
     """Show OS activation info."""
