@@ -6,6 +6,7 @@ import sys
 # Init
 os.chdir(os.path.dirname(os.path.realpath(__file__)))
 sys.path.append(os.getcwd())
+from functions.activation import *
 from functions.cleanup import *
 from functions.diags import *
 from functions.info import *
@@ -71,7 +72,7 @@ if __name__ == '__main__':
         if (not windows_is_activated()
             and global_vars['OS']['Version'] in ('8', '10')):
             try_and_print(message='BIOS Activation:',
-                function=activate_windows_with_bios,
+                function=activate_with_bios,
                 other_results=other_results)
         try_and_print(message='Installed Office:',
             function=get_installed_office, ns='Unknown', print_return=True)
