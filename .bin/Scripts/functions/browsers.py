@@ -16,7 +16,7 @@ other_results = {
 
 # Regex
 REGEX_BACKUP = re.compile(
-    r'\.\w+bak.*',
+    r'\.\w*bak.*',
     re.IGNORECASE)
 REGEX_CHROMIUM_PROFILE = re.compile(
     r'^(Default|Profile)',
