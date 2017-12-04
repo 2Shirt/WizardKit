@@ -241,7 +241,7 @@ def install_firefox_extensions():
         '-p{ArchivePassword}'.format(**global_vars),
         '-o{dist_path}'.format(dist_path=dist_path),
         r'{CBinDir}\FirefoxExtensions.7z'.format(**global_vars)]
-    run_program(cmd, check=False)
+    run_program(cmd)
 
 def install_ninite_bundle(mse=False):
     """Run Ninite file(s) based on OS version."""
