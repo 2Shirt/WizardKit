@@ -86,7 +86,7 @@ set _sources=%_sources% "%source%\README.md"
 set _sources=%_sources% "%source%\System Checklist.cmd"
 set _sources=%_sources% "%source%\System Diagnostics.cmd"
 set _sources=%_sources% "%source%\User Checklist.cmd"
-start "" /wait "%fastcopy%" %fastcopy_args% /exclude="Snappy Driver Installer.cmd;*.exe" %_sources% /to="%dest%\"
+start "" /wait "%fastcopy%" %fastcopy_args% /exclude="Snappy Driver Installer*;Update Kit*;*.exe" %_sources% /to="%dest%\"
 start "" /wait "%fastcopy%" %fastcopy_args% "%source%\Installers\Extras\Office\Adobe Reader DC.exe" /to="%dest%\Installers\Extras\Office\"
 
 :Ninite
