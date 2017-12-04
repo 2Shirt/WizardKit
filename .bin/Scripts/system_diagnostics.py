@@ -35,8 +35,8 @@ if __name__ == '__main__':
         
         # Sanitize Environment
         print_info('Sanitizing Environment')
-        try_and_print(message='Killing processes...',
-            function=run_process_killer, cs='Done')
+        # try_and_print(message='Killing processes...',
+        #     function=run_process_killer, cs='Done')
         try_and_print(message='Running RKill...',
             function=run_rkill, cs='Done')
         try_and_print(message='Running TDSSKiller...',
