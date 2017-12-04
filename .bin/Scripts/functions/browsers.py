@@ -112,8 +112,8 @@ def archive_browser(name):
     run_program(cmd)
 
 def backup_browsers():
-    """Create backup of all detected browsers."""
-    for name in sorted(browser_data):
+    """Create backup of all detected browser profiles."""
+    for name in [k for k, v in sorted(browser_data.items()) if v['profiles']]:
         try_and_print(message='{}...'.format(name),
         function=archive_browser, name=name)
 
@@ -228,10 +228,6 @@ def get_browser_details(name):
             profiles.append(
                 {'name': 'Default', 'path': browser['user_data_path']})
     
-    # Skip browser if there's no profiles
-    if len(profiles) == 0:
-        raise NoProfilesError
-    
     # Get homepages
     if browser['base'] == 'ie':
         # IE is set to only have one profile above
@@ -335,12 +331,17 @@ def install_adblock(indent=8, width=32):
     for browser in sorted(browser_data):
         exe_path = browser_data[browser].get('exe_path', None)
         function=run_program
-        if exe_path is None:
-            print_standard(
-                '{indent}{browser:<{width}}'.format(
-                    indent=' '*indent, width=width, browser=browser+'...'),
-                end='', flush=True)
-            print_warning('Not installed', timestamp=False)
+        if not exe_path:
+            if browser_data[browser]['profiles']:
+                print_standard(
+                    '{indent}{browser:<{width}}'.format(
+                        indent=' '*indent, width=width, browser=browser+'...'),
+                    end='', flush=True)
+                print_warning('Profile(s) detected but browser not installed',
+                    timestamp=False)
+            else:
+                # Only warn if profile(s) are detected.
+                pass
         else:
             # Set urls to open
             urls = []
@@ -391,7 +392,7 @@ def install_adblock(indent=8, width=32):
 def list_homepages(indent=8, width=32):
     """List current homepages for reference."""
     
-    for browser in sorted(browser_data):
+    for browser in [k for k, v in sorted(browser_data.items()) if v['exe_path']]:
         # Skip Chromium-based browsers
         if browser_data[browser]['base'] == 'chromium':
             print_info(
@@ -402,27 +403,25 @@ def list_homepages(indent=8, width=32):
             continue
         
         # All other browsers
-        profiles = browser_data[browser].get('profiles', [])
-        if profiles:
-            print_info('{indent}{browser:<{width}}'.format(
-                indent=' '*indent, width=width, browser=browser+'...'))
-        for profile in profiles:
-            _name = profile.get('name', '?')
-            _homepages = profile.get('homepages', [])
-            if len(_homepages) == 0:
+        print_info('{indent}{browser:<{width}}'.format(
+            indent=' '*indent, width=width, browser=browser+'...'))
+        for profile in browser_data[browser].get('profiles', []):
+            name = profile.get('name', '?')
+            homepages = profile.get('homepages', [])
+            if len(homepages) == 0:
                 print_standard(
                     '{indent}{name:<{width}}'.format(
-                        indent=' '*indent, width=width, name=_name),
+                        indent=' '*indent, width=width, name=name),
                     end='', flush=True)
                 print_warning('None found', timestamp=False)
             else:
-                for page in _homepages:
+                for page in homepages:
                     print_standard('{indent}{name:<{width}}{page}'.format(
-                        indent=' '*indent, width=width, name=_name, page=page))
+                        indent=' '*indent, width=width, name=name, page=page))
 
 def reset_browsers(indent=8, width=32):
     """Reset all detected browsers to safe defaults."""
-    for browser in sorted(browser_data):
+    for browser in [k for k, v in sorted(browser_data.items()) if v['profiles']]:
         print_info('{indent}{name}'.format(indent=' '*indent, name=browser))
         for profile in browser_data[browser]['profiles']:
             if browser_data[browser]['base'] == 'chromium':
