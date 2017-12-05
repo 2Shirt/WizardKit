@@ -1,6 +1,7 @@
 **/__pycache__/*
 *.bak
 *.exe
+.DS_Store
 .bin/7-Zip/
 .bin/AIDA64/
 .bin/BleachBit/
@@ -17,6 +18,7 @@
 .bin/Tmp/
 .bin/XMPlay/
 .bin/_Drivers/SDIO/
+.bin/install_cache
 .cbin/*.7z
 .cbin/AIDA64/
 .cbin/Autoruns/
