@@ -1,5 +1,5 @@
 #!/bin/bash
-# Wizard Kit: Generic app launcher
+## Wizard Kit: Generic app launcher
 
 # Init
 ## Get .bin absolute path (dirty code roughly based on http://stackoverflow.com/a/12197227)

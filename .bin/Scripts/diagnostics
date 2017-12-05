@@ -1,5 +1,5 @@
 #!/bin/bash
-# Wizard Kit: SW Diagnostics
+## Wizard Kit: SW Diagnostics
 
 # Init
 ## Get .bin absolute path (dirty code roughly based on http://stackoverflow.com/a/12197227)
@@ -10,7 +10,7 @@ popd > /dev/null
 DATE="$(date "+%F")"
 LOG_DIR="/WK/Info"
 LOG_FILE="${LOG_DIR}/${DATE}/Diagnostics.log"
-mkdir -p "${LOG_DIR}" 2>/dev/null
+mkdir -p "$(dirname "${LOG_FILE}")" 2>/dev/null
 # . "$BIN/os_check"
 
 # Setup color and message printing

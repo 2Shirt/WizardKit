@@ -1,5 +1,5 @@
 #!/bin/bash
-# Wizard Kit: Enable TRIM
+## Wizard Kit: Enable TRIM
 
 # Run trimforce
 sudo trimforce enable
