@@ -1,0 +1,101 @@
+#!/bin/bash
+
+# Generate installer commands
+cd "$HOME/wk-macos/Installers"
+
+# Audio-Video
+sed 's#___#"dmg" "HandBrake" "HandBrake.app" "http://downloads.sourceforge.net/project/handbrake/0.10.5/HandBrake-0.10.5-MacOSX.6_GUI_x86_64.dmg" "" "" ""#' "install.command" >> "Extras/Audio-Video/HandBrake.command"
+chmod +x "Extras/Audio-Video/HandBrake.command"
+sed 's#___#"dmg" "Kodi" "Kodi.app" "http://mirrors.kodi.tv/releases/osx/x86_64/kodi-16.1-Jarvis-x86_64.dmg" "" "" ""#' "install.command" >> "Extras/Audio-Video/Kodi.command"
+chmod +x "Extras/Audio-Video/Kodi.command"
+sed 's#___#"tar" "mpv" "mpv.app" "http://sva.wakku.to/~chris/mpv_builds/mpv_latest.tar.bz2" "" "" ""#' "install.command" >> "Extras/Audio-Video/mpv.command"
+chmod +x "Extras/Audio-Video/mpv.command"
+sed 's#___#"zip" "Plex" "Plex Media Server.app" "https://downloads.plex.tv/plex-media-server/0.9.16.6.1993-5089475/PlexMediaServer-0.9.16.6.1993-5089475-OSX.zip" "" "" ""#' "install.command" >> "Extras/Audio-Video/Plex.command"
+chmod +x "Extras/Audio-Video/Plex.command"
+sed 's#___#"dmg" "Spotify" "Spotify.app" "http://download.spotify.com/Spotify.dmg" "" "" ""#' "install.command" >> "Extras/Audio-Video/Spotify.command"
+chmod +x "Extras/Audio-Video/Spotify.command"
+sed 's#___#"dmg" "VLC" "VLC.app" "http://get.videolan.org/vlc/2.2.4/macosx/vlc-2.2.4.dmg" "" "" ""#' "install.command" >> "Extras/Audio-Video/VLC.command"
+chmod +x "Extras/Audio-Video/VLC.command"
+
+# Browsers
+sed 's#___#"dmg" "Firefox" "Firefox.app" "http://download.mozilla.org/?product=firefox-latest&os=osx&lang=en-US" "" "" ""#' "install.command" >> "Extras/Browsers/Firefox.command"
+chmod +x "Extras/Browsers/Firefox.command"
+sed 's#___#"dmg" "Google Chrome" "Google Chrome.app" "https://dl.google.com/chrome/mac/stable/GGRO/googlechrome.dmg" "" "" ""#' "install.command" >> "Extras/Browsers/Google Chrome.command"
+chmod +x "Extras/Browsers/Google Chrome.command"
+sed 's#___#"dmg" "Opera" "Opera.app" "http://get.geo.opera.com/pub/opera/desktop/39.0.2256.71/mac/Opera_39.0.2256.71_Setup.dmg" "" "" ""#' "install.command" >> "Extras/Browsers/Opera.command"
+chmod +x "Extras/Browsers/Opera.command"
+
+# Cloud
+sed 's#___#"dmg" "Google Drive" "Google Drive.app" "https://dl-ssl.google.com/drive/installgoogledrive.dmg" "" "" ""#' "install.command" >> "Extras/Cloud/Google Drive.command"
+chmod +x "Extras/Cloud/Google Drive.command"
+sed 's#___#"dmg" "Dropbox" "Dropbox.app" "https://www.dropbox.com/download?plat=mac" "" "" ""#' "install.command" >> "Extras/Cloud/Dropbox.command"
+chmod +x "Extras/Cloud/Dropbox.command"
+sed 's#___#"dmg" "Evernote" "Evernote.app" "http://evernote.com/download/get.php?file=EvernoteMac" "" "" ""#' "install.command" >> "Extras/Cloud/Evernote.command"
+chmod +x "Extras/Cloud/Evernote.command"
+sed 's#___#"tar" "FileZilla" "FileZilla.app" "http://downloads.sourceforge.net/project/filezilla/FileZilla_Client/3.21.0/FileZilla_3.21.0_macosx-x86.app.tar.bz2" "" "" ""#' "install.command" >> "Extras/Cloud/FileZilla.command"
+chmod +x "Extras/Cloud/FileZilla.command"
+sed 's#___#"dmg" "KeePassX" "KeePassX.app" "http://www.keepassx.org/releases/2.0.2/KeePassX-2.0.2.dmg" "" "" ""#' "install.command" >> "Extras/Cloud/KeePassX.command"
+chmod +x "Extras/Cloud/KeePassX.command"
+sed 's#___#"dmg" "OmniFocus" "OmniFocus.app" "http://www.omnigroup.com/download/latest/omnifocus" "" "" ""#' "install.command" >> "Extras/Cloud/OmniFocus.command"
+chmod +x "Extras/Cloud/OmniFocus.command"
+sed 's#___#"dmg" "Tunnelblick" "Tunnelblick.app" "https://tunnelblick.net/release/Tunnelblick_3.6.7beta04_build_4601.dmg" "" "" ""#' "install.command" >> "Extras/Cloud/Tunnelblick.command"
+chmod +x "Extras/Cloud/Tunnelblick.command"
+
+# Communication
+sed 's#___#"dmg" "Adium" "Adium.app" "https://adiumx.cachefly.net/Adium_1.5.10.2.dmg" "" "" ""#' "install.command" >> "Extras/Communication/Adium.command"
+chmod +x "Extras/Communication/Adium.command"
+sed 's#___#"dmg" "Skype" "Skype.app" "http://www.skype.com/go/getskype-macosx.dmg" "" "" ""#' "install.command" >> "Extras/Communication/Skype.command"
+chmod +x "Extras/Communication/Skype.command"
+sed 's#___#"zip" "Slack" "Slack.app" "https://slack.com/ssb/download-osx" "" "" ""#' "install.command" >> "Extras/Communication/Slack.command"
+chmod +x "Extras/Communication/Slack.command"
+
+# Compression
+sed 's#___#"dmg" "Keka" "Keka.app" "http://download.kekaosx.com/" "" "" ""#' "install.command" >> "Extras/Compression/Keka.command"
+chmod +x "Extras/Compression/Keka.command"
+sed 's#___#"dmg" "The Unarchiver" "The Unarchiver.app" "http://unarchiver.c3.cx/downloads/TheUnarchiver3.10.1.dmg" "" "" ""#' "install.command" >> "Extras/Compression/The Unarchiver.command"
+chmod +x "Extras/Compression/The Unarchiver.command"
+sed 's#___#"zip" "UnRarX" "UnRarX.app" "http://www.unrarx.com/files/UnRarX_2.2.zip" "" "" ""#' "install.command" >> "Extras/Compression/UnRarX.command"
+chmod +x "Extras/Compression/UnRarX.command"
+
+# Image-Photo
+sed 's#___#"zip" "Flux" "Flux.app" "https://justgetflux.com/mac/Flux.zip" "" "" "build"#' "install.command" >> "Extras/Image-Photo/Flux.command"
+chmod +x "Extras/Image-Photo/Flux.command"
+sed 's#___#"dmg" "Inkscape" "Inkscape.app" "https://inkscape.org/en/gallery/item/3896/Inkscape-0.91-1-x11-10.7-x86_64.dmg" "" "" ""#' "install.command" >> "Extras/Image-Photo/Inkscape.command"
+chmod +x "Extras/Image-Photo/Inkscape.command"
+sed 's#___#"dmg" "GIMP" "GIMP.app" "http://download.gimp.org/mirror/pub/gimp/v2.8/osx/gimp-2.8.18-x86_64.dmg" "" "" ""#' "install.command" >> "Extras/Image-Photo/GIMP.command"
+chmod +x "Extras/Image-Photo/GIMP.command"
+
+# Office
+sed 's#___#"dmg" "LibreOffice" "LibreOffice.app" "http://download.documentfoundation.org/libreoffice/stable/5.1.5/mac/x86_64/LibreOffice_5.1.5_MacOS_x86-64.dmg" "" "" ""#' "install.command" >> "Extras/Office/LibreOffice.command"
+chmod +x "Extras/Office/LibreOffice.command"
+sed 's#___#"dmg" "OpenOffice" "OpenOffice.app" "http://downloads.sourceforge.net/project/openofficeorg.mirror/4.1.2/binaries/en-US/Apache_OpenOffice_4.1.2_MacOS_x86-64_install_en-US.dmg" "" "" ""#' "install.command" >> "Extras/Office/OpenOffice.command"
+chmod +x "Extras/Office/OpenOffice.command"
+sed 's#___#"dmg" "Thunderbird" "Thunderbird.app" "http://download.mozilla.org/?product=thunderbird-latest&os=osx&lang=en-US" "" "" ""#' "install.command" >> "Extras/Office/Thunderbird.command"
+chmod +x "Extras/Office/Thunderbird.command"
+
+# Security
+sed 's#___#"zip" "BitDefender ART" "Adware Removal Tool.app" "http://download.bitdefender.com/mac/tools/Adware%20Removal%20Tool.zip" "" "" ""#' "install.command" >> "Extras/Security/BitDefender ART.command"
+chmod +x "Extras/Security/BitDefender ART.command"
+sed 's#___#"dmg" "ClamXav" "ClamXav.app" "http://www.clamxav.com/downloads/ClamXav_2.9.2_2478.zip" "" "" ""#' "install.command" >> "Extras/Security/ClamXav.command"
+chmod +x "Extras/Security/ClamXav.command"
+sed 's#___#"dmg" "Malwarebytes Anti-Malware" "Malwarebytes Anti-Malware.app" "https://store.malwarebytes.org/342/purl-mbamm-dl" "" "" ""#' "install.command" >> "Extras/Security/Malwarebytes Anti-Malware.command"
+chmod +x "Extras/Security/Malwarebytes Anti-Malware.command"
+
+# Misc
+sed 's#___#"zip" "Caffeine" "caffeine.app" "http://download.lightheadsw.com/download.php?software=caffeine" "" "" "build"#' "install.command" >> "Extras/Caffeine.command"
+chmod +x "Extras/Caffeine.command"
+sed 's#___#"dmg" "Calibre" "calibre.app" "http://status.calibre-ebook.com/dist/osx32" "" "" ""#' "install.command" >> "Extras/Calibre.command"
+chmod +x "Extras/Calibre.command"
+sed 's#___#"zip" "gfxCardStatus" "gfxCardStatus.app" "http://gfx.io/downloads/gfxCardStatus-2.3.zip" "" "" ""#' "install.command" >> "Extras/gfxCardStatus.command"
+chmod +x "Extras/gfxCardStatus.command"
+sed 's#___#"dmg" "GoogleEarth" "Google Earth.app" "https://dl.google.com/earth/client/advanced/current/GoogleEarthMac-Intel.dmg" "" "" ""#' "install.command" >> "Extras/GoogleEarth.command"
+chmod +x "Extras/GoogleEarth.command"
+sed 's#___#"zip" "iTerm2" "iTerm.app" "https://iterm2.com/downloads/stable/iTerm2-3_0_9.zip" "" "" ""#' "install.command" >> "Extras/iTerm2.command"
+chmod +x "Extras/iTerm2.command"
+sed 's#___#"zip" "Macs Fan Control" "Macs Fan Control.app" "http://www.crystalidea.com/downloads/macsfancontrol.zip" "" "" ""#' "install.command" >> "Extras/Macs Fan Control.command"
+chmod +x "Extras/Macs Fan Control.command"
+sed 's#___#"dmg" "Steam" "Steam.app" "http://media.steampowered.com/client/installer/steam.dmg" "" "" "build"#' "install.command" >> "Extras/Steam.command"
+chmod +x "Extras/Steam.command"
+sed 's#___#"dmg" "TeamViewerQS" "TeamViewerQS.app" "http://download.teamviewer.com/download/TeamViewerQS.dmg" "" "" ""#' "install.command" >> "Extras/TeamViewerQS.command"
+chmod +x "Extras/TeamViewerQS.command"
+

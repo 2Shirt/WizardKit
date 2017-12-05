@@ -1,0 +1,179 @@
+#!/bin/bash
+## Wizard Kit: SW Diagnostics
+
+# Init
+clear
+BIN=""
+
+# Find BIN path
+pushd . > /dev/null
+cd "$(dirname "$0")"
+while [ "$(pwd)" != "/" ]; do
+    if [ -d ".bin" ]; then
+        BIN="$(pwd)/.bin"
+        break
+    fi
+    cd ..
+done
+popd > /dev/null
+if [ "$BIN" == "" ]; then
+    echo ".bin not found"
+    exit 1
+fi
+
+# Prep /WK/Info
+DATE="$(date "+%F")"
+LOG_DIR="/WK/Info/${DATE}"
+LOG_FILE="${LOG_DIR}/Diagnostics.log"
+mkdir -p "${LOG_DIR}" 2>/dev/null
+# . "$BIN/os_check"
+
+# Setup color and message printing
+export CLICOLOR=1
+CLEAR="\033[0m"
+RED="\033[31m"
+GREEN="\033[32m"
+YELLOW="\033[33m"
+BLUE="\033[34m"
+function print_error() {
+    echo -e "${RED}${1}${CLEAR}"
+    echo "${1}" >> "${LOG_FILE}"
+}
+function print_info() {
+    echo -e "${BLUE}${1}${CLEAR}"
+    echo "${1}" >> "${LOG_FILE}"
+}
+function print_success() {
+    echo -e "${GREEN}${1}${CLEAR}"
+    echo "${1}" >> "${LOG_FILE}"
+}
+function print_warning() {
+    echo -e "${YELLOW}${1}${CLEAR}"
+    echo "${1}" >> "${LOG_FILE}"
+}
+function print_general() {
+    echo "${1}"
+    echo "${1}" >> "${LOG_FILE}"
+}
+
+# Get Ticket #
+ticket=""
+while [[ "${ticket}" == "" ]]; do
+    echo -n "Enter the ticket number: "
+    read _tmp
+    if echo "${_tmp}" | grep -Eq '^([0-9]+[-_0-9A-Za-z]*)$'; then
+        ticket="${_tmp}"
+    fi
+done
+
+# Start
+clear
+print_general "Starting SW Diagnostics"
+print_general "    For ticket #${ticket}"
+
+# Sanitize Environment
+#TODO
+
+# Network
+print_general ""
+print_general "Testing network connection..."
+while ! ping -c 2 "google.com" >/dev/null 2>&1; do
+    print_warning "System appears offline. Please connect to the internet."
+    echo -n "Press Enter to try again... "
+    read _tmp
+done
+print_general "    Connected."
+
+# Infection Scan
+#TODO
+
+# OS Health
+print_general ""
+print_general "Checking disk permissions..."
+/usr/libexec/repair_packages --verify --standard-pkgs >> "${LOG_DIR}/permissions.log" 2>/dev/null
+_log_length="$(cat "${LOG_DIR}/permissions.log" | wc -l | sed 's/ //g')"
+if [[ "$_log_length" -eq "0" ]]; then
+    print_general "    No issues found."
+elif [[ "$_log_length" -lt "10" ]]; then
+    sed 's/^/    /' "${LOG_DIR}/permissions.log" | tee -a "${LOG_FILE}"
+else
+    head -9 "${LOG_DIR}/permissions.log" | sed 's/^/    /' | tee -a "${LOG_FILE}"
+    print_general "      ...$(echo "$_log_length - 9" | bc) lines omitted"
+fi
+# Check OS/SW Updates
+print_general ""
+print_general "Checking for available software updates..."
+softwareupdate -l | grep '*' | tee -a "${LOG_FILE}"
+
+# Browser Backup
+#TODO
+
+# Temp file size
+print_general ""
+print_general "Checking temp file size..."
+du -sch ~/.Trash | sed 's/^/    /' | tee -a "${LOG_FILE}"
+
+# Save System Info
+print_general ""
+print_general "Saving system information..."
+system_profiler -detailLevel full >> "${LOG_DIR}/system_profiler.txt"
+## Installed App list
+system_profiler -detailLevel full SPApplicationsDataType >> "${LOG_DIR}/installed-applications.txt"
+print_general "    Done."
+
+## Save product keys
+#TODO?
+
+## OS
+print_general ""
+print_general "Operating System:"
+sw_vers | sed 's/^/    /' | tee -a "${LOG_FILE}"
+
+## Free Space
+print_general ""
+print_general "Drive details:"
+system_profiler -detailLevel mini SPStorageDataType | egrep '^\s+\w+:$|Available|Capacity' | tee -a "${LOG_FILE}"
+
+## Installed RAM
+print_general ""
+print_general "Installed memory:"
+system_profiler -detailLevel mini SPMemoryDataType | egrep 'DIMM|Size' | sed 's/    //' | tee -a "${LOG_FILE}"
+echo "    Total: $(($(sysctl -a hw.memsize | sed 's/.*: //')/1024/1024/1024)) Gb" | tee -a "${LOG_FILE}"
+
+# List installed Office Apps
+print_general ""
+print_general "Installed office applications:"
+egrep "Microsoft Word|Microsoft Excel|Microsoft Outlook|Office|office" "${LOG_DIR}/installed-applications.txt" | egrep ':$' | sed 's/://' | tee -a "${LOG_FILE}"
+
+# Battery
+#TODO - ioreg?
+
+# User data size
+print_general ""
+print_general "User data:"
+pushd /Users >/dev/null
+for user in $(dscl . -list /Users | grep -Ev '^(_|(daemon|nobody|root)$)'); do
+    print_general "    $(id -F "$user") ($user)"
+    du -sch "$user/"* | sed 's/^/        /' | tee -a "${LOG_FILE}"
+done
+popd >/dev/null
+
+# Upload results
+#rsync
+
+# Fix /WK/Info permissions
+chmod -R 644 "${LOG_DIR}"
+chmod 755 "${LOG_DIR}"
+
+# Done
+print_general ""
+print_general "Done."
+echo ""
+echo -n "Press Enter to exit..."
+read _tmp >/dev/null 2>&1
+
+# Open results
+/Applications/TextEdit.app/Contents/MacOS/TextEdit "${LOG_FILE}" &
+
+# Exit
+exit 0
