@@ -21,7 +21,7 @@ if [ "$BIN" == "" ]; then
 fi
 
 # Install App(s)
-"$BIN/Scripts/install_app" "tar" "mpv" "mpv.app" "http://sva.wakku.to/~chris/mpv_builds/mpv_latest.tar.bz2" "" "" ""
+"$BIN/Scripts/install_app" "zip" "Macs Fan Control" "Macs Fan Control.app" "http://www.crystalidea.com/downloads/macsfancontrol.zip" "" "" ""
 
 # Done
 echo ""

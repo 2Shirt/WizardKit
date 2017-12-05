@@ -21,7 +21,7 @@ if [ "$BIN" == "" ]; then
 fi
 
 # Install App(s)
-"$BIN/Scripts/install_app" "tar" "mpv" "mpv.app" "http://sva.wakku.to/~chris/mpv_builds/mpv_latest.tar.bz2" "" "" ""
+"$BIN/Scripts/install_app" "tar" "FileZilla" "FileZilla.app" "http://downloads.sourceforge.net/project/filezilla/FileZilla_Client/3.21.0/FileZilla_3.21.0_macosx-x86.app.tar.bz2" "" "" ""
 
 # Done
 echo ""

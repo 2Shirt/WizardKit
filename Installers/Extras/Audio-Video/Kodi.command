@@ -21,7 +21,7 @@ if [ "$BIN" == "" ]; then
 fi
 
 # Install App(s)
-"$BIN/Scripts/install_app" "tar" "mpv" "mpv.app" "http://sva.wakku.to/~chris/mpv_builds/mpv_latest.tar.bz2" "" "" ""
+"$BIN/Scripts/install_app" "dmg" "Kodi" "Kodi.app" "http://mirrors.kodi.tv/releases/osx/x86_64/kodi-16.1-Jarvis-x86_64.dmg" "" "" ""
 
 # Done
 echo ""

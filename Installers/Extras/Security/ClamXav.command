@@ -21,7 +21,7 @@ if [ "$BIN" == "" ]; then
 fi
 
 # Install App(s)
-"$BIN/Scripts/install_app" "tar" "mpv" "mpv.app" "http://sva.wakku.to/~chris/mpv_builds/mpv_latest.tar.bz2" "" "" ""
+"$BIN/Scripts/install_app" "dmg" "ClamXav" "ClamXav.app" "http://www.clamxav.com/downloads/ClamXav_2.9.2_2478.zip" "" "" ""
 
 # Done
 echo ""

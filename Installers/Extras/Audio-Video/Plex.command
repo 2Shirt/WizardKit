@@ -21,7 +21,7 @@ if [ "$BIN" == "" ]; then
 fi
 
 # Install App(s)
-"$BIN/Scripts/install_app" "tar" "mpv" "mpv.app" "http://sva.wakku.to/~chris/mpv_builds/mpv_latest.tar.bz2" "" "" ""
+"$BIN/Scripts/install_app" "zip" "Plex" "Plex Media Server.app" "https://downloads.plex.tv/plex-media-server/0.9.16.6.1993-5089475/PlexMediaServer-0.9.16.6.1993-5089475-OSX.zip" "" "" ""
 
 # Done
 echo ""
