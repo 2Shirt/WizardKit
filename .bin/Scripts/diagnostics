@@ -1,0 +1,118 @@
+#!/bin/bash
+# Wizard Kit: SW Diagnostics
+
+# Init
+## Get .bin absolute path (dirty code roughly based on http://stackoverflow.com/a/12197227)
+pushd . > /dev/null
+cd "$(dirname "$0")/.."
+BIN="$(pwd)"
+popd > /dev/null
+DATE="$(date "+%F")"
+LOG_DIR="/WK/Info"
+LOG_FILE="${LOG_DIR}/${DATE}/Diagnostics.log"
+mkdir -p "${LOG_DIR}" 2>/dev/null
+# . "$BIN/os_check"
+
+# Setup color and message printing
+export CLICOLOR=1
+CLEAR="\033[0m"
+RED="\033[31m"
+GREEN="\033[32m"
+YELLOW="\033[33m"
+BLUE="\033[34m"
+function print_error() {
+    echo -e "${RED}${1}${CLEAR}"
+    echo "${1}" >> "${LOG_FILE}"
+}
+function print_info() {
+    echo -e "${BLUE}${1}${CLEAR}"
+    echo "${1}" >> "${LOG_FILE}"
+}
+function print_success() {
+    echo -e "${GREEN}${1}${CLEAR}"
+    echo "${1}" >> "${LOG_FILE}"
+}
+function print_warning() {
+    echo -e "${YELLOW}${1}${CLEAR}"
+    echo "${1}" >> "${LOG_FILE}"
+}
+function print_general() {
+    echo "${1}"
+    echo "${1}" >> "${LOG_FILE}"
+}
+
+# Get Ticket #
+ticket=""
+while [[ "${ticket}" == "" ]]; do
+    echo -n "Enter the ticket number: "
+    read _tmp
+    if echo "${_tmp}" | grep -Eq '^([0-9]+[-_0-9A-Za-z]*)$'; then
+        ticket="${_tmp}"
+    fi
+done
+
+# Start
+print_general "Starting SW Diagnostics"
+print_general "    For ticket #${ticket}"
+
+# Sanitize Environment
+
+# Network
+print_general "Testing network connection..."
+while ! ping -c 2 "google.com" >/dev/null 2>&1; do
+    print_warning "System appears offline. Please connect to the internet."
+    echo -n "Press Enter to try again... "
+    read _tmp
+done
+
+# Infection Scan
+
+# OS Health
+print_general "Checking disk permissions..."
+/usr/libexec/repair_packages --verify --standard-pkgs >> "${LOG_DIR}/permissions.log"
+if [[ "$(wc -l "${LOG_DIR}/permissions.log")" -ge "10" ]]; then
+    head -9 "${LOG_DIR}/permissions.log" | sed 's/^/    /' | tee -a "${LOG_FILE}"
+    print_general "    ... $(echo "$(wc -l "${LOG_DIR}/permissions.log") - 9" | bc) lines omitted"
+else
+    sed 's/^/    /' "${LOG_DIR}/permissions.log" | tee -a "${LOG_FILE}"
+fi
+
+# Browser Backup
+
+# Temp file size
+print_general "Checking temp file size..."
+du -sch ~/.Trash | sed 's/^/    /' | tee -a "${LOG_FILE}"
+
+# Save System Info
+print_general "System Information:"
+# system_profiler
+## HW
+## Keys?
+## OS
+sw_vers | sed 's/^/    /' | tee -a "${LOG_FILE}"
+
+## SW
+
+# OS/SW Updates
+softwareupdate -l | tee -a "${LOG_FILE}"
+
+
+# Battery
+#ioreg
+
+# User data size
+print_general "User data:"
+pushd /Users >/dev/null
+for user in $(dscl . -list /Users | grep -Ev '^(_|(daemon|nobody|root)$)'); do
+    print_general "    $(id -F "$user") ($user)"
+    du -sch "$user/"* | sed 's/^/        /' | tee -a "${LOG_FILE}"
+done
+popd >/dev/null
+
+# Upload results
+#rsync
+
+# Open results
+
+# Done
+exit 0
