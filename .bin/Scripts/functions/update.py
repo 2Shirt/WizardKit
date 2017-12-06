@@ -164,7 +164,11 @@ def scan_for_net_installers(server, family_name, min_year):
     
     if server['Mounted']:
         for year in os.scandir(r'\\{IP}\{Share}'.format(**server)):
-            if int(year.name) < min_year:
+            try:
+                year_ok = int(year.name) < min_year
+            except ValueError:
+                year_ok = False # Skip non-year items
+            if year_ok:
                 # Don't support outdated installers
                 continue
             for version in os.scandir(year.path):
