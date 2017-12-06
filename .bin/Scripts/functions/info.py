@@ -345,11 +345,13 @@ def run_bleachbit():
         out = run_program(cmd, check=False)
         # Save stderr
         if out.stderr.decode().splitlines():
-            with open(global_vars['LogDir']+r'\BleachBit.err', 'a') as f:
+            with open(global_vars['LogDir']+r'\BleachBit.err', 'a',
+                encoding='utf-8') as f:
                 for line in out.stderr.decode().splitlines():
                     f.write(line.strip() + '\n')
         # Save stdout
-        with open(global_vars['LogDir']+r'\BleachBit.log', 'a') as f:
+        with open(global_vars['LogDir']+r'\BleachBit.log', 'a',
+            encoding='utf-8') as f:
             for line in out.stdout.decode().splitlines():
                 f.write(line.strip() + '\n')
 

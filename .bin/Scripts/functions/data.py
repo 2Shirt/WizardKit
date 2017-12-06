@@ -197,8 +197,7 @@ def run_fast_copy(items, dest):
         raise Exception
     
     cmd = [global_vars['Tools']['FastCopy'], *FAST_COPY_ARGS]
-    if 'LogFile' in global_vars:
-        cmd.append('/logfile={LogFile}'.format(**global_vars))
+    cmd.append(r'/logfile={}\FastCopy.log'.format(global_vars['LogDir']))
     cmd.extend(items)
     cmd.append('/to={}\\'.format(dest))
     
@@ -211,7 +210,8 @@ def run_wimextract(source, items, dest):
     extract_item('wimlib', silent=True)
 
     # Write files.txt
-    with open(r'{}\wim_files.txt'.format(global_vars['TmpDir']), 'w') as f:
+    with open(r'{}\wim_files.txt'.format(global_vars['TmpDir']), 'w',
+        encoding='utf-8') as f:
         # Defaults
         for item in items:
             f.write('{}\n'.format(item))

@@ -160,7 +160,8 @@ def get_ticket_number():
         _input = input('Enter ticket number: ')
         if re.match(r'^([0-9]+([-_]?\w+|))$', _input):
             ticket_number = _input
-            with open(r'{LogDir}\TicketNumber'.format(**global_vars), 'w') as f:
+            with open(r'{}\TicketNumber'.format(global_vars['LogDir']), 'w',
+                encoding='utf-8') as f:
                 f.write(ticket_number)
     return ticket_number
 
@@ -341,7 +342,7 @@ def print_warning(*args, **kwargs):
 def print_log(message='', end='\n', timestamp=True):
     time_str = time.strftime("%Y-%m-%d %H%M%z: ") if timestamp else ''
     if 'LogFile' in global_vars and global_vars['LogFile'] is not None:
-        with open(global_vars['LogFile'], 'a') as f:
+        with open(global_vars['LogFile'], 'a', encoding='utf-8') as f:
             for line in message.splitlines():
                 f.write('{timestamp}{line}{end}'.format(
                     timestamp = time_str,
@@ -481,7 +482,7 @@ def upload_data(path, file):
             winreg.REG_SZ, CLIENT_INFO_SERVER['RegEntry'])
 
     # Write batch file
-    with open(r'{TmpDir}\psftp.batch'.format(**global_vars),
+    with open(r'{}\psftp.batch'.format(global_vars['TmpDir']),
         'w', encoding='ascii') as f:
         f.write('lcd "{path}"\n'.format(path=path))
         f.write('cd "{Share}"\n'.format(**CLIENT_INFO_SERVER))
