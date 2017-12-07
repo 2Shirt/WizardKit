@@ -1,0 +1,518 @@
+#!/bin/bash
+#
+## WK HW Diagnostics - Main script
+
+die () {
+    echo "$0:" "$@" >&2
+    exit 1
+}
+
+# Load settings
+if [[ -f "/run/archiso/bootmnt/arch/arch.conf" ]]; then
+    source "/run/archiso/bootmnt/arch/arch.conf" || \
+        die "ERROR: failed to load arch.conf (from /run/archiso/bootmnt/arch/)"
+else
+    source "/usr/local/bin/arch.conf" || \
+        die "ERROR: failed to load arch.conf (from /usr/local/bin/)"
+fi
+
+# Get TICKET
+## Inital SKIP_UPLOAD value loaded from arch.conf
+SKIP_UPLOAD="${SKIP_UPLOAD}"
+TICKET=""
+while [[ "$TICKET" == "" ]]; do
+    if [[ "$1" == "foh" ]]; then
+        TICKET="foh-consult"
+        SKIP_UPLOAD="True"
+    else
+        echo -n "Please enter the Service Order #: "
+        read -r _ticket
+        if echo "$_ticket" | grep -Eq '^[1-9]+\S*$'; then
+            TICKET="$_ticket"
+        elif echo "$_ticket" | grep -Eq '^0'; then
+            SKIP_UPLOAD="True"
+            TICKET="$_ticket"
+        fi
+    fi
+done
+
+# Init
+## Tautologies left to show which settings are coming from arch.conf
+DIAG_DATE="$(date "+%F_%H%M")"
+DIAG_SERVER_AVAIL="False"
+DIAG_SERVER="${DIAG_SERVER}"
+DIAG_SHARE="${DIAG_SHARE}"
+DIAG_DEST="${DIAG_SHARE}/${TICKET}"
+DIAG_UPLOAD_NAME="HW-Diagnostics_${DIAG_DATE}"
+DIAG_USER="${DIAG_USER}"
+TMP_DIR="$(mktemp -d)"
+ERRORS="False"
+TEST_CPU="False"
+TEST_CPU_LENGTH="${TEST_CPU_LENGTH}"
+TEST_OVER="False"
+TEST_SMART="False"
+TEST_BADBLOCKS="False"
+SKIP_SHORT_TEST="False"
+LOG="$TMP_DIR/hw-diags.log"
+OUT="$TMP_DIR/hw-diags.out"
+
+# Get list of drives to test (excluding any ARCH drives)
+
+## Some code borrowed from stackoverflow.com/a/10020397
+ARCH_DRIVES=($(ls -l /dev/disk/by-label | grep -iE 'ARCH.*[hs]d[a-z]' | sed -r 's#.*/([hs]d[a-z])[0-9]+#\1#' | sort | uniq))
+DRIVES=($(inxi -Dxx -c 0 | grep -E "ID-[0-9]+" | sed -r 's#.*/dev/([hsv]d[a-z]|nvme[0-9]n[0-9]).*#\1#' | sort))
+for d in "${ARCH_DRIVES[@]}"; do
+    DRIVES=(${DRIVES[@]//*$d*})
+done
+
+# Handle testing runs
+if [[ "$SKIP_UPLOAD" != "True" ]]; then
+    # Connect to network
+    connect-to-network
+
+    # Test connection to DIAG_SERVER
+    if ip a | grep -Eq '(10.[0-9]+|172.(1[6-9]|2[0-9]|3[0-1])|192.168).[0-9]+.[0-9]+' && \
+    ping -c 1 -q $DIAG_SERVER >/dev/null 2>&1; then
+        DIAG_SERVER_AVAIL="True"
+        ssh-add
+        ssh $DIAG_USER@$DIAG_SERVER mkdir -p "$DIAG_DEST"
+        ssh $DIAG_USER@$DIAG_SERVER chmod 755 "$DIAG_DEST"
+    fi
+fi
+
+# Setup Env
+mkdir "$TMP_DIR" -p 2>/dev/null
+pushd "$TMP_DIR" >/dev/null
+touch "$OUT"
+rm local.txt results.txt 2>/dev/null
+
+# Functions
+CLEAR="\e[0m"
+RED="\e[31m"
+GREEN="\e[32m"
+YELLOW="\e[33m"
+BLUE="\e[34m"
+function update_progress {
+    echo "HW  Diagnostics" > "$LOG"
+    echo "${BLUE}HW  Diagnostics${CLEAR}" > "$OUT"
+    echo "───────────────" >> "$LOG"
+    echo "───────────────" >> "$OUT"
+
+    if [[ "$TEST_CPU" == "True" ]]; then
+        echo "" >> "$LOG"
+        echo "" >> "$OUT"
+        if [[ "$cpu_result" == "CS" ]]; then
+            echo "Prime95      CS" >> "$LOG"
+            echo "${BLUE}Prime95${CLEAR}      ${GREEN}CS${CLEAR}" >> "$OUT"
+        elif [[ "$cpu_result" == "Working" ]]; then
+            echo "Prime95 Working" >> "$LOG"
+            echo "${BLUE}Prime95${CLEAR} ${YELLOW}Working${CLEAR}" >> "$OUT"
+        elif [[ "$cpu_result" == "Unknown" ]]; then
+            echo "Prime95 Unknown" >> "$LOG"
+            echo "${BLUE}Prime95${CLEAR} ${YELLOW}Unknown${CLEAR}" >> "$OUT"
+        else
+            echo "Prime95      NS" >> "$LOG"
+            echo "${BLUE}Prime95${CLEAR}      ${RED}NS${CLEAR}" >> "$OUT"
+        fi
+    fi
+
+    if [[ "$TEST_SMART" == "True" ]]; then
+        echo "" >> "$LOG"
+        echo "" >> "$OUT"
+        if [[ "$SKIP_SHORT_TEST" == "True" ]]; then
+            echo "SMART (Quick)" >> "$LOG"
+            echo "${BLUE}SMART${CLEAR} ${YELLOW}(Quick)${CLEAR}" >> "$OUT"
+        else
+            echo "SMART" >> "$LOG"
+            echo "${BLUE}SMART${CLEAR}" >> "$OUT"
+        fi
+        for d in "${DRIVES[@]}"; do
+            d_tmp="${d##*/}_smart_result"
+            eval "d_tmp=\$$d_tmp"
+            if [[ "$d_tmp" == "CS" ]]; then
+                echo "${d##*/}          CS" >> "$LOG"
+                echo "${d##*/}          ${GREEN}CS${CLEAR}" >> "$OUT"
+            elif [[ "$d_tmp" == "Working" ]]; then
+                echo "${d##*/}     Working" >> "$LOG"
+                echo "${d##*/}     ${YELLOW}Working${CLEAR}" >> "$OUT"
+            elif [[ "$d_tmp" == "Unknown" ]]; then
+                echo "${d##*/}     Unknown" >> "$LOG"
+                echo "${d##*/}     ${YELLOW}Unknown${CLEAR}" >> "$OUT"
+            elif [[ "$d_tmp" == "NS" ]]; then
+                echo "${d##*/}          NS" >> "$LOG"
+                echo "${d##*/}          ${RED}NS${CLEAR}" >> "$OUT"
+            else
+                echo "${d##*/}" >> "$LOG"
+                echo "${d##*/}" >> "$OUT"
+            fi
+        done
+    fi
+
+    if [[ "$TEST_BADBLOCKS" == "True" ]]; then
+        echo "" >> "$LOG"
+        echo "" >> "$OUT"
+        echo "Badblocks" >> "$LOG"
+        echo "${BLUE}Badblocks${CLEAR}" >> "$OUT"
+        for d in "${DRIVES[@]}"; do
+            d_tmp="${d##*/}_badblocks_result"
+            eval "d_tmp=\$$d_tmp"
+            if [[ "$d_tmp" == "CS" ]]; then
+                echo "${d##*/}          CS" >> "$LOG"
+                echo "${d##*/}          ${GREEN}CS${CLEAR}" >> "$OUT"
+            elif [[ "$d_tmp" == "Working" ]]; then
+                echo "${d##*/}     Working" >> "$LOG"
+                echo "${d##*/}     ${YELLOW}Working${CLEAR}" >> "$OUT"
+            elif [[ "$d_tmp" == "Skipped" ]]; then
+                echo "${d##*/}     Skipped" >> "$LOG"
+                echo "${d##*/}     ${RED}Skipped${CLEAR}" >> "$OUT"
+            elif [[ "$d_tmp" == "NS" ]]; then
+                echo "${d##*/}          NS" >> "$LOG"
+                echo "${d##*/}          ${RED}NS${CLEAR}" >> "$OUT"
+            else
+                echo "${d##*/}" >> "$LOG"
+                echo "${d##*/}" >> "$OUT"
+            fi
+        done
+    fi
+
+    if [[ "$TEST_OVER" == "True" ]]; then
+        echo "" >> "$LOG"
+        echo "" >> "$OUT"
+        echo "───────────────" >> "$LOG"
+        echo "───────────────" >> "$OUT"
+
+        if [[ "$ERRORS" == "True" ]]; then
+            echo "HW:    Error(s)" >> "$LOG"
+            echo "${RED}HW:    Error(s)${CLEAR}" >> "$OUT"
+        else
+            echo "HW:      Passed" >> "$LOG"
+            echo "${GREEN}HW:      Passed${CLEAR}" >> "$OUT"
+        fi
+    fi
+
+    # Update Server
+    if [[ "$DIAG_SERVER_AVAIL" == "True" ]]; then
+        rsync -aqz --chmod=Du=rwx,Dgo=rx,Fu=rw,Fgo=r "$TMP_DIR/" $DIAG_USER@$DIAG_SERVER:"$DIAG_DEST/${DIAG_UPLOAD_NAME}/" --exclude '*.out'
+    fi
+}
+
+# Select Tests
+case "$1" in
+    all)
+        TEST_CPU="True"
+        TEST_SMART="True"
+        TEST_BADBLOCKS="True"
+        ;;
+    cpu)
+        TEST_CPU="True"
+        TEST_SMART="False"
+        TEST_BADBLOCKS="False"
+        ;;
+    drives)
+        TEST_CPU="False"
+        TEST_SMART="True"
+        TEST_BADBLOCKS="True"
+        ;;
+    foh)
+        TEST_CPU="False"
+        TEST_SMART="True"
+        TEST_BADBLOCKS="False"
+        SKIP_SHORT_TEST="True"
+        ;;
+    smart)
+        TEST_CPU="False"
+        TEST_SMART="True"
+        TEST_BADBLOCKS="False"
+        ;;
+    badblocks)
+        TEST_CPU="False"
+        TEST_SMART="False"
+        TEST_BADBLOCKS="True"
+        ;;
+esac
+
+if [[ "$TEST_CPU" == "False" ]] && \
+    [[ "$TEST_SMART" == "False" ]] && \
+    [[ "$TEST_BADBLOCKS" == "False" ]]; then
+    echo -e "${YELLOW}Aborting HW diagnostics${CLEAR}"
+    exit 1
+fi
+
+# Configure display
+tmux split-window -d -h -l 16 "hw-diags-progress $OUT"
+update_progress
+
+# CPU
+if [[ "$TEST_CPU" == "True" ]]; then
+    clear
+    CPU_ERRORS="False"
+    cpu_result="Working"
+    update_progress
+    apple_fans max
+    (sleep ${TEST_CPU_LENGTH}m && killall -s INT "mprime" >>/dev/null 2>&1) &
+    (sleep ${TEST_CPU_LENGTH}m && killall "hw-diags-sensors" >>/dev/null 2>&1) &
+    (sleep ${TEST_CPU_LENGTH}m && apple_fans auto >>/dev/null 2>&1) &
+    tmux split-window -d -v -l 10 "hw-diags-prime95 $TMP_DIR"
+    hw-diags-sensors "$TMP_DIR" 2>/dev/null
+    sleep 1s
+    # tmux kill-pane -t 1
+    if [[ -f "results.txt" ]]; then
+        mv -nv results.txt "prime-results.txt"
+        if grep -q -iE '(error|fail)' "prime-results.txt"; then
+            cpu_result="NS"
+            CPU_ERRORS="True"
+        else
+            cpu_result="CS"
+        fi
+    elif [[ -f "prime.log" ]]; then
+        if grep -i 'completed' "prime.log" | grep -q -iv '0 errors, 0 warnings'; then
+            cpu_result="NS"
+            CPU_ERRORS="True"
+        else
+            cpu_result="CS"
+        fi
+    else
+        CPU_ERRORS="True"
+        cpu_result="Unknown"
+    fi
+
+    update_progress
+
+    if [[ "$CPU_ERRORS" == "True" ]]; then
+        ERRORS="True"
+    fi
+fi
+
+# SMART
+if [[ "$TEST_SMART" == "True" ]]; then
+    clear
+    echo "Checking SMART status..."
+    for d in "${DRIVES[@]}"; do
+        SMART_ERRORS="False"
+        tmp_device="${d##*/}"
+        eval "${tmp_device}_smart_result=Working"
+        inxi -Dxx | grep "/dev/${tmp_device}" | sed -r "s#.*/dev/${tmp_device} (.*)#  \1#" > "${tmp_device}_report.out"
+        inxi -Dxxc 0 | grep "/dev/${tmp_device}" | sed -r "s#.*/dev/${tmp_device} (.*)#  \1#" > "${tmp_device}_report.log"
+        update_progress
+
+        # Attempt to enable SMART reporting
+        if sudo smartctl -s on "/dev/${tmp_device}" | grep -q 'device lacks SMART capability'; then
+            SMART_ERRORS="True"
+            eval "${tmp_device}_smart_result=Unknown"
+            echo "  ${RED}ERROR: device lacks SMART capability${CLEAR}" >> "${tmp_device}_report.out"
+            echo "  ERROR: device lacks SMART capability" >> "${tmp_device}_report.log"
+            sleep 1s
+        fi
+
+        # Save current SMART values
+        sudo smartctl --all "/dev/${tmp_device}" >> "${tmp_device}-smart.log"
+        sudo smartctl -l error "/dev/${tmp_device}" >> "${tmp_device}-smart-err.log"
+
+        # Check specific SMART results
+        sudo smartctl -A "/dev/${tmp_device}" | grep -E '^\s*(5|9|184|197|198)\s' >> "${tmp_device}-smart-attributes.log"
+
+        #   5 - Reallocated Sectors
+        if grep -qE '^\s*5\s' "${tmp_device}-smart-attributes.log"; then
+            line="$(grep -E '^\s*5\s' "${tmp_device}-smart-attributes.log")"
+            value=$(echo "$line" | sed -r 's/.*\s([0-9]+).*/\1/')
+            echo "  Reallocated Sectors: $value" >> "${tmp_device}_report.log"
+            if [[ "$value" -gt 0 ]]; then
+                SMART_ERRORS="True"
+                echo "  ${RED}Reallocated Sectors: $value${CLEAR}" >> "${tmp_device}_report.out"
+            else
+                echo "  ${GREEN}Reallocated Sectors: $value${CLEAR}" >> "${tmp_device}_report.out"
+            fi
+        fi
+
+        #   9 - Power-on Hours (Warn, but don't prevent badblock scan)
+        if grep -qE '^\s*9\s' "${tmp_device}-smart-attributes.log"; then
+            line="$(grep -E '^\s*9\s' "${tmp_device}-smart-attributes.log")"
+            value=$(echo "$line" | sed -r 's/.*\s([0-9]+).*/\1/')
+            echo "  Power-on Hours: $value" >> "${tmp_device}_report.log"
+            if [[ "$value" -gt 18000 ]]; then
+                #SMART_ERRORS="True"
+                echo "  ${RED}Power-on Hours: $value (VERY OLD)${CLEAR}" >> "${tmp_device}_report.out"
+            elif [[ "$value" -gt 12000 ]]; then
+                echo "  ${YELLOW}Power-on Hours: $value${CLEAR}" >> "${tmp_device}_report.out"
+            else
+                echo "  ${GREEN}Power-on Hours: $value${CLEAR}" >> "${tmp_device}_report.out"
+            fi
+        fi
+
+        # 184 - End-to-End Errors
+        if grep -qE '^\s*184\s' "${tmp_device}-smart-attributes.log"; then
+            line="$(grep -E '^\s*184\s' "${tmp_device}-smart-attributes.log")"
+            value=$(echo "$line" | sed -r 's/.*\s([0-9]+).*/\1/')
+            echo "  End-to-End Errors: $value" >> "${tmp_device}_report.log"
+            if [[ "$value" -gt 0 ]]; then
+                SMART_ERRORS="True"
+                echo "  ${RED}End-to-End Errors: $value${CLEAR}" >> "${tmp_device}_report.out"
+            else
+                echo "  ${GREEN}End-to-End Errors: $value${CLEAR}" >> "${tmp_device}_report.out"
+            fi
+        fi
+
+        # 197 - Current Pending Sectors
+        if grep -qE '^\s*197\s' "${tmp_device}-smart-attributes.log"; then
+            line="$(grep -E '^\s*197\s' "${tmp_device}-smart-attributes.log")"
+            value=$(echo "$line" | sed -r 's/.*\s([0-9]+).*/\1/')
+            echo "  Current Pending Sectors: $value" >> "${tmp_device}_report.log"
+            if [[ "$value" -gt 0 ]]; then
+                SMART_ERRORS="True"
+                echo "  ${RED}Current Pending Sectors: $value${CLEAR}" >> "${tmp_device}_report.out"
+            else
+                echo "  ${GREEN}Current Pending Sectors: $value${CLEAR}" >> "${tmp_device}_report.out"
+            fi
+        fi
+
+        # 198 - Offline Uncorrectable
+        if grep -qE '^\s*198\s' "${tmp_device}-smart-attributes.log"; then
+            line="$(grep -E '^\s*198\s' "${tmp_device}-smart-attributes.log")"
+            value=$(echo "$line" | sed -r 's/.*\s([0-9]+).*/\1/')
+            echo "  Offline Uncorrectable: $value" >> "${tmp_device}_report.log"
+            if [[ "$value" -gt 0 ]]; then
+                SMART_ERRORS="True"
+                echo "  ${RED}Offline Uncorrectable: $value${CLEAR}" >> "${tmp_device}_report.out"
+            else
+                echo "  ${GREEN}Offline Uncorrectable: $value${CLEAR}" >> "${tmp_device}_report.out"
+            fi
+        fi
+
+        if [[ "$SMART_ERRORS" == "False" ]] && [[ "$SKIP_SHORT_TEST" == "False" ]]; then
+            if sudo smartctl -c "/dev/${tmp_device}" >>/dev/null 2>&1; then
+                # Determine short-test polling time
+                wait_time=$(sudo smartctl -c "/dev/${tmp_device}" | grep -i 'polling time' | head -1 | sed -r 's/.*\( *([0-9]+)\).*/\1/')
+                wait_time=$(( wait_time + 5))
+
+                # Run short self-test
+                echo "  Running SMART short self-test ($wait_time minutes)..."
+                sudo smartctl -t short "/dev/${tmp_device}" >/dev/null
+                sleep ${wait_time}m
+                sudo smartctl -l selftest "/dev/${tmp_device}" >> "${tmp_device}-smart-tests.log"
+                if grep '^#' "${tmp_device}-smart-tests.log" | head -1 | grep -iq 'completed without error'; then
+                    echo "  ${GREEN}Self-test: passed${CLEAR}" >> "${tmp_device}_report.out"
+                    echo "  Self-test: passed" >> "${tmp_device}_report.log"
+                else
+                    echo "  ${RED}Self-test: failed${CLEAR}" >> "${tmp_device}_report.out"
+                    echo "  Self-test: failed" >> "${tmp_device}_report.log"
+                    SMART_ERRORS="True"
+                fi
+            else
+                echo "  ${RED}ERROR: Unable to run SMART self-test.${CLEAR}" >> "${tmp_device}_report.out"
+                echo "  ERROR: Unable to run SMART self-test." >> "${tmp_device}_report.log"
+            fi
+        fi
+
+        if [[ "$SMART_ERRORS" == "False" ]]; then
+            eval "${tmp_device}_smart_result=CS"
+        else
+            ERRORS="True"
+            tmp_if="${tmp_device}_smart_result"
+            eval "tmp_if=\$$tmp_if"
+            if [[ "$tmp_if" != "Unknown" ]]; then
+                eval "${tmp_device}_smart_result=NS"
+            fi
+        fi
+
+        update_progress
+    done
+fi
+
+# Badblocks
+if [[ "$TEST_BADBLOCKS" == "True" ]]; then
+    clear
+    for d in "${DRIVES[@]}"; do
+        # Get SMART results
+        tmp_device="${d##*/}"
+        d_smart="${tmp_device}_smart_result"
+        eval "d_smart=\$$d_smart"
+
+        # Check SMART results
+        if [[ "$d_smart" == "NS" ]]; then
+            echo -e "${RED}Skipping drive: $tmp_device${CLEAR}"
+            eval "${tmp_device}_badblocks_result=Skipped"
+        else
+            eval "${tmp_device}_badblocks_result=Working"
+            update_progress
+            echo "Testing drive: ${tmp_device}"
+
+            # Split and run
+            tmux split-window -v -l 7 "hw-diags-badblocks $TMP_DIR /dev/${tmp_device}"
+
+            # Wait until done
+            sleep 2s
+            while pgrep -G 0 -U 0 -f "badblocks.*${tmp_device}" >/dev/null 2>&1; do
+                sleep 1s;
+            done
+            sleep 2s
+
+            # Check log
+            if grep -Eiq 'Pass completed.*0/0/0 errors' "${tmp_device}_badblocks.log"; then
+                eval "${tmp_device}_badblocks_result=CS"
+            else
+                eval "${tmp_device}_badblocks_result=NS"
+            fi
+            update_progress
+        fi
+    done
+fi
+
+# Result Screen
+TEST_OVER="True"
+update_progress
+clear
+echo "─── RESULTS ───"
+if [[ "$TEST_CPU" == "True" ]]; then
+    echo -e "${BLUE}CPU:${CLEAR}"
+    if [[ -f "results.txt" ]]; then
+        echo "results.txt"
+        if grep -q -iE '(error|fail)' "prime-results.txt"; then
+            echo -e "${RED}$(grep -q -iE '(error|fail)' "prime-results.txt" | sed -r 's/^/  /' | tail -4)${CLEAR}"
+        else
+            sed -r 's/^/  /' "prime-results.txt" 2>/dev/null | tail -4
+        fi
+        echo ""
+    fi
+    if [[ -f "prime.log" ]]; then
+        echo "prime.log"
+        if grep -i 'completed' "prime.log" | grep -q -iv '0 errors, 0 warnings'; then
+            echo -e "${RED}$(grep -i 'completed' "prime.log" | grep -iv '0 errors, 0 warnings' | sed -r 's/^/  /' | tail -4)${CLEAR}"
+        else
+            grep -i 'completed' "prime.log" | grep -i '0 errors, 0 warnings' | sed -r 's/^.*(Worker #[0-9]+).*(Torture.*)/  \1 \2/' | tail -4
+        fi
+    fi
+fi
+if [[ "$TEST_SMART" == "True" ]] || \
+   [[ "$TEST_BADBLOCKS" == "True" ]]; then
+    for d in "${DRIVES[@]}"; do
+        echo -e "${BLUE}Drive $d:${CLEAR}"
+        if [[ -f "${d##*/}_report.out" ]]; then
+            echo -e "$(cat "${d##*/}_report.out" 2>/dev/null)"
+        fi
+        if [[ -f "${d##*/}_badblocks.log" ]]; then
+            grep 'Pass completed, ' "${d##*/}_badblocks.log" 2>/dev/null | sed -r 's/^Pass completed, /  /' 2>/dev/null
+        fi
+        echo ""
+    done
+fi
+update_progress
+
+# System info dump
+sudo inxi -CDdGlMmNopRsc 0 | grep -Ev '(/dev/ram|No RAID devices|Display Server|multisession)' > "system_info.txt"
+
+# Cleanup
+mkdir "$HOME/Tickets/$TICKET" -p 2>/dev/null
+rsync -aS --chmod=Du=rwx,Dgo=rx,Fu=rw,Fgo=r "$TMP_DIR/" "$HOME/Tickets/$TICKET/"
+popd >/dev/null
+cd "$HOME/Tickets" && tar czf "${DIAG_UPLOAD_NAME}.tgz" "$TICKET"
+
+# Update Server
+if [[ "$DIAG_SERVER_AVAIL" == "True" ]]; then
+    rsync -aqz --chmod=Du=rwx,Dgo=rx,Fu=rw,Fgo=r "${DIAG_UPLOAD_NAME}.tgz" $DIAG_USER@$DIAG_SERVER:"$DIAG_DEST/"
+fi
+
+# End
+echo -n "Press Enter to exit..."
+read -r
+killall hw-diags-progress >>/dev/null 2>&1
+exit 0

@@ -1,0 +1,10 @@
+#!/bin/bash
+
+XWIDTH="$(xrandr 2>/dev/null | grep '*' | sed -r 's/^\s+([0-9]+)x.*/\1/')"
+XHEIGHT="$(xrandr 2>/dev/null | grep '*' | sed -r 's/^\s+[0-9]+x([0-9]+).*/\1/')"
+
+WIDTH="$(echo "${XWIDTH}*92/1024" | bc)"
+HEIGHT="$(echo "${XHEIGHT}*32/768" | bc)"
+
+sed -i -r "s/(URxvt.geometry:\s+).*/\1${WIDTH}x${HEIGHT}+24+24/" ~/.Xresources
+xrdb -merge ~/.Xresources

@@ -1,0 +1,25 @@
+#!/bin/bash
+#
+## WK HW diagnostics - badblocks
+
+function usage {
+    echo "Usage: $0 log-dir device"
+    echo "  e.g. $0 /tmp/tmp.7Mh5f1RhSL9001 /dev/sda"
+}
+
+# Bail early
+if [ ! -d "$1" ]; then
+    usage
+    exit 1
+fi
+if [ ! -b "$2" ]; then
+    usage
+    exit 1
+fi
+
+# Run Badblocks
+sudo badblocks -sv -e 1 "$2"
+tmux capture-pane
+tmux save-buffer "$1/bb_tmp.out"
+grep -Ev '^$' "$1/bb_tmp.out" > "$1/${2##*/}_badblocks.log"
+rm "$1/bb_tmp.out"

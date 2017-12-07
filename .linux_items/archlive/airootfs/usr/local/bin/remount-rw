@@ -1,0 +1,22 @@
+#!/bin/bash
+#
+## Remount volume read-write
+
+if ! mount | grep -q "$1"; then
+    echo "ERROR: Can't remount $1"
+    sleep 2s
+    exit 1
+fi
+
+DEVICE=$(mount | grep "$1" | cut -d' ' -f1)
+
+echo "Remounting: $DEVICE"
+udevil umount $DEVICE
+if udevil mount $DEVICE; then
+    echo "Done"
+else
+    echo "Failed"
+fi
+
+sleep 2s
+exit 0

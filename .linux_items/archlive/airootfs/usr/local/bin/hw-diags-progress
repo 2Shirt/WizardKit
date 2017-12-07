@@ -1,0 +1,10 @@
+#!/bin/bash
+#
+## WK HW diagnostics - Progress
+
+# Loop forever
+while :; do
+    clear
+    echo -e "$(cat "$1")"
+    sleep 1s
+done
