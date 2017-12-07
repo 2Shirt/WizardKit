@@ -110,6 +110,7 @@ vim
 vpnc
 wd719x-firmware
 wget
+wimlib
 wireless_tools
 wpa_supplicant
 wvdial
