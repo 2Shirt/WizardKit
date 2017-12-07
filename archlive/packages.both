@@ -1,8 +1,9 @@
 arch-install-scripts
+aic94xx-firmware
 alsa-utils
 antiword
 arc-icon-theme-git
-b43-fwcutter
+b43-firmware
 btrfs-progs
 chntpw
 clonezilla
@@ -40,6 +41,7 @@ hdparm
 hexedit
 hfsprogs
 htop
+ifplugd
 inxi
 ipw2100-fw
 ipw2200-fw
@@ -49,6 +51,7 @@ lftp
 libewf
 librsvg
 linux-atm
+linux-firmware
 lm_sensors
 lsscsi
 mc
@@ -64,19 +67,15 @@ mtools
 mupdf
 ncdu
 ndisc6
-network-manager-applet
-networkmanager
 nfs-utils
 nilfs-utils
 nmap
-nodm
 noto-fonts
 ntfs-3g
 ntp
 numix-circle-icon-theme-git
 openconnect
 openssh
-openvpn
 p7zip
 partclone
 parted
@@ -109,9 +108,9 @@ unzip
 usb_modeswitch
 vim
 vpnc
+wd719x-firmware
 wget
 wireless_tools
-wpa_actiond
 wpa_supplicant
 wvdial
 xf86-input-synaptics

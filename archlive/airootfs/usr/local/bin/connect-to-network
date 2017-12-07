@@ -12,8 +12,8 @@ die () {
 }
 
 # Load settings
-if [[ -f "/run/archiso/bootmnt/arch/arch.conf" ]]; then
-    source "/run/archiso/bootmnt/arch/arch.conf" || \
+if [[ -f "/run/archiso/bootmnt/config/arch.conf" ]]; then
+    source "/run/archiso/bootmnt/config/arch.conf" || \
         die "ERROR: ARCH_WK media may be damaged. Please reboot or try another UFD"
 else
     source "/usr/local/bin/arch.conf" || \
@@ -48,7 +48,7 @@ if ! ip a | grep -Eq '(192.168|10.[0-9]+).[0-9]+.[0-9]+'; then
         ## Skip if we're already connected (i.e. the code above worked)
         if ! ip a | grep -Eq '(192.168|10.[0-9]+).[0-9]+.[0-9]+'; then
             echo "Attempting to connect to ${WIFI_SSID}..."
-            nmcli dev wifi con "${WIFI_SSID}" password "${WIFI_PASS}"
+            netctl start wireless
             sleep 5s
         fi
     fi

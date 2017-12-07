@@ -1,0 +1,6 @@
+Description='A wpa_supplicant configuration file based wireless connection'
+Interface=wl-any
+Connection=wireless
+Security=wpa-config
+WPAConfigFile='/run/archiso/bootmnt/config/wifi.conf'
+IP=dhcp

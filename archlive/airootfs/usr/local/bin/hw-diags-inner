@@ -8,8 +8,8 @@ die () {
 }
 
 # Load settings
-if [[ -f "/run/archiso/bootmnt/arch/arch.conf" ]]; then
-    source "/run/archiso/bootmnt/arch/arch.conf" || \
+if [[ -f "/run/archiso/bootmnt/config/arch.conf" ]]; then
+    source "/run/archiso/bootmnt/config/arch.conf" || \
         die "ERROR: ARCH_WK media may be damaged. Please reboot or try another UFD"
 else
     source "/usr/local/bin/arch.conf" || \
@@ -288,9 +288,9 @@ fi
 # SMART
 if [[ "$TEST_SMART" == "True" ]]; then
     clear
-    SMART_ERRORS="False"
     echo "Checking SMART status..."
     for d in "${DRIVES[@]}"; do
+        SMART_ERRORS="False"
         tmp_device="${d##*/}"
         eval "${tmp_device}_smart_result=Working"
         inxi -Dxx | grep "/dev/${tmp_device}" | sed -r "s#.*/dev/${tmp_device} (.*)#  \1#" > "${tmp_device}_report.out"

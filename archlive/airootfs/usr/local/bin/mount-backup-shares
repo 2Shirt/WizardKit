@@ -8,8 +8,8 @@ die () {
 }
 
 # Load settings
-if [[ -f "/run/archiso/bootmnt/arch/arch.conf" ]]; then
-    source "/run/archiso/bootmnt/arch/arch.conf" || \
+if [[ -f "/run/archiso/bootmnt/config/arch.conf" ]]; then
+    source "/run/archiso/bootmnt/config/arch.conf" || \
         die "ERROR: ARCH_WK media may be damaged. Please reboot or try another UFD"
 else
     source "/usr/local/bin/arch.conf" || \

@@ -30,7 +30,8 @@
     <property name="LaunchGNOME" type="bool" value="true"/>
   </property>
   <property name="shutdown" type="empty">
-    <property name="ShowSuspend" type="bool" value="false"/>
     <property name="ShowHibernate" type="bool" value="false"/>
+    <property name="ShowLogout" type="bool" value="false"/>
+    <property name="ShowSuspend" type="bool" value="false"/>
   </property>
 </channel>

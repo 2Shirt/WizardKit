@@ -21,7 +21,7 @@ echo "root:Abracadabra" | chpasswd
 groupadd -r autologin
 
 # Add wktech user
-useradd -m -s /bin/zsh -G autologin,storage,wheel -U wktech
+useradd -m -s /bin/zsh -G autologin,power,storage,wheel -U wktech
 echo "wktech:Abracadabra" | chpasswd
 
 # Enable sudo for %wheel
@@ -42,6 +42,24 @@ sed -i 's/#\(HandleSuspendKey=\)suspend/\1ignore/' /etc/systemd/logind.conf
 sed -i 's/#\(HandleHibernateKey=\)hibernate/\1ignore/' /etc/systemd/logind.conf
 sed -i 's/#\(HandleLidSwitch=\)suspend/\1ignore/' /etc/systemd/logind.conf
 
+# DNS Settings
+#echo "nameserver 8.8.8.8" > /etc/resolv.conf
+#echo "nameserver 8.8.4.4" >> /etc/resolv.conf
+#echo "nameserver 2001:4860:4860::8888" >> /etc/resolv.conf
+#echo "nameserver 2001:4860:4860::8844" >> /etc/resolv.conf
+#echo "nameserver 208.67.222.222" >> /etc/resolv.conf
+#echo "nameserver 208.67.220.220" >> /etc/resolv.conf
+#echo "nameserver 2620:0:ccc::2" >> /etc/resolv.conf
+#echo "nameserver 2620:0:ccd::2" >> /etc/resolv.conf
+
 # Startup settings
-#systemctl set-default multi-user.target
-systemctl set-default graphical.target
+systemctl set-default multi-user.target
+#systemctl set-default graphical.target
+
+# archiso cleanup
+for file in /etc/systemd/system/{pacman-init.service,etc-pacman.d-gnupg.mount} /etc/systemd/scripts/choose-mirror /etc/udev/rules.d/81-dhcpcd.rules /etc/initcpio; do
+    if [ -e "$file" ]; then
+        rm "$file" -R
+    fi
+done
+
