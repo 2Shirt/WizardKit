@@ -1,9 +1,9 @@
 #!/bin/bash
-
+#/srv/ArchBuilds
 # Set Vars
-LOG_DIR="/ArchBuilds/BuildLogs"
-OUT_DIR="/ArchBuilds"
-TMP_DIR="/ScratchDir"
+LOG_DIR="/srv/ArchBuilds/BuildLogs"
+OUT_DIR="/srv/ArchBuilds/isos"
+TMP_DIR="/srv/ScratchDir"
 DATE="$(date +%F)"
 DATETIME="$(date +%F_%H%M)"
 
@@ -16,6 +16,11 @@ fi
 # Set permissions
 echo "Setting permissions..."
 chown root.root archlive -R
+
+# Modify build.sh
+if ! grep -iq 'customize_iso' archlive/build.sh; then
+    sed -ir 's!run_once make_iso!# customize_iso\ncp -a ${script_path}/extra/* ${work_dir}/iso/\n\nrun_once make_iso!' archlive/build.sh
+fi
 
 # Build ISO
 mkdir $LOG_DIR

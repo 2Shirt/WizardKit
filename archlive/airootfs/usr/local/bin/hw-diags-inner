@@ -97,7 +97,7 @@ function update_progress {
     echo "${BLUE}HW  Diagnostics${CLEAR}" > "$OUT"
     echo "───────────────" >> "$LOG"
     echo "───────────────" >> "$OUT"
-    
+
     if [[ "$TEST_CPU" == "True" ]]; then
         echo "" >> "$LOG"
         echo "" >> "$OUT"
@@ -115,7 +115,7 @@ function update_progress {
             echo "${BLUE}Prime95${CLEAR}      ${RED}NS${CLEAR}" >> "$OUT"
         fi
     fi
-    
+
     if [[ "$TEST_SMART" == "True" ]]; then
         echo "" >> "$LOG"
         echo "" >> "$OUT"
@@ -147,7 +147,7 @@ function update_progress {
             fi
         done
     fi
-    
+
     if [[ "$TEST_BADBLOCKS" == "True" ]]; then
         echo "" >> "$LOG"
         echo "" >> "$OUT"
@@ -174,13 +174,13 @@ function update_progress {
             fi
         done
     fi
-    
+
     if [[ "$TEST_OVER" == "True" ]]; then
         echo "" >> "$LOG"
         echo "" >> "$OUT"
         echo "───────────────" >> "$LOG"
         echo "───────────────" >> "$OUT"
-        
+
         if [[ "$ERRORS" == "True" ]]; then
             echo "HW:    Error(s)" >> "$LOG"
             echo "${RED}HW:    Error(s)${CLEAR}" >> "$OUT"
@@ -189,7 +189,7 @@ function update_progress {
             echo "${GREEN}HW:      Passed${CLEAR}" >> "$OUT"
         fi
     fi
-    
+
     # Update Server
     if [[ "$DIAG_SERVER_AVAIL" == "True" ]]; then
         rsync -aqz --chmod=Du=rwx,Dgo=rx,Fu=rw,Fgo=r "$TMP_DIR/" $DIAG_USER@$DIAG_SERVER:"$DIAG_DEST/${DIAG_UPLOAD_NAME}/" --exclude '*.out'
@@ -248,8 +248,10 @@ if [[ "$TEST_CPU" == "True" ]]; then
     CPU_ERRORS="False"
     cpu_result="Working"
     update_progress
+    apple_fans max
     (sleep ${TEST_CPU_LENGTH}m && killall -s INT "mprime" >>/dev/null 2>&1) &
     (sleep ${TEST_CPU_LENGTH}m && killall "hw-diags-sensors" >>/dev/null 2>&1) &
+    (sleep ${TEST_CPU_LENGTH}m && apple_fans auto >>/dev/null 2>&1) &
     tmux split-window -d -v -l 10 "hw-diags-prime95 $TMP_DIR"
     hw-diags-sensors "$TMP_DIR" 2>/dev/null
     sleep 1s
@@ -273,9 +275,9 @@ if [[ "$TEST_CPU" == "True" ]]; then
         CPU_ERRORS="True"
         cpu_result="Unknown"
     fi
-    
+
     update_progress
-    
+
     if [[ "$CPU_ERRORS" == "True" ]]; then
         ERRORS="True"
     fi
@@ -292,7 +294,7 @@ if [[ "$TEST_SMART" == "True" ]]; then
         inxi -Dxx | grep "/dev/${tmp_device}" | sed -r "s#.*/dev/${tmp_device} (.*)#  \1#" > "${tmp_device}_report.out"
         inxi -Dxxc 0 | grep "/dev/${tmp_device}" | sed -r "s#.*/dev/${tmp_device} (.*)#  \1#" > "${tmp_device}_report.log"
         update_progress
-        
+
         # Attempt to enable SMART reporting
         if sudo smartctl -s on "/dev/${tmp_device}" | grep -q 'device lacks SMART capability'; then
             SMART_ERRORS="True"
@@ -301,14 +303,14 @@ if [[ "$TEST_SMART" == "True" ]]; then
             echo "  ERROR: device lacks SMART capability" >> "${tmp_device}_report.log"
             sleep 1s
         fi
-        
+
         # Save current SMART values
         sudo smartctl --all "/dev/${tmp_device}" >> "${tmp_device}-smart.log"
         sudo smartctl -l error "/dev/${tmp_device}" >> "${tmp_device}-smart-err.log"
-        
+
         # Check specific SMART results
         sudo smartctl -A "/dev/${tmp_device}" | grep -E '^\s*(5|9|184|197|198)\s' >> "${tmp_device}-smart-attributes.log"
-        
+
         #   5 - Reallocated Sectors
         if grep -qE '^\s*5\s' "${tmp_device}-smart-attributes.log"; then
             line="$(grep -E '^\s*5\s' "${tmp_device}-smart-attributes.log")"
@@ -321,7 +323,7 @@ if [[ "$TEST_SMART" == "True" ]]; then
                 echo "  ${GREEN}Reallocated Sectors: $value${CLEAR}" >> "${tmp_device}_report.out"
             fi
         fi
-        
+
         #   9 - Power-on Hours (Warn, but don't prevent badblock scan)
         if grep -qE '^\s*9\s' "${tmp_device}-smart-attributes.log"; then
             line="$(grep -E '^\s*9\s' "${tmp_device}-smart-attributes.log")"
@@ -336,7 +338,7 @@ if [[ "$TEST_SMART" == "True" ]]; then
                 echo "  ${GREEN}Power-on Hours: $value${CLEAR}" >> "${tmp_device}_report.out"
             fi
         fi
-        
+
         # 184 - End-to-End Errors
         if grep -qE '^\s*184\s' "${tmp_device}-smart-attributes.log"; then
             line="$(grep -E '^\s*184\s' "${tmp_device}-smart-attributes.log")"
@@ -349,7 +351,7 @@ if [[ "$TEST_SMART" == "True" ]]; then
                 echo "  ${GREEN}End-to-End Errors: $value${CLEAR}" >> "${tmp_device}_report.out"
             fi
         fi
-        
+
         # 197 - Current Pending Sectors
         if grep -qE '^\s*197\s' "${tmp_device}-smart-attributes.log"; then
             line="$(grep -E '^\s*197\s' "${tmp_device}-smart-attributes.log")"
@@ -362,7 +364,7 @@ if [[ "$TEST_SMART" == "True" ]]; then
                 echo "  ${GREEN}Current Pending Sectors: $value${CLEAR}" >> "${tmp_device}_report.out"
             fi
         fi
-        
+
         # 198 - Offline Uncorrectable
         if grep -qE '^\s*198\s' "${tmp_device}-smart-attributes.log"; then
             line="$(grep -E '^\s*198\s' "${tmp_device}-smart-attributes.log")"
@@ -375,13 +377,13 @@ if [[ "$TEST_SMART" == "True" ]]; then
                 echo "  ${GREEN}Offline Uncorrectable: $value${CLEAR}" >> "${tmp_device}_report.out"
             fi
         fi
-        
+
         if [[ "$SMART_ERRORS" == "False" ]] && [[ "$SKIP_SHORT_TEST" == "False" ]]; then
             if sudo smartctl -c "/dev/${tmp_device}" >>/dev/null 2>&1; then
                 # Determine short-test polling time
                 wait_time=$(sudo smartctl -c "/dev/${tmp_device}" | grep -i 'polling time' | head -1 | sed -r 's/.*\( *([0-9]+)\).*/\1/')
                 wait_time=$(( wait_time + 5))
-                
+
                 # Run short self-test
                 echo "  Running SMART short self-test ($wait_time minutes)..."
                 sudo smartctl -t short "/dev/${tmp_device}" >/dev/null
@@ -400,7 +402,7 @@ if [[ "$TEST_SMART" == "True" ]]; then
                 echo "  ERROR: Unable to run SMART self-test." >> "${tmp_device}_report.log"
             fi
         fi
-        
+
         if [[ "$SMART_ERRORS" == "False" ]]; then
             eval "${tmp_device}_smart_result=CS"
         else
@@ -411,7 +413,7 @@ if [[ "$TEST_SMART" == "True" ]]; then
                 eval "${tmp_device}_smart_result=NS"
             fi
         fi
-        
+
         update_progress
     done
 fi
@@ -424,7 +426,7 @@ if [[ "$TEST_BADBLOCKS" == "True" ]]; then
         tmp_device="${d##*/}"
         d_smart="${tmp_device}_smart_result"
         eval "d_smart=\$$d_smart"
-        
+
         # Check SMART results
         if [[ "$d_smart" == "NS" ]]; then
             echo -e "${RED}Skipping drive: $tmp_device${CLEAR}"
@@ -433,17 +435,17 @@ if [[ "$TEST_BADBLOCKS" == "True" ]]; then
             eval "${tmp_device}_badblocks_result=Working"
             update_progress
             echo "Testing drive: ${tmp_device}"
-            
+
             # Split and run
             tmux split-window -v -l 7 "hw-diags-badblocks $TMP_DIR /dev/${tmp_device}"
-            
+
             # Wait until done
             sleep 2s
             while pgrep -G 0 -U 0 -f "badblocks.*${tmp_device}" >/dev/null 2>&1; do
                 sleep 1s;
             done
             sleep 2s
-            
+
             # Check log
             if grep -Eiq 'Pass completed.*0/0/0 errors' "${tmp_device}_badblocks.log"; then
                 eval "${tmp_device}_badblocks_result=CS"

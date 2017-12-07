@@ -5,5 +5,5 @@ Some common commands:
 [34m%[0m hw-info
 [34m%[0m mount-all-volumes
 [34m%[0m mount-backup-shares
-[34m%[0m start-wifi
+[34m%[0m connect-to-network
 

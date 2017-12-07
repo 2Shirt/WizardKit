@@ -10,4 +10,15 @@
 	<startup-notify/>
 	<directories/>
 </action>
+<action>
+	<icon>edit-redo-symbolic</icon>
+	<name>Remount Read-Write</name>
+	<unique-id>1497008558378216-3</unique-id>
+	<command>urxvt -T &quot;Mount Tool&quot; -e remount-rw %f</command>
+	<description>Remount Read-Write</description>
+	<patterns>*</patterns>
+	<startup-notify/>
+	<directories/>
+</action>
 </actions>
+

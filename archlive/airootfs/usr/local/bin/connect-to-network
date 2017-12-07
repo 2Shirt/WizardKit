@@ -49,7 +49,7 @@ if ! test_connection; then
         ## Skip if we're already connected (i.e. the code above worked)
         if ! test_connection; then
             echo "Attempting to connect to ${WIFI_SSID}..."
-            sudo start-wifi
+            nmcli dev wifi connect "${WIFI_SSID}" password "${WIFI_PASS}"
             sleep 5s
         fi
     fi

@@ -1,0 +1,17 @@
+#!/bin/bash
+#
+# Symlink all packages from ~/.cache/pacaur and rebuild repo database
+
+pushd i686
+rm *pkg.tar.xz
+cp -ans $HOME/.cache/pacaur/*/*pkg.tar.xz ./
+rm *x86_64*
+for p in *pkg.tar.xz; do repo-add customrepo.db.tar.gz $p; done
+popd
+
+pushd x86_64
+rm *pkg.tar.xz
+cp -ans $HOME/.cache/pacaur/*/*pkg.tar.xz ./
+rm *i686*
+for p in *pkg.tar.xz; do repo-add customrepo.db.tar.gz $p; done
+popd

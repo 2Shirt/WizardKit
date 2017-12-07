@@ -2,14 +2,6 @@
 #
 ## Mount all volumes read-only
 
-# Fix issue where first device is mounted under /media/wktech/
-udevil mount tmpfs >/dev/null 2>&1
-udevil umount /media/wktech/tmpfs >/dev/null 2>&1
-udevil umount /media/tmpfs >/dev/null 2>&1
-sleep 1s
-sudo rmdir /media/wktech/* -p >/dev/null 2>&1
-sudo rmdir /media/* -p >/dev/null 2>&1
-
 # Mount all volumes
 echo "Mounting all volumes"
 regex="/dev/((h|s)d[a-z]|md)[0-9]+"
@@ -27,4 +19,10 @@ for volume in $(inxi -Dopxx | grep -E "$regex" | sed -r "s#.*($regex).*#\1#" | s
         fi
     fi
 done
+
+# Open folder?
+if echo "$0" | grep -iq foh; then
+    thunar /media
+fi
+
 echo "Done."

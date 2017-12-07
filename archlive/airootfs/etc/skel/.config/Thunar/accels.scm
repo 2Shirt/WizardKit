@@ -69,3 +69,5 @@
 ; (gtk_accel_path "<Actions>/ThunarWindow/view-statusbar" "")
 ; (gtk_accel_path "<Actions>/ThunarWindow/show-hidden" "<Primary>h")
 ; (gtk_accel_path "<Actions>/ThunarWindow/view-as-detailed-list" "<Primary>2")
+; (gtk_accel_path "<Actions>/ThunarActions/uca-action-1497008558378216-3" "")
+

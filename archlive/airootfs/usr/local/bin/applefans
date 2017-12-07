@@ -1,0 +1,37 @@
+#!/bin/bash
+#
+## HW diagnostics - Prime95
+
+SMCPATH="/sys/devices/platform/applesmc.768"
+SET_MAX="True"
+
+function usage {
+    echo "Usage: $0 auto|max"
+    echo "  e.g. $0 max"
+}
+
+# Set mode
+case $1 in
+    auto)
+        SET_MAX="False";;
+    max)
+        SET_MAX="True";;
+    *)
+        usage
+        exit 1;;
+esac
+
+if [[ -e "$SMCPATH" ]]; then
+    if [[ "$SET_MAX" == "True" ]]; then
+        # Set fans to max RPM
+        for fan in $SMCPATH/fan*max; do
+            echo '1' | sudo tee ${fan:0:-4}_manual > /dev/null
+            cat $fan | sudo tee ${fan:0:-4}_output > /dev/null
+        done
+    else
+        # Set fans to auto
+        for fan in $SMCPATH/fan*manual; do
+            echo '0' | sudo tee $fan > /dev/null
+        done
+    fi
+fi
