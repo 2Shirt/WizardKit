@@ -1,5 +1,5 @@
-favorites=exo-file-manager.desktop,gparted.desktop,gsmartcontrol.desktop,truecrypt.desktop,exo-web-browser.desktop
-recent=xfce4-settings-editor.desktop,xfce-session-settings.desktop,xfce-workspaces-settings.desktop,gsmartcontrol.desktop,gparted.desktop,gksu-properties.desktop,xfce-keyboard-settings.desktop,xfce-backdrop-settings.desktop,truecrypt.desktop,exo-web-browser.desktop
+favorites=exo-file-manager.desktop,hwdiags.desktop,gparted.desktop,gsmartcontrol.desktop,truecrypt.desktop,speedtest.desktop,exo-web-browser.desktop
+recent=exo-web-browser.desktop
 button-title=Applications
 button-icon=desktop-environment-xfce
 button-single-row=false

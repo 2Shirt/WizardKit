@@ -14,18 +14,18 @@ ln -sf /usr/share/zoneinfo/America/Los_Angeles /etc/localtime
 # root user settings
 usermod -s /usr/bin/zsh root
 cp -aT /etc/skel/ /root/
-rm /root/.zlogin
 chmod 700 /root
+echo "root:Abracadabra" | chpasswd
+
+# Add autologin group
+groupadd -r autologin
 
 # Add wktech user
-useradd -m -s /bin/zsh -G wheel -U wktech
+useradd -m -s /bin/zsh -G autologin,storage,wheel -U wktech
 echo "wktech:Abracadabra" | chpasswd
 
 # Enable sudo for %wheel
-echo '%wheel ALL=(ALL) ALL' >> /etc/sudoers
-
-# Enable firewall
-ufw enable
+echo '%wheel ALL=(ALL) NOPASSWD: ALL' >> /etc/sudoers
 
 # Set pacman mirrorlist
 echo 'Server = http://arch.localmsp.org/arch/$repo/os/$arch' > /etc/pacman.d/mirrorlist
@@ -44,5 +44,5 @@ sed -i 's/#\(HandleLidSwitch=\)suspend/\1ignore/' /etc/systemd/logind.conf
 
 # Startup settings (from archiso)
 systemctl enable pacman-init.service choose-mirror.service
-systemctl enable NetworkManager.service
-systemctl set-default multi-user.target
+#systemctl set-default multi-user.target
+systemctl set-default graphical.target

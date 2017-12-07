@@ -152,10 +152,12 @@ Down:  ${downspeed}${goto 115}Up:${alignr}${upspeed}
 
 ${alignc}S H O R T C U T    K E Y S
 ${hr}
-[Win] + d${alignr}HW Diagnostics
-[Win] + f${alignr}File Manager
-[Win] + h${alignr}Task Manager
-[Win] + r${alignr}Run Dialog
-[Win] + t${alignr}Terminal
-[Win] + w${alignr}Web Browser
-[Win] + x${alignr}Logout
+[Super] + d${alignr}HW Diagnostics
+[Super] + f${alignr}File Manager
+[Super] + h${alignr}Task Manager
+[Super] + m${alignr}Mount Volumes
+[Super] + r${alignr}Run Dialog
+[Super] + s${alignr}SMART Check
+[Super] + t${alignr}Terminal
+[Super] + w${alignr}Web Browser
+[Super] + x${alignr}Logout

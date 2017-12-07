@@ -1,0 +1,5 @@
+#!/bin/bash
+
+sleep 1s
+nmcli dev wifi con "SomeWiFi" password "Abracadabra"
+

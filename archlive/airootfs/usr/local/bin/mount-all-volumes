@@ -1,0 +1,14 @@
+#!/bin/bash
+#
+## Mount all volumes read-only
+
+echo "Mounting all volumes"
+regex="/dev/((h|s)d[a-z]|md)[0-9]+"
+for v in $(inxi -Do | grep -E "$regex" | sed -r "s#.*($regex).*#\1#"); do
+    echo -n "  $v: "
+    if udevil mount -o ro $v >>/dev/null 2>&1; then
+        echo "Mounted."
+    else
+        echo "Failed to mount."
+    fi
+done

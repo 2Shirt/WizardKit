@@ -1,0 +1,30 @@
+#!/bin/bash
+
+IFS=$'\n'
+for s in $*; do
+    REGEX="$s"
+    REGEX=$(echo "$REGEX" | sed -r 's/\s+/\\s\*/g')
+    
+    # Word Doc
+    for d in *doc; do
+        if antiword "$d" | grep -iqsP "($REGEX)"; then
+            echo "Possible match: $d"
+            echo "$d" >> msword.tmp
+        fi
+    done
+    
+    # Word Docx
+    for d in *docx; do
+        if unzip -p "$d" word/document.xml | grep -iqsP "($REGEX)"; then
+            echo "Possible match: $d"
+            echo "$d" >> msword.tmp
+        fi
+    done
+
+done
+
+# Cleanup results
+if [[ -f msword.tmp ]]; then
+    sort -u msword.tmp >> msword-matches.txt
+fi
+

@@ -46,7 +46,10 @@
       <property name="&lt;Super&gt;f" type="string" value="exo-open --launch FileManager /home/wktech">
         <property name="startup-notify" type="bool" value="true"/>
       </property>
-      <property name="&lt;Super&gt;d" type="string" value="xfce4-terminal -T &quot;Hardware Diagnostics&quot; -H -I xcos -x hw-diags"/>
+      <property name="&lt;Super&gt;m" type="string" value="urxvt -title &quot;Mount all Volumes&quot; -e mount-all-volumes"/>
+      <property name="&lt;Super&gt;d" type="string" value="urxvt -title &quot;Hardware Diagnostics&quot; -e hw-diags"/>
+      <property name="&lt;Super&gt;s" type="string" value="urxvt -title &quot;Hardware Diagnostics - FoH&quot; -e hw-diags foh"/>
+      <property name="&lt;Primary&gt;Escape" type="string" value="xfce4-popup-whiskermenu"/>
     </property>
   </property>
   <property name="xfwm4" type="empty">
