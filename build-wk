@@ -1,13 +1,31 @@
 #!/bin/bash
 
 # Set Vars
-TMP_DIR="$(pwd)/wk_tmp"
-OUT_DIR="$TMP_DIR/out"
+LOG_DIR="/$HOME/ArchBuilds/BuildLogs"
+OUT_DIR="/$HOME/ArchBuilds"
+TMP_DIR="/$HOME/TMP_WK_ARCH"
+DATE="$(date +%F)"
+DATETIME="$(date +%F_%H%M)"
+
+# Ensure that we're running with root privileges
+if [[ "$EUID" -ne 0 ]]; then
+    echo "Please run with root permissions (i.e. sudo $0)"
+    exit
+fi
+
+# Set permissions
+echo "Setting permissions..."
+chown root.root archlive -R
 
 # Build ISO
-mkdir $TMP_DIR
+mkdir $LOG_DIR
 mkdir $OUT_DIR
-./archlive/build.sh -N "arch-wk" -V "$(date +%F)" -L "ARCH_WK" -w "$TMP_DIR" -o "$OUT_DIR" -v
+mkdir $TMP_DIR
+./archlive/build.sh -N "wk-arch" -V "$DATE" -L "WK_ARCH" -w "$TMP_DIR" -o "$OUT_DIR" -v | tee -a "$LOG_DIR/$DATETIME.log"
 
 # Cleanup
-mv --backup=t -v "$OUT_DIR"/*iso "$HOME/" && rm "$TMP_DIR" -Rf
+echo "Removing temp files..."
+rm "$TMP_DIR" -Rf | tee -a "$LOG_DIR/$DATETIME.log"
+
+echo "Reverting permissions..."
+chown builduser.builduser archlive -R

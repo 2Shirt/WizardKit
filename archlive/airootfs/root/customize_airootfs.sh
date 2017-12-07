@@ -2,18 +2,23 @@
 
 set -e -u
 
-# Locale
+# Set hostname
+echo "wk-arch" > /etc/hostname
+echo "127.0.1.1      wk-arch.localdomain     wk-arch" >> /etc/hosts
+
+# Set locale
 sed -i 's/#\(en_US\.UTF-8\)/\1/' /etc/locale.gen
 locale-gen
 
 # Time Settings
 ln -sf /usr/share/zoneinfo/America/Los_Angeles /etc/localtime
-#sed -i 's/#FallbackNTP/NTP/' /etc/systemd/timesyncd.conf
+sed -i 's/#FallbackNTP/NTP/' /etc/systemd/timesyncd.conf
 #timedatectl set-ntp true
 
 # root user settings
 usermod -s /usr/bin/zsh root
 cp -aT /etc/skel/ /root/
+rm /root/.zlogin
 chmod 700 /root
 echo "root:Abracadabra" | chpasswd
 
@@ -27,12 +32,16 @@ echo "wktech:Abracadabra" | chpasswd
 # Enable sudo for %wheel
 echo '%wheel ALL=(ALL) NOPASSWD: ALL' >> /etc/sudoers
 
-# Set pacman mirrorlist
-echo 'Server = http://arch.localmsp.org/arch/$repo/os/$arch' > /etc/pacman.d/mirrorlist
-echo 'Server = http://arch.mirrors.ionfish.org/$repo/os/$arch' >> /etc/pacman.d/mirrorlist
-echo 'Server = http://lug.mtu.edu/archlinux/$repo/os/$arch' >> /etc/pacman.d/mirrorlist
-echo 'Server = http://mirror.rit.edu/archlinux/$repo/os/$arch' >> /etc/pacman.d/mirrorlist
-echo 'Server = http://mirror.us.leaseweb.net/archlinux/$repo/os/$arch' >> /etc/pacman.d/mirrorlist
+# Set mirrorlist. Process:
+##  Replace newlines with ~ to treat as single line
+##  Uncomment all US mirrors
+##  Resetore newlines
+##  Rank mirrors to only use the top 10 mirrors
+mv -b /etc/pacman.d/mirrorlist /etc/pacman.d/mirrorlist.bak
+tmp_file="$(mktemp)"
+tr '\n' '~' < /etc/pacman.d/mirrorlist.bak | sed -r 's/([0-1]\.[0-9], United States)~#/\1~/g' | tr '~' '\n' > "$tmp_file"
+rankmirrors -n 10 "$tmp_file" | egrep '^S' > /etc/pacman.d/mirrorlist
+rm -v "$tmp_file"
 
 # journald settings (from archiso)
 sed -i 's/#\(Storage=\)auto/\1volatile/' /etc/systemd/journald.conf
@@ -42,24 +51,5 @@ sed -i 's/#\(HandleSuspendKey=\)suspend/\1ignore/' /etc/systemd/logind.conf
 sed -i 's/#\(HandleHibernateKey=\)hibernate/\1ignore/' /etc/systemd/logind.conf
 sed -i 's/#\(HandleLidSwitch=\)suspend/\1ignore/' /etc/systemd/logind.conf
 
-# DNS Settings
-#echo "nameserver 8.8.8.8" > /etc/resolv.conf
-#echo "nameserver 8.8.4.4" >> /etc/resolv.conf
-#echo "nameserver 2001:4860:4860::8888" >> /etc/resolv.conf
-#echo "nameserver 2001:4860:4860::8844" >> /etc/resolv.conf
-#echo "nameserver 208.67.222.222" >> /etc/resolv.conf
-#echo "nameserver 208.67.220.220" >> /etc/resolv.conf
-#echo "nameserver 2620:0:ccc::2" >> /etc/resolv.conf
-#echo "nameserver 2620:0:ccd::2" >> /etc/resolv.conf
-
-# Startup settings
-systemctl set-default multi-user.target
-#systemctl set-default graphical.target
-
-# archiso cleanup
-for file in /etc/systemd/system/{pacman-init.service,etc-pacman.d-gnupg.mount} /etc/systemd/scripts/choose-mirror /etc/udev/rules.d/81-dhcpcd.rules /etc/initcpio; do
-    if [ -e "$file" ]; then
-        rm "$file" -R
-    fi
-done
-
+#systemctl enable pacman-init.service choose-mirror.service
+systemctl set-default graphical.target

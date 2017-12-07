@@ -1,0 +1,23 @@
+#!/bin/bash
+
+UFD_PATH="/run/archiso/bootmnt/config/"
+WALLPAPER="/usr/share/wallpaper/current.png"
+
+function link_wall() {
+    sudo rm "$WALLPAPER"
+    sudo ls -s "$UFD_PATH/Arch.png" "$WALLPAPER"
+}
+
+# Check for UFD source
+if [[ -f "$UFD_PATH/Arch.png" ]]; then
+    link_wall "$UFD_PATH/Arch.png"
+elif [[ -f "$UFD_PATH/Arch.jpg" ]]; then
+    link_wall "$UFD_PATH/Arch.jpg"
+fi
+
+# Update Xfce4 (mostly redundant, but will catch multi-display setups)
+for monitor in monitor{0..2}; do
+    for workspace in workspace{0..3}; do
+        xfconf-query -c xfce4-desktop -p /backdrop/screen0/$monitor/$workspace/last-image -s "$WALLPAPER" 2>/dev/null
+    done
+done

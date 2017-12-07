@@ -1,0 +1,55 @@
+#!/bin/bash
+#
+## Creates network configs for all WLAN adapters
+
+
+die () {
+    echo "$0:" "$@" >&2
+    exit 1
+}
+
+# Load settings
+if [[ -f "/run/archiso/bootmnt/config/arch.conf" ]]; then
+    source "/run/archiso/bootmnt/config/arch.conf" || \
+        die "ERROR: WK_ARCH media may be damaged. Please reboot or try another UFD"
+else
+    source "/usr/local/bin/arch.conf" || \
+        die "ERROR: WK_ARCH media may be damaged. Please reboot or try another UFD"
+fi
+
+# Init
+WIFI_SSID="${WIFI_SSID}"
+WIFI_PASS="${WIFI_PASS}"
+metric_value=20
+
+# Add WLAN cards to config
+for d in /sys/class/net/wl*; do
+    device="$(basename $d)"
+    # Create networkd entry
+    echo "[Match]" > /etc/systemd/network/$device.network
+    echo "Name=$device" >> /etc/systemd/network/$device.network
+    echo "" >> /etc/systemd/network/$device.network
+    echo "[Network]" >> /etc/systemd/network/$device.network
+    echo "DHCP=yes" >> /etc/systemd/network/$device.network
+    echo "" >> /etc/systemd/network/$device.network
+    echo "[DHCP]" >> /etc/systemd/network/$device.network
+    echo "RouteMetric=$metric_value" >> /etc/systemd/network/$device.network
+    metric_value=$((metric_value+1))
+
+    # Create wpa_supplicant entry
+    if [[ -f "/run/archiso/bootmnt/config/wifi.conf" ]]; then
+        cp -f "/run/archiso/bootmnt/config/wifi.conf" "/etc/wpa_supplicant/wpa_supplicant-$device.conf"
+    elif [[ -f "/usr/local/bin/arch.conf" ]]; then
+        cp -f "/usr/local/bin/arch.conf" "/etc/wpa_supplicant/wpa_supplicant-$device.conf"
+    else
+        die "ERROR: WK_ARCH media may be damaged. Please reboot or try another UFD"
+    fi
+done
+
+# Enable WLAN devices
+systemctl restart systemd-networkd.service
+for d in /sys/class/net/wl*; do
+    device="$(basename $d)"
+    systemctl start wpa_supplicant@$device.service
+done
+

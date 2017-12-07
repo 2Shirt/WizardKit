@@ -10,17 +10,10 @@ die () {
 # Load settings
 if [[ -f "/run/archiso/bootmnt/config/arch.conf" ]]; then
     source "/run/archiso/bootmnt/config/arch.conf" || \
-        die "ERROR: ARCH_WK media may be damaged. Please reboot or try another UFD"
+        die "ERROR: WK_ARCH media may be damaged. Please reboot or try another UFD"
 else
     source "/usr/local/bin/arch.conf" || \
-        die "ERROR: ARCH_WK media may be damaged. Please reboot or try another UFD"
-    echo -n "ERROR: Settings file on ARCH_WK media missing. Using build version for now"
-    sleep 1s
-    echo -n "."
-    sleep 1s
-    echo -n "."
-    sleep 1s
-    echo "."
+        die "ERROR: WK_ARCH media may be damaged. Please reboot or try another UFD"
 fi
 
 # Connect to a network

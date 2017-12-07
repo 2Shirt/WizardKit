@@ -2,8 +2,8 @@
 Version=1.0
 Type=Application
 Name=Hardware Diagnostics
-Comment=
-Exec=urxvt -title "Hardware Diagnostics" -hold -e hw-diags
+Comment=Hardware Diagnostics
+Exec=urxvt -title "Hardware Diagnostics" -e hw-diags
 Icon=xcos
 Path=
 Terminal=false

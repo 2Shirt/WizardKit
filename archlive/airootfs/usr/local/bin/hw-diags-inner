@@ -10,17 +10,10 @@ die () {
 # Load settings
 if [[ -f "/run/archiso/bootmnt/config/arch.conf" ]]; then
     source "/run/archiso/bootmnt/config/arch.conf" || \
-        die "ERROR: ARCH_WK media may be damaged. Please reboot or try another UFD"
+        die "ERROR: WK_ARCH media may be damaged. Please reboot or try another UFD"
 else
     source "/usr/local/bin/arch.conf" || \
-        die "ERROR: ARCH_WK media may be damaged. Please reboot or try another UFD"
-    echo -n "ERROR: Settings file on ARCH_WK media missing. Using build version for now"
-    sleep 1s
-    echo -n "."
-    sleep 1s
-    echo -n "."
-    sleep 1s
-    echo "."
+        die "ERROR: WK_ARCH media may be damaged. Please reboot or try another UFD"
 fi
 
 # Get TICKET
@@ -48,7 +41,9 @@ done
 DIAG_DATE="$(date "+%F_%H%M")"
 DIAG_SERVER_AVAIL="False"
 DIAG_SERVER="${DIAG_SERVER}"
-DIAG_DEST="${DIAG_DEST}/${TICKET}/${DIAG_DATE}"
+DIAG_SHARE="${DIAG_SHARE}"
+DIAG_DEST="${DIAG_SHARE}/${TICKET}"
+DIAG_UPLOAD_NAME="HW-Diagnostics_${DIAG_DATE}"
 DIAG_USER="${DIAG_USER}"
 TMP_DIR="$(mktemp -d)"
 ERRORS="False"
@@ -76,9 +71,10 @@ if [[ "$SKIP_UPLOAD" != "True" ]]; then
     connect-to-network
 
     # Test connection to DIAG_SERVER
-    if ip a | grep -Eq '(192.168|10.[0-9]+).[0-9]+.[0-9]+' && \
+    if ip a | grep -Eq '(10.[0-9]+|172.(1[6-9]|2[0-9]|3[0-1])|192.168).[0-9]+.[0-9]+' && \
     ping -c 1 -q $DIAG_SERVER >/dev/null 2>&1; then
         DIAG_SERVER_AVAIL="True"
+        ssh-add
         ssh $DIAG_USER@$DIAG_SERVER mkdir -p "$DIAG_DEST"
         ssh $DIAG_USER@$DIAG_SERVER chmod 755 "$DIAG_DEST"
     fi
@@ -196,7 +192,7 @@ function update_progress {
     
     # Update Server
     if [[ "$DIAG_SERVER_AVAIL" == "True" ]]; then
-        rsync -aqz --chmod=Du=rwx,Dgo=rx,Fu=rw,Fgo=r "$TMP_DIR/" $DIAG_USER@$DIAG_SERVER:"$DIAG_DEST/" --exclude '*.out'
+        rsync -aqz --chmod=Du=rwx,Dgo=rx,Fu=rw,Fgo=r "$TMP_DIR/" $DIAG_USER@$DIAG_SERVER:"$DIAG_DEST/${DIAG_UPLOAD_NAME}/" --exclude '*.out'
     fi
 }
 
@@ -497,6 +493,7 @@ if [[ "$TEST_SMART" == "True" ]] || \
         echo ""
     done
 fi
+update_progress
 
 # System info dump
 sudo inxi -CDdGlMmNopRsc 0 | grep -Ev '(/dev/ram|No RAID devices|Display Server|multisession)' > "system_info.txt"
@@ -505,11 +502,11 @@ sudo inxi -CDdGlMmNopRsc 0 | grep -Ev '(/dev/ram|No RAID devices|Display Server|
 mkdir "$HOME/Tickets/$TICKET" -p 2>/dev/null
 rsync -aS --chmod=Du=rwx,Dgo=rx,Fu=rw,Fgo=r "$TMP_DIR/" "$HOME/Tickets/$TICKET/"
 popd >/dev/null
-cd "$HOME/Tickets" && tar czf "${TICKET}.tgz" "$TICKET"
+cd "$HOME/Tickets" && tar czf "${DIAG_UPLOAD_NAME}.tgz" "$TICKET"
 
 # Update Server
 if [[ "$DIAG_SERVER_AVAIL" == "True" ]]; then
-    rsync -aqz --chmod=Du=rwx,Dgo=rx,Fu=rw,Fgo=r "$TMP_DIR/" "${TICKET}.tgz" $DIAG_USER@$DIAG_SERVER:"$DIAG_DEST/" --exclude '*.out'
+    rsync -aqz --chmod=Du=rwx,Dgo=rx,Fu=rw,Fgo=r "${DIAG_UPLOAD_NAME}.tgz" $DIAG_USER@$DIAG_SERVER:"$DIAG_DEST/"
 fi
 
 # End

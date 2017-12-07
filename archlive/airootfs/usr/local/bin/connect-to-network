@@ -11,20 +11,21 @@ die () {
     exit 1
 }
 
+function test_connection() {
+    if ip a | grep -Eq '(10.[0-9]+|172.(1[6-9]|2[0-9]|3[0-1]).[0-9]+|192.168).[0-9]+.[0-9]+'; then
+        return 0
+    else
+        return 1
+    fi
+}
+
 # Load settings
 if [[ -f "/run/archiso/bootmnt/config/arch.conf" ]]; then
     source "/run/archiso/bootmnt/config/arch.conf" || \
-        die "ERROR: ARCH_WK media may be damaged. Please reboot or try another UFD"
+        die "ERROR: WK_ARCH media may be damaged. Please reboot or try another UFD"
 else
     source "/usr/local/bin/arch.conf" || \
-        die "ERROR: ARCH_WK media may be damaged. Please reboot or try another UFD"
-    echo -n "ERROR: Settings file on ARCH_WK media missing. Using build version for now"
-    sleep 1s
-    echo -n "."
-    sleep 1s
-    echo -n "."
-    sleep 1s
-    echo "."
+        die "ERROR: WK_ARCH media may be damaged. Please reboot or try another UFD"
 fi
 
 # Init
@@ -32,7 +33,7 @@ WIFI_SSID="${WIFI_SSID}"
 WIFI_PASS="${WIFI_PASS}"
 
 # Connect to network
-if ! ip a | grep -Eq '(192.168|10.[0-9]+).[0-9]+.[0-9]+'; then
+if ! test_connection; then
     # LAN
     if ! ip l | grep -Eq '[0-9]+: +en'; then
         ## Reload the tg3/broadcom driver (known fix for some Dell systems)
@@ -46,13 +47,18 @@ if ! ip a | grep -Eq '(192.168|10.[0-9]+).[0-9]+.[0-9]+'; then
     # WiFi
     if ip l | grep -Eq '[0-9]+: +wl'; then
         ## Skip if we're already connected (i.e. the code above worked)
-        if ! ip a | grep -Eq '(192.168|10.[0-9]+).[0-9]+.[0-9]+'; then
+        if ! test_connection; then
             echo "Attempting to connect to ${WIFI_SSID}..."
-            netctl start wireless
+            sudo start-wifi
             sleep 5s
         fi
     fi
 fi
 
 # Done
-exit 0
+if test_connection; then
+    exit 0
+else
+    exit 1
+fi
+

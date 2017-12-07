@@ -9,3 +9,4 @@ amixer -q set "PCM" 90% unmute
 speaker-test -c 2 -l 1 -t pink
 # speaker-test -c 2 -l 1 -t sine
 speaker-test -c 2 -l 1 -t wav
+

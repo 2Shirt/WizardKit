@@ -23,7 +23,3 @@ fi
 eval $(/usr/bin/gnome-keyring-daemon --start --components=pkcs11,secrets,ssh)
 export SSH_AUTH_SOCK
 
-# Start Xfce4
-if [ -z "$DISPLAY" ] && [ "$(fgconsole)" -eq 1 ]; then
-    exec startxfce4
-fi

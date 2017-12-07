@@ -2,7 +2,7 @@
 Version=1.0
 Type=Application
 Name=Hardware Information
-Comment=
+Comment=Hardware Information
 Exec=hardinfo
 Icon=hardinfo
 Path=

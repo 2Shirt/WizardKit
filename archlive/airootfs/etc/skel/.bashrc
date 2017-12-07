@@ -5,5 +5,11 @@
 # If not running interactively, don't do anything
 [[ $- != *i* ]] && return
 
-alias ls='ls --color=auto'
 PS1='[\u@\h \W]\$ '
+
+## Load aliases
+. $HOME/.aliases
+
+## Start ssh agent
+eval $(/usr/bin/ssh-agent)
+
