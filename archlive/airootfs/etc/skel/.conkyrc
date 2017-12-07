@@ -13,7 +13,7 @@
 # pkill -xf "conky -q -c $HOME/.config/conky/BL-Default.conkyrc" &
 ###  Begin Window Settings  #####################
 own_window yes
-own_window_type override
+#own_window_type override
 own_window_transparent no
 own_window_hints undecorated,below,skip_taskbar,skip_pager,sticky
 own_window_colour 000000
@@ -149,6 +149,8 @@ ${memgraph 20,180 ${color} ${color}}
 Disk I/O:
 ${diskiograph 20,180 ${color} ${color}}
 Down:  ${downspeed}${goto 115}Up:${alignr}${upspeed}
+
+#Network
 
 ${alignc}S H O R T C U T    K E Y S
 ${hr}

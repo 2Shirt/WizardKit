@@ -1,9 +1,9 @@
 #!/bin/bash
 #/srv/ArchBuilds
 # Set Vars
-LOG_DIR="/srv/ArchBuilds/BuildLogs"
-OUT_DIR="/srv/ArchBuilds/isos"
-TMP_DIR="/srv/ScratchDir"
+LOG_DIR="/mnt/Build/logs"
+OUT_DIR="/mnt/Build/isos"
+TMP_DIR="/mnt/Scratch"
 DATE="$(date +%F)"
 DATETIME="$(date +%F_%H%M)"
 
@@ -12,6 +12,8 @@ if [[ "$EUID" -eq 0 ]]; then
     # Set permissions
     echo "Setting permissions..."
     chown root.root archlive -R
+    chmod 700 archlive/airootfs/etc/skel/.ssh
+    chmod 600 archlive/airootfs/etc/skel/.ssh/id_rsa
 
     # Modify build.sh
     if ! grep -iq 'customize_iso' archlive/build.sh; then
@@ -56,7 +58,7 @@ else
 
     # Build custom repo packages
     mkdir _done/$AFTER
-    for p in aic94xx-firmware bash-pipes i3-gaps i3lock-fancy-git mprime-bin testdisk-wip ttf-font-awesome wd719x-firmware wimlib; do
+    for p in aic94xx-firmware bash-pipes gtk-theme-arc-git hfsprogs i3-gaps i3lock-fancy-git mprime-bin openbox-patched papirus-icon-theme pasystray testdisk-wip ttf-font-awesome wd719x-firmware wimlib; do
         echo "Building: $p"
         curl -LsfO https://aur.archlinux.org/cgit/aur.git/snapshot/$p.tar.gz
         tar xf $p.tar.gz

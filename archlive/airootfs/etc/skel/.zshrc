@@ -86,3 +86,5 @@ source $ZSH/oh-my-zsh.sh
 ## Load aliases
 . $HOME/.aliases
 
+## Update LS_COLORS
+eval $(dircolors ~/.dircolors)

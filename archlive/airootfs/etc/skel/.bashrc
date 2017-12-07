@@ -10,6 +10,5 @@ PS1='[\u@\h \W]\$ '
 ## Load aliases
 . $HOME/.aliases
 
-## Start ssh agent
-eval $(/usr/bin/ssh-agent)
-
+# Update LS_COLORS
+eval $(dircolors ~/.dircolors)

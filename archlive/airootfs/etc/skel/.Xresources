@@ -1,24 +1,30 @@
-Xft.autohint: 0
-Xft.antialias: 1
-Xft.hinting: true
-Xft.hintstyle: hintslight
-Xft.rgba: rgb
-Xft.lcdfilter: lcddefault
+! general settings
+URxvt*saveline:         15000
+URxvt*termName:         rxvt-256color
+URxvt*iso14755:         false
 
-URxvt*font:	xft:Inconsolata:size=11
-#URxvt.letterSpace: -3
-
-! The line below will be modified by ~/.urxvt_default_res
-URxvt*geometry:	96x32+24+24
-
-URxvt.scrollBar_right:	True
-URxvt.scrollstyle:	plain
-
-URxvt.shading:	13
+! appearance
+URxvt*depth:            32
+!URxvt*background:      rgba:0000/0000/0000/AAAA
+!URxvt*background:      [80]#404552
+!URxvt*background:       [100]#2f343f
+!URxvt*foreground:       #F8F8FF
+!URxvt.underlineColor:   #4682B4
+!URxvt.highlightColor:   #4682B4
+!URxvt.throughColor:     Blue
+!URxvt*cursorColor:      #dc8cc3
+!URxvt*cursorColor2:     Black
+URxvt*scrollBar:        false
+URxvt*scrollBar_right:  false
+URxvt*internalBorder:   0
+URxvt*externalBorder:   0
+!URxvt.colorIT:      	#87af5f
+!URxvt.colorBD:      	#c5c8c6
+!URxvt.colorUL:      	#87afd7
+URxvt.geometry: 	92x16
+URxvt.internalBorder:	8
+URxvt.shading:		10
 URxvt.transparent:	true
-
-URxvt.iso14755: false
-URxvt.iso14755_52: false
 
 ! Base16 Isotope
 ! Scheme: Jan T. Sott
@@ -45,3 +51,14 @@ URxvt.iso14755_52: false
 *.color13:      #e0e0e0
 *.color14:      #3300ff
 *.color15:      #ffffff
+
+! fonts
+Xft.autohint: 0
+Xft.antialias: 1
+Xft.hinting: true
+Xft.hintstyle: hintslight
+Xft.rgba: rgb
+Xft.lcdfilter: lcddefault
+URxvt.font:	xft:Inconsolata:size=12
+!URxvt.letterSpace: -3
+
