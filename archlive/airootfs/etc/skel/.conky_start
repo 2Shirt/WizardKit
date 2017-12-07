@@ -1,3 +1,5 @@
 #!/bin/bash
 
-sleep 5s && conky
+sleep 2s && conky &
+sleep 5s && killall conky
+conky

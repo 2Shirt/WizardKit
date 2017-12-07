@@ -37,9 +37,8 @@
       </property>
       <property name="&lt;Super&gt;d" type="string" value="urxvt -T &quot;Hardware Diagnostics&quot; -e hw-diags"/>
       <property name="&lt;Super&gt;s" type="string" value="urxvt -T &quot;Hardware Diagnostics&quot; -e hw-diags foh"/>
-      <property name="&lt;Super&gt;m" type="string" value="urxvt -T &quot;Mount all Volumes&quot; -e mount-all-volumes foh">
-        <property name="startup-notify" type="bool" value="true"/>
-      </property>
+      <property name="&lt;Super&gt;m" type="string" value="urxvt -T &quot;Mount all Volumes&quot; -e mount-all-volumes foh"/>
+      <property name="&lt;Super&gt;v" type="string" value="urxvt -T &quot;Temperature Sensors&quot; -e hw-diags-sensors"/>
       <property name="&lt;Super&gt;t" type="string" value="exo-open --launch TerminalEmulator"/>
       <property name="&lt;Super&gt;w" type="string" value="exo-open --launch WebBrowser"/>
       <property name="&lt;Super&gt;x" type="string" value="xfce4-session-logout"/>

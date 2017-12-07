@@ -7,13 +7,13 @@ alias 7z7='7z a -t7z -mx=7'
 alias 7z9='7z a -t7z -mx=9'
 alias diff='colordiff' -ur
 alias du='du -sch --apparent-size'
-alias fidentify="/usr/bin/fidentify-wip$(getconf LONG_BIT)"
 alias fix-perms='find -type d -exec chmod 755 "{}" \; && find -type f -exec chmod 644 "{}" \;'
 alias less='less -S'
 alias mkdir='mkdir -p'
 alias mount='sudo mount'
 alias mv='mv -nv'
-alias photorec="sudo /usr/bin/photorec-wip$(getconf LONG_BIT)"
+alias photorec="sudo photorec"
+alias photorec-sort="sudo photorec-sort"
 alias q1='clear && sudo ls -1'
 alias q1a='clear && sudo ls -1A'
 alias q='clear && sudo ls -lh'
@@ -28,6 +28,6 @@ alias sdu='sudo du -sch --apparent-size'
 alias srmdirs='find -depth -mindepth 1 -type d -exec sudo rmdir "{}" --ignore-fail-on-non-empty \;'
 alias srs='sudo rsync -avhPS --stats --exclude-from="$HOME/.rsync_exclusions"'
 alias srsz='sudo rsync -avhzPS --stats --exclude-from="$HOME/.rsync_exclusions"'
-alias testdisk="sudo /usr/bin/testdisk-wip$(getconf LONG_BIT)"
+alias testdisk="sudo testdisk"
 alias umount='sudo umount'
 alias unmount='sudo umount'

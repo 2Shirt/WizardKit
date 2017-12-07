@@ -2,15 +2,20 @@
 #
 ## WK HW Diagnostics - Main script
 
-# Get TICKET#
+# Get TICKET
+SKIP_UPLOAD=""
 TICKET=""
 while [[ "$TICKET" == "" ]]; do
     if [[ "$1" == "foh" ]]; then
         TICKET="foh-consult"
+        SKIP_UPLOAD="True"
     else
         echo -n "Please enter the Service Order #: "
         read -r _ticket
-        if echo "$_ticket" | grep -Eq '^[0-9]+\S*$'; then
+        if echo "$_ticket" | grep -Eq '^[1-9]+\S*$'; then
+            TICKET="$_ticket"
+        elif echo "$_ticket" | grep -Eq '^0'; then
+            SKIP_UPLOAD="True"
             TICKET="$_ticket"
         fi
     fi
@@ -35,6 +40,7 @@ LOG="$TMP_DIR/hw-diags.log"
 OUT="$TMP_DIR/hw-diags.out"
 
 # Get list of drives to test (excluding any ARCH drives)
+
 ## Some code borrowed from stackoverflow.com/a/10020397
 ARCH_DRIVES=($(ls -l /dev/disk/by-label | grep -iE 'ARCH.*[hs]d[a-z]' | sed -r 's#.*/([hs]d[a-z])[0-9]+#\1#' | sort | uniq))
 DRIVES=($(inxi -Dxx -c 0 | grep -E "ID-[0-9]+" | sed -r 's#.*/dev/([hs]d[a-z]).*#\1#' | sort))
@@ -42,34 +48,38 @@ for d in "${ARCH_DRIVES[@]}"; do
     DRIVES=(${DRIVES[@]//*$d*})
 done
 
-# Connect to network
-if ! ip a | grep -q '192.168.1'; then
-    # LAN
-    if ! ip l | grep -Eq '[0-9]+: +en'; then
-        ## Reload the tg3/broadcom driver (known fix for some Dell systems)
-        echo "No wired network adapters found; reloading drivers..."
-        sudo modprobe -r tg3
-        sudo modprobe broadcom
-        sudo modprobe tg3
-        sleep 5s
-    fi
-    
-    # WiFi
-    if ip l | grep -Eq '[0-9]+: +wl'; then
-        ## Skip if we're already connected (e.g. the code above worked)
-        if ! ip a | grep -q '192.168.1'; then
-            echo "Attempting to connect to SomeWiFi..."
-            nmcli dev wifi con "SomeWiFi" password "Abracadabra"
+# Handle testing runs
+if [[ "$SKIP_UPLOAD" != "True" ]]; then
+    # Connect to network
+    if ! ip a | grep -q '192.168.1'; then
+        # LAN
+        if ! ip l | grep -Eq '[0-9]+: +en'; then
+            ## Reload the tg3/broadcom driver (known fix for some Dell systems)
+            echo "No wired network adapters found; reloading drivers..."
+            sudo modprobe -r tg3
+            sudo modprobe broadcom
+            sudo modprobe tg3
             sleep 5s
         fi
+        
+        # WiFi
+        if ip l | grep -Eq '[0-9]+: +wl'; then
+            ## Skip if we're already connected (e.g. the code above worked)
+            if ! ip a | grep -q '192.168.1'; then
+                echo "Attempting to connect to SomeWiFi..."
+                nmcli dev wifi con "SomeWiFi" password "Abracadabra"
+                sleep 5s
+            fi
+        fi
     fi
-fi
 
-# Test connection to DIAG_SERVER
-if ip a | grep -q '192.168.1' && \
-   ping -c 1 -q $DIAG_SERVER >/dev/null 2>&1; then
-    DIAG_SERVER_AVAIL="True"
-    ssh $DIAG_USER@$DIAG_SERVER mkdir -p "$DIAG_DEST"
+    # Test connection to DIAG_SERVER
+    if ip a | grep -q '192.168.1' && \
+    ping -c 1 -q $DIAG_SERVER >/dev/null 2>&1; then
+        DIAG_SERVER_AVAIL="True"
+        ssh $DIAG_USER@$DIAG_SERVER mkdir -p "$DIAG_DEST"
+        ssh $DIAG_USER@$DIAG_SERVER chmod 755 "$DIAG_DEST"
+    fi
 fi
 
 # Setup Env
@@ -184,7 +194,7 @@ function update_progress {
     
     # Update Server
     if [[ "$DIAG_SERVER_AVAIL" == "True" ]]; then
-        rsync -aqz "$TMP_DIR/" $DIAG_USER@$DIAG_SERVER:"$DIAG_DEST/" --exclude '*.out'
+        rsync -aqz --chmod=Du=rwx,Dgo=rx,Fu=rw,Fgo=r "$TMP_DIR/" $DIAG_USER@$DIAG_SERVER:"$DIAG_DEST/" --exclude '*.out'
     fi
 }
 
@@ -240,7 +250,7 @@ if [[ "$TEST_CPU" == "True" ]]; then
     CPU_ERRORS="False"
     cpu_result="Working"
     update_progress
-    (sleep 10m && killall -s INT "mprime$(getconf LONG_BIT)" >>/dev/null 2>&1) &
+    (sleep 10m && killall -s INT "mprime" >>/dev/null 2>&1) &
     (sleep 10m && killall "hw-diags-sensors" >>/dev/null 2>&1) &
     tmux split-window -d -v -l 10 "hw-diags-prime95 $TMP_DIR"
     hw-diags-sensors "$TMP_DIR" 2>/dev/null
@@ -437,7 +447,7 @@ if [[ "$TEST_BADBLOCKS" == "True" ]]; then
             sleep 2s
             
             # Check log
-            if grep -q '0/0/0 errors' "${tmp_device}_badblocks.log"; then
+            if grep -Eiq 'Pass completed.*0/0/0 errors' "${tmp_device}_badblocks.log"; then
                 eval "${tmp_device}_badblocks_result=CS"
             else
                 eval "${tmp_device}_badblocks_result=NS"
@@ -491,13 +501,13 @@ sudo inxi -CDdGlMmNopRsc 0 | grep -Ev '(/dev/ram|No RAID devices|Display Server|
 
 # Cleanup
 mkdir "$HOME/Tickets/$TICKET" -p 2>/dev/null
-rsync -aS "$TMP_DIR/" "$HOME/Tickets/$TICKET/"
+rsync -aS --chmod=Du=rwx,Dgo=rx,Fu=rw,Fgo=r "$TMP_DIR/" "$HOME/Tickets/$TICKET/"
 popd >/dev/null
 cd "$HOME/Tickets" && tar czf "${TICKET}.tgz" "$TICKET"
 
 # Update Server
 if [[ "$DIAG_SERVER_AVAIL" == "True" ]]; then
-    rsync -aqz "$TMP_DIR/" "${TICKET}.tgz" $DIAG_USER@$DIAG_SERVER:"$DIAG_DEST/" --exclude '*.out'
+    rsync -aqz --chmod=Du=rwx,Dgo=rx,Fu=rw,Fgo=r "$TMP_DIR/" "${TICKET}.tgz" $DIAG_USER@$DIAG_SERVER:"$DIAG_DEST/" --exclude '*.out'
 fi
 
 # End

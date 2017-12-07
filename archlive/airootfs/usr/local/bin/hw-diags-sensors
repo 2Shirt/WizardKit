@@ -9,10 +9,9 @@ function usage {
     echo "  e.g. $0 /tmp/tmp.7Mh5f1RhSL9001"
 }
 
-# Bail early
+# Create directory if necessary
 if [ ! -d "$LOG_DIR" ]; then
-    usage
-    exit 1
+    LOG_DIR="$(mktemp -d)"
 fi
 
 # Run Sensor loop

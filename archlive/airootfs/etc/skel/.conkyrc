@@ -159,5 +159,6 @@ ${hr}
 [Super] + r${alignr}Run Dialog
 [Super] + s${alignr}SMART Check
 [Super] + t${alignr}Terminal
+[Super] + v${alignr}View Temps
 [Super] + w${alignr}Web Browser
 [Super] + x${alignr}Logout

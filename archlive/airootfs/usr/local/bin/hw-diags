@@ -19,7 +19,7 @@ while :; do
         echo "4: SMART"
         echo "5: badblocks"
         echo "────────────────────"
-        if [[ -n $DISPLAY ]]; then
+        if [[ -n $DISPLAY ]] && [[ $(getconf LONG_BIT) -eq "64" ]]; then
             echo "6: Graphics Test - FurMark"
             echo "7: Graphics Test - Piano"
             echo "8: Graphics Test - Volplosion"
@@ -55,17 +55,17 @@ while :; do
                 MODE=badblocks
                 break;;
             6)
-                if [[ -n $DISPLAY ]]; then
+                if [[ -n $DISPLAY ]] && [[ $(getconf LONG_BIT) -eq "64" ]]; then
                     gputest /fullscreen /test=fur
                 fi
                 ;;
             7)
-                if [[ -n $DISPLAY ]]; then
+                if [[ -n $DISPLAY ]] && [[ $(getconf LONG_BIT) -eq "64" ]]; then
                     gputest /fullscreen /test=pixmark_piano
                 fi
                 ;;
             8)
-                if [[ -n $DISPLAY ]]; then
+                if [[ -n $DISPLAY ]] && [[ $(getconf LONG_BIT) -eq "64" ]]; then
                     gputest /fullscreen /test=pixmark_volplosion
                 fi
                 ;;

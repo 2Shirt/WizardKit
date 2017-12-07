@@ -1,6 +1,7 @@
 arch-install-scripts
 alsa-utils
 antiword
+arc-icon-theme-git
 b43-fwcutter
 btrfs-progs
 chntpw
@@ -34,6 +35,7 @@ gptfdisk
 grub
 gsmartcontrol
 gtk-engine-murrine
+gtk-theme-arc-git
 hdparm
 hexedit
 hfsprogs
@@ -42,12 +44,14 @@ inxi
 ipw2100-fw
 ipw2200-fw
 iw
+ldns
 lftp
 librsvg
 lightdm
 lightdm-gtk-greeter
 linux-atm
 lm_sensors
+lsscsi
 mc
 mdadm
 mediainfo
@@ -55,10 +59,12 @@ mesa
 mesa-demos
 midori-gtk2
 mkvtoolnix-cli
+mprime-bin
 mpv
 mtools
 mupdf
 ncdu
+ndisc6
 network-manager-applet
 networkmanager
 nfs-utils
@@ -67,7 +73,10 @@ nmap
 noto-fonts
 ntfs-3g
 ntp
+numix-circle-icon-theme-git
+numix-icon-theme-git
 numix-themes
+numix-themes-git
 openconnect
 openssh
 openvpn
@@ -84,6 +93,8 @@ rfkill
 rp-pppoe
 rsync
 rxvt-unicode
+sdparm
+sg3_utils
 smartmontools
 speedtest-cli
 speedtouch
@@ -91,6 +102,7 @@ sudo
 tcpdump
 terminus-font
 testdisk
+testdisk-wip
 tk
 tmux
 truecrypt

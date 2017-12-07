@@ -1,9 +1,6 @@
 #!/bin/bash
 #
-## WK HW diagnostics - Prime95
-
-# Find executable
-MPRIME="/usr/bin/mprime$(getconf LONG_BIT)"
+## HW diagnostics - Prime95
 
 function usage {
     echo "Usage: $0 log-dir"
@@ -17,4 +14,4 @@ if [ ! -d "$1" ]; then
 fi
 
 # Run Prime95
-$MPRIME -t | grep -iv --line-buffered 'stress.txt' | tee -a "$1/prime.log"
+mprime -t | grep -iv --line-buffered 'stress.txt' | tee -a "$1/prime.log"
