@@ -1,0 +1,10 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=SpeedTest
+Comment=
+Exec=xfce4-terminal -T SpeedTest -H -I network-workgroup -x speedtest
+Icon=network-workgroup
+Path=
+Terminal=false
+StartupNotify=false
