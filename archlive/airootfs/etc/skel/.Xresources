@@ -1,6 +1,7 @@
 URxvt*font:	xft:Inconsolata:size=11
 
-URxvt*geometry:	128x32+24+24
+! The line below will be modified by ~/.urxvt_default_res
+URxvt*geometry:	96x32+24+24
 
 URxvt*scrollBar_right:	True
 URxvt*scrollstyle:	plain

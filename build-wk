@@ -1,0 +1,13 @@
+#!/bin/bash
+
+# Set Vars
+TMP_DIR="$(pwd)/wk_tmp"
+OUT_DIR="$TMP_DIR/out"
+
+# Build ISO
+mkdir $TMP_DIR
+mkdir $OUT_DIR
+./archlive/build.sh -N "arch-wk" -V "$(date +%F)" -L "ARCH_WK" -w "$TMP_DIR" -o "$OUT_DIR" -v
+
+# Cleanup
+mv -nv "$OUT_DIR"/*iso "$HOME/" && rm "$TMP_DIR" -Rf

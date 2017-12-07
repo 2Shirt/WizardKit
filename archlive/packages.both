@@ -5,6 +5,8 @@ b43-fwcutter
 btrfs-progs
 chntpw
 clonezilla
+cmatrix
+colordiff
 conky
 crda
 curl
@@ -33,6 +35,7 @@ grub
 gsmartcontrol
 gtk-engine-murrine
 hdparm
+hexedit
 hfsprogs
 htop
 inxi
@@ -49,7 +52,8 @@ mc
 mdadm
 mediainfo
 mesa
-midori
+mesa-demos
+midori-gtk2
 mkvtoolnix-cli
 mpv
 mtools
@@ -93,6 +97,7 @@ truecrypt
 ttf-inconsolata
 udevil
 udisks2
+unzip
 usb_modeswitch
 vim
 vpnc

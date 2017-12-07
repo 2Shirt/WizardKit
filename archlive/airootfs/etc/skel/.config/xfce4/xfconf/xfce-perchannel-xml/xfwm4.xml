@@ -11,7 +11,7 @@
     <property name="button_spacing" type="int" value="0"/>
     <property name="click_to_focus" type="bool" value="true"/>
     <property name="cycle_apps_only" type="bool" value="false"/>
-    <property name="cycle_draw_frame" type="bool" value="false"/>
+    <property name="cycle_draw_frame" type="bool" value="true"/>
     <property name="cycle_hidden" type="bool" value="true"/>
     <property name="cycle_minimum" type="bool" value="true"/>
     <property name="cycle_preview" type="bool" value="true"/>
@@ -29,7 +29,7 @@
     <property name="horiz_scroll_opacity" type="bool" value="false"/>
     <property name="inactive_opacity" type="int" value="100"/>
     <property name="maximized_offset" type="int" value="0"/>
-    <property name="mousewheel_rollup" type="bool" value="true"/>
+    <property name="mousewheel_rollup" type="bool" value="false"/>
     <property name="move_opacity" type="int" value="100"/>
     <property name="placement_mode" type="string" value="center"/>
     <property name="placement_ratio" type="int" value="20"/>
@@ -72,16 +72,16 @@
     <property name="use_compositing" type="bool" value="true"/>
     <property name="workspace_count" type="int" value="1"/>
     <property name="wrap_cycle" type="bool" value="true"/>
+    <property name="wrap_layout" type="bool" value="true"/>
+    <property name="wrap_resistance" type="int" value="10"/>
+    <property name="wrap_windows" type="bool" value="true"/>
+    <property name="wrap_workspaces" type="bool" value="false"/>
+    <property name="zoom_desktop" type="bool" value="true"/>
     <property name="workspace_names" type="array">
       <value type="string" value="Workspace 1"/>
       <value type="string" value="Workspace 2"/>
       <value type="string" value="Workspace 3"/>
       <value type="string" value="Workspace 4"/>
     </property>
-    <property name="wrap_layout" type="bool" value="true"/>
-    <property name="wrap_resistance" type="int" value="10"/>
-    <property name="wrap_windows" type="bool" value="true"/>
-    <property name="wrap_workspaces" type="bool" value="false"/>
-    <property name="zoom_desktop" type="bool" value="true"/>
   </property>
 </channel>

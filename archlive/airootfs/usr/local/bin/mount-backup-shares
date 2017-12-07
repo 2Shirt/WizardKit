@@ -3,8 +3,8 @@
 ## Mount NAS backup shares
 
 echo "Mounting NAS backup shares"
-sudo mkdir /Backups/ServerOne
+sudo mkdir /Backups/ServerOne -p
 sudo mount //10.0.0.10/Backups /Backups/ServerOne -o username=backup,password=Abracadabra
-sudo mkdir /Backups/ServerTwo
+sudo mkdir /Backups/ServerTwo -p
 sudo mount //10.0.0.11/Backups /Backups/ServerTwo -o username=backup,password=Abracadabra
 

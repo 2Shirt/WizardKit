@@ -6,7 +6,7 @@ LOG_DIR="$1"
 
 function usage {
     echo "Usage: $0 log-dir"
-    echo "  e.g. $0 /var/tmp/hw-diags/9001"
+    echo "  e.g. $0 /tmp/tmp.7Mh5f1RhSL9001"
 }
 
 # Bail early

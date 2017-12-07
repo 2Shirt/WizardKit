@@ -2,10 +2,6 @@
 #
 ## WK HW Diagnostics - Main script
 
-# Setup tmux
-# tmux set remain-on-exit on
-tmux set status off
-
 # Get TICKET#
 TICKET=""
 while [[ "$TICKET" == "" ]]; do
@@ -26,7 +22,7 @@ DIAG_SERVER_AVAIL="False"
 DIAG_SERVER="10.0.0.10"
 DIAG_DEST="/srv/Diagnostics/${TICKET}/${DIAG_DATE}"
 DIAG_USER="wkdiag"
-TMP_DIR="/var/tmp/hw-diags/${TICKET}/${DIAG_DATE}"
+TMP_DIR="$(mktemp -d)"
 ERRORS="False"
 ERROR_IMG="$TMP_DIR/error.jpg"
 PASSED_IMG="$TMP_DIR/passed.jpg"
@@ -45,6 +41,29 @@ DRIVES=($(inxi -Dxx -c 0 | grep -E "ID-[0-9]+" | sed -r 's#.*/dev/([hs]d[a-z]).*
 for d in "${ARCH_DRIVES[@]}"; do
     DRIVES=(${DRIVES[@]//*$d*})
 done
+
+# Connect to network
+if ! ip a | grep -q '192.168.1'; then
+    # LAN
+    if ! ip l | grep -Eq '[0-9]+: +en'; then
+        ## Reload the tg3/broadcom driver (known fix for some Dell systems)
+        echo "No wired network adapters found; reloading drivers..."
+        sudo modprobe -r tg3
+        sudo modprobe broadcom
+        sudo modprobe tg3
+        sleep 5s
+    fi
+    
+    # WiFi
+    if ip l | grep -Eq '[0-9]+: +wl'; then
+        ## Skip if we're already connected (e.g. the code above worked)
+        if ! ip a | grep -q '192.168.1'; then
+            echo "Attempting to connect to SomeWiFi..."
+            nmcli dev wifi con "SomeWiFi" password "Abracadabra"
+            sleep 5s
+        fi
+    fi
+fi
 
 # Test connection to DIAG_SERVER
 if ip a | grep -q '192.168.1' && \
@@ -408,7 +427,7 @@ if [[ "$TEST_BADBLOCKS" == "True" ]]; then
             echo "Testing drive: ${tmp_device}"
             
             # Split and run
-            tmux split-window -d -v -l 7 "hw-diags-badblocks $TMP_DIR /dev/${tmp_device}"
+            tmux split-window -v -l 7 "hw-diags-badblocks $TMP_DIR /dev/${tmp_device}"
             
             # Wait until done
             sleep 2s
@@ -472,9 +491,14 @@ sudo inxi -CDdGlMmNopRsc 0 | grep -Ev '(/dev/ram|No RAID devices|Display Server|
 
 # Cleanup
 mkdir "$HOME/Tickets/$TICKET" -p 2>/dev/null
-rsync -aS "$TMP_DIR" "$HOME/Tickets/"
+rsync -aS "$TMP_DIR/" "$HOME/Tickets/$TICKET/"
 popd >/dev/null
 cd "$HOME/Tickets" && tar czf "${TICKET}.tgz" "$TICKET"
+
+# Update Server
+if [[ "$DIAG_SERVER_AVAIL" == "True" ]]; then
+    rsync -aqz "$TMP_DIR/" "${TICKET}.tgz" $DIAG_USER@$DIAG_SERVER:"$DIAG_DEST/" --exclude '*.out'
+fi
 
 # End
 echo -n "Press Enter to exit..."

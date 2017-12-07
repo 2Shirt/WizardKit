@@ -1,5 +1,7 @@
 #!/bin/bash
 
+TMP_FILE="$(mktemp)"
+
 IFS=$'\n'
 for s in $*; do
     REGEX="$s"
@@ -9,7 +11,7 @@ for s in $*; do
     for d in *doc; do
         if antiword "$d" | grep -iqsP "($REGEX)"; then
             echo "Possible match: $d"
-            echo "$d" >> msword.tmp
+            echo "$d" >> "$TMP_FILE"
         fi
     done
     
@@ -17,14 +19,20 @@ for s in $*; do
     for d in *docx; do
         if unzip -p "$d" word/document.xml | grep -iqsP "($REGEX)"; then
             echo "Possible match: $d"
-            echo "$d" >> msword.tmp
+            echo "$d" >> "$TMP_FILE"
         fi
     done
 
 done
 
 # Cleanup results
-if [[ -f msword.tmp ]]; then
-    sort -u msword.tmp >> msword-matches.txt
+if [[ -s "$TMP_FILE" ]]; then
+    sort -u "$TMP_FILE" >> "$HOME/msword-matches.txt"
 fi
+rm "$TMP_FILE"
 
+# Done
+if [[ -s "$HOME/msword-matches.txt" ]]; then
+    echo "Found $(wc -l "$HOME/msword-matches.txt") possible matches"
+    echo "The results have been saved to $HOME"
+fi
