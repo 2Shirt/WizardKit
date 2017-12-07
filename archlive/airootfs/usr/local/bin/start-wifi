@@ -9,8 +9,8 @@ die () {
 }
 
 # Load settings
-if [[ -f "/run/archiso/bootmnt/config/arch.conf" ]]; then
-    source "/run/archiso/bootmnt/config/arch.conf" || \
+if [[ -f "/run/archiso/bootmnt/arch/arch.conf" ]]; then
+    source "/run/archiso/bootmnt/arch/arch.conf" || \
         die "ERROR: WK_ARCH media may be damaged. Please reboot or try another UFD"
 else
     source "/usr/local/bin/arch.conf" || \
@@ -37,8 +37,8 @@ for d in /sys/class/net/wl*; do
     metric_value=$((metric_value+1))
 
     # Create wpa_supplicant entry
-    if [[ -f "/run/archiso/bootmnt/config/wifi.conf" ]]; then
-        cp -f "/run/archiso/bootmnt/config/wifi.conf" "/etc/wpa_supplicant/wpa_supplicant-$device.conf"
+    if [[ -f "/run/archiso/bootmnt/arch/wifi.conf" ]]; then
+        cp -f "/run/archiso/bootmnt/arch/wifi.conf" "/etc/wpa_supplicant/wpa_supplicant-$device.conf"
     elif [[ -f "/usr/local/bin/arch.conf" ]]; then
         cp -f "/usr/local/bin/arch.conf" "/etc/wpa_supplicant/wpa_supplicant-$device.conf"
     else

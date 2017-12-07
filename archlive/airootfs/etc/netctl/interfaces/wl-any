@@ -1,7 +1,0 @@
-#!/bin/bash
-for interface in /sys/class/net/wl*; do
-    break
-done
-
-Interface=$(basename $interface)
-echo "wl-any: using interface $Interface"

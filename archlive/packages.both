@@ -29,6 +29,7 @@ elinks
 ethtool
 exfat-utils
 f2fs-tools
+firefox
 ffmpeg
 fsarchiver
 gnome-keyring
@@ -61,7 +62,6 @@ mc
 mdadm
 mediainfo
 mesa-demos
-midori
 mkvtoolnix-cli
 mprime-bin
 mpv
@@ -85,6 +85,7 @@ parted
 partimage
 ppp
 pptpclient
+progsreiserfs
 refind-efi
 reiserfsprogs
 rfkill

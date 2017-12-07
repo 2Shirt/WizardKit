@@ -1,9 +1,9 @@
 #!/bin/bash
 
 # Set Vars
-LOG_DIR="/$HOME/ArchBuilds/BuildLogs"
-OUT_DIR="/$HOME/ArchBuilds"
-TMP_DIR="/$HOME/TMP_WK_ARCH"
+LOG_DIR="/D_Drive/ArchBuilds/BuildLogs"
+OUT_DIR="/D_Drive/ArchBuilds"
+TMP_DIR="/ScratchDir"
 DATE="$(date +%F)"
 DATETIME="$(date +%F_%H%M)"
 

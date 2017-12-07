@@ -8,6 +8,11 @@ if [[ "$MODE" =~ ^(all|cpu|drives|foh|smart|badblocks)$ ]]; then
     SHOW_MENU="False"
 fi
 
+SHOW_POWEROPTIONS="False"
+if [[ "$MODE" =~ ^cli$ ]]; then
+    SHOW_POWEROPTIONS="True"
+fi
+
 function pause() {
     # Pause to review output
     echo ""
@@ -45,7 +50,7 @@ function menu() {
             echo "P: Screen Saver - Pipes"
             echo "────────────────────"
             echo "Q: Quit"
-        if [[ "$MODE" =~ ^cli$ ]]; then
+        if [[ "$SHOW_POWEROPTIONS" =~ ^True$ ]]; then
             echo "R: Reboot"
             echo "S: Shutdown"
         fi

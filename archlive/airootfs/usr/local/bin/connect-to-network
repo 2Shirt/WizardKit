@@ -20,12 +20,12 @@ function test_connection() {
 }
 
 # Load settings
-if [[ -f "/run/archiso/bootmnt/config/arch.conf" ]]; then
-    source "/run/archiso/bootmnt/config/arch.conf" || \
-        die "ERROR: WK_ARCH media may be damaged. Please reboot or try another UFD"
+if [[ -f "/run/archiso/bootmnt/arch/arch.conf" ]]; then
+    source "/run/archiso/bootmnt/arch/arch.conf" || \
+        die "ERROR: failed to load arch.conf (from /run/archiso/bootmnt/arch/)"
 else
     source "/usr/local/bin/arch.conf" || \
-        die "ERROR: WK_ARCH media may be damaged. Please reboot or try another UFD"
+        die "ERROR: failed to load arch.conf (from /usr/local/bin/)"
 fi
 
 # Init

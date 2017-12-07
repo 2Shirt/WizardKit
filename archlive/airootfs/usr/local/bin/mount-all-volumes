@@ -3,13 +3,12 @@
 ## Mount all volumes read-only
 
 # Fix issue where first device is mounted under /media/wktech/
-TMP_FILE=$(mktemp)
-dd bs=1K count=64 if=/dev/zero of="$TMP_FILE" >/dev/null 2>&1
-mkfs.msdos "$TMP_FILE" >/dev/null 2>&1
-udevil mount -o ro "$TMP_FILE" >/dev/null 2>&1
-udevil umount "$TMP_FILE" >/dev/null 2>&1
+udevil mount tmpfs >/dev/null 2>&1
+udevil umount /media/wktech/tmpfs >/dev/null 2>&1
+udevil umount /media/tmpfs >/dev/null 2>&1
 sleep 1s
-rmdir /media/wktech >/dev/null 2>&1
+sudo rmdir /media/wktech/* -p >/dev/null 2>&1
+sudo rmdir /media/* -p >/dev/null 2>&1
 
 # Mount all volumes
 echo "Mounting all volumes"

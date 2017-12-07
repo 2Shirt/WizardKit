@@ -1,8 +1,8 @@
 #!/bin/bash
 
 CONKY_RC="$HOME/.conkyrc"
-if [[ -f "/run/archiso/bootmnt/config/conky.rc" ]]; then
-    CONKY_RC="/run/archiso/bootmnt/config/conky.rc"
+if [[ -f "/run/archiso/bootmnt/arch/conky.rc" ]]; then
+    CONKY_RC="/run/archiso/bootmnt/arch/conky.rc"
 fi
 
 sleep 2s && conky -c "${CONKY_RC}" -dq
