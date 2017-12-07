@@ -14,9 +14,9 @@
 ###  Begin Window Settings  #####################
 own_window yes
 own_window_type normal
-own_window_transparent yes
+own_window_transparent no
 own_window_hints undecorated,below,skip_taskbar,skip_pager,sticky
-own_window_colour 000000
+own_window_colour 421114
 own_window_class Conky
 #own_window_title Bunsen Labs Default Conky
 own_window_title Default Conky
@@ -25,13 +25,13 @@ own_window_title Default Conky
 ### NOTE that a composite manager is required for real transparency.
 ### This option will not work as desired (in most cases) in conjunction with
 ### own_window_type normal
-# own_window_argb_visual yes # Options: yes or no
+own_window_argb_visual yes # Options: yes or no
 
 ### When ARGB visuals are enabled, this use this to modify the alpha value
 ### Use: own_window_type normal
 ### Use: own_window_transparent no
 ### Valid range is 0-255, where 0 is 0% opacity, and 255 is 100% opacity.
-# own_window_argb_value 50
+own_window_argb_value 160
 
 minimum_size 180 0  ### width | height
 maximum_width 180
@@ -155,6 +155,7 @@ ${hr}
 [Super] + d${alignr}HW Diagnostics
 [Super] + f${alignr}File Manager
 [Super] + h${alignr}Task Manager
+[Super] + i${alignr}HW Information
 [Super] + m${alignr}Mount Volumes
 [Super] + r${alignr}Run Dialog
 [Super] + s${alignr}SMART Check

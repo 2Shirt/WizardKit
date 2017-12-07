@@ -2,8 +2,30 @@
 #
 ## WK HW Diagnostics - Main script
 
+die () {
+    echo "$0:" "$@" >&2
+    exit 1
+}
+
+# Load settings
+if [[ -f "/run/archiso/bootmnt/arch/arch.conf" ]]; then
+    source "/run/archiso/bootmnt/arch/arch.conf" || \
+        die "ERROR: ARCH_WK media may be damaged. Please reboot or try another UFD"
+else
+    source "/usr/local/bin/arch.conf" || \
+        die "ERROR: ARCH_WK media may be damaged. Please reboot or try another UFD"
+    echo -n "ERROR: Settings file on ARCH_WK media missing. Using build version for now"
+    sleep 1s
+    echo -n "."
+    sleep 1s
+    echo -n "."
+    sleep 1s
+    echo "."
+fi
+
 # Get TICKET
-SKIP_UPLOAD=""
+## Inital SKIP_UPLOAD value loaded from arch.conf
+SKIP_UPLOAD="${SKIP_UPLOAD}"
 TICKET=""
 while [[ "$TICKET" == "" ]]; do
     if [[ "$1" == "foh" ]]; then
@@ -22,16 +44,16 @@ while [[ "$TICKET" == "" ]]; do
 done
 
 # Init
+## Tautologies left to show which settings are coming from arch.conf
 DIAG_DATE="$(date "+%F_%H%M")"
 DIAG_SERVER_AVAIL="False"
-DIAG_SERVER="10.0.0.10"
-DIAG_DEST="/srv/Diagnostics/${TICKET}/${DIAG_DATE}"
-DIAG_USER="wkdiag"
+DIAG_SERVER="${DIAG_SERVER}"
+DIAG_DEST="${DIAG_DEST}/${TICKET}/${DIAG_DATE}"
+DIAG_USER="${DIAG_USER}"
 TMP_DIR="$(mktemp -d)"
 ERRORS="False"
-ERROR_IMG="$TMP_DIR/error.jpg"
-PASSED_IMG="$TMP_DIR/passed.jpg"
 TEST_CPU="False"
+TEST_CPU_LENGTH="${TEST_CPU_LENGTH}"
 TEST_OVER="False"
 TEST_SMART="False"
 TEST_BADBLOCKS="False"
@@ -51,30 +73,10 @@ done
 # Handle testing runs
 if [[ "$SKIP_UPLOAD" != "True" ]]; then
     # Connect to network
-    if ! ip a | grep -q '192.168.1'; then
-        # LAN
-        if ! ip l | grep -Eq '[0-9]+: +en'; then
-            ## Reload the tg3/broadcom driver (known fix for some Dell systems)
-            echo "No wired network adapters found; reloading drivers..."
-            sudo modprobe -r tg3
-            sudo modprobe broadcom
-            sudo modprobe tg3
-            sleep 5s
-        fi
-        
-        # WiFi
-        if ip l | grep -Eq '[0-9]+: +wl'; then
-            ## Skip if we're already connected (e.g. the code above worked)
-            if ! ip a | grep -q '192.168.1'; then
-                echo "Attempting to connect to SomeWiFi..."
-                nmcli dev wifi con "SomeWiFi" password "Abracadabra"
-                sleep 5s
-            fi
-        fi
-    fi
+    connect-to-network
 
     # Test connection to DIAG_SERVER
-    if ip a | grep -q '192.168.1' && \
+    if ip a | grep -Eq '(192.168|10.[0-9]+).[0-9]+.[0-9]+' && \
     ping -c 1 -q $DIAG_SERVER >/dev/null 2>&1; then
         DIAG_SERVER_AVAIL="True"
         ssh $DIAG_USER@$DIAG_SERVER mkdir -p "$DIAG_DEST"
@@ -250,8 +252,8 @@ if [[ "$TEST_CPU" == "True" ]]; then
     CPU_ERRORS="False"
     cpu_result="Working"
     update_progress
-    (sleep 10m && killall -s INT "mprime" >>/dev/null 2>&1) &
-    (sleep 10m && killall "hw-diags-sensors" >>/dev/null 2>&1) &
+    (sleep ${TEST_CPU_LENGTH}m && killall -s INT "mprime" >>/dev/null 2>&1) &
+    (sleep ${TEST_CPU_LENGTH}m && killall "hw-diags-sensors" >>/dev/null 2>&1) &
     tmux split-window -d -v -l 10 "hw-diags-prime95 $TMP_DIR"
     hw-diags-sensors "$TMP_DIR" 2>/dev/null
     sleep 1s

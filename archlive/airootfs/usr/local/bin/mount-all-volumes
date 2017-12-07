@@ -2,9 +2,28 @@
 #
 ## Mount all volumes read-only
 
+# Fix issue where first device is mounted under /media/wktech/
+TMP_FILE=$(mktemp)
+dd bs=1K count=64 if=/dev/zero of="$TMP_FILE" >/dev/null 2>&1
+mkfs.msdos "$TMP_FILE" >/dev/null 2>&1
+udevil mount -o ro "$TMP_FILE" >/dev/null 2>&1
+udevil umount "$TMP_FILE" >/dev/null 2>&1
+
+# Mount all volumes
 echo "Mounting all volumes"
 regex="/dev/((h|s)d[a-z]|md)[0-9]+"
-for v in $(inxi -Do | grep -E "$regex" | sed -r "s#.*($regex).*#\1#" | sort); do
-    udevil mount -o ro $v
+for volume in $(inxi -Dopxx | grep -E "$regex" | sed -r "s#.*($regex).*#\1#" | sort); do
+    if grep -q "$volume" /proc/mounts; then
+        if ! mount | grep "/run/archiso/bootmnt" | grep -q "$volume"; then
+            # Show what's already mounted except the ARCH_WK boot device
+            echo "$volume: (Already) mounted at $(mount | grep "$volume" | awk '{print $3}') ($(df -h "$volume" | tail -1 | awk '{print $3, $4}' | sed -r 's/(K|M|G|T|) (.*[0-9])(K|M|G|T|)$/ \1b used, \2 \3b free/'))"
+        fi
+    else
+        if udevil mount -o ro $volume >/dev/null 2>&1; then
+            echo "$volume: Mounted at $(mount | grep "$volume" | awk '{print $3}') ($(df -h "$volume" | tail -1 | awk '{print $3, $4}' | sed -r 's/(K|M|G|T|) (.*[0-9])(K|M|G|T|)$/ \1b used, \2 \3b free/'))"
+        else
+            echo "$volume: Failed to mount"
+        fi
+    fi
 done
 echo "Done."

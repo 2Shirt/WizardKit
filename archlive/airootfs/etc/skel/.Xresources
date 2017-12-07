@@ -6,7 +6,7 @@ URxvt*geometry:	96x32+24+24
 URxvt*scrollBar_right:	True
 URxvt*scrollstyle:	plain
 
-URxvt*shading:	30
+URxvt*shading:	13
 URxvt*transparent:	true
 
 ! Base16 Isotope

@@ -10,4 +10,4 @@ mkdir $OUT_DIR
 ./archlive/build.sh -N "arch-wk" -V "$(date +%F)" -L "ARCH_WK" -w "$TMP_DIR" -o "$OUT_DIR" -v
 
 # Cleanup
-mv -nv "$OUT_DIR"/*iso "$HOME/" && rm "$TMP_DIR" -Rf
+mv --backup=t -v "$OUT_DIR"/*iso "$HOME/" && rm "$TMP_DIR" -Rf
