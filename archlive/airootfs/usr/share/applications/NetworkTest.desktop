@@ -5,6 +5,6 @@ Name=NetworkTest
 Comment=Diagnose network connectivity
 Exec=urxvt -title "Network Diagnostics" -hold -e hw-diags-network
 Icon=network-workgroup
-Path=
+Path=/usr/local/bin
 Terminal=false
 StartupNotify=false

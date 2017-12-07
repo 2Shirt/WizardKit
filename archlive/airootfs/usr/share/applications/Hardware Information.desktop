@@ -5,6 +5,6 @@ Name=Hardware Information
 Comment=Hardware Information
 Exec=hardinfo
 Icon=hardinfo
-Path=
+Path=/usr/local/bin
 Terminal=false
 StartupNotify=false

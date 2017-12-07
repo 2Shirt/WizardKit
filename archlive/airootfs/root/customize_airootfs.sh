@@ -77,6 +77,6 @@ sed -i 's/#\(HandleLidSwitch=\)suspend/\1ignore/' /etc/systemd/logind.conf
 
 echo "[customize_airootfs] INFO: Setup systemd"
 #systemctl enable pacman-init.service choose-mirror.service
-systemctl set-default graphical.target
+#systemctl set-default graphical.target
 
 echo "[customize_airootfs] INFO: Completed."

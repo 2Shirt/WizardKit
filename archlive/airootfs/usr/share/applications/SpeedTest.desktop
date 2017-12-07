@@ -5,6 +5,6 @@ Name=SpeedTest
 Comment=
 Exec=urxvt -titile SpeedTest -hold -e speedtest
 Icon=network-workgroup
-Path=
+Path=/usr/local/bin
 Terminal=false
 StartupNotify=false

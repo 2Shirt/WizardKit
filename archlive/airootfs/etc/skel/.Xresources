@@ -1,13 +1,24 @@
+Xft.autohint: 0
+Xft.antialias: 1
+Xft.hinting: true
+Xft.hintstyle: hintslight
+Xft.rgba: rgb
+Xft.lcdfilter: lcddefault
+
 URxvt*font:	xft:Inconsolata:size=11
+#URxvt.letterSpace: -3
 
 ! The line below will be modified by ~/.urxvt_default_res
 URxvt*geometry:	96x32+24+24
 
-URxvt*scrollBar_right:	True
-URxvt*scrollstyle:	plain
+URxvt.scrollBar_right:	True
+URxvt.scrollstyle:	plain
 
-URxvt*shading:	13
-URxvt*transparent:	true
+URxvt.shading:	13
+URxvt.transparent:	true
+
+URxvt.iso14755: false
+URxvt.iso14755_52: false
 
 ! Base16 Isotope
 ! Scheme: Jan T. Sott

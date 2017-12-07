@@ -18,9 +18,4 @@ for f in "$BOOT_PATH"/{Arch,arch}.{jpg,png} "$BURNED_IN"; do
     fi
 done
 
-# Update Xfce4 (mostly redundant, but will catch multi-display setups)
-for monitor in monitor{0..2}; do
-    for workspace in workspace{0..3}; do
-        xfconf-query -c xfce4-desktop -p /backdrop/screen0/$monitor/$workspace/last-image -s "$WALLPAPER" 2>/dev/null
-    done
-done
+feh --bg-fill "$WALLPAPER"

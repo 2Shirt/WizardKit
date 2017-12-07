@@ -60,7 +60,7 @@ OUT="$TMP_DIR/hw-diags.out"
 
 ## Some code borrowed from stackoverflow.com/a/10020397
 ARCH_DRIVES=($(ls -l /dev/disk/by-label | grep -iE 'ARCH.*[hs]d[a-z]' | sed -r 's#.*/([hs]d[a-z])[0-9]+#\1#' | sort | uniq))
-DRIVES=($(inxi -Dxx -c 0 | grep -E "ID-[0-9]+" | sed -r 's#.*/dev/([hs]d[a-z]|nvme[0-9]n[0-9]).*#\1#' | sort))
+DRIVES=($(inxi -Dxx -c 0 | grep -E "ID-[0-9]+" | sed -r 's#.*/dev/([hsv]d[a-z]|nvme[0-9]n[0-9]).*#\1#' | sort))
 for d in "${ARCH_DRIVES[@]}"; do
     DRIVES=(${DRIVES[@]//*$d*})
 done

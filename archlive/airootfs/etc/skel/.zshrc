@@ -86,6 +86,3 @@ source $ZSH/oh-my-zsh.sh
 ## Load aliases
 . $HOME/.aliases
 
-## Start ssh agent
-eval $(/usr/bin/ssh-agent)>/dev/null
-
