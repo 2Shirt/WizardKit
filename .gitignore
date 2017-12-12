@@ -1,6 +1,7 @@
 **/__pycache__/*
 *.bak
 *.exe
+*.swp
 .bin/7-Zip/
 .bin/AIDA64/
 .bin/BleachBit/

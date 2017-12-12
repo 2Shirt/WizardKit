@@ -1,0 +1,109 @@
+#!/bin/bash
+#
+## Wizard Kit: Live Linux Build Tool
+
+# Prep
+ROOT_DIR="$(realpath $(dirname "$0"))"
+BUILD_DIR="$ROOT_DIR/BUILD_LINUX"
+LOG_DIR="$BUILD_DIR/Logs"
+OUT_DIR="$ROOT_DIR/OUT_LINUX"
+TMP_DIR="$BUILD_DIR/Temp"
+CUSTOM_REPO_DIR="$BUILD_DIR/CustomRepo"
+DATE="$(date +%F)"
+DATETIME="$(date +%F_%H%M)"
+AUR_PACKAGES="$ROOT_DIR/.linux_items/AUR-Packages"
+if which nano >/dev/null 2>&1; then
+    EDITOR=nano
+elif which vim >/dev/null 2>&1; then
+    EDITOR=vim
+else
+    EDITOR=vi
+fi
+mkdir "$BUILD_DIR" 2>/dev/null
+mkdir "$LOG_DIR" 2>/dev/null
+mkdir "$OUT_DIR" 2>/dev/null
+mkdir "$TMP_DIR" 2>/dev/null
+        
+function cleanup() {
+    if [[ -d "$TMP_DIR" ]]; then
+        echo -n "Remove: ${TMP_DIR}? "
+        read
+        rm -Rf "$TMP_DIR"
+    fi
+}
+
+function update_repo() {
+    # Archive current files
+    if [[ -d "$CUSTOM_REPO_DIR" ]]; then
+        mkdir "$BUILD_DIR/Archive" 2>/dev/null
+        archive="$BUILD_DIR/Archive/$(date "+%F_%H%M%S")"
+        mv -bv "$CUSTOM_REPO_DIR" "$archive"
+    fi
+    sleep 1s
+
+    # Build custom repo packages
+    mkdir "$CUSTOM_REPO_DIR" 2>/dev/null
+    mkdir "$TMP_DIR" 2>/dev/null
+    pushd "$TMP_DIR" >/dev/null
+    for p in $(cat "$AUR_PACKAGES"); do
+        echo "Building: $p"
+        curl -LsfO https://aur.archlinux.org/cgit/aur.git/snapshot/$p.tar.gz
+        tar xf $p.tar.gz
+        pushd $p >/dev/null
+        makepkg -s --noconfirm
+        popd >/dev/null
+        mv -n $p/*xz "$CUSTOM_REPO_DIR"/
+    done
+    popd >/dev/null
+
+    # Build custom repo database
+    pushd "$CUSTOM_REPO_DIR" >/dev/null
+    for p in *xz; do
+        repo-add $(basename "$CUSTOM_REPO_DIR").db.tar.gz $p
+    done
+    popd >/dev/null
+}
+
+function copy_settings() {
+    # Set main settings
+    if [[ -f "$BUILD_DIR/MAIN_SETTINGS" ]]; then
+        echo -n "Overwrite MAIN_SETTINGS? "
+        read
+    fi
+    cp -bv "$ROOT_DIR/.bin/Scripts/settings/main.py" "$BUILD_DIR/MAIN_SETTINGS"
+    "$EDITOR" "$BUILD_DIR/MAIN_SETTINGS"
+}
+
+
+# Prep for build
+cleanup
+echo "Installing dependancies..."
+sudo pacman -Syu --needed --noconfirm archiso attr base-devel curl libewf progsreiserfs rsync
+copy_settings
+update_repo
+rsync -a /usr/share/archiso/configs/relang/ "$BUILD_DIR/"
+
+if [[ "$EUID" -eq 0 ]]; then
+    ## Elevated section ##
+    # Set permissions
+    echo "Setting permissions..."
+    chown root.root archlive -R
+    chmod 700 archlive/airootfs/etc/skel/.ssh
+    chmod 600 archlive/airootfs/etc/skel/.ssh/id_rsa
+
+    # Modify build.sh
+    if ! grep -iq 'customize_iso' archlive/build.sh; then
+        sed -ir 's!run_once make_iso!# customize_iso\ncp -a ${script_path}/extra/* ${work_dir}/iso/\n\nrun_once make_iso!' archlive/build.sh
+    fi
+
+    # Build ISO
+    ./archlive/build.sh -N "wk-arch" -V "$DATE" -L "WK_ARCH" -w "$TMP_DIR" -o "$OUT_DIR" -v | tee -a "$LOG_DIR/$DATETIME.log"
+
+    # Cleanup
+    echo "Removing temp files..."
+    rm "$TMP_DIR" -Rf | tee -a "$LOG_DIR/$DATETIME.log"
+
+    echo "Reverting permissions..."
+    chown builduser.builduser archlive -R
+fi
+
