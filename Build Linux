@@ -7,6 +7,7 @@ ROOT_DIR="$(realpath $(dirname "$0"))"
 BUILD_DIR="$ROOT_DIR/BUILD_LINUX"
 ARCHLIVE_DIR="$BUILD_DIR/Archlive"
 CUSTOM_REPO_DIR="$BUILD_DIR/CustomRepo"
+SKEL="$ARCHLIVE_DIR/airootfs/etc/skel"
 DATE="$(date +%F)"
 DATETIME="$(date +%F_%H%M)"
 LOG_DIR="$BUILD_DIR/Logs"
@@ -55,28 +56,37 @@ function copy_archiso() {
     # Add items
     rsync -aI "$ROOT_DIR/.linux_items/include/live/" "$ARCHLIVE_DIR/"
 
-    # Update build.sh
-    if ! grep -iq 'customize_iso' "$ARCHLIVE_DIR/build.sh"; then
-        sed -ir "s!run_once make_iso\$!# customize_iso\ncp -a \"$ROOT_DIR/.linux_items/include/iso\"/* \"\${work_dir}/iso\"/\n\nrun_once make_iso!" "$ARCHLIVE_DIR/build.sh"
-    fi
-
     # Remove items
     rm "$ARCHLIVE_DIR/airootfs/etc/systemd/scripts/choose-mirror"
     rmdir "$ARCHLIVE_DIR/airootfs/etc/systemd/scripts" --ignore-fail-on-non-empty
     rm "$ARCHLIVE_DIR/airootfs/etc/systemd/system/choose-mirror.service"
     rm "$ARCHLIVE_DIR/airootfs/etc/systemd/system/etc-pacman.d-gnupg.mount"
     rm "$ARCHLIVE_DIR/airootfs/etc/systemd/system/pacman-init.service"
-    rm "$ARCHLIVE_DIR/airootfs/etc/systemd/udev/rules.d/81-dhcpcd.rules"
-    rmdir "$ARCHLIVE_DIR/airootfs/etc/systemd/udev/rules.d" --ignore-fail-on-non-empty
-    rmdir "$ARCHLIVE_DIR/airootfs/etc/systemd/udev" --ignore-fail-on-non-empty
+    rm "$ARCHLIVE_DIR/airootfs/etc/udev/rules.d/81-dhcpcd.rules"
+    rmdir "$ARCHLIVE_DIR/airootfs/etc/udev/rules.d" --ignore-fail-on-non-empty
+    rmdir "$ARCHLIVE_DIR/airootfs/etc/udev" --ignore-fail-on-non-empty
+}
 
-    # Update items
+function update_archlive() {
+    # build.sh
+    if ! grep -iq 'customize_iso' "$ARCHLIVE_DIR/build.sh"; then
+        sed -ir "s!run_once make_iso\$!# customize_iso\ncp -a \"$ROOT_DIR/.linux_items/include/iso\"/* \"\${work_dir}/iso\"/\n\nrun_once make_iso!" "$ARCHLIVE_DIR/build.sh"
+    fi
+
+    # MOTD
     sed -i "s/WK/$KIT_NAME_SHORT/" "$ARCHLIVE_DIR/airootfs/etc/motd"
-    sed -ir 's/^(b43|clonezilla|gpm|grml|refind|testdisk|vim)/#\1/' "$ARCHLIVE_DIR/packages.both"
+
+    # Live packages
+    sed -i -r 's/^(b43|clonezilla|gpm|grml|refind|testdisk|vim)/#\1/' "$ARCHLIVE_DIR/packages.both"
     cat "$ROOT_DIR/.linux_items/packages/live" >> "$ARCHLIVE_DIR/packages.both"
     echo "[CustomRepo]" >> "$ARCHLIVE_DIR/pacman.conf"
     echo "SigLevel = Optional TrustAll" >> "$ARCHLIVE_DIR/pacman.conf"
     echo "file://$CUSTOM_REPO_DIR" >> "$ARCHLIVE_DIR/pacman.conf"
+
+    # Oh My ZSH
+    git clone --depth=1 git://github.com/robbyrussell/oh-my-zsh.git "$SKEL/.oh-my-zsh"
+    rm -Rf "$SKEL/.oh-my-zsh/.git"
+    curl -o "$SKEL/.oh-my-zsh/themes/lean.zsh-theme" https://raw.githubusercontent.com/miekg/lean/master/prompt_lean_test.zsh
 }
 
 function copy_settings() {
@@ -193,6 +203,7 @@ function build_full() {
     copy_settings
     update_repo
     copy_archiso
+    update_archlive
     # Rerun script as root to start Archiso build process
     run_elevated "$(realpath "$0")" --build-arch
 }
@@ -205,6 +216,7 @@ case $1 in
 
     --copy-archiso)
         copy_archiso
+        update_archlive
         ;;
 
     --install-deps)
