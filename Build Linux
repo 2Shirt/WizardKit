@@ -6,7 +6,6 @@
 ROOT_DIR="$(realpath $(dirname "$0"))"
 BUILD_DIR="$ROOT_DIR/BUILD_LINUX"
 ARCHLIVE_DIR="$BUILD_DIR/Archlive"
-AUR_PACKAGES="$ROOT_DIR/.linux_items/AUR-Packages"
 CUSTOM_REPO_DIR="$BUILD_DIR/CustomRepo"
 DATE="$(date +%F)"
 DATETIME="$(date +%F_%H%M)"
@@ -108,7 +107,7 @@ function update_repo() {
     mkdir "$CUSTOM_REPO_DIR" 2>/dev/null
     mkdir "$TMP_DIR" 2>/dev/null
     pushd "$TMP_DIR" >/dev/null
-    for p in $(cat "$AUR_PACKAGES"); do
+    while read -r p; do
         echo "Building: $p"
         curl -LsfO https://aur.archlinux.org/cgit/aur.git/snapshot/$p.tar.gz
         tar xf $p.tar.gz
@@ -116,7 +115,7 @@ function update_repo() {
         makepkg -s --noconfirm
         popd >/dev/null
         mv -n $p/*xz "$CUSTOM_REPO_DIR"/
-    done
+    done < "$ROOT_DIR/.linux_items/packages/aur"
     popd >/dev/null
 
     # Build custom repo database
@@ -126,8 +125,12 @@ function update_repo() {
 }
 
 function install_deps() {
-    echo "Installing dependancies..."
-    run_elevated pacman -Syu --needed --noconfirm archiso attr base-devel curl libewf progsreiserfs rsync
+    echo "Installing dependencies..."
+    packages=
+    while read -r line; do
+        packages="$packages $line"
+    done < "$ROOT_DIR/.linux_items/packages/dependencies"
+    run_elevated pacman -Syu --needed --noconfirm $packages
 }
 
 function build_arch() {
