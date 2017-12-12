@@ -5,7 +5,7 @@
 # Prep
 ROOT_DIR="$(realpath $(dirname "$0"))"
 BUILD_DIR="$ROOT_DIR/BUILD_LINUX"
-ARCHISO_DIR="$BUILD_DIR/Archiso"
+ARCHLIVE_DIR="$BUILD_DIR/Archlive"
 AUR_PACKAGES="$ROOT_DIR/.linux_items/AUR-Packages"
 CUSTOM_REPO_DIR="$BUILD_DIR/CustomRepo"
 DATE="$(date +%F)"
@@ -20,6 +20,9 @@ elif which vim >/dev/null 2>&1; then
 else
     EDITOR=vi
 fi
+if which sudo >/dev/null 2>&1; then
+    REAL_USER="$SUDO_USER"
+fi
 
 function ask() {
     while :; do
@@ -33,25 +36,66 @@ function ask() {
 }
         
 function cleanup() {
-    for d in "$TMP_DIR" "$ARCHISO_DIR"; do
+    for d in "$TMP_DIR" "$ARCHLIVE_DIR"; do
         if [[ -d "$d" ]]; then
             if ask "Remove: ${d}?"; then
                 rm -Rf "$d"
             fi
         fi
     done
+    mkdir "$BUILD_DIR" 2>/dev/null
+    mkdir "$LOG_DIR" 2>/dev/null
+    mkdir "$OUT_DIR" 2>/dev/null
+    mkdir "$TMP_DIR" 2>/dev/null
+}
+
+function copy_archiso() {
+    echo "Copying Archlinux files..."
+    rsync -a /usr/share/archiso/configs/releng/ "$ARCHLIVE_DIR/"
+    
+    # Update build.sh
+    if ! grep -iq 'customize_iso' archlive/build.sh; then
+        sed -ir 's!run_once make_iso!# customize_iso\ncp -a ${script_path}/extra/* ${work_dir}/iso/\n\nrun_once make_iso!' archlive/build.sh
+    fi
 }
 
 function copy_settings() {
-    # Set main settings
     if [[ ! -e "$BUILD_DIR/MAIN_SETTINGS" ]] || ask "Overwrite MAIN_SETTINGS?"; then
         cp -bv "$ROOT_DIR/.bin/Scripts/settings/main.py" "$BUILD_DIR/MAIN_SETTINGS"
     fi
+
+    # Edit settings
     read -p "Press Enter to open settings... " -r
     "$EDITOR" "$BUILD_DIR/MAIN_SETTINGS"
+
+    # Load settings
+    while read line; do
+        if echo "$line" | egrep -q "^\w+='"; then
+            line="$(echo "$line" | sed -r 's/[\r\n]+//')"
+            eval "$line"
+        fi
+    done < "$BUILD_DIR/MAIN_SETTINGS"
+}
+
+function run_elevated() {
+    prog="$1"
+    shift
+    if which sudo >/dev/null 2>&1; then
+        sudo "$prog" $*
+    else
+        echo -n "Root "
+        su -c "export REAL_USER=$USER && '$prog' $*"
+    fi
 }
 
 function update_repo() {
+    if [[ "$EUID" -eq 0 ]]; then
+        echo "This section not meant to be run as root."
+        echo "Aborted."
+        exit 1
+    fi
+    echo "Updating custom repo..."
+
     # Archive current files
     if [[ -d "$CUSTOM_REPO_DIR" ]]; then
         mkdir "$BUILD_DIR/Archive" 2>/dev/null
@@ -81,40 +125,70 @@ function update_repo() {
     popd >/dev/null
 }
 
-# Prep for build
-cleanup
-mkdir "$BUILD_DIR" 2>/dev/null
-mkdir "$LOG_DIR" 2>/dev/null
-mkdir "$OUT_DIR" 2>/dev/null
-mkdir "$TMP_DIR" 2>/dev/null
+function install_deps() {
+    echo "Installing dependancies..."
+    run_elevated pacman -Syu --needed --noconfirm archiso attr base-devel curl libewf progsreiserfs rsync
+}
 
-echo "Installing dependancies..."
-sudo pacman -Syu --needed --noconfirm archiso attr base-devel curl libewf progsreiserfs rsync
-copy_settings
-update_repo
-rsync -a /usr/share/archiso/configs/releng/ "$ARCHISO_DIR/"
-
-if [[ "$EUID" -eq 0 ]]; then
-    ## Elevated section ##
+function build_arch() {
+    if [[ "$EUID" -ne 0 ]]; then
+        echo "This section is meant to be run as root."
+        echo "Aborted."
+        exit 1
+    fi
+    
     # Set permissions
     echo "Setting permissions..."
-    chown root.root archlive -R
-    chmod 700 archlive/airootfs/etc/skel/.ssh
-    chmod 600 archlive/airootfs/etc/skel/.ssh/id_rsa
-
-    # Modify build.sh
-    if ! grep -iq 'customize_iso' archlive/build.sh; then
-        sed -ir 's!run_once make_iso!# customize_iso\ncp -a ${script_path}/extra/* ${work_dir}/iso/\n\nrun_once make_iso!' archlive/build.sh
-    fi
-
+    chown root:root "$ARCHLIVE_DIR" -R
+    chmod 700 "$ARCHLIVE_DIR/airootfs/etc/skel/.ssh"
+    chmod 600 "$ARCHLIVE_DIR/airootfs/etc/skel/.ssh/id_rsa"
+    
     # Build ISO
-    ./archlive/build.sh -N "wk-arch" -V "$DATE" -L "WK_ARCH" -w "$TMP_DIR" -o "$OUT_DIR" -v | tee -a "$LOG_DIR/$DATETIME.log"
+    prefix="$(echo "${KIT_NAME_SHORT}-linux" | tr "[:upper:]" "[:lower:]")"
+    label="${KIT_NAME_SHORT}_LINUX"
+    "$ARCHLIVE/bulid.sh" -N "$prefix" -V "$DATE" -L "$label" -s "$TMP_DIR/Arch" -o "$OUT_DIR" -v | tee -a "$LOG_DIR/$DATETIME.log"
 
     # Cleanup
     echo "Removing temp files..."
-    rm "$TMP_DIR" -Rf | tee -a "$LOG_DIR/$DATETIME.log"
+    rm "$TMP_DIR/Arch" -Rf | tee -a "$LOG_DIR/$DATETIME.log"
 
     echo "Reverting permissions..."
-    chown builduser.builduser archlive -R
-fi
+    chown $REAL_USER:$REAL_USER "$ARCHLIVE_DIR" -R
+}
+
+function build_full() {
+    if [[ "$EUID" -eq 0 ]]; then
+        echo "This section not meant to be run as root."
+        echo "Aborted."
+        exit 1
+    fi
+    
+    # Prep for build
+    cleanup
+    install_deps
+    copy_settings
+    update_repo
+    copy_archiso
+    # Rerun script as root to start Archiso build process
+    run_elevated "$(realpath "$0")" --build-arch
+}
+
+# Check input
+case $1 in
+    --build-arch)
+        build_arch
+        ;;
+
+    --install-deps)
+        install_deps
+        ;;
+
+    --update-repo)
+        update_repo
+        ;;
+    
+    *)
+        build_full
+        ;;
+esac
 
