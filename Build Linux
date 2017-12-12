@@ -50,11 +50,14 @@ function cleanup() {
 
 function copy_archiso() {
     echo "Copying Archlinux files..."
-    rsync -a /usr/share/archiso/configs/releng/ "$ARCHLIVE_DIR/"
+    rsync -aI /usr/share/archiso/configs/releng/ "$ARCHLIVE_DIR/"
     
+    # Add items
+    rsync -aI "$ROOT_DIR/.linux_items/include/live/" "$ARCHLIVE_DIR/"
+
     # Update build.sh
-    if ! grep -iq 'customize_iso' archlive/build.sh; then
-        sed -ir 's!run_once make_iso!# customize_iso\ncp -a ${script_path}/extra/* ${work_dir}/iso/\n\nrun_once make_iso!' archlive/build.sh
+    if ! grep -iq 'customize_iso' "$ARCHLIVE_DIR/build.sh"; then
+        sed -ir "s!run_once make_iso\$!# customize_iso\ncp -a \"$ROOT_DIR/.linux_items/include/iso\"/* \"\${work_dir}/iso\"/\n\nrun_once make_iso!" "$ARCHLIVE_DIR/build.sh"
     fi
 }
 
@@ -180,6 +183,10 @@ function build_full() {
 case $1 in
     --build-arch)
         build_arch
+        ;;
+
+    --copy-archiso)
+        copy_archiso
         ;;
 
     --install-deps)
