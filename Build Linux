@@ -5,13 +5,14 @@
 # Prep
 ROOT_DIR="$(realpath $(dirname "$0"))"
 BUILD_DIR="$ROOT_DIR/BUILD_LINUX"
-LOG_DIR="$BUILD_DIR/Logs"
-OUT_DIR="$ROOT_DIR/OUT_LINUX"
-TMP_DIR="$BUILD_DIR/Temp"
+ARCHISO_DIR="$BUILD_DIR/Archiso"
+AUR_PACKAGES="$ROOT_DIR/.linux_items/AUR-Packages"
 CUSTOM_REPO_DIR="$BUILD_DIR/CustomRepo"
 DATE="$(date +%F)"
 DATETIME="$(date +%F_%H%M)"
-AUR_PACKAGES="$ROOT_DIR/.linux_items/AUR-Packages"
+LOG_DIR="$BUILD_DIR/Logs"
+OUT_DIR="$ROOT_DIR/OUT_LINUX"
+TMP_DIR="$BUILD_DIR/Temp"
 if which nano >/dev/null 2>&1; then
     EDITOR=nano
 elif which vim >/dev/null 2>&1; then
@@ -19,17 +20,35 @@ elif which vim >/dev/null 2>&1; then
 else
     EDITOR=vi
 fi
-mkdir "$BUILD_DIR" 2>/dev/null
-mkdir "$LOG_DIR" 2>/dev/null
-mkdir "$OUT_DIR" 2>/dev/null
-mkdir "$TMP_DIR" 2>/dev/null
+
+function ask() {
+    while :; do
+        read -p "$1 " -r answer
+        if echo "$answer" | egrep -iq '^(y|yes|sure)$'; then
+            return 0
+        elif echo "$answer" | egrep -iq '^(n|no|nope)$'; then
+            return 1
+        fi
+    done
+}
         
 function cleanup() {
-    if [[ -d "$TMP_DIR" ]]; then
-        echo -n "Remove: ${TMP_DIR}? "
-        read
-        rm -Rf "$TMP_DIR"
+    for d in "$TMP_DIR" "$ARCHISO_DIR"; do
+        if [[ -d "$d" ]]; then
+            if ask "Remove: ${d}?"; then
+                rm -Rf "$d"
+            fi
+        fi
+    done
+}
+
+function copy_settings() {
+    # Set main settings
+    if [[ ! -e "$BUILD_DIR/MAIN_SETTINGS" ]] || ask "Overwrite MAIN_SETTINGS?"; then
+        cp -bv "$ROOT_DIR/.bin/Scripts/settings/main.py" "$BUILD_DIR/MAIN_SETTINGS"
     fi
+    read -p "Press Enter to open settings... " -r
+    "$EDITOR" "$BUILD_DIR/MAIN_SETTINGS"
 }
 
 function update_repo() {
@@ -58,30 +77,22 @@ function update_repo() {
 
     # Build custom repo database
     pushd "$CUSTOM_REPO_DIR" >/dev/null
-    for p in *xz; do
-        repo-add $(basename "$CUSTOM_REPO_DIR").db.tar.gz $p
-    done
+    repo-add custom.db.tar.gz *xz
     popd >/dev/null
 }
 
-function copy_settings() {
-    # Set main settings
-    if [[ -f "$BUILD_DIR/MAIN_SETTINGS" ]]; then
-        echo -n "Overwrite MAIN_SETTINGS? "
-        read
-    fi
-    cp -bv "$ROOT_DIR/.bin/Scripts/settings/main.py" "$BUILD_DIR/MAIN_SETTINGS"
-    "$EDITOR" "$BUILD_DIR/MAIN_SETTINGS"
-}
-
-
 # Prep for build
 cleanup
+mkdir "$BUILD_DIR" 2>/dev/null
+mkdir "$LOG_DIR" 2>/dev/null
+mkdir "$OUT_DIR" 2>/dev/null
+mkdir "$TMP_DIR" 2>/dev/null
+
 echo "Installing dependancies..."
 sudo pacman -Syu --needed --noconfirm archiso attr base-devel curl libewf progsreiserfs rsync
 copy_settings
 update_repo
-rsync -a /usr/share/archiso/configs/relang/ "$BUILD_DIR/"
+rsync -a /usr/share/archiso/configs/releng/ "$ARCHISO_DIR/"
 
 if [[ "$EUID" -eq 0 ]]; then
     ## Elevated section ##
