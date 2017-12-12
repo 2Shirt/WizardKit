@@ -2,6 +2,7 @@ archiso
 attr
 base-devel
 curl
+git
 libewf
 progsreiserfs
 rsync
