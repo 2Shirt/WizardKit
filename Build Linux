@@ -13,6 +13,7 @@ OUT_DIR="$ROOT_DIR/OUT_LINUX"
 REPO_DIR="$BUILD_DIR/repo"
 SKEL_DIR="$LIVE_DIR/airootfs/etc/skel"
 TEMP_DIR="$BUILD_DIR/temp"
+MIRRORLIST_SOURCE='https://www.archlinux.org/mirrorlist/?country=US&protocol=http&protocol=https&ip_version=4&use_mirror_status=on'
 if which nano >/dev/null 2>&1; then
     EDITOR=nano
 elif which vim >/dev/null 2>&1; then
@@ -121,7 +122,8 @@ function update_archlive() {
 
     # Mirrors
     sed -i -r 's/^(.*mirrorlist.*)$/#NOPE#\1/' "$LIVE_DIR/airootfs/root/customize_airootfs.sh"
-    #TODO Add mirrors / rankmirrors?
+    echo "curl -o '/etc/pacman.d/mirrorlist' '$MIRRORLIST_SOURCE'" >> "$LIVE_DIR/airootfs/root/customize_airootfs.sh"
+    echo "sed -i 's/#Server/Server/g' /etc/pacman.d/mirrorlist" >> "$LIVE_DIR/airootfs/root/customize_airootfs.sh"
     
     # MOTD
     sed -i "s/WK/$KIT_NAME_SHORT/" "$LIVE_DIR/airootfs/etc/motd"
