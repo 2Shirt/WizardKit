@@ -4,5 +4,6 @@ base-devel
 curl
 git
 libewf
+openssh
 progsreiserfs
 rsync
