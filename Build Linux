@@ -3,16 +3,16 @@
 ## Wizard Kit: Live Linux Build Tool
 
 # Prep
-ROOT_DIR="$(realpath $(dirname "$0"))"
-BUILD_DIR="$ROOT_DIR/BUILD_LINUX"
-ARCHLIVE_DIR="$BUILD_DIR/Archlive"
-CUSTOM_REPO_DIR="$BUILD_DIR/CustomRepo"
-SKEL="$ARCHLIVE_DIR/airootfs/etc/skel"
 DATE="$(date +%F)"
 DATETIME="$(date +%F_%H%M)"
-LOG_DIR="$BUILD_DIR/Logs"
+ROOT_DIR="$(realpath $(dirname "$0"))"
+BUILD_DIR="$ROOT_DIR/BUILD_LINUX"
+LIVE_DIR="$BUILD_DIR/live"
+LOG_DIR="$BUILD_DIR/logs"
 OUT_DIR="$ROOT_DIR/OUT_LINUX"
-TMP_DIR="$BUILD_DIR/Temp"
+REPO_DIR="$BUILD_DIR/repo"
+SKEL_DIR="$LIVE_DIR/airootfs/etc/skel"
+TEMP_DIR="$BUILD_DIR/temp"
 if which nano >/dev/null 2>&1; then
     EDITOR=nano
 elif which vim >/dev/null 2>&1; then
@@ -36,7 +36,7 @@ function ask() {
 }
         
 function cleanup() {
-    for d in "$TMP_DIR" "$ARCHLIVE_DIR"; do
+    for d in "$TEMP_DIR" "$LIVE_DIR"; do
         if [[ -d "$d" ]]; then
             if ask "Remove: ${d}?"; then
                 rm -Rf "$d"
@@ -46,35 +46,35 @@ function cleanup() {
     mkdir "$BUILD_DIR" 2>/dev/null
     mkdir "$LOG_DIR" 2>/dev/null
     mkdir "$OUT_DIR" 2>/dev/null
-    mkdir "$TMP_DIR" 2>/dev/null
+    mkdir "$TEMP_DIR" 2>/dev/null
 }
 
 function copy_archiso() {
     echo "Copying Archlinux files..."
-    rsync -aI /usr/share/archiso/configs/releng/ "$ARCHLIVE_DIR/"
+    rsync -aI /usr/share/archiso/configs/releng/ "$LIVE_DIR/"
     
     # Add items
-    rsync -aI "$ROOT_DIR/.linux_items/include/live/" "$ARCHLIVE_DIR/"
+    rsync -aI "$ROOT_DIR/.linux_items/include/live/" "$LIVE_DIR/"
 
     # Remove items
-    rm "$ARCHLIVE_DIR/airootfs/etc/systemd/scripts/choose-mirror"
-    rmdir "$ARCHLIVE_DIR/airootfs/etc/systemd/scripts" --ignore-fail-on-non-empty
-    rm "$ARCHLIVE_DIR/airootfs/etc/systemd/system/choose-mirror.service"
-    rm "$ARCHLIVE_DIR/airootfs/etc/systemd/system/etc-pacman.d-gnupg.mount"
-    rm "$ARCHLIVE_DIR/airootfs/etc/systemd/system/pacman-init.service"
-    rm "$ARCHLIVE_DIR/airootfs/etc/udev/rules.d/81-dhcpcd.rules"
-    rmdir "$ARCHLIVE_DIR/airootfs/etc/udev/rules.d" --ignore-fail-on-non-empty
-    rmdir "$ARCHLIVE_DIR/airootfs/etc/udev" --ignore-fail-on-non-empty
+    rm "$LIVE_DIR/airootfs/etc/systemd/scripts/choose-mirror"
+    rmdir "$LIVE_DIR/airootfs/etc/systemd/scripts" --ignore-fail-on-non-empty
+    rm "$LIVE_DIR/airootfs/etc/systemd/system/choose-mirror.service"
+    rm "$LIVE_DIR/airootfs/etc/systemd/system/etc-pacman.d-gnupg.mount"
+    rm "$LIVE_DIR/airootfs/etc/systemd/system/pacman-init.service"
+    rm "$LIVE_DIR/airootfs/etc/udev/rules.d/81-dhcpcd.rules"
+    rmdir "$LIVE_DIR/airootfs/etc/udev/rules.d" --ignore-fail-on-non-empty
+    rmdir "$LIVE_DIR/airootfs/etc/udev" --ignore-fail-on-non-empty
 }
 
 function copy_settings() {
-    if [[ ! -e "$BUILD_DIR/MAIN_SETTINGS" ]] || ask "Overwrite MAIN_SETTINGS?"; then
-        cp -bv "$ROOT_DIR/.bin/Scripts/settings/main.py" "$BUILD_DIR/MAIN_SETTINGS"
+    if [[ ! -e "$BUILD_DIR/main.py" ]] || ask "Overwrite main.py?"; then
+        cp -bv "$ROOT_DIR/.bin/Scripts/settings/main.py" "$BUILD_DIR/main.py"
     fi
 
     # Edit settings
     read -p "Press Enter to open settings... " -r
-    "$EDITOR" "$BUILD_DIR/MAIN_SETTINGS"
+    "$EDITOR" "$BUILD_DIR/main.py"
 
     # Load settings
     while read line; do
@@ -82,7 +82,7 @@ function copy_settings() {
             line="$(echo "$line" | sed -r 's/[\r\n]+//')"
             eval "$line"
         fi
-    done < "$BUILD_DIR/MAIN_SETTINGS"
+    done < "$BUILD_DIR/main.py"
 }
 
 function run_elevated() {
@@ -98,28 +98,28 @@ function run_elevated() {
 
 function update_archlive() {
     # build.sh
-    if ! grep -iq 'customize_iso' "$ARCHLIVE_DIR/build.sh"; then
-        sed -ir "s!run_once make_iso\$!# customize_iso\ncp -a \"$ROOT_DIR/.linux_items/include/iso\"/* \"\${work_dir}/iso\"/\n\nrun_once make_iso!" "$ARCHLIVE_DIR/build.sh"
+    if ! grep -iq 'customize_iso' "$LIVE_DIR/build.sh"; then
+        sed -ir "s!run_once make_iso\$!# customize_iso\ncp -a \"$ROOT_DIR/.linux_items/include/iso\"/* \"\${work_dir}/iso\"/\n\nrun_once make_iso!" "$LIVE_DIR/build.sh"
     fi
 
     # MOTD
-    sed -i "s/WK/$KIT_NAME_SHORT/" "$ARCHLIVE_DIR/airootfs/etc/motd"
+    sed -i "s/WK/$KIT_NAME_SHORT/" "$LIVE_DIR/airootfs/etc/motd"
 
     # Live packages
-    sed -i -r 's/^(b43|clonezilla|gpm|grml|refind|testdisk|vim)/#\1/' "$ARCHLIVE_DIR/packages.both"
-    cat "$ROOT_DIR/.linux_items/packages/live" >> "$ARCHLIVE_DIR/packages.both"
-    echo "[CustomRepo]" >> "$ARCHLIVE_DIR/pacman.conf"
-    echo "SigLevel = Optional TrustAll" >> "$ARCHLIVE_DIR/pacman.conf"
-    echo "file://$CUSTOM_REPO_DIR" >> "$ARCHLIVE_DIR/pacman.conf"
+    sed -i -r 's/^(b43|clonezilla|gpm|grml|refind|testdisk|vim)/#\1/' "$LIVE_DIR/packages.both"
+    cat "$ROOT_DIR/.linux_items/packages/live" >> "$LIVE_DIR/packages.both"
+    echo "[custom]" >> "$LIVE_DIR/pacman.conf"
+    echo "SigLevel = Optional TrustAll" >> "$LIVE_DIR/pacman.conf"
+    echo "Server = file://$REPO_DIR" >> "$LIVE_DIR/pacman.conf"
 
     # Oh My ZSH
-    git clone --depth=1 git://github.com/robbyrussell/oh-my-zsh.git "$SKEL/.oh-my-zsh"
-    rm -Rf "$SKEL/.oh-my-zsh/.git"
-    curl -o "$SKEL/.oh-my-zsh/themes/lean.zsh-theme" https://raw.githubusercontent.com/miekg/lean/master/prompt_lean_test.zsh
+    git clone --depth=1 git://github.com/robbyrussell/oh-my-zsh.git "$SKEL_DIR/.oh-my-zsh"
+    rm -Rf "$SKEL_DIR/.oh-my-zsh/.git"
+    curl -o "$SKEL_DIR/.oh-my-zsh/themes/lean.zsh-theme" https://raw.githubusercontent.com/miekg/lean/master/prompt_lean_test.zsh
 
     # Wallpaper
-    mkdir -p "$ARCHLIVE_DIR/airootfs/usr/share/wallpaper"
-    cp "$ROOT_DIR/Images/Linux.png" "$ARCHLIVE_DIR/airootfs/usr/share/wallpaper/burned.in"
+    mkdir -p "$LIVE_DIR/airootfs/usr/share/wallpaper"
+    cp "$ROOT_DIR/Images/Linux.png" "$LIVE_DIR/airootfs/usr/share/wallpaper/burned.in"
 }
 
 function update_repo() {
@@ -131,17 +131,17 @@ function update_repo() {
     echo "Updating custom repo..."
 
     # Archive current files
-    if [[ -d "$CUSTOM_REPO_DIR" ]]; then
+    if [[ -d "$REPO_DIR" ]]; then
         mkdir "$BUILD_DIR/Archive" 2>/dev/null
         archive="$BUILD_DIR/Archive/$(date "+%F_%H%M%S")"
-        mv -bv "$CUSTOM_REPO_DIR" "$archive"
+        mv -bv "$REPO_DIR" "$archive"
     fi
     sleep 1s
 
     # Build custom repo packages
-    mkdir "$CUSTOM_REPO_DIR" 2>/dev/null
-    mkdir "$TMP_DIR" 2>/dev/null
-    pushd "$TMP_DIR" >/dev/null
+    mkdir "$REPO_DIR" 2>/dev/null
+    mkdir "$TEMP_DIR" 2>/dev/null
+    pushd "$TEMP_DIR" >/dev/null
     while read -r p; do
         echo "Building: $p"
         curl -LsfO https://aur.archlinux.org/cgit/aur.git/snapshot/$p.tar.gz
@@ -149,12 +149,12 @@ function update_repo() {
         pushd $p >/dev/null
         makepkg -s --noconfirm
         popd >/dev/null
-        mv -n $p/*xz "$CUSTOM_REPO_DIR"/
+        mv -n $p/*xz "$REPO_DIR"/
     done < "$ROOT_DIR/.linux_items/packages/aur"
     popd >/dev/null
 
     # Build custom repo database
-    pushd "$CUSTOM_REPO_DIR" >/dev/null
+    pushd "$REPO_DIR" >/dev/null
     repo-add custom.db.tar.gz *xz
     popd >/dev/null
 }
@@ -177,21 +177,21 @@ function build_arch() {
     
     # Set permissions
     echo "Setting permissions..."
-    chown root:root "$ARCHLIVE_DIR" -R
-    chmod 700 "$ARCHLIVE_DIR/airootfs/etc/skel/.ssh"
-    chmod 600 "$ARCHLIVE_DIR/airootfs/etc/skel/.ssh/id_rsa"
+    chown root:root "$LIVE_DIR" -R
+    chmod 700 "$LIVE_DIR/airootfs/etc/skel/.ssh"
+    chmod 600 "$LIVE_DIR/airootfs/etc/skel/.ssh/id_rsa"
     
     # Build ISO
     prefix="$(echo "${KIT_NAME_SHORT}-linux" | tr "[:upper:]" "[:lower:]")"
     label="${KIT_NAME_SHORT}_LINUX"
-    "$ARCHLIVE/bulid.sh" -N "$prefix" -V "$DATE" -L "$label" -s "$TMP_DIR/Arch" -o "$OUT_DIR" -v | tee -a "$LOG_DIR/$DATETIME.log"
+    "$LIVE_DIR/build.sh" -N "$prefix" -V "$DATE" -L "$label" -w "$TEMP_DIR/Arch" -o "$OUT_DIR" -v | tee -a "$LOG_DIR/$DATETIME.log"
 
     # Cleanup
     echo "Removing temp files..."
-    rm "$TMP_DIR/Arch" -Rf | tee -a "$LOG_DIR/$DATETIME.log"
+    rm "$TEMP_DIR/Arch" -Rf | tee -a "$LOG_DIR/$DATETIME.log"
 
     echo "Reverting permissions..."
-    chown $REAL_USER:$REAL_USER "$ARCHLIVE_DIR" -R
+    chown $REAL_USER:$REAL_USER "$LIVE_DIR" -R
 }
 
 function build_full() {
@@ -215,10 +215,12 @@ function build_full() {
 # Check input
 case $1 in
     --build-arch)
+        copy_settings
         build_arch
         ;;
 
     --copy-archiso)
+        copy_settings
         copy_archiso
         update_archlive
         ;;
