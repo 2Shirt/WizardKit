@@ -155,6 +155,12 @@ function update_archlive() {
     echo "useradd -m -s /bin/zsh -G autologin,power,storage,wheel -U $username" >> "$LIVE_DIR/airootfs/root/customize_airootfs.sh"
     echo "echo '$username:$LINUX_TECH_PASSWORD' | chpasswd" >> "$LIVE_DIR/airootfs/root/customize_airootfs.sh"
 
+    # Tech user autologin
+    mkdir -p "$LIVE_DIR/airootfs/etc/systemd/system/getty@tty1.service.d"
+    echo "[Service]" >> "$LIVE_DIR/airootfs/etc/systemd/system/getty@tty1.service.d/autologin.conf"
+    echo "ExecStart=" >> "$LIVE_DIR/airootfs/etc/systemd/system/getty@tty1.service.d/autologin.conf"
+    echo "ExecStart=-/sbin/agetty --autologin $username --noclear %I 38400 linux" >> "$LIVE_DIR/airootfs/etc/systemd/system/getty@tty1.service.d/autologin.conf"
+
     # Timezone
     sed -i -r "s#zoneinfo/UTC#$LINUX_TIME_ZONE#g" "$LIVE_DIR/airootfs/root/customize_airootfs.sh"
 
