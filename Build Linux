@@ -148,7 +148,7 @@ function update_archlive() {
     # Oh My ZSH
     git clone --depth=1 git://github.com/robbyrussell/oh-my-zsh.git "$SKEL_DIR/.oh-my-zsh"
     rm -Rf "$SKEL_DIR/.oh-my-zsh/.git"
-    curl -o "$SKEL_DIR/.oh-my-zsh/themes/lean.zsh-theme" https://raw.githubusercontent.com/miekg/lean/master/prompt_lean_test.zsh
+    curl -o "$SKEL_DIR/.oh-my-zsh/themes/lean.zsh-theme" https://raw.githubusercontent.com/miekg/lean/master/prompt_lean_setup
     
     # Services
     sed -i -r 's/^(.*pacman-init.*)$/#NOPE#\1/' "$LIVE_DIR/airootfs/root/customize_airootfs.sh"
