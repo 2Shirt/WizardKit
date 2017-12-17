@@ -92,7 +92,7 @@ function load_settings() {
     done < "$BUILD_DIR/main.py"
 }
 
-function prep_live_env() {
+function copy_live_env() {
     echo "Copying Archlinux files..."
     rsync -aI /usr/share/archiso/configs/releng/ "$LIVE_DIR/"
     
@@ -121,7 +121,7 @@ function run_elevated() {
     fi
 }
 
-function update_archlive() {
+function update_live_env() {
     hostname="$(echo "${KIT_NAME_SHORT}-linux" | tr "[:upper:]" "[:lower:]")"
     username="$(echo "${KIT_NAME_SHORT}tech" | tr "[:upper:]" "[:lower:]")"
     
@@ -156,13 +156,11 @@ function update_archlive() {
     
     # Openbox theme
     git clone --depth=1 git@github.com:addy-dclxvi/Openbox-Theme-Collections.git "$TEMP_DIR/ob-themes"
-    cp -a "$TEMP_DIR/ob-themes/Triste-Orange" "$LIVE_DIR/airootfs/usr/share/themes/"
+    cp -a "$TEMP_DIR/ob-themes/Triste-Orange" "$LIVE_DIR/airootfs/usr/share/themes/Triste-Orange"
 
     # Services
     sed -i -r 's/^(.*pacman-init.*)$/#NOPE#\1/' "$LIVE_DIR/airootfs/root/customize_airootfs.sh"
     sed -i -r 's/^(.*choose-mirror.*)$/#NOPE#\1/' "$LIVE_DIR/airootfs/root/customize_airootfs.sh"
-    ln -s /usr/lib/systemd/system/NetworkManager.service /etc/systemd/system/dbus-org.freedesktop.NetworkManager.service
-    ln -s /usr/lib/systemd/system/NetworkManager-dispatcher.service /etc/systemd/system/dbus-org.freedesktop.nm-dispatcher.service
     
     # SSH
     mkdir -p "$SKEL_DIR/.ssh"
@@ -184,7 +182,7 @@ function update_archlive() {
 
     # Tech user autologin
     mkdir -p "$LIVE_DIR/airootfs/etc/systemd/system/getty@tty1.service.d"
-    echo "[Service]" >> "$LIVE_DIR/airootfs/etc/systemd/system/getty@tty1.service.d/autologin.conf"
+    echo "[Service]" > "$LIVE_DIR/airootfs/etc/systemd/system/getty@tty1.service.d/autologin.conf"
     echo "ExecStart=" >> "$LIVE_DIR/airootfs/etc/systemd/system/getty@tty1.service.d/autologin.conf"
     echo "ExecStart=-/sbin/agetty --autologin $username --noclear %I 38400 linux" >> "$LIVE_DIR/airootfs/etc/systemd/system/getty@tty1.service.d/autologin.conf"
 
@@ -285,8 +283,8 @@ function build_full() {
     install_deps
     load_settings
     update_repo
-    prep_live_env
-    update_archlive
+    copy_live_env
+    update_live_env
     # Rerun script as root to start Archiso build process
     run_elevated "$(realpath "$0")" --build-iso
 }
@@ -312,8 +310,8 @@ case $1 in
     
     -p|--prep-live-env)
         load_settings
-        prep_live_env
-        update_archlive
+        copy_live_env
+        update_live_env
         ;;
 
     -u|--update-repo)
