@@ -188,14 +188,21 @@ bindsym $mod+Shift+9 move container to workspace $ws9; workspace $ws9
 bindsym $mod+Shift+0 move container to workspace $ws10; workspace $ws10
 
 # Open specific applications in floating mode
-for_window [title="Slack"] floating enable
-for_window [title="Screen Layout Editor"] floating enable
-for_window [class="Galculator"] floating enable border pixel 1
-for_window [class="Nitrogen"] floating enable sticky enable border normal
+for_window [class="Galculator"] floating enable border normal 5
+for_window [class="Nitrogen"] floating enable sticky enable border normal 5
+for_window [class="Thunar"] floating enable border normal 5
+for_window [class="mpv"] floating enable border normal 5
+for_window [title="Event Tester"] floating enable border normal 5
+for_window [title="Firefox"] floating enable border normal 5
 for_window [title="Hardware Diagnostics"] floating enable
 for_window [title="Hardware Sensors"] floating enable
-for_window [title="Mount All Volumes"] floating enable
-for_window [title="Firefox"] floating enable border normal
+for_window [title="Mount All Volumes"] floating enable border normal 5
+for_window [title="Network Connections"] floating enable border normal 5
+for_window [title="Screen Layout Editor"] floating enable border normal 5
+for_window [title="Slack"] floating enable border normal 5
+for_window [title="System Information"] floating enable border normal 5
+for_window [title="Volume Control"] floating enable border normal 5
+for_window [title="Zenmap"] floating enable border normal 5
 
 # switch to workspace with urgent window automatically
 for_window [urgent=latest] focus
