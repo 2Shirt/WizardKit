@@ -50,24 +50,6 @@ function cleanup() {
     mkdir "$TEMP_DIR" 2>/dev/null
 }
 
-function copy_archiso() {
-    echo "Copying Archlinux files..."
-    rsync -aI /usr/share/archiso/configs/releng/ "$LIVE_DIR/"
-    
-    # Add items
-    rsync -aI "$ROOT_DIR/.linux_items/include/live/" "$LIVE_DIR/"
-
-    # Remove items
-    rm "$LIVE_DIR/airootfs/etc/systemd/scripts/choose-mirror"
-    rmdir "$LIVE_DIR/airootfs/etc/systemd/scripts" --ignore-fail-on-non-empty
-    rm "$LIVE_DIR/airootfs/etc/systemd/system/choose-mirror.service"
-    rm "$LIVE_DIR/airootfs/etc/systemd/system/etc-pacman.d-gnupg.mount"
-    rm "$LIVE_DIR/airootfs/etc/systemd/system/pacman-init.service"
-    rm "$LIVE_DIR/airootfs/etc/udev/rules.d/81-dhcpcd.rules"
-    rmdir "$LIVE_DIR/airootfs/etc/udev/rules.d" --ignore-fail-on-non-empty
-    rmdir "$LIVE_DIR/airootfs/etc/udev" --ignore-fail-on-non-empty
-}
-
 function fix_kit_permissions() {
     # GitHub zip archives don't preserve the correct permissions
     for d in .bin .cbin .kit_items .linux_items .pe_items Images; do
@@ -108,6 +90,24 @@ function load_settings() {
             eval "$line"
         fi
     done < "$BUILD_DIR/main.py"
+}
+
+function prep_live_env() {
+    echo "Copying Archlinux files..."
+    rsync -aI /usr/share/archiso/configs/releng/ "$LIVE_DIR/"
+    
+    # Add items
+    rsync -aI "$ROOT_DIR/.linux_items/include/live/" "$LIVE_DIR/"
+
+    # Remove items
+    rm "$LIVE_DIR/airootfs/etc/systemd/scripts/choose-mirror"
+    rmdir "$LIVE_DIR/airootfs/etc/systemd/scripts" --ignore-fail-on-non-empty
+    rm "$LIVE_DIR/airootfs/etc/systemd/system/choose-mirror.service"
+    rm "$LIVE_DIR/airootfs/etc/systemd/system/etc-pacman.d-gnupg.mount"
+    rm "$LIVE_DIR/airootfs/etc/systemd/system/pacman-init.service"
+    rm "$LIVE_DIR/airootfs/etc/udev/rules.d/81-dhcpcd.rules"
+    rmdir "$LIVE_DIR/airootfs/etc/udev/rules.d" --ignore-fail-on-non-empty
+    rmdir "$LIVE_DIR/airootfs/etc/udev" --ignore-fail-on-non-empty
 }
 
 function run_elevated() {
@@ -242,7 +242,7 @@ function install_deps() {
     run_elevated pacman -Syu --needed --noconfirm $packages
 }
 
-function build_arch() {
+function build_iso() {
     if [[ "$EUID" -ne 0 ]]; then
         echo "This section is meant to be run as root."
         echo "Aborted."
@@ -281,39 +281,54 @@ function build_full() {
     install_deps
     load_settings
     update_repo
-    copy_archiso
+    prep_live_env
     update_archlive
     # Rerun script as root to start Archiso build process
-    run_elevated "$(realpath "$0")" --build-arch
+    run_elevated "$(realpath "$0")" --build-iso
 }
 
 # Check input
 case $1 in
-    --build-arch)
-        load_settings
-        build_arch
+    -b|--build-full)
+        build_full
         ;;
 
-    --copy-archiso)
-        load_settings
-        copy_archiso
-        update_archlive
-        ;;
-
-    --fix-perms)
+    -f|--fix-perms)
         fix_kit_permissions
         ;;
 
-    --install-deps)
+    -i|--install-deps)
         install_deps
         ;;
 
-    --update-repo)
-        update_repo
+    -o|--build-iso)
+        load_settings
+        build_iso
         ;;
     
+    -p|--prep-live-env)
+        load_settings
+        prep_live_env
+        update_archlive
+        ;;
+
+    -u|--update-repo)
+        update_repo
+        ;;
+
     *)
-        build_full
+        echo "Usage: $(basename "$0") [OPTIONS]"
+        echo ""
+        echo "Options:"
+        echo "    -b --build-full       Perform all tasks and build iso"
+        echo "    -h --help             Show usage"
+        echo ""
+        echo "Advanced options:"
+        echo "    -f --fix-perms        Fix folder permissions"
+        echo "    -i --install-deps     Install build dependencies"
+        echo "    -o --build-iso        Build ISO (using current setup)"
+        echo "    -p --prep-live-env    Prep live & airootfs folders"
+        echo "    -u --update-repo      Update custom pacman repo"
         ;;
 esac
 
