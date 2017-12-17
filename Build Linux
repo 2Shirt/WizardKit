@@ -68,7 +68,24 @@ function copy_archiso() {
     rmdir "$LIVE_DIR/airootfs/etc/udev" --ignore-fail-on-non-empty
 }
 
-function copy_settings() {
+function load_settings() {
+    # Check if settings already loaded
+    ## Code based on StackOverflow Q&A
+    ## Question:    https://stackoverflow.com/q/3601515
+    ## Asked by:    https://stackoverflow.com/users/260127/prosseek
+    ## Edited by:   https://stackoverflow.com/users/3924118/nbro
+    ## Answer:      https://stackoverflow.com/a/13864829
+    ## Answer by:   https://stackoverflow.com/users/1633643/lionel
+    ## Answer edit: https://stackoverflow.com/users/-1/community
+    if [ -z ${KIT_NAME_FULL+x} ]; then
+        # KIT_NAME_FULL is unset
+        : # pass
+    else
+        # KIT_NAME_FULL is set
+        return 0 # Skip loading settings from main.py
+    fi
+
+    # Copy settings
     if [[ ! -e "$BUILD_DIR/main.py" ]] || ask "Overwrite main.py?"; then
         cp -bv "$ROOT_DIR/.bin/Scripts/settings/main.py" "$BUILD_DIR/main.py"
     fi
@@ -254,7 +271,7 @@ function build_full() {
     # Prep for build
     cleanup
     install_deps
-    copy_settings
+    load_settings
     update_repo
     copy_archiso
     update_archlive
@@ -265,12 +282,12 @@ function build_full() {
 # Check input
 case $1 in
     --build-arch)
-        copy_settings
+        load_settings
         build_arch
         ;;
 
     --copy-archiso)
-        copy_settings
+        load_settings
         copy_archiso
         update_archlive
         ;;
