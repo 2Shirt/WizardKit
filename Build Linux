@@ -68,6 +68,13 @@ function copy_archiso() {
     rmdir "$LIVE_DIR/airootfs/etc/udev" --ignore-fail-on-non-empty
 }
 
+function fix_kit_permissions() {
+    # GitHub zip archives don't preserve the correct permissions
+    for d in .bin .cbin .kit_items .linux_items .pe_items Images; do
+        find "$ROOT_DIR/$d" -type d -exec chmod 755 "{}" \;
+    done
+}
+
 function load_settings() {
     # Check if settings already loaded
     ## Code based on StackOverflow Q&A
@@ -270,6 +277,7 @@ function build_full() {
     
     # Prep for build
     cleanup
+    fix_kit_permissions
     install_deps
     load_settings
     update_repo
@@ -290,6 +298,10 @@ case $1 in
         load_settings
         copy_archiso
         update_archlive
+        ;;
+
+    --fix-perms)
+        fix_kit_permissions
         ;;
 
     --install-deps)
