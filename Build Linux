@@ -154,6 +154,10 @@ function update_archlive() {
     rm -Rf "$SKEL_DIR/.oh-my-zsh/.git"
     curl -o "$SKEL_DIR/.oh-my-zsh/themes/lean.zsh-theme" https://raw.githubusercontent.com/miekg/lean/master/prompt_lean_setup
     
+    # Openbox theme
+    git clone --depth=1 git@github.com:addy-dclxvi/Openbox-Theme-Collections.git "$TEMP_DIR/ob-themes"
+    cp -a "$TEMP_DIR/ob-themes/Triste-Orange" "$LIVE_DIR/airootfs/usr/share/themes/"
+
     # Services
     sed -i -r 's/^(.*pacman-init.*)$/#NOPE#\1/' "$LIVE_DIR/airootfs/root/customize_airootfs.sh"
     sed -i -r 's/^(.*choose-mirror.*)$/#NOPE#\1/' "$LIVE_DIR/airootfs/root/customize_airootfs.sh"
