@@ -2,6 +2,7 @@ archiso
 attr
 base-devel
 curl
+dos2unix
 git
 libewf
 openssh

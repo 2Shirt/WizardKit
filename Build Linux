@@ -77,6 +77,7 @@ function load_settings() {
     # Copy settings
     if [[ ! -e "$BUILD_DIR/main.py" ]] || ask "Overwrite main.py?"; then
         cp -bv "$ROOT_DIR/.bin/Scripts/settings/main.py" "$BUILD_DIR/main.py"
+        unix2dos "$BUILD_DIR/main.py"
     fi
 
     # Edit settings
