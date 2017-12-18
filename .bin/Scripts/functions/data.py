@@ -1,6 +1,7 @@
 # Wizard Kit: Functions - Data
 
 import ctypes
+import json
 
 from operator import itemgetter
 
@@ -156,6 +157,82 @@ def is_valid_wim_file(item):
             valid = False
             print_log('WARNING: Image "{}" damaged.'.format(item.name))
     return valid
+
+def get_mounted_data():
+    """Get mounted volumes, returns dict."""
+    cmd = [
+        'findmnt', '-J', '-b', '-i',
+        't', (
+            'autofs,binfmt_misc,cgroup,cgroup2,configfs,debugfs,devpts,devtmpfs,'
+            'hugetlbfs,mqueue,proc,pstore,securityfs,sysfs,tmpfs'
+            ),
+        '-o', 'SOURCE,TARGET,FSTYPE,LABEL,SIZE,AVAIL,USED']
+    result = run_program(cmd)
+    json_data = json.loads(result.stdout.decode())
+    mounted_data = []
+    for item in json_data.get('filesystems', []):
+        mounted_data.append(item)
+        mounted_data.extend(item.get('children', []))
+    return {item['source']: item for item in mounted_data}
+
+def mount_all_volumes():
+    """Mount all attached devices with recognized filesystems."""
+    report = []
+
+    # Get list of block devices
+    cmd = ['lsblk', '-J', '-o', 'NAME,FSTYPE,LABEL,UUID,PARTTYPE,TYPE,SIZE']
+    result = run_program(cmd)
+    json_data = json.loads(result.stdout.decode())
+    devs = json_data.get('blockdevices', [])
+
+    # Get list of mounted devices
+    mounted_data = get_mounted_data()
+    mounted_list = [m['source'] for m in mounted_data.values()]
+
+    # Loop over devices
+    for dev in devs:
+        dev_path = '/dev/{}'.format(dev['name'])
+        if re.search(r'^(loop|sr)', dev['name'], re.IGNORECASE):
+            # Skip loopback devices and optical media
+            report.append([dev_path, 'Skipped'])
+            continue
+        for child in dev.get('children', []):
+            child_path = '/dev/{}'.format(child['name'])
+            if child_path in mounted_list:
+                report.append([child_path, 'Already Mounted'])
+            else:
+                try:
+                    run_program(['udevil', 'mount', '-o', 'ro', child_path])
+                    report.append([child_path, 'CS'])
+                except subprocess.CalledProcessError:
+                    report.append([child_path, 'NS'])
+
+    # Update list of mounted devices
+    mounted_data = get_mounted_data()
+    mounted_list = [m['source'] for m in mounted_data.values()]
+
+    # Update report lines for show_data()
+    for line in report:
+        _path = line[0]
+        _result = line[1]
+        info = {'message': '{}:'.format(_path)}
+        if _path in mounted_list:
+            info['data'] = 'Mounted on {}'.format(
+                mounted_data[_path]['target'])
+            info['data'] = '{:40} ({} used, {} free)'.format(
+                info['data'],
+                human_readable_size(mounted_data[_path]['used']),
+                human_readable_size(mounted_data[_path]['avail']))
+            if _result == 'Already Mounted':
+                info['warning'] = True
+        elif _result == 'Skipped':
+            info['data'] = 'Skipped'
+            info['warning'] = True
+        else:
+            info['data'] = 'Failed to mount'
+            info['error'] = True
+        line.append(info)
+    return report
 
 def mount_backup_shares():
     """Mount the backup shares unless labeled as already mounted."""
