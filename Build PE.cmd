@@ -17,8 +17,15 @@ if not exist "%dandi_set_env%" (goto ErrorKitNotFound)
 if not exist "%ps_script%" (goto ErrorPSScriptMissing)
 call "%dandi_set_env%" || goto ErrorUnknown
 
+:EnsureCRLF
+rem Rewrite main.py using PowerShell to have CRLF/`r`n lineendings
+set "script=%~dp0\.bin\Scripts\borrowed\set-eol.ps1"
+set "main=%~dp0\.bin\Scripts\settings\main.py"
+powershell -executionpolicy bypass -noprofile -file %script% -lineEndings win -file %main% || goto ErrorUnknown
+
 :Launch
-PowerShell -ExecutionPolicy bypass -File %ps_script%"
+set "script=%~dp0\.bin\Scripts\build_pe.ps1"
+powershell -executionpolicy bypass -noprofile -file %script% || goto ErrorUnknown
 goto Exit
 
 :: Functions ::

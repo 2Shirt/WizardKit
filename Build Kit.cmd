@@ -22,10 +22,15 @@ mkdir OUT_KIT\.cbin >nul 2>&1
 attrib +h OUT_KIT\.bin >nul 2>&1
 attrib +h OUT_KIT\.cbin >nul 2>&1
 
+:EnsureCRLF
+rem Rewrite main.py using PowerShell to have CRLF/`r`n lineendings
+set "script=OUT_KIT\.bin\Scripts\borrowed\set-eol.ps1"
+set "main=OUT_KIT\.bin\Scripts\settings\main.py"
+powershell -executionpolicy bypass -noprofile -file %script% -lineEndings win -file %main% || goto ErrorUnknown
+
 :Launch
-rem Calls the Launch.cmd script using the variables defined above
-set "file=OUT_KIT\.bin\Scripts\build_kit.ps1"
-powershell -executionpolicy bypass -noprofile -file %file% || goto ErrorUnknown
+set "script=OUT_KIT\.bin\Scripts\build_kit.ps1"
+powershell -executionpolicy bypass -noprofile -file %script% || goto ErrorUnknown
 goto Exit
 
 :: Functions ::
