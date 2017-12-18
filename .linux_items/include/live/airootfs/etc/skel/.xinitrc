@@ -12,7 +12,7 @@ conky -d
 nm-applet &
 cbatticon &
 pasystray &
-$HOME/.network_start &
+connect-to-network &
 $HOME/.urxvt_default_res &
 $HOME/.update_wallpaper &
 $HOME/.update_conky &
