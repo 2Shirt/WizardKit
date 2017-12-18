@@ -170,7 +170,7 @@ function update_live_env() {
     sed -i -r 's/^(.*PermitRootLogin.*)$/#NOPE#\1/' "$LIVE_DIR/airootfs/root/customize_airootfs.sh"
     
     # Root user
-    echo "echo 'root:$LINUX_ROOT_PASSWORD' | chpasswd" >> "$LIVE_DIR/airootfs/root/customize_airootfs.sh"
+    echo "echo 'root:$ROOT_PASSWORD' | chpasswd" >> "$LIVE_DIR/airootfs/root/customize_airootfs.sh"
 
     # Sudo
     echo "echo '%wheel ALL=(ALL) NOPASSWD: ALL' >> /etc/sudoers" >> "$LIVE_DIR/airootfs/root/customize_airootfs.sh"
@@ -178,7 +178,7 @@ function update_live_env() {
     # Tech user
     echo "groupadd -r autologin" >> "$LIVE_DIR/airootfs/root/customize_airootfs.sh"
     echo "useradd -m -s /bin/zsh -G autologin,power,storage,wheel -U $username" >> "$LIVE_DIR/airootfs/root/customize_airootfs.sh"
-    echo "echo '$username:$LINUX_TECH_PASSWORD' | chpasswd" >> "$LIVE_DIR/airootfs/root/customize_airootfs.sh"
+    echo "echo '$username:$TECH_PASSWORD' | chpasswd" >> "$LIVE_DIR/airootfs/root/customize_airootfs.sh"
 
     # Tech user autologin
     mkdir -p "$LIVE_DIR/airootfs/etc/systemd/system/getty@tty1.service.d"
@@ -187,7 +187,7 @@ function update_live_env() {
     echo "ExecStart=-/sbin/agetty --autologin $username --noclear %I 38400 linux" >> "$LIVE_DIR/airootfs/etc/systemd/system/getty@tty1.service.d/autologin.conf"
 
     # Timezone
-    sed -i -r "s#zoneinfo/UTC#$LINUX_TIME_ZONE#g" "$LIVE_DIR/airootfs/root/customize_airootfs.sh"
+    echo "ln -sf '/usr/share/zoneinfo/$LINUX_TIME_ZONE' '/etc/localtime'" >> "$LIVE_DIR/airootfs/root/customize_airootfs.sh"
     echo 'sed -i "s/#FallbackNTP/NTP/" /etc/systemd/timesyncd.conf' >> "$LIVE_DIR/airootfs/root/customize_airootfs.sh"
 
     # udevil fix

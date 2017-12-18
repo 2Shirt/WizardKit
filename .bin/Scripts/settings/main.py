@@ -3,18 +3,30 @@
 # Features
 ENABLED_UPLOAD_DATA = False
 
-# STATIC VARIABLES (also used by .cmd files)
-## Not using spaces aroung '=' for easier .cmd substrings
+# STATIC VARIABLES (also used by BASH and BATCH files)
+## NOTE: There are no spaces around the = for easier parsing in BASH and BATCH
+# Main Kit
 ARCHIVE_PASSWORD='Abracadabra'
 KIT_NAME_FULL='Wizard Kit'
 KIT_NAME_SHORT='WK'
-LINUX_TECH_PASSWORD='Abracadabra'
-LINUX_TIME_ZONE='America/Los_Angeles'
-LINUX_ROOT_PASSWORD='Abracadabra'
+SUPPORT_MESSAGE='Please let 2Shirt know by opening an issue on GitHub'
+# Live Linux
+DIAG_SHARE='/srv/ClientInfo'
+DIAG_USER='wkdiag'
+MPRIME_LIMIT='7'                          # of minutes to run Prime95 during hw-diags
+ROOT_PASSWORD='Abracadabra'
+SKIP_UPLOAD='False'
+TECH_PASSWORD='Abracadabra'
+# Server IP addresses
+DIAG_SERVER='10.0.0.10'
 OFFICE_SERVER_IP='10.0.0.10'
 QUICKBOOKS_SERVER_IP='10.0.0.10'
-SUPPORT_MESSAGE='Please let 2Shirt know by opening an issue on GitHub'
-TIME_ZONE='Pacific Standard Time' # Always use "Standard Time" (DST is applied correctly)
+# Time Zones
+LINUX_TIME_ZONE='America/Los_Angeles'     # See 'timedatectl list-timezones' for valid values
+WINDOWS_TIME_ZONE='Pacific Standard Time' # See 'tzutil /l' for valid values
+# WiFi
+WIFI_SSID='SomeWifi'
+WIFI_PASSWORD='Abracadabra'
 
 # SERVER VARIABLES
 ## NOTE: Windows can only use one user per server. This means that if
