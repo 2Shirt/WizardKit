@@ -12,25 +12,30 @@ die () {
 }
 
 function test_connection() {
-    if ip a | grep -Eq '(10.[0-9]+|172.(1[6-9]|2[0-9]|3[0-1]).[0-9]+|192.168).[0-9]+.[0-9]+'; then
-        return 0
+    # Check for a valid private IP
+    if ip a | grep -Eq '10.[0-9]+.[0-9]+.[0-9]+'; then
+        return 0 # Class A
+    elif ip a | grep -Eq '172.(1[6-9]|2[0-9]|3[0-1]).[0-9]+.[0-9]+'; then
+        return 0 # Class B
+    elif ip a | grep -Eq '192.168.[0-9]+.[0-9]+'; then
+        return 0 # Class C
     else
-        return 1
+        return 1 # Invalid private IP
     fi
 }
 
 # Load settings
-if [[ -f "/run/archiso/bootmnt/arch/arch.conf" ]]; then
-    source "/run/archiso/bootmnt/arch/arch.conf" || \
-        die "ERROR: failed to load arch.conf (from /run/archiso/bootmnt/arch/)"
+if [[ -f "/run/archiso/bootmnt/arch/wifi.conf" ]]; then
+    source "/run/archiso/bootmnt/arch/wifi.conf" || \
+        die "ERROR: failed to load wifi.conf (from /run/archiso/bootmnt/arch/)"
 else
-    source "/usr/local/bin/arch.conf" || \
-        die "ERROR: failed to load arch.conf (from /usr/local/bin/)"
+    source "/usr/local/bin/wifi.conf" || \
+        die "ERROR: failed to load wifi.conf (from /usr/local/bin/)"
 fi
 
 # Init
 WIFI_SSID="${WIFI_SSID}"
-WIFI_PASS="${WIFI_PASS}"
+WIFI_PASSWORD="${WIFI_PASSWORD}"
 
 # Connect to network
 if ! test_connection; then
@@ -49,7 +54,7 @@ if ! test_connection; then
         ## Skip if we're already connected (i.e. the code above worked)
         if ! test_connection; then
             echo "Attempting to connect to ${WIFI_SSID}..."
-            nmcli dev wifi connect "${WIFI_SSID}" password "${WIFI_PASS}"
+            nmcli dev wifi connect "${WIFI_SSID}" password "${WIFI_PASSWORD}"
             sleep 5s
         fi
     fi

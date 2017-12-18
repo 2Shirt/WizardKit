@@ -196,6 +196,10 @@ function update_live_env() {
     # Wallpaper
     mkdir -p "$LIVE_DIR/airootfs/usr/share/wallpaper"
     cp "$ROOT_DIR/Images/Linux.png" "$LIVE_DIR/airootfs/usr/share/wallpaper/burned.in"
+
+    # WiFi
+    echo "WIFI_SSID='$WIFI_SSID'" >> "$LIVE_DIR/airootfs/usr/local/bin/wifi.conf"
+    echo "WIFI_PASSWORD='$WIFI_PASSWORD'" >> "$LIVE_DIR/airootfs/usr/local/bin/wifi.conf"
 }
 
 function update_repo() {
