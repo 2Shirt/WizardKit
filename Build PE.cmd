@@ -8,13 +8,11 @@ title Wizard Kit: Windows PE Build Tool
 call :CheckFlags %*
 call :CheckElevation || goto Exit
 call :FindKitsRoot || goto ErrorKitNotFound
-set "dandi_set_env=%adk_root%\Deployment Tools\DandISetEnv.bat"
-set "ps_script=%~dp0\.bin\Scripts\build_pe.ps1"
 
 :LaunchPrep
-rem Verify scripts exists
+rem Update environment using WADK script
+set "dandi_set_env=%adk_root%\Deployment Tools\DandISetEnv.bat"
 if not exist "%dandi_set_env%" (goto ErrorKitNotFound)
-if not exist "%ps_script%" (goto ErrorPSScriptMissing)
 call "%dandi_set_env%" || goto ErrorUnknown
 
 :EnsureCRLF
@@ -91,11 +89,6 @@ del "%vb_script%"
 :ErrorKitNotFound
 echo.
 echo ERROR: Windows ADK installation not found.
-goto Abort
-
-:ErrorPSScriptMissing
-echo.
-echo ERROR: build_pe.ps1 script not found.
 goto Abort
 
 :ErrorUnknown

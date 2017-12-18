@@ -7,10 +7,6 @@ setlocal
 title Wizard Kit: Build Tool
 call :CheckFlags %*
 
-:LaunchPrep
-rem Verifies the environment before launching item
-if not exist ".bin\Scripts\build_kit.ps1" (goto ErrorBuildKitMissing)
-
 :PrepNewKit
 rem Copy base files to a new folder OUT_KIT
 robocopy /e .bin OUT_KIT\.bin
@@ -43,11 +39,6 @@ for %%f in (%*) do (
 @exit /b 0
 
 :: Errors ::
-:ErrorBuildKitMissing
-echo.
-echo ERROR: build_kit.ps1 script not found.
-goto Abort
-
 :ErrorUnknown
 echo.
 echo ERROR: Encountered an unknown error.
