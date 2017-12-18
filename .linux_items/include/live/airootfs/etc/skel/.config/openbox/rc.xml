@@ -314,7 +314,7 @@
     </keybind>
     <keybind key="W-m">
       <action name="Execute">
-        <command>urxvt -title "Mount all Volumes" -e mount-all-volumes-foh</command>
+        <command>urxvt -title "Mount all Volumes" -e mount-all-volumes foh</command>
       </action>
     </keybind>
     <keybind key="W-r">
