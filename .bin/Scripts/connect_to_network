@@ -1,0 +1,31 @@
+#!/bin/python3
+#
+## Wizard Kit: Network connection tool
+
+import os
+import sys
+
+# Init
+os.chdir(os.path.dirname(os.path.realpath(__file__)))
+sys.path.append(os.getcwd())
+from functions.network import *
+init_global_vars()
+
+if __name__ == '__main__':
+    try:
+        # Prep
+        clear_screen()
+
+        # Connect
+        if not is_connected():
+            connect_to_network()
+        
+        # Done
+        print_standard('\nDone.')
+        #pause("Press Enter to exit...")
+        exit_script()
+    except SystemExit:
+        pass
+    except:
+        major_exception()
+

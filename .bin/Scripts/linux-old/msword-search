@@ -1,5 +1,6 @@
 #!/bin/bash
-
+#
+## Wizard Kit: MS Word content search tool
 TMP_FILE="$(mktemp)"
 
 IFS=$'\n'

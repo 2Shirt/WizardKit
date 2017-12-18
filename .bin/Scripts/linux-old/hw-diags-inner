@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-## WK HW Diagnostics - Main script
+## Wizard Kit: HW Diagnostics - Main script
 
 die () {
     echo "$0:" "$@" >&2
@@ -8,16 +8,16 @@ die () {
 }
 
 # Load settings
-if [[ -f "/run/archiso/bootmnt/arch/arch.conf" ]]; then
-    source "/run/archiso/bootmnt/arch/arch.conf" || \
-        die "ERROR: failed to load arch.conf (from /run/archiso/bootmnt/arch/)"
+if [[ -f "/run/archiso/bootmnt/arch/main.conf" ]]; then
+    source "/run/archiso/bootmnt/arch/main.conf" || \
+        die "ERROR: failed to load main.conf (from /run/archiso/bootmnt/arch/)"
 else
-    source "/usr/local/bin/arch.conf" || \
-        die "ERROR: failed to load arch.conf (from /usr/local/bin/)"
+    source "/usr/local/bin/main.conf" || \
+        die "ERROR: failed to load main.conf (from /usr/local/bin/)"
 fi
 
 # Get TICKET
-## Inital SKIP_UPLOAD value loaded from arch.conf
+## Inital SKIP_UPLOAD value loaded from main.conf
 SKIP_UPLOAD="${SKIP_UPLOAD}"
 TICKET=""
 while [[ "$TICKET" == "" ]]; do
@@ -37,7 +37,7 @@ while [[ "$TICKET" == "" ]]; do
 done
 
 # Init
-## Tautologies left to show which settings are coming from arch.conf
+## Tautologies left to show which settings are coming from main.conf
 DIAG_DATE="$(date "+%F_%H%M")"
 DIAG_SERVER_AVAIL="False"
 DIAG_SERVER="${DIAG_SERVER}"
@@ -234,7 +234,7 @@ esac
 if [[ "$TEST_CPU" == "False" ]] && \
     [[ "$TEST_SMART" == "False" ]] && \
     [[ "$TEST_BADBLOCKS" == "False" ]]; then
-    echo -e "${YELLOW}Aborting HW diagnostics${CLEAR}"
+    echo -e "${YELLOW}Aborting HW Diagnostics${CLEAR}"
     exit 1
 fi
 

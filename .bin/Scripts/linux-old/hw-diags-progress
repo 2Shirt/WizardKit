@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-## WK HW diagnostics - Progress
+## Wizard Kit: HW Diagnostics - Progress
 
 # Loop forever
 while :; do

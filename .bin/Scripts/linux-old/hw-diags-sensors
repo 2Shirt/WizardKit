@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-## WK HW diagnostics - Sensors
+## Wizard Kit: HW Diagnostics - Sensors
 
 LOG_DIR="$1"
 

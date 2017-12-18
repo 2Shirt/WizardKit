@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-## WK HW diagnostics - Network
+## Wizard Kit: HW Diagnostics - Network
 
 function test_connection() {
     cmd="a"

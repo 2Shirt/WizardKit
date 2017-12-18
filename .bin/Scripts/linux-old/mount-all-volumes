@@ -1,8 +1,8 @@
 #!/bin/bash
 #
-## Mount all volumes read-only
+## Wizard Kit: Volume mount tool
 
-# Mount all volumes
+# Mount all volumes (read only)
 echo "Mounting all volumes"
 regex="/dev/((h|s)d[a-z]|md)[0-9]+"
 for volume in $(inxi -Dopxx | grep -E "$regex" | sed -r "s#.*($regex).*#\1#" | sort); do

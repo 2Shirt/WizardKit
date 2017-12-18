@@ -8,7 +8,11 @@ import subprocess
 import sys
 import time
 import traceback
-import winreg
+try:
+    import winreg
+except ModuleNotFoundError:
+    if psutil.WINDOWS:
+        raise
 
 from subprocess import CalledProcessError
 
@@ -26,9 +30,13 @@ COLORS = {
     'YELLOW': '\033[33m',
     'BLUE': '\033[34m'
 }
-HKU = winreg.HKEY_USERS
-HKCU = winreg.HKEY_CURRENT_USER
-HKLM = winreg.HKEY_LOCAL_MACHINE
+try:
+    HKU = winreg.HKEY_USERS
+    HKCU = winreg.HKEY_CURRENT_USER
+    HKLM = winreg.HKEY_LOCAL_MACHINE
+except NameError:
+    if psutil.WINDOWS:
+        raise
 
 # Error Classes
 class BIOSKeyNotFoundError(Exception):
@@ -86,8 +94,11 @@ def ask(prompt='Kotaero!'):
     return answer
 
 def clear_screen():
-    """Simple wrapper for cls."""
-    os.system('cls')
+    """Simple wrapper for cls/clear."""
+    if psutil.WINDOWS:
+        os.system('cls')
+    else:
+        os.system('clear')
 
 def convert_to_bytes(size):
     """Convert human-readable size str to bytes and return an int."""
@@ -160,8 +171,10 @@ def get_ticket_number():
         _input = input('Enter ticket number: ')
         if re.match(r'^([0-9]+([-_]?\w+|))$', _input):
             ticket_number = _input
-            with open(r'{}\TicketNumber'.format(global_vars['LogDir']), 'w',
-                encoding='utf-8') as f:
+            out_file = r'{}\TicketNumber'.format(global_vars['LogDir'])
+            if not psutil.WINDOWS:
+                out_file = out_file.replace('\\', '/')
+            with open(out_file, 'w', encoding='utf-8') as f:
                 f.write(ticket_number)
     return ticket_number
 
@@ -272,7 +285,7 @@ def menu_select(title='~ Untitled Menu ~',
     answer = ''
 
     while (answer.upper() not in valid_answers):
-        os.system('cls')
+        clear_screen()
         print(menu_splash)
         answer = input('{}: '.format(prompt))
 
@@ -294,7 +307,11 @@ def pause(prompt='Press Enter to continue... '):
 
 def ping(addr='google.com'):
     """Attempt to ping addr."""
-    cmd = ['ping', '-n', '2', addr]
+    cmd = [
+        'ping',
+        '-n' if psutil.WINDOWS else '-c',
+        '2',
+        addr]
     run_program(cmd)
 
 def popen_program(cmd, pipe=False, minimized=False, shell=False, **kwargs):
@@ -535,14 +552,20 @@ def init_global_vars():
     """Sets global variables based on system info."""
     print_info('Initializing')
     os.system('title Wizard Kit')
-    init_functions = [
-        ['Checking .bin...',        find_bin],
-        ['Checking environment...', set_common_vars],
-        ['Checking OS...',          check_os],
-        ['Checking tools...',       check_tools],
-        ['Creating folders...',     make_tmp_dirs],
-        ['Clearing collisions...',  clean_env_vars],
-        ]
+    if psutil.LINUX:
+        init_functions = [
+            ['Checking environment...', set_linux_vars],
+            ['Clearing collisions...',  clean_env_vars],
+            ]
+    else:
+        init_functions = [
+            ['Checking .bin...',        find_bin],
+            ['Checking environment...', set_common_vars],
+            ['Checking OS...',          check_os],
+            ['Checking tools...',       check_tools],
+            ['Creating folders...',     make_tmp_dirs],
+            ['Clearing collisions...',  clean_env_vars],
+            ]
     try:
         for f in init_functions:
             try_and_print(
@@ -712,6 +735,15 @@ def set_common_vars():
         **global_vars)
     global_vars['TmpDir'] =             r'{BinDir}\tmp'.format(
         **global_vars)
+
+def set_linux_vars():
+    result = run_program(['mktemp', '-d'])
+    global_vars['TmpDir'] =             result.stdout.decode().strip()
+    global_vars['Date'] =               time.strftime("%Y-%m-%d")
+    global_vars['Date-Time'] =          time.strftime("%Y-%m-%d_%H%M_%z")
+    global_vars['Env'] =                os.environ.copy()
+    global_vars['BinDir'] =             '/usr/local/bin'
+    global_vars['LogDir'] =             global_vars['TmpDir']
 
 if __name__ == '__main__':
     print("This file is not meant to be called directly.")

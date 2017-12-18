@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-## WK HW diagnostics - badblocks
+## Wizard Kit: HW Diagnostics - badblocks
 
 function usage {
     echo "Usage: $0 log-dir device"

@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-## HW diagnostics - Prime95
+## Wizard Kit: HW Diagnostics - Prime95
 
 function usage {
     echo "Usage: $0 log-dir"

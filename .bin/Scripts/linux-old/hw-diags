@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-## WK HW diagnostics - Launcher
+## Wizard Kit: HW Diagnostics - Menu
 
 MODE="$1"
 SHOW_MENU="True"

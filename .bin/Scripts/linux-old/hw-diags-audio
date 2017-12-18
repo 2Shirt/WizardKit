@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-## WK HW diagnostics - Audio (Stereo)
+## Wizard Kit: HW Diagnostics - Audio
 
 # Unmute and set volume
 amixer -q set "Master" 80% unmute
