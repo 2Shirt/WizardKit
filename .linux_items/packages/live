@@ -54,6 +54,9 @@ pasystray
 pavucontrol
 progsreiserfs
 pulseaudio
+python
+python-psutil
+python-requests
 qemu-guest-agent
 reiserfsprogs
 rfkill

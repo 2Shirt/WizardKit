@@ -66,10 +66,7 @@ function load_settings() {
     ## Answer:      https://stackoverflow.com/a/13864829
     ## Answer by:   https://stackoverflow.com/users/1633643/lionel
     ## Answer edit: https://stackoverflow.com/users/-1/community
-    if [ -z ${KIT_NAME_FULL+x} ]; then
-        # KIT_NAME_FULL is unset
-        : # pass
-    else
+    if [ ! -z ${KIT_NAME_FULL+x} ]; then
         # KIT_NAME_FULL is set
         return 0 # Skip loading settings from main.py
     fi
@@ -99,6 +96,8 @@ function copy_live_env() {
     
     # Add items
     rsync -aI "$ROOT_DIR/.linux_items/include/live/" "$LIVE_DIR/"
+    mkdir -p "$LIVE_DIR/airootfs/usr/local/bin"
+    rsync -aI "$ROOT_DIR/.bin/Scripts/" "$LIVE_DIR/airootfs/usr/local/bin/"
 
     # Remove items
     rm "$LIVE_DIR/airootfs/etc/systemd/scripts/choose-mirror"
@@ -141,6 +140,7 @@ function update_live_env() {
     echo "[custom]" >> "$LIVE_DIR/pacman.conf"
     echo "SigLevel = Optional TrustAll" >> "$LIVE_DIR/pacman.conf"
     echo "Server = file://$REPO_DIR" >> "$LIVE_DIR/pacman.conf"
+    echo "" >> "$LIVE_DIR/pacman.conf"
 
     # Mirrors
     sed -i -r 's/^(.*mirrorlist.*)$/#NOPE#\1/' "$LIVE_DIR/airootfs/root/customize_airootfs.sh"
@@ -148,7 +148,7 @@ function update_live_env() {
     echo "sed -i 's/#Server/Server/g' /etc/pacman.d/mirrorlist" >> "$LIVE_DIR/airootfs/root/customize_airootfs.sh"
     
     # MOTD
-    sed -i "s/WK/$KIT_NAME_SHORT/" "$LIVE_DIR/airootfs/etc/motd"
+    sed -i "s/_+/$KIT_NAME_FULL Linux Environment/" "$LIVE_DIR/airootfs/etc/motd"
 
     # Oh My ZSH
     git clone --depth=1 git://github.com/robbyrussell/oh-my-zsh.git "$SKEL_DIR/.oh-my-zsh"
@@ -157,7 +157,8 @@ function update_live_env() {
     
     # Openbox theme
     git clone --depth=1 git@github.com:addy-dclxvi/Openbox-Theme-Collections.git "$TEMP_DIR/ob-themes"
-    cp -a "$TEMP_DIR/ob-themes/Triste-Orange" "$LIVE_DIR/airootfs/usr/share/themes/Triste-Orange"
+    mkdir -p "$LIVE_DIR/airootfs/usr/share/themes"
+    cp -a "$TEMP_DIR/ob-themes/Triste-Orange" "$LIVE_DIR/airootfs/usr/share/themes/"
 
     # Services
     sed -i -r 's/^(.*pacman-init.*)$/#NOPE#\1/' "$LIVE_DIR/airootfs/root/customize_airootfs.sh"
@@ -197,10 +198,6 @@ function update_live_env() {
     # Wallpaper
     mkdir -p "$LIVE_DIR/airootfs/usr/share/wallpaper"
     cp "$ROOT_DIR/Images/Linux.png" "$LIVE_DIR/airootfs/usr/share/wallpaper/burned.in"
-
-    # WiFi
-    echo "WIFI_SSID='$WIFI_SSID'" >> "$LIVE_DIR/airootfs/usr/local/bin/wifi.conf"
-    echo "WIFI_PASSWORD='$WIFI_PASSWORD'" >> "$LIVE_DIR/airootfs/usr/local/bin/wifi.conf"
 }
 
 function update_repo() {
