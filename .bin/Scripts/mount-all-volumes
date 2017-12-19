@@ -29,7 +29,7 @@ if __name__ == '__main__':
         print_standard('\nDone.')
         if 'foh' in sys.argv:
             pause("Press Enter to exit...")
-            popen_program(['thunar', '/media'])
+            popen_program(['nohup', 'thunar', '/media'])
         exit_script()
     except SystemExit:
         pass
