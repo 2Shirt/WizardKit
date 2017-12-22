@@ -1,0 +1,39 @@
+#!/bin/python3
+#
+## Wizard Kit: HW Diagnostics - Audio
+
+import os
+import sys
+
+# Init
+os.chdir(os.path.dirname(os.path.realpath(__file__)))
+sys.path.append(os.getcwd())
+from functions.common import *
+init_global_vars()
+
+if __name__ == '__main__':
+    try:
+        # Prep
+        clear_screen()
+
+        # Set volume
+        try:
+            run_program('amixer -q set "Master" 80% unmute'.split())
+            run_program('amixer -q set "PCM" 90% unmute'.split())
+        except subprocess.CalledProcessError:
+            print_error('Failed to set volume')
+        
+        # Run tests
+        run_program('speaker-test -c 2 -l 1 -t pink'.split(), check=False)
+        #run_program('speaker-test -c 2 -l 1 -t sine'.split(), check=False)
+        run_program('speaker-test -c 2 -l 1 -t wav'.split(), check=False)
+        
+        # Done
+        #print_standard('\nDone.')
+        #pause("Press Enter to exit...")
+        exit_script()
+    except SystemExit:
+        pass
+    except:
+        major_exception()
+
