@@ -1,0 +1,147 @@
+#!/bin/python3
+#
+## Wizard Kit: Sensor monitoring tool
+
+import itertools
+import os
+import shutil
+import sys
+
+# Init
+os.chdir(os.path.dirname(os.path.realpath(__file__)))
+sys.path.append(os.getcwd())
+from functions.common import *
+from borrowed import sensors
+
+# STATIC VARIABLES
+COLORS = {
+    'CLEAR': '\033[0m',
+    'RED': '\033[31m',
+    'GREEN': '\033[32m',
+    'YELLOW': '\033[33m',
+    'ORANGE': '\033[31;1m',
+    'BLUE': '\033[34m'
+    }
+TEMP_LIMITS = {
+    'GREEN':  60,
+    'YELLOW': 70,
+    'ORANGE': 80,
+    'RED':    90,
+    }
+
+# REGEX
+REGEX_COLORS = re.compile(r'\033\[\d+;?1?m')
+
+def color_temp(temp):
+    try:
+        temp = float(temp)
+    except ValueError:
+        return '{YELLOW}{temp}{CLEAR}'.format(temp=temp, **COLORS)
+    if temp > TEMP_LIMITS['RED']:
+        color = COLORS['RED']
+    elif temp > TEMP_LIMITS['ORANGE']:
+        color = COLORS['ORANGE']
+    elif temp > TEMP_LIMITS['YELLOW']:
+        color = COLORS['YELLOW']
+    elif temp > TEMP_LIMITS['GREEN']:
+        color = COLORS['GREEN']
+    elif temp > 0:
+        color = COLORS['BLUE']
+    else:
+        color = COLORS['CLEAR']
+    return '{color}{prefix}{temp:2}°C{CLEAR}'.format(
+        color = color,
+        prefix = '+' if temp>0 else '-',
+        temp = int(temp),
+        **COLORS)
+
+def get_feature_string(chip, feature):
+    sfs = list(sensors.SubFeatureIterator(chip, feature)) # get a list of all subfeatures
+    label = sensors.get_label(chip, feature)
+    skipname = len(feature.name)+1 # skip common prefix
+    data = {}
+
+    if feature.type == sensors.feature.INTRUSION:
+        vals = [sensors.get_value(chip, sf.number) for sf in sfs]
+        # short path for INTRUSION to demonstrate type usage
+        status = "alarm" if int(vals[0]) == 1 else "normal"
+        print_standard('  {:18}  {}'.format(label, status))
+        return
+    
+    for sf in sfs:
+        name = sf.name[skipname:].decode("utf-8").strip()
+        val = sensors.get_value(chip, sf.number)
+        if 'alarm' in name:
+            # Skip
+            continue
+        data[name] = color_temp(val)
+    
+    main_temp = data.pop('input', None)
+    if main_temp:
+        list_data = []
+        for item in ['max', 'crit']:
+            if item in data:
+                list_data.append('{}: {}'.format(item, data.pop(item)))
+        list_data.extend(
+            ['{}: {}'.format(k, v) for k, v in sorted(data.items())])
+        data_str = '{:18}  {} ({})'.format(
+            label, main_temp, ', '.join(list_data))
+    else:
+        list_data.extend(sorted(data.items()))
+        list_data = ['{}: {}'.format(item[0], item[1]) for item in list_data]
+        data_str = '{:18}  {}'.format(label, ', '.join(list_data))
+    return data_str
+
+def join_columns(column1, column2, width=55):
+    return '{:<{}}{}'.format(
+        column1,
+        55+len(column1)-len(REGEX_COLORS.sub('', column1)),
+        column2)
+
+if __name__ == '__main__':
+    try:
+        # Prep
+        clear_screen()
+        sensors.init()
+
+        # Get sensor data
+        chip_temps = {}
+        for chip in sensors.ChipIterator():
+            chip_name = '{} ({})'.format(
+                sensors.chip_snprintf_name(chip),
+                sensors.get_adapter_name(chip.bus))
+            chip_temps[chip_name] = [chip_name]
+            for feature in sensors.FeatureIterator(chip):
+                chip_temps[chip_name].append(get_feature_string(chip, feature))
+            chip_temps[chip_name].append('')
+
+        # Sort chips
+        sensor_temps = []
+        for chip in [k for k in sorted(chip_temps.keys()) if 'coretemp' in k]:
+            sensor_temps.extend(chip_temps[chip])
+        for chip in  sorted(chip_temps.keys()):
+            if 'coretemp' not in chip:
+                sensor_temps.extend(chip_temps[chip])
+
+        # Wrap columns as needed
+        screen_size = shutil.get_terminal_size()
+        rows = screen_size.lines - 1
+        if len(sensor_temps) > rows and screen_size.columns > 55*2:
+            sensor_temps = list(itertools.zip_longest(
+            sensor_temps[:rows], sensor_temps[rows:], fillvalue=''))
+            sensor_temps = [join_columns(a, b) for a, b in sensor_temps]
+        
+        # Print data
+        for line in sensor_temps:
+            print_standard(line)
+
+        # Done
+        sensors.cleanup()
+        exit_script()
+    except SystemExit:
+        sensors.cleanup()
+        pass
+    except:
+        sensors.cleanup()
+        major_exception()
+
