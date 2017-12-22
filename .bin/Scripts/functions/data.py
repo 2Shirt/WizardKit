@@ -236,36 +236,65 @@ def mount_all_volumes():
 
 def mount_backup_shares():
     """Mount the backup shares unless labeled as already mounted."""
+    if psutil.LINUX:
+        mounted_data = get_mounted_data()
     for server in BACKUP_SERVERS:
-        # Blindly skip if we mounted earlier
+        if psutil.LINUX:
+            # Update mounted status
+            source = '//{IP}/{Share}'.format(**server)
+            dest = '/Backups/{Name}'.format(**server)
+            mounted_str = '(Already) Mounted {}'.format(dest)
+            data = mounted_data.get(source, {})
+            if dest == data.get('target', ''):
+                server['Mounted'] = True
+        elif psutil.WINDOWS:
+            mounted_str = '(Already) Mounted {Name}'.format(**server)
         if server['Mounted']:
+            print_warning(mounted_str)
             continue
         
         mount_network_share(server)
 
 def mount_network_share(server):
     """Mount a network share defined by server."""
+    if psutil.WINDOWS:
+        cmd = r'net use \\{IP}\{Share} /user:{User} {Pass}'.format(**server)
+        cmd = cmd.split(' ')
+        warning = r'Failed to mount \\{Name}\{Share}, {IP} unreachable.'.format(
+            **server)
+        error = r'Failed to mount \\{Name}\{Share} ({IP})'.format(**server)
+        success = 'Mounted {Name}'.format(**server)
+    elif psutil.LINUX:
+        cmd = [
+            'sudo', 'mkdir', '-p',
+            '/Backups/{Name}'.format(**server)]
+        run_program(cmd)
+        cmd = [
+            'sudo', 'mount',
+            '//{IP}/{Share}'.format(**server),
+            '/Backups/{Name}'.format(**server),
+            '-o', 'username={User},password={Pass}'.format(**server)]
+        warning = 'Failed to mount /Backups/{Name}, {IP} unreachable.'.format(
+            **server)
+        error = 'Failed to mount /Backups/{Name}'.format(**server)
+        success = 'Mounted /Backups/{Name}'.format(**server)
+
     # Test connection
     try:
         ping(server['IP'])
     except subprocess.CalledProcessError:
-        print_error(
-            r'Failed to mount \\{Name}\{Share}, {IP} unreachable.'.format(
-                **server))
+        print_warning(warning)
         sleep(1)
         return False
 
     # Mount
-    cmd = r'net use \\{IP}\{Share} /user:{User} {Pass}'.format(**server)
-    cmd = cmd.split(' ')
     try:
         run_program(cmd)
     except Exception:
-        print_warning(r'Failed to mount \\{Name}\{Share} ({IP})'.format(
-            **server))
+        print_error(error)
         sleep(1)
     else:
-        print_info('Mounted {Name}'.format(**server))
+        print_info(success)
         server['Mounted'] = True
 
 def run_fast_copy(items, dest):
