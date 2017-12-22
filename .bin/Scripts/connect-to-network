@@ -17,8 +17,7 @@ if __name__ == '__main__':
         clear_screen()
 
         # Connect
-        if not is_connected():
-            connect_to_network()
+        connect_to_network()
         
         # Done
         print_standard('\nDone.')

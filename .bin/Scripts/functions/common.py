@@ -459,10 +459,13 @@ def try_and_print(message='Trying...',
     try:
         out = function(*args, **kwargs)
         if print_return:
-            print_standard(out[0], timestamp=False)
-            for item in out[1:]:
+            str_list = out
+            if isinstance(out, subprocess.CompletedProcess):
+                str_list = out.stdout.decode().strip().splitlines()
+            print_standard(str_list[0].strip(), timestamp=False)
+            for item in str_list[1:]:
                 print_standard('{indent}{item}'.format(
-                    indent=' '*(indent+width), item=item))
+                    indent=' '*(indent+width), item=item.strip()))
         elif silent_function:
             print_success(cs, timestamp=False)
     except w_exceptions as e:

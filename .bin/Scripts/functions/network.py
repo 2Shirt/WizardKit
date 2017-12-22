@@ -53,6 +53,22 @@ def is_connected():
     # Else
     return False
 
+def show_valid_addresses():
+    devs = psutil.net_if_addrs()
+    for dev, families in sorted(devs.items()):
+        for family in families:
+            if REGEX_VALID_IP.search(family.address):
+                # Valid IP found
+                show_data(message=dev, data=family.address)
+
+def speedtest():
+    result = run_program(['speedtest-cli', '--simple'])
+    output = [line.strip() for line in result.stdout.decode().splitlines()
+        if line.strip()]
+    output = [line.split() for line in output]
+    output = [(a, float(b), c) for a, b, c in output]
+    return ['{:10}{:6.2f} {}'.format(*line) for line in output]
+
 def reload_tg3():
     """Reload tg3 module as a workaround for some Dell systems."""
     run_program(['sudo', 'modprobe', '-r', 'tg3'])
