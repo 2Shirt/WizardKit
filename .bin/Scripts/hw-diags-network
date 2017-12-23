@@ -19,6 +19,7 @@ if __name__ == '__main__':
     try:
         # Prep
         clear_screen()
+        print_standard('Hardware Diagnostics: Network\n')
 
         # Connect
         print_standard('Initializing...')

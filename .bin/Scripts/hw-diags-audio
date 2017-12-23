@@ -15,6 +15,7 @@ if __name__ == '__main__':
     try:
         # Prep
         clear_screen()
+        print_standard('Hardware Diagnostics: Audio\n')
 
         # Set volume
         try:
@@ -24,9 +25,11 @@ if __name__ == '__main__':
             print_error('Failed to set volume')
         
         # Run tests
-        run_program('speaker-test -c 2 -l 1 -t pink'.split(), check=False)
-        #run_program('speaker-test -c 2 -l 1 -t sine'.split(), check=False)
-        run_program('speaker-test -c 2 -l 1 -t wav'.split(), check=False)
+        for mode in ['pink', 'wav']:
+            run_program(
+                cmd = 'speaker-test -c 2 -l 1 -t {}'.format(mode).split(),
+                check = False,
+                pipe = False)
         
         # Done
         #print_standard('\nDone.')
