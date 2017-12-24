@@ -46,6 +46,7 @@ mupdf
 ncdu
 network-manager-applet
 networkmanager
+nvme-cli
 oblogout
 openbox-patched
 p7zip
@@ -55,6 +56,7 @@ pavucontrol
 progsreiserfs
 pulseaudio
 python
+python-libtmux
 python-psutil
 python-requests
 qemu-guest-agent
@@ -63,6 +65,7 @@ rfkill
 rng-tools
 rofi
 rxvt-unicode
+smartmontools-svn
 speedtest-cli
 spice-vdagent
 terminus-font
