@@ -44,6 +44,99 @@ def get_status_color(s):
         color = COLORS['GREEN']
     return color
 
+def menu_diags():
+    diag_modes = [
+        {'Name': 'All tests', 'Tests': ['Prime95', 'SMART', 'badblocks']},
+        {'Name': 'Prime95', 'Tests': ['Prime95']},
+        {'Name': 'SMART & badblocks', 'Tests': ['SMART', 'badblocks']},
+        {'Name': 'SMART', 'Tests': ['SMART']},
+        {'Name': 'badblocks', 'Tests': ['badblocks']},
+        {'Name': 'Quick drive test', 'Tests': ['Quick', 'SMART']},
+        ]
+    actions = [
+        {'Letter': 'A', 'Name': 'Audio test'},
+        {'Letter': 'N', 'Name': 'Network test'},
+        {'Letter': 'M', 'Name': 'Screen Saver - Matrix', 'CRLF': True},
+        {'Letter': 'P', 'Name': 'Screen Saver - Pipes'},
+        {'Letter': 'Q', 'Name': 'Quit', 'CRLF': True},
+        ]
+
+    # Show menu
+    while True:
+        selection = menu_select(
+            title = 'Hardware Diagnostics: Menu',
+            main_entries = diag_modes,
+            action_entries = actions,
+            spacer = '─────────────────────────')
+        if selection.isnumeric():
+            run_tests(diag_modes[int(selection)-1]['Tests'])
+        elif selection == 'A':
+            run_program(['hw-diags-audio'], check=False, pipe=False)
+            sleep(1)
+        elif selection == 'N':
+            run_program(['hw-diags-network'], check=False, pipe=False)
+            sleep(1)
+        elif selection == 'M':
+            run_program(['cmatrix', '-abs'], check=False, pipe=False)
+        elif selection == 'P':
+            run_program(
+                'pipes -t 0 -t 1 -t 2 -t 3 -p 5 -R -r 4000'.split(),
+                check=False, pipe=False)
+        elif selection == 'Q':
+            break
+
+def run_badblocks():
+    pass
+
+def run_mprime():
+    # Set Window layout
+    window = SESSION.new_window()
+    pane_sensors = window.panes[0]
+    pane_mprime = window.split_window(attach=False)
+    pane_mprime.set_height(10)
+    pane_progress = window.split_window(attach=False, vertical=False)
+    pane_progress.set_width(16)
+    
+    # Start test
+    run_program(['apple-fans', 'max'])
+    pane_sensors.send_keys('watch -c -n1 -t hw-sensors')
+    pane_progress.send_keys('watch -c -n1 -t cat "{}"'.format(PROGRESS_FILE))
+    pane_mprime.send_keys('mprime -t')
+    #sleep(MPRIME_LIMIT*60)
+    sleep(15)
+
+    # Done
+    window.kill_window()
+
+def run_smart():
+    pass
+
+def run_tests(tests):
+    for t in ['Prime95', 'SMART', 'badblocks']:
+        TESTS[t]['Enabled'] = t in tests
+    TESTS['SMART']['Quick'] = 'Quick' in tests
+
+    # Get (disk) device list
+    if TESTS['SMART']['Enabled'] or TESTS['badblocks']['Enabled']:
+        cmd = 'lsblk -J -o NAME,TYPE'.split()
+        result = run_program(cmd)
+        json_data = json.loads(result.stdout.decode())
+        devs = json_data.get('blockdevices', [])
+        devs = {d['name']: 'Pending' for d in devs if d['type'] == 'disk'}
+        TESTS['SMART']['Devices'] = devs
+        TESTS['badblocks']['Devices'] = devs
+
+    # Initialize progress display
+    update_progress()
+
+    # Run
+    if TESTS['Prime95']['Enabled']:
+        run_mprime()
+    if TESTS['SMART']['Enabled']:
+        run_smart()
+    if TESTS['badblocks']['Enabled']:
+        run_badblocks()
+
 def update_progress(color=True):
     output = []
     if color:
@@ -93,99 +186,6 @@ def update_progress(color=True):
 
     with open(PROGRESS_FILE, 'w') as f:
         f.writelines(output)
-
-def run_tests(tests):
-    for t in ['Prime95', 'SMART', 'badblocks']:
-        TESTS[t]['Enabled'] = t in tests
-    TESTS['SMART']['Quick'] = 'Quick' in tests
-
-    # Get (disk) device list
-    if TESTS['SMART']['Enabled'] or TESTS['badblocks']['Enabled']:
-        cmd = 'lsblk -J -o NAME,TYPE'.split()
-        result = run_program(cmd)
-        json_data = json.loads(result.stdout.decode())
-        devs = json_data.get('blockdevices', [])
-        devs = {d['name']: 'Pending' for d in devs if d['type'] == 'disk'}
-        TESTS['SMART']['Devices'] = devs
-        TESTS['badblocks']['Devices'] = devs
-
-    # Initialize progress display
-    update_progress()
-
-    # Run
-    if TESTS['Prime95']['Enabled']:
-        run_mprime()
-    if TESTS['SMART']['Enabled']:
-        run_smart()
-    if TESTS['badblocks']['Enabled']:
-        run_badblocks()
-
-def run_smart():
-    pass
-
-def run_badblocks():
-    pass
-
-def run_mprime():
-    # Set Window layout
-    window = SESSION.new_window()
-    pane_sensors = window.panes[0]
-    pane_mprime = window.split_window(attach=False)
-    pane_mprime.set_height(10)
-    pane_progress = window.split_window(attach=False, vertical=False)
-    pane_progress.set_width(16)
-    
-    # Start test
-    run_program(['apple-fans', 'max'])
-    pane_sensors.send_keys('watch -c -n1 -t hw-sensors')
-    pane_progress.send_keys('watch -c -n1 -t cat "{}"'.format(PROGRESS_FILE))
-    pane_mprime.send_keys('mprime -t')
-    #sleep(MPRIME_LIMIT*60)
-    sleep(15)
-
-    # Done
-    window.kill_window()
-
-def diags_menu():
-    diag_modes = [
-        {'Name': 'All tests', 'Tests': ['Prime95', 'SMART', 'badblocks']},
-        {'Name': 'Prime95', 'Tests': ['Prime95']},
-        {'Name': 'SMART & badblocks', 'Tests': ['SMART', 'badblocks']},
-        {'Name': 'SMART', 'Tests': ['SMART']},
-        {'Name': 'badblocks', 'Tests': ['badblocks']},
-        {'Name': 'Quick drive test', 'Tests': ['Quick', 'SMART']},
-        ]
-    actions = [
-        {'Letter': 'A', 'Name': 'Audio test'},
-        {'Letter': 'N', 'Name': 'Network test'},
-        {'Letter': 'M', 'Name': 'Screen Saver - Matrix', 'CRLF': True},
-        {'Letter': 'P', 'Name': 'Screen Saver - Pipes'},
-        {'Letter': 'Q', 'Name': 'Quit', 'CRLF': True},
-        ]
-
-    # Show menu
-    while True:
-        selection = menu_select(
-            title = 'Hardware Diagnostics: Menu',
-            main_entries = diag_modes,
-            action_entries = actions,
-            spacer = '─────────────────────────')
-        if selection.isnumeric():
-            run_tests(diag_modes[int(selection)-1]['Tests'])
-        elif selection == 'A':
-            run_program(['hw-diags-audio'], check=False, pipe=False)
-            sleep(1)
-        elif selection == 'N':
-            run_program(['hw-diags-network'], check=False, pipe=False)
-            sleep(1)
-        elif selection == 'M':
-            run_program(['cmatrix', '-abs'], check=False, pipe=False)
-        elif selection == 'P':
-            run_program(
-                'pipes -t 0 -t 1 -t 2 -t 3 -p 5 -R -r 4000'.split(),
-                check=False, pipe=False)
-        elif selection == 'Q':
-            break
 
 if __name__ == '__main__':
     try:
