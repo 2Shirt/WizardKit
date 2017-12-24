@@ -45,51 +45,58 @@ def get_status_color(s):
     return color
 
 def update_progress(color=True):
-    with open(PROGRESS_FILE, 'w') as f: 
-        if color:
-            f.write('{BLUE}HW  Diagnostics{CLEAR}\n'.format(**COLORS))
-            f.write('───────────────\n')
-            if TESTS['Prime95']['Enabled']:
-                f.write('{BLUE}Prime95{s_color}{status:>8}{CLEAR}\n'.format(
-                    s_color = get_status_color(TESTS['Prime95']['Status']),
+    output = []
+    if color:
+        output.append('{BLUE}HW  Diagnostics{CLEAR}'.format(**COLORS))
+        output.append('───────────────')
+        if TESTS['Prime95']['Enabled']:
+            output.append('{BLUE}Prime95{s_color}{status:>8}{CLEAR}'.format(
+                s_color = get_status_color(TESTS['Prime95']['Status']),
+                status = TESTS['Prime95']['Status'],
+                **COLORS))
+        if TESTS['SMART']['Enabled']:
+            output.append('{BLUE}SMART{CLEAR}'.format(**COLORS))
+            for dev, status in sorted(TESTS['SMART']['Devices'].items()):
+                output.append('{dev}{s_color}{status:>{pad}}{CLEAR}'.format(
+                    dev = dev,
+                    pad = 16-len(dev),
+                    s_color = get_status_color(status),
                     status = status,
                     **COLORS))
-            if TESTS['SMART']['Enabled']:
-                f.write('{BLUE}SMART{CLEAR}\n'.format(**COLORS))
-                for dev, status in sorted(TESTS['SMART']['Devices'].items()):
-                    f.write('{dev}{s_color}{status:>{pad}}{CLEAR}\n'.format(
-                        dev = dev,
-                        pad = 16-len(dev),
-                        s_color = get_status_color(status),
-                        status = status,
-                        **COLORS))
-            if TESTS['badblocks']['Enabled']:
-                f.write('{BLUE}badblocks{CLEAR}\n'.format(**COLORS))
-                for dev, status in sorted(TESTS['badblocks']['Devices'].items()):
-                    f.write('{dev}{s_color}{status:>{pad}}{CLEAR}\n'.format(
-                        dev = dev,
-                        pad = 16-len(dev),
-                        s_color = get_status_color(status),
-                        status = status,
-                        **COLORS))
-        else:
-            f.write('HW  Diagnostics\n')
-            f.write('───────────────\n')
-            if TESTS['Prime95']['Enabled']:
-                f.write('Prime95{:>8}\n'.format(TESTS['Prime95']['Status']))
-            if TESTS['SMART']['Enabled']:
-                f.write('SMART\n')
-                for dev, status in sorted(TESTS['SMART']['Devices'].items()):
-                    f.write('{}{:>{}}\n'.format(dev, 16-len(dev), status))
-            if TESTS['badblocks']['Enabled']:
-                f.write('badblocks\n')
-                for dev, status in sorted(TESTS['badblocks']['Devices'].items()):
-                    f.write('{}{:>{}}\n'.format(dev, 16-len(dev), status))
+        if TESTS['badblocks']['Enabled']:
+            output.append('{BLUE}badblocks{CLEAR}'.format(**COLORS))
+            for dev, status in sorted(TESTS['badblocks']['Devices'].items()):
+                output.append('{dev}{s_color}{status:>{pad}}{CLEAR}'.format(
+                    dev = dev,
+                    pad = 16-len(dev),
+                    s_color = get_status_color(status),
+                    status = status,
+                    **COLORS))
+    else:
+        output.append('HW  Diagnostics')
+        output.append('───────────────')
+        if TESTS['Prime95']['Enabled']:
+            output.append('Prime95{:>8}'.format(TESTS['Prime95']['Status']))
+        if TESTS['SMART']['Enabled']:
+            output.append('SMART')
+            for dev, status in sorted(TESTS['SMART']['Devices'].items()):
+                output.append('{}{:>{}}'.format(dev, 16-len(dev), status))
+        if TESTS['badblocks']['Enabled']:
+            output.append('badblocks')
+            for dev, status in sorted(TESTS['badblocks']['Devices'].items()):
+                output.append('{}{:>{}}'.format(dev, 16-len(dev), status))
+
+    # Add line-endings
+    output = ['{}\n'.format(line) for line in output]
+    print(output)
+    pause()
+
+    with open(PROGRESS_FILE, 'w') as f:
+        f.writelines(output)
 
 def run_tests(tests):
     for t in ['Prime95', 'SMART', 'badblocks']:
-        if t in tests:
-            TESTS[t]['Enabled'] = True
+        TESTS[t]['Enabled'] = t in tests
     TESTS['SMART']['Quick'] = 'Quick' in tests
 
     # Get (disk) device list
@@ -98,8 +105,7 @@ def run_tests(tests):
         result = run_program(cmd)
         json_data = json.loads(result.stdout.decode())
         devs = json_data.get('blockdevices', [])
-        devs = ['/dev/'+d['name'] for d in devs if d['type'] == 'disk']
-        devs = {d: 'Pending' for d in devs}
+        devs = {d['name']: 'Pending' for d in devs if d['type'] == 'disk'}
         TESTS['SMART']['Devices'] = devs
         TESTS['badblocks']['Devices'] = devs
 
@@ -132,7 +138,7 @@ def run_mprime():
     # Start test
     run_program(['apple-fans', 'max'])
     pane_sensors.send_keys('watch -c -n1 -t hw-sensors')
-    pane_progress.send_keys('watch -c -n1 -t "{}"'.format(PROGRESS_FILE))
+    pane_progress.send_keys('watch -c -n1 -t cat "{}"'.format(PROGRESS_FILE))
     pane_mprime.send_keys('mprime -t')
     #sleep(MPRIME_LIMIT*60)
     sleep(15)
