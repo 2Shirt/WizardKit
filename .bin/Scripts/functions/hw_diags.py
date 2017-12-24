@@ -15,7 +15,7 @@ TESTS = {
         'Enabled': False,
         'Status':  'Pending',
         },
-    'SMART': {
+    'NVMe/SMART': {
         'Enabled': False,
         'Quick':   False,
         },
@@ -45,12 +45,18 @@ def get_status_color(s):
 
 def menu_diags():
     diag_modes = [
-        {'Name': 'All tests', 'Tests': ['Prime95', 'SMART', 'badblocks']},
-        {'Name': 'Prime95', 'Tests': ['Prime95']},
-        {'Name': 'SMART & badblocks', 'Tests': ['SMART', 'badblocks']},
-        {'Name': 'SMART', 'Tests': ['SMART']},
-        {'Name': 'badblocks', 'Tests': ['badblocks']},
-        {'Name': 'Quick drive test', 'Tests': ['Quick', 'SMART']},
+        {'Name': 'All tests',
+            'Tests': ['Prime95', 'NVMe/SMART', 'badblocks']},
+        {'Name': 'Prime95',
+            'Tests': ['Prime95']},
+        {'Name': 'NVMe/SMART & badblocks',
+            'Tests': ['NVMe/SMART', 'badblocks']},
+        {'Name': 'NVMe/SMART',
+            'Tests': ['NVMe/SMART']},
+        {'Name': 'badblocks',
+            'Tests': ['badblocks']},
+        {'Name': 'Quick drive test',
+            'Tests': ['Quick', 'NVMe/SMART']},
         ]
     actions = [
         {'Letter': 'A', 'Name': 'Audio test'},
@@ -95,14 +101,14 @@ def run_mprime():
     pane_mprime.set_height(10)
     pane_progress = window.split_window(attach=False, vertical=False)
     pane_progress.set_width(16)
-    
+
     # Start test
     run_program(['apple-fans', 'max'])
     pane_sensors.send_keys('watch -c -n1 -t hw-sensors')
     pane_progress.send_keys('watch -c -n1 -t cat "{}"'.format(TESTS['Progress Out']))
+    pane_mprime.send_keys('cd "{}"'.format(global_vars['LogDir']))
     pane_mprime.send_keys('mprime -t')
-    #sleep(MPRIME_LIMIT*60)
-    sleep(15)
+    sleep(MPRIME_LIMIT*60)
 
     # Done
     run_program(['apple-fans', 'auto'])
@@ -122,8 +128,7 @@ def run_smart():
     pane_sensors.send_keys('watch -c -n1 -t hw-sensors')
     pane_progress.send_keys('watch -c -n1 -t cat "{}"'.format(TESTS['Progress Out']))
     pane_mprime.send_keys('mprime -t')
-    #sleep(MPRIME_LIMIT*60)
-    sleep(15)
+    sleep(MPRIME_LIMIT*60)
 
     # Done
     run_program(['apple-fans', 'auto'])
@@ -131,29 +136,28 @@ def run_smart():
 
 def run_tests(tests):
     # Enable selected tests
-    for t in ['Prime95', 'SMART', 'badblocks']:
+    for t in ['Prime95', 'NVMe/SMART', 'badblocks']:
         TESTS[t]['Enabled'] = t in tests
-    TESTS['SMART']['Quick'] = 'Quick' in tests
+    TESTS['NVMe/SMART']['Quick'] = 'Quick' in tests
 
     # Initialize
-    if TESTS['SMART']['Enabled'] or TESTS['badblocks']['Enabled']:
+    if TESTS['NVMe/SMART']['Enabled'] or TESTS['badblocks']['Enabled']:
         scan_disks()
     update_progress()
 
     # Run
     if TESTS['Prime95']['Enabled']:
         run_mprime()
-    if TESTS['SMART']['Enabled']:
+    if TESTS['NVMe/SMART']['Enabled']:
         run_smart()
     if TESTS['badblocks']['Enabled']:
         run_badblocks()
 
 def scan_disks():
     clear_screen()
-    
+
     # Get eligible disk list
-    cmd = 'lsblk -J -o HOTPLUG,NAME,TRAN,TYPE'.split()
-    result = run_program(cmd)
+    result = run_program(['lsblk', '-J', '-O'])
     json_data = json.loads(result.stdout.decode())
     devs = json_data.get('blockdevices', [])
     devs = {d['name']: {'lsblk': d, 'Status': 'Pending'} for d in devs
@@ -172,33 +176,46 @@ def scan_disks():
             except Exception:
                 # Let other sections deal with the missing data
                 data['nvme-cli'] = {}
+            data['NVMe Disk'] = True
 
-        # Set "Health OK" value
-        ## NOTE: OK == we'll check the SMART/NVMe attributes, else req override
+        # Set "Quick Health OK" value
+        ## NOTE: If False then require override for badblocks test
         wanted_smart_list = [
             'ata_smart_attributes',
             'ata_smart_data',
             'smart_status',
             ]
-        if data['lsblk']['tran'] == 'nvme':
+        if data.get('NVMe Disk', False):
             crit_warn = data['nvme-cli'].get('critical_warning', 1)
-            data['Health OK'] = True if crit_warn == 0 else False
+            data['Quick Health OK'] = True if crit_warn == 0 else False
         elif set(wanted_smart_list).issubset(data['smartctl'].keys()):
-            data['Health OK'] = data.get(
+            data['Quick Health OK'] = data.get(
                 'smart_status', {}).get('passed', False)
+            data['SMART Support'] = True
         else:
-            data['Health OK'] = False
+            data['Quick Health OK'] = False
+            data['SMART Support'] = False
             
         # Ask for manual overrides if necessary
-        if not data['Health OK'] and TESTS['badblocks']['Enabled']:
+        if not data['Quick Health OK'] and TESTS['badblocks']['Enabled']:
             #TODO Print disk "report" for reference
             print_warning("WARNING: Health can't be confirmed for: {}".format(
                 '/dev/{}'.format(dev)))
             if ask('Run badblocks for this device anyway?'):
                 data['OVERRIDE'] = True
 
-    TESTS['SMART']['Devices'] = devs
+    TESTS['NVMe/SMART']['Devices'] = devs
     TESTS['badblocks']['Devices'] = devs
+
+def show_disk_details(dev):
+    # Device description
+
+    # Warnings
+
+    # Attributes
+
+    # Quick Health OK
+    pass
 
 def update_progress():
     if 'Progress Out' not in TESTS:
@@ -211,9 +228,9 @@ def update_progress():
             s_color = get_status_color(TESTS['Prime95']['Status']),
             status = TESTS['Prime95']['Status'],
             **COLORS))
-    if TESTS['SMART']['Enabled']:
-        output.append('{BLUE}SMART{CLEAR}'.format(**COLORS))
-        for dev, data in sorted(TESTS['SMART']['Devices'].items()):
+    if TESTS['NVMe/SMART']['Enabled']:
+        output.append('{BLUE}NVMe / SMART{CLEAR}'.format(**COLORS))
+        for dev, data in sorted(TESTS['NVMe/SMART']['Devices'].items()):
             output.append('{dev}{s_color}{status:>{pad}}{CLEAR}'.format(
                 dev = dev,
                 pad = 16-len(dev),
