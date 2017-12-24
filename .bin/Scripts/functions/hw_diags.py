@@ -6,10 +6,31 @@ import json
 from functions.common import *
 
 # STATIC VARIABLES
+## tmux
 TMUX = libtmux.Server()
 SESSION = TMUX.find_where({'session_name': 'hw-diags'})
 WINDOW = SESSION.windows[0] # Should be a safe assumption
 PANE = WINDOW.panes[0]      # Should be a safe assumption
+## other
+ATTRIBUTES = {
+    'NVMe': {
+        'critical_warning': {'Error': 1},
+        'media_errors': {'Error': 1},
+        'power_on_hours': {'Warning': 12000, 'Error': 18000, 'Ignore': True},
+        'unsafe_shutdowns': {'Warning': 1},
+        },
+    'SMART': {
+        5: {'Error': 1},
+        9: {'Warning': 12000, 'Error': 18000, 'Ignore': True},
+        10: {'Warning': 1},
+        184: {'Error': 1},
+        187: {'Warning': 1},
+        188: {'Warning': 1},
+        197: {'Error': 1},
+        198: {'Error': 1},
+        201: {'Warning': 1},
+        },
+    }
 TESTS = {
     'Prime95': {
         'Enabled': False,
@@ -72,7 +93,7 @@ def menu_diags():
             title = 'Hardware Diagnostics: Menu',
             main_entries = diag_modes,
             action_entries = actions,
-            spacer = '─────────────────────────')
+            spacer = '──────────────────────────')
         if selection.isnumeric():
             run_tests(diag_modes[int(selection)-1]['Tests'])
         elif selection == 'A':
@@ -189,8 +210,9 @@ def scan_disks():
             crit_warn = data['nvme-cli'].get('critical_warning', 1)
             data['Quick Health OK'] = True if crit_warn == 0 else False
         elif set(wanted_smart_list).issubset(data['smartctl'].keys()):
-            data['Quick Health OK'] = data.get(
-                'smart_status', {}).get('passed', False)
+            data['SMART Pass'] = data['smartctl'].get('smart_status', {}).get(
+                'passed', False)
+            data['Quick Health OK'] = data['SMART Pass']
             data['SMART Support'] = True
         else:
             data['Quick Health OK'] = False
@@ -198,7 +220,7 @@ def scan_disks():
             
         # Ask for manual overrides if necessary
         if not data['Quick Health OK'] and TESTS['badblocks']['Enabled']:
-            #TODO Print disk "report" for reference
+            show_disk_details(data)
             print_warning("WARNING: Health can't be confirmed for: {}".format(
                 '/dev/{}'.format(dev)))
             if ask('Run badblocks for this device anyway?'):
@@ -209,13 +231,82 @@ def scan_disks():
 
 def show_disk_details(dev):
     # Device description
+    print_info('Device: /dev/{}'.format(dev['lsblk']['name']))
+    for key in ['model', 'size', 'serial']:
+        print_standard('  {:8}{}'.format(key, dev['lsblk'].get(key, 'Unknown')))
+    if dev['lsblk'].get('tran', 'Unknown') == 'nvme':
+        print_standard('  {:8}{}'.format('type', 'NVMe'))
+    else:
+        print_standard('  {:8}{}'.format(
+            'type',
+            dev['lsblk'].get('tran', 'Unknown').upper()))
 
     # Warnings
+    if dev.get('NVMe Disk', False):
+        if dev['Quick Health OK']:
+            print_warning('WARNING: NVMe support is still experimental')
+        else:
+            print_error('ERROR: NVMe disk is reporting critical warnings')
+    elif not dev['SMART Support']:
+        print_error('ERROR: Unable to retrieve SMART data')
+    elif not dev['SMART Pass']:
+        print_error('ERROR: SMART overall-health assessment result: FAILED')
 
     # Attributes
+    print_info('Attributes:')
+    if dev.get('NVMe Disk', False):
+        for attrib, threshold in sorted(ATTRIBUTES['NVMe'].items()):
+            if attrib in dev['nvme-cli']:
+                print_standard(
+                    '  {:37}'.format(attrib.replace('_', ' ').title()),
+                    end='', flush=True)
+                raw_num = dev['nvme-cli'][attrib]
+                raw_str = str(raw_num)
+                if (threshold.get('Error', False) and
+                    raw_num >= threshold.get('Error', -1)):
+                    print_error(raw_str, timestamp=False)
+                    if not threshold.get('Ignore', False):
+                        dev['NVMe/SMART']['Status'] = 'NS'
+                elif (threshold.get('Warning', False) and
+                    raw_num >= threshold.get('Warning', -1)):
+                    print_warning(raw_str, timestamp=False)
+                else:
+                    print_success(raw_str, timestamp=False)
+    else:
+        # SMART attributes
+        s_table = dev['smartctl'].get('ata_smart_attributes', {}).get(
+            'table', {})
+        s_table = {a.get('id', 'Unknown'): a for a in s_table}
+        for attrib, threshold in sorted(ATTRIBUTES['SMART'].items()):
+            if attrib in s_table:
+                print_standard(
+                    '  {:>3}  {:32}'.format(attrib, s_table[attrib]['name']),
+                    end='', flush=True)
+                raw_str = s_table[attrib]['raw']['string']
+                raw_num = re.sub(r'^(\d+).*$', r'\1', raw_str)
+                try:
+                    raw_num = float(raw_num)
+                except ValueError:
+                    # Not sure about this one, print raw_str without color?
+                    print_standard(raw_str, timestamp=False)
+                    continue
+                if (threshold.get('Error', False) and
+                    raw_num >= threshold.get('Error', -1)):
+                    print_error(raw_str, timestamp=False)
+                    if not threshold.get('Ignore', False):
+                        dev['NVMe/SMART']['Status'] = 'NS'
+                elif (threshold.get('Warning', False) and
+                    raw_num >= threshold.get('Warning', -1)):
+                    print_warning(raw_str, timestamp=False)
+                else:
+                    print_success(raw_str, timestamp=False)
 
     # Quick Health OK
-    pass
+    print_standard('Quick health assessment: ', end='', flush=True)
+    if dev['Quick Health OK']:
+        print_success('Passed.\n', timestamp=False)
+    else:
+        print_error('Failed.\n', timestamp=False)
 
 def update_progress():
     if 'Progress Out' not in TESTS:
