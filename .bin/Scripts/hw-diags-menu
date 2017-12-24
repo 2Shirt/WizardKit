@@ -194,7 +194,7 @@ if __name__ == '__main__':
         clear_screen()
 
         # Show menu
-        diags_menu()
+        menu_diags()
         
         # Done
         #print_standard('\nDone.')
