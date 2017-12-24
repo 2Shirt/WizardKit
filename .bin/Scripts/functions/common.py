@@ -233,7 +233,8 @@ def major_exception():
 
 def menu_select(title='~ Untitled Menu ~',
     prompt='Please make a selection', secret_exit=False,
-    main_entries=[], action_entries=[], disabled_label='DISABLED'):
+    main_entries=[], action_entries=[], disabled_label='DISABLED',
+    spacer=''):
     """Display options in a menu and return selected option as a str."""
     # Bail early
     if not main_entries and not action_entries:
@@ -244,7 +245,7 @@ def menu_select(title='~ Untitled Menu ~',
         title = '{}\n\n{}'.format(global_vars['Title'], title)
 
     # Build menu
-    menu_splash =   '{}\n\n'.format(title)
+    menu_splash =   '{}\n{}\n'.format(title, spacer)
     width =         len(str(len(main_entries)))
     valid_answers = []
     if (secret_exit):
@@ -255,7 +256,7 @@ def menu_select(title='~ Untitled Menu ~',
         entry = main_entries[i]
         # Add Spacer
         if ('CRLF' in entry):
-            menu_splash += '\n'
+            menu_splash += '{}\n'.format(spacer)
         entry_str = '{number:>{width}}: {name}'.format(
                 number =    i+1,
                 width =     width,
@@ -268,13 +269,13 @@ def menu_select(title='~ Untitled Menu ~',
         else:
             valid_answers.append(str(i+1))
         menu_splash += '{}\n'.format(entry_str)
-    menu_splash += '\n'
+    menu_splash += '{}\n'.format(spacer)
 
     # Add action entries
     for entry in action_entries:
         # Add Spacer
         if ('CRLF' in entry):
-            menu_splash += '\n'
+            menu_splash += '{}\n'.format(spacer)
         valid_answers.append(entry['Letter'])
         menu_splash += '{letter:>{width}}: {name}\n'.format(
             letter =    entry['Letter'].upper(),
@@ -554,7 +555,8 @@ def wait_for_process(name, poll_rate=3):
 def init_global_vars():
     """Sets global variables based on system info."""
     print_info('Initializing')
-    os.system('title Wizard Kit')
+    if psutil.WINDOWS:
+        os.system('title Wizard Kit')
     if psutil.LINUX:
         init_functions = [
             ['Checking environment...', set_linux_vars],
