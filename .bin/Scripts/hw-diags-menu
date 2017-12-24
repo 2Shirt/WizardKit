@@ -106,6 +106,7 @@ def run_mprime():
     sleep(15)
 
     # Done
+    run_program(['apple-fans', 'auto'])
     window.kill_window()
 
 def run_smart():
