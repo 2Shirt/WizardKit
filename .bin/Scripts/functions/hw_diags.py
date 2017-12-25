@@ -1,17 +1,10 @@
 # Wizard Kit: Functions - HW Diagnostics
 
-import libtmux
 import json
 
 from functions.common import *
 
 # STATIC VARIABLES
-## tmux
-TMUX = libtmux.Server()
-SESSION = TMUX.find_where({'session_name': 'hw-diags'})
-WINDOW = SESSION.windows[0] # Should be a safe assumption
-PANE = WINDOW.panes[0]      # Should be a safe assumption
-## other
 ATTRIBUTES = {
     'NVMe': {
         'critical_warning': {'Error': 1},
@@ -58,7 +51,7 @@ def get_status_color(s):
     color = COLORS['CLEAR']
     if s in ['NS', 'Unknown']:
         color = COLORS['RED']
-    elif s in ['Working', 'Skipped']:
+    elif s in ['Aborted', 'OVERRIDE', 'Working', 'Skipped']:
         color = COLORS['YELLOW']
     elif s in ['CS']:
         color = COLORS['GREEN']
@@ -115,26 +108,46 @@ def run_badblocks():
     pass
 
 def run_mprime():
-    # Set Window layout
-    window = SESSION.new_window()
-    pane_sensors = window.panes[0]
-    pane_smart = window.split_window(attach=False)
-    pane_smart.set_height(10)
-    pane_progress = window.split_window(attach=False, vertical=False)
-    pane_progress.set_width(15)
-    pane_progress.clear()
-    pane_sensors.send_keys('watch -c -n1 -t hw-sensors')
-    #pane_progress.send_keys('watch -c -n1 -t cat "{}"'.format(TESTS['Progress Out']))
-    pane_progress.send_keys('tail -f "{}"'.format(TESTS['Progress Out']))
+    aborted = False
+    clear_screen()
+    TESTS['Prime95']['Status'] = 'Working'
+    update_progress()
+
+    # Set Window layout and start test
+    run_program('tmux split-window -dl 10 -c {wd} {cmd} {wd}'.format(
+        wd=global_vars['TmpDir'], cmd='hw-diags-prime95').split())
+    run_program('tmux split-window -dhl 15 watch -c -n1 -t cat {}'.format(
+        TESTS['Progress Out']).split())
+    run_program('tmux split-window -bd watch -c -n1 -t hw-sensors'.split())
+    run_program('tmux resize-pane -y 3'.split())
     
     # Start test
     run_program(['apple-fans', 'max'])
-    pane_mprime.send_keys('mprime -t')
-    sleep(MPRIME_LIMIT*60)
+    print_standard('Running Prime95 for {} minutes'.format(MPRIME_LIMIT))
+    print_warning('If running too hot, press CTL+c to abort the test')
+    try:
+        sleep(int(MPRIME_LIMIT)*60)
+    except KeyboardInterrupt:
+        # Catch CTL+C
+        aborted = True
+
+    # Stop test
+    run_program('killall -s INT mprime'.split(), check=False)
+    run_program(['apple-fans', 'auto'])
+
+    # Update status
+    if aborted:
+        TESTS['Prime95']['Status'] = 'Aborted'
+        print_warning('\nAborted.')
+        sleep(5)
+        update_progress()
+        pause('Press Enter to return to menu... ')
+    else:
+        TESTS['Prime95']['Status'] = 'CS'
+    update_progress()
 
     # Done
-    run_program(['apple-fans', 'auto'])
-    window.kill_window()
+    run_program('tmux kill-pane -a'.split())
 
 def run_smart():
     # Set Window layout
@@ -144,7 +157,7 @@ def run_smart():
     pane_progress.set_width(15)
     pane_progress.clear()
     #pane_progress.send_keys('watch -c -n1 -t cat "{}"'.format(TESTS['Progress Out']))
-    pane_progress.send_keys('tail -f "{}"'.format(TESTS['Progress Out']))
+    pane_progress.send_keys(''.format(TESTS['Progress Out']))
 
     # Start test
     sleep(120)
