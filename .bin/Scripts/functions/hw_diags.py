@@ -118,16 +118,17 @@ def run_mprime():
     # Set Window layout
     window = SESSION.new_window()
     pane_sensors = window.panes[0]
-    pane_mprime = window.split_window(attach=False)
-    pane_mprime.set_height(10)
+    pane_smart = window.split_window(attach=False)
+    pane_smart.set_height(10)
     pane_progress = window.split_window(attach=False, vertical=False)
-    pane_progress.set_width(16)
-
+    pane_progress.set_width(15)
+    pane_progress.clear()
+    pane_sensors.send_keys('watch -c -n1 -t hw-sensors')
+    #pane_progress.send_keys('watch -c -n1 -t cat "{}"'.format(TESTS['Progress Out']))
+    pane_progress.send_keys('tail -f "{}"'.format(TESTS['Progress Out']))
+    
     # Start test
     run_program(['apple-fans', 'max'])
-    pane_sensors.send_keys('watch -c -n1 -t hw-sensors')
-    pane_progress.send_keys('watch -c -n1 -t cat "{}"'.format(TESTS['Progress Out']))
-    pane_mprime.send_keys('cd "{}"'.format(global_vars['LogDir']))
     pane_mprime.send_keys('mprime -t')
     sleep(MPRIME_LIMIT*60)
 
@@ -137,23 +138,19 @@ def run_mprime():
 
 def run_smart():
     # Set Window layout
-    window = SESSION.new_window()
-    pane_sensors = window.panes[0]
-    pane_smart = window.split_window(attach=False)
-    pane_smart.set_height(10)
-    pane_progress = window.split_window(attach=False, vertical=False)
-    pane_progress.set_width(16)
-    
+    pane_worker = WINDOW.split_window(attach=False)
+    pane_worker.set_height(10)
+    pane_progress = WINDOW.split_window(attach=False, vertical=False)
+    pane_progress.set_width(15)
+    pane_progress.clear()
+    #pane_progress.send_keys('watch -c -n1 -t cat "{}"'.format(TESTS['Progress Out']))
+    pane_progress.send_keys('tail -f "{}"'.format(TESTS['Progress Out']))
+
     # Start test
-    run_program(['apple-fans', 'max'])
-    pane_sensors.send_keys('watch -c -n1 -t hw-sensors')
-    pane_progress.send_keys('watch -c -n1 -t cat "{}"'.format(TESTS['Progress Out']))
-    pane_mprime.send_keys('mprime -t')
-    sleep(MPRIME_LIMIT*60)
+    sleep(120)
 
     # Done
-    run_program(['apple-fans', 'auto'])
-    window.kill_window()
+    run_program(['tmux kill-pane -a'.split()], check=False)
 
 def run_tests(tests):
     # Enable selected tests
@@ -315,25 +312,30 @@ def update_progress():
     output.append('{BLUE}HW  Diagnostics{CLEAR}'.format(**COLORS))
     output.append('───────────────')
     if TESTS['Prime95']['Enabled']:
+        output.append('')
         output.append('{BLUE}Prime95{s_color}{status:>8}{CLEAR}'.format(
             s_color = get_status_color(TESTS['Prime95']['Status']),
             status = TESTS['Prime95']['Status'],
             **COLORS))
     if TESTS['NVMe/SMART']['Enabled']:
+        output.append('')
         output.append('{BLUE}NVMe / SMART{CLEAR}'.format(**COLORS))
+        if TESTS['NVMe/SMART']['Quick']:
+            output.append('{YELLOW} (Quick Check){CLEAR}'.format(**COLORS))
         for dev, data in sorted(TESTS['NVMe/SMART']['Devices'].items()):
             output.append('{dev}{s_color}{status:>{pad}}{CLEAR}'.format(
                 dev = dev,
-                pad = 16-len(dev),
-                s_color = get_status_color(status),
+                pad = 15-len(dev),
+                s_color = get_status_color(data['Status']),
                 status = data['Status'],
                 **COLORS))
     if TESTS['badblocks']['Enabled']:
+        output.append('')
         output.append('{BLUE}badblocks{CLEAR}'.format(**COLORS))
         for dev, data in sorted(TESTS['badblocks']['Devices'].items()):
             output.append('{dev}{s_color}{status:>{pad}}{CLEAR}'.format(
                 dev = dev,
-                pad = 16-len(dev),
+                pad = 15-len(dev),
                 s_color = get_status_color(data['Status']),
                 status = data['Status'],
                 **COLORS))
