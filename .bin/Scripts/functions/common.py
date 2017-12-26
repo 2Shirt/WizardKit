@@ -132,7 +132,7 @@ def exit_script(return_value=0):
 
     # Open Log (if it exists)
     log = global_vars.get('LogFile', '')
-    if log and os.path.exists(log):
+    if log and os.path.exists(log) and psutil.WINDOWS:
         try:
             extract_item('NotepadPlusPlus', silent=True)
             popen_program(
@@ -359,7 +359,7 @@ def print_warning(*args, **kwargs):
 
 def print_log(message='', end='\n', timestamp=True):
     time_str = time.strftime("%Y-%m-%d %H%M%z: ") if timestamp else ''
-    if 'LogFile' in global_vars and global_vars['LogFile'] is not None:
+    if 'LogFile' in global_vars and global_vars['LogFile']:
         with open(global_vars['LogFile'], 'a', encoding='utf-8') as f:
             for line in message.splitlines():
                 f.write('{timestamp}{line}{end}'.format(

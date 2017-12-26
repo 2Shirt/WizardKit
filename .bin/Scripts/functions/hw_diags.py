@@ -88,6 +88,15 @@ def menu_diags():
             action_entries = actions,
             spacer = '──────────────────────────')
         if selection.isnumeric():
+            if diag_modes[int(selection)-1]['Name'] != 'Quick drive test':
+                # Save log for non-quick tests
+                ticket_number = get_ticket_number()
+                global_vars['LogDir'] = '{}/Tickets/{}'.format(
+                    global_vars['Env']['HOME'],
+                    ticket_number)
+                os.makedirs(global_vars['LogDir'], exist_ok=True)
+                global_vars['LogFile'] = '{}/Hardware Diagnostics.log'.format(
+                    global_vars['LogDir'])
             run_tests(diag_modes[int(selection)-1]['Tests'])
         elif selection == 'A':
             run_program(['hw-diags-audio'], check=False, pipe=False)
@@ -110,6 +119,7 @@ def run_badblocks():
 def run_mprime():
     aborted = False
     clear_screen()
+    print_log('\nStart Prime95 test')
     TESTS['Prime95']['Status'] = 'Working'
     update_progress()
 
@@ -134,6 +144,15 @@ def run_mprime():
     # Stop test
     run_program('killall -s INT mprime'.split(), check=False)
     run_program(['apple-fans', 'auto'])
+
+    # Move logs to Ticket folder
+    for item in os.scandir(global_vars['TmpDir']):
+        try:
+            shutil.move(item.path, global_vars['LogDir'])
+        except Exception:
+            print_error('ERROR: Failed to move "{}" to "{}"'.format(
+                item.path,
+                global_vars['LogDir']))
 
     # Update status
     if aborted:
@@ -166,6 +185,8 @@ def run_smart():
     run_program(['tmux kill-pane -a'.split()], check=False)
 
 def run_tests(tests):
+    print_log('Starting Hardware Diagnostics')
+    print_log('\nRunning tests: {}'.format(', '.join(tests)))
     # Enable selected tests
     for t in ['Prime95', 'NVMe/SMART', 'badblocks']:
         TESTS[t]['Enabled'] = t in tests
