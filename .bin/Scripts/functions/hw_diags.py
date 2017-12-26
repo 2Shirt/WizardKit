@@ -141,6 +141,20 @@ def run_mprime():
         # Catch CTL+C
         aborted = True
 
+    # Save "final" temps
+    run_program(
+        cmd = 'hw-sensors >> "{}/Final Temps.out"'.format(
+            global_vars['LogDir']).split(),
+        check = False,
+        pipe = False,
+        shell = True)
+    run_program(
+        cmd = 'hw-sensors --nocolor >> "{}/Final Temps.log"'.format(
+            global_vars['LogDir']).split(),
+        check = False,
+        pipe = False,
+        shell = True)
+
     # Stop test
     run_program('killall -s INT mprime'.split(), check=False)
     run_program(['apple-fans', 'auto'])
@@ -158,7 +172,6 @@ def run_mprime():
     if aborted:
         TESTS['Prime95']['Status'] = 'Aborted'
         print_warning('\nAborted.')
-        sleep(5)
         update_progress()
         pause('Press Enter to return to menu... ')
     else:
