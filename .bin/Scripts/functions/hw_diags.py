@@ -174,12 +174,16 @@ def run_mprime():
     log = '{}/results.txt'.format(global_vars['LogDir'])
     if os.path.exists(log):
         with open(log, 'r') as f:
-            r = re.search(r'(error|fail)', f.read())
+            text = f.read()
+            TESTS['Prime95']['results.txt'] = text
+            r = re.search(r'(error|fail)', text)
             TESTS['Prime95']['NS'] = bool(r)
     log = '{}/prime.log'.format(global_vars['LogDir'])
     if os.path.exists(log):
         with open(log, 'r') as f:
-            r = re.search(r'completed.*0 errors, 0 warnings', f.read())
+            text = f.read()
+            TESTS['Prime95']['prime.log'] = text
+            r = re.search(r'completed.*0 errors, 0 warnings', text)
             TESTS['Prime95']['CS'] = bool(r)
 
     # Update status
@@ -187,7 +191,9 @@ def run_mprime():
         TESTS['Prime95']['Status'] = 'Aborted'
         print_warning('\nAborted.')
         update_progress()
-        pause('Press Enter to return to menu... ')
+        if TESTS['NVMe/SMART']['Enabled'] or TESTS['badblocks']['Enabled']:
+            if not ask('Proceed to next test?'):
+                raise GenericError
     else:
         if TESTS['Prime95']['NS']:
             TESTS['Prime95']['Status'] = 'NS'
@@ -230,12 +236,20 @@ def run_tests(tests):
     update_progress()
 
     # Run
+    mprime_aborted = False
     if TESTS['Prime95']['Enabled']:
-        run_mprime()
-    if TESTS['NVMe/SMART']['Enabled']:
-        run_smart()
-    if TESTS['badblocks']['Enabled']:
-        run_badblocks()
+        try:
+            run_mprime()
+        except GenericError:
+            mprime_aborted = True
+    if not mprime_aborted:
+        if TESTS['NVMe/SMART']['Enabled']:
+            run_smart()
+        if TESTS['badblocks']['Enabled']:
+            run_badblocks()
+    
+    # Show results
+    show_results()
 
 def scan_disks():
     clear_screen()
@@ -370,6 +384,41 @@ def show_disk_details(dev):
         print_success('Passed.\n', timestamp=False)
     else:
         print_error('Failed.\n', timestamp=False)
+
+def show_results():
+    clear_screen()
+    print_standard('Results')
+    update_progress()
+
+    # Set Window layout and show progress
+    run_program('tmux split-window -dhl 15 watch -c -n1 -t cat {}'.format(
+        TESTS['Progress Out']).split())
+
+    # Prime95
+    print_info('\nPrime95:')
+    for log, regex in [
+        ['results.txt', r'(error|fail)'],
+        ['prime.log', r'completed.*0 errors, 0 warnings']]:
+        if log in TESTS['Prime95']:
+            #print_standard(log)
+            lines = [line.strip() for line
+                in TESTS['Prime95'][log].splitlines()
+                if re.search(regex, line, re.IGNORECASE)]
+            for line in lines[-4:]:
+                line = re.sub(r'^.*Worker #\d.*Torture Test (.*)', r'\1', 
+                    line, re.IGNORECASE)
+                if TESTS['Prime95'].get('NS', False):
+                    print_error('  {}'.format(line))
+                else:
+                    print_standard('  {}'.format(line))
+
+    # NVMe/SMART
+
+    # badblocks
+
+    # Done
+    pause('Press Enter to return to main menu... ')
+    run_program('tmux kill-pane -a'.split())
 
 def update_progress():
     if 'Progress Out' not in TESTS:
