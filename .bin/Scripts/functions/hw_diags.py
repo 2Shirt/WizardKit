@@ -168,6 +168,20 @@ def run_mprime():
                 item.path,
                 global_vars['LogDir']))
 
+    # Check logs
+    TESTS['Prime95']['NS'] = False
+    TESTS['Prime95']['CS'] = False
+    log = '{}/results.txt'.format(global_vars['LogDir'])
+    if os.path.exists(log):
+        with open(log, 'r') as f:
+            r = re.search(r'(error|fail)', f.read())
+            TESTS['Prime95']['NS'] = bool(r)
+    log = '{}/prime.log'.format(global_vars['LogDir'])
+    if os.path.exists(log):
+        with open(log, 'r') as f:
+            r = re.search(r'completed.*0 errors, 0 warnings', f.read())
+            TESTS['Prime95']['CS'] = bool(r)
+
     # Update status
     if aborted:
         TESTS['Prime95']['Status'] = 'Aborted'
@@ -175,7 +189,12 @@ def run_mprime():
         update_progress()
         pause('Press Enter to return to menu... ')
     else:
-        TESTS['Prime95']['Status'] = 'CS'
+        if TESTS['Prime95']['NS']:
+            TESTS['Prime95']['Status'] = 'NS'
+        elif TESTS['Prime95']['CS']:
+            TESTS['Prime95']['Status'] = 'CS'
+        else:
+            TESTS['Prime95']['Status'] = 'Unknown'
     update_progress()
 
     # Done
