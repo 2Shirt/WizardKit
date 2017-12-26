@@ -49,10 +49,10 @@ def color_temp(temp):
         color = COLORS['BLUE']
     else:
         color = COLORS['CLEAR']
-    return '{color}{prefix}{temp:2}°C{CLEAR}'.format(
+    return '{color}{prefix}{temp:2.0f}°C{CLEAR}'.format(
         color = color,
         prefix = '+' if temp>0 else '-',
-        temp = int(temp),
+        temp = temp,
         **COLORS)
 
 def get_feature_string(chip, feature):
@@ -74,7 +74,17 @@ def get_feature_string(chip, feature):
         if 'alarm' in name:
             # Skip
             continue
-        data[name] = color_temp(val)
+        if '--nocolor' in sys.argv:
+            try:
+                temp = float(val)
+            except ValueError:
+                data[name] = ' {}°C'.format(val)
+            else:
+                data[name] = '{}{:2.0f}°C'.format(
+                    '+' if temp>0 else '-',
+                    temp)
+        else:
+            data[name] = color_temp(val)
     
     main_temp = data.pop('input', None)
     if main_temp:
@@ -101,7 +111,6 @@ def join_columns(column1, column2, width=55):
 if __name__ == '__main__':
     try:
         # Prep
-        clear_screen()
         sensors.init()
 
         # Get sensor data
