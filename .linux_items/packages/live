@@ -56,7 +56,6 @@ pavucontrol
 progsreiserfs
 pulseaudio
 python
-python-libtmux
 python-psutil
 python-requests
 qemu-guest-agent
