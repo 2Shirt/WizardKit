@@ -324,7 +324,7 @@
     </keybind>
     <keybind key="W-s">
       <action name="Execute">
-        <command>urxvt -title "Hardware Diagnostics" -e hw-diags foh</command>
+        <command>urxvt -title "Hardware Diagnostics" -e hw-diags quick</command>
       </action>
     </keybind>
     <keybind key="W-t">

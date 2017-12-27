@@ -60,7 +60,7 @@ def get_status_color(s):
         color = COLORS['GREEN']
     return color
 
-def menu_diags():
+def menu_diags(*args):
     diag_modes = [
         {'Name': 'All tests',
             'Tests': ['Prime95', 'NVMe/SMART', 'badblocks']},
@@ -82,6 +82,11 @@ def menu_diags():
         {'Letter': 'P', 'Name': 'Screen Saver - Pipes'},
         {'Letter': 'Q', 'Name': 'Quit', 'CRLF': True},
         ]
+
+    # Quick disk check
+    if 'quick' in args:
+        run_tests(['Quick', 'NVMe/SMART'])
+        exit_script()
 
     # Show menu
     while True:

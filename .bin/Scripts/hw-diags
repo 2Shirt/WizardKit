@@ -39,5 +39,5 @@ if tmux list-session | grep -q "$SESSION_NAME"; then
 fi
 
 # Start session
-tmux new-session -s "$SESSION_NAME" -n "$WINDOW_NAME" "$MENU"
+tmux new-session -s "$SESSION_NAME" -n "$WINDOW_NAME" "$MENU" $*
 
