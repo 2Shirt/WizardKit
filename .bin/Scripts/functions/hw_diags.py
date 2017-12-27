@@ -503,6 +503,14 @@ def show_results():
                         print_error('  {}'.format(line))
                     else:
                         print_standard('  {}'.format(line))
+        print_info('Final temps')
+        print_log('  See Final Temps.log')
+        with open('{}/Final Temps.out'.format(global_vars['LogDir']), 'r') as f:
+            for line in f.readlines():
+                if re.search(r'^\s*$', line.strip()):
+                    # Stop after coretemps (which should be first)
+                    break
+                print('  {}'.format(line.strip()))
         print_standard(' ')
 
     # NVMe/SMART / badblocks
