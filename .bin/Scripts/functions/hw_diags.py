@@ -390,6 +390,15 @@ def run_tests(tests):
     # Show results
     show_results()
 
+    # Open log
+    if not TESTS['NVMe/SMART']['Quick']:
+        try:
+            popen_program(['nohup', 'leafpad', global_vars['LogFile']])
+        except Exception:
+            print_error('ERROR: Failed to open log: {}'.format(
+                global_vars['LogFile']))
+            pause('Press Enter to exit...')
+
 def scan_disks():
     clear_screen()
 
@@ -537,6 +546,7 @@ def show_disk_details(dev):
 
 def show_results():
     clear_screen()
+    print_log('\n───────────────────────────')
     print_standard('Hardware Diagnostic Results')
     update_progress()
 
