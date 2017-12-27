@@ -141,8 +141,16 @@ if __name__ == '__main__':
             sensor_temps = [join_columns(a, b) for a, b in sensor_temps]
         
         # Print data
-        for line in sensor_temps:
-            print_standard(line)
+        if sensor_temps:
+            for line in sensor_temps:
+                print_standard(line)
+        else:
+            if '--nocolor' in sys.argv:
+                print_standard('WARNING: No sensors found')
+                print_standard('\nPlease monitor temps manually')
+            else:
+                print_warning('WARNING: No sensors found')
+                print_standard('\nPlease monitor temps manually')
 
         # Done
         sensors.cleanup()
