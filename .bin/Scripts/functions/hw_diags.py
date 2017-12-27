@@ -32,9 +32,11 @@ TESTS = {
     'NVMe/SMART': {
         'Enabled': False,
         'Quick':   False,
+        'Status': {},
         },
     'badblocks': {
         'Enabled': False,
+        'Status': {},
         },
     }
 
@@ -49,9 +51,9 @@ def get_smart_details(dev):
 
 def get_status_color(s):
     color = COLORS['CLEAR']
-    if s in ['NS', 'Unknown']:
+    if s in ['Denied', 'NS', 'OVERRIDE', 'Unknown']:
         color = COLORS['RED']
-    elif s in ['Aborted', 'OVERRIDE', 'Working', 'Skipped']:
+    elif s in ['Aborted', 'Working', 'Skipped']:
         color = COLORS['YELLOW']
     elif s in ['CS']:
         color = COLORS['GREEN']
@@ -193,6 +195,7 @@ def run_mprime():
         update_progress()
         if TESTS['NVMe/SMART']['Enabled'] or TESTS['badblocks']['Enabled']:
             if not ask('Proceed to next test?'):
+                run_program('tmux kill-pane -a'.split())
                 raise GenericError
     else:
         if TESTS['Prime95']['NS']:
@@ -207,20 +210,98 @@ def run_mprime():
     run_program('tmux kill-pane -a'.split())
 
 def run_smart():
-    # Set Window layout
-    pane_worker = WINDOW.split_window(attach=False)
-    pane_worker.set_height(10)
-    pane_progress = WINDOW.split_window(attach=False, vertical=False)
-    pane_progress.set_width(15)
-    pane_progress.clear()
-    #pane_progress.send_keys('watch -c -n1 -t cat "{}"'.format(TESTS['Progress Out']))
-    pane_progress.send_keys(''.format(TESTS['Progress Out']))
+    aborted = False
+    clear_screen()
+    print_log('\nStart NVMe/SMART test(s)\n')
+    progress_file = '{}/selftest_progress.out'.format(global_vars['LogDir'])
+    update_progress()
 
-    # Start test
-    sleep(120)
+    # Set Window layout and start test
+    run_program('tmux split-window -dl 3 watch -c -n1 -t cat {}'.format(
+        progress_file).split())
+    run_program('tmux split-window -dhl 15 watch -c -n1 -t cat {}'.format(
+        TESTS['Progress Out']).split())
+
+    # Show disk details
+    for name, dev in sorted(TESTS['NVMe/SMART']['Devices'].items()):
+        show_disk_details(dev)
+        print_standard(' ')
+    update_progress()
+
+    # Run
+    for name, dev in sorted(TESTS['NVMe/SMART']['Devices'].items()):
+        cur_status = TESTS['NVMe/SMART']['Status'][name]
+        if cur_status == 'OVERRIDE':
+            # Skipping test per user request
+            continue
+        if TESTS['NVMe/SMART']['Quick'] or dev.get('NVMe Disk', False):
+            # Skip SMART self-tests for quick checks and NVMe disks
+            if dev['Quick Health OK']:
+                TESTS['NVMe/SMART']['Status'][name] = 'CS'
+            else:
+                TESTS['NVMe/SMART']['Status'][name] = 'NS'
+        elif not dev['Quick Health OK']:
+            # SMART overall == Failed or attributes bad, avoid self-test
+            TESTS['NVMe/SMART']['Status'][name] = 'NS'
+        else:
+            # Start SMART short self-test
+            test_length = dev['smartctl'].get(
+                'ata_smart_data', {}).get(
+                'self_test', {}).get(
+                'polling_minutes', {}).get(
+                'short', 5)
+            test_length = int(test_length) + 5
+            TESTS['NVMe/SMART']['Status'][name] = 'Working'
+            update_progress()
+            print_standard('Running SMART short self-test(s):')
+            print_standard(
+                '  /dev/{:8}({} minutes)...'.format(name, test_length),
+                end='', flush=True)
+            run_program(
+                'sudo smartctl -t short /dev/{}'.format(name).split(),
+                check=False)
+            
+            # Wait and show progress (in 10 second increments)
+            for iteration in range(int(test_length*60/10)):
+                # Update SMART data
+                dev['smartctl'] = get_smart_details(name)
+
+                # Check if test is complete
+                if iteration >= 6:
+                    done = dev['smartctl'].get(
+                        'ata_smart_data', {}).get(
+                        'self_test', {}).get(
+                        'status', {}).get(
+                        'passed', False)
+                    if done:
+                        break
+
+                # Update progress_file
+                with open(progress_file, 'w') as f:
+                    f.write('SMART self-test status:\n  {}'.format(
+                        dev['smartctl'].get(
+                            'ata_smart_data', {}).get(
+                            'self_test', {}).get(
+                            'status', {}).get(
+                            'string', 'unknown')))
+                sleep(10)
+            os.remove(progress_file)
+
+            # Check result
+            test_passed = dev['smartctl'].get(
+                'ata_smart_data', {}).get(
+                'self_test', {}).get(
+                'status', {}).get(
+                'passed', False)
+            if test_passed:
+                TESTS['NVMe/SMART']['Status'][name] = 'CS'
+            else:
+                TESTS['NVMe/SMART']['Status'][name] = 'NS'
+            update_progress()
+            print_standard('Done', timestamp=False)
 
     # Done
-    run_program(['tmux kill-pane -a'.split()], check=False)
+    run_program('tmux kill-pane -a'.split(), check=False)
 
 def run_tests(tests):
     print_log('Starting Hardware Diagnostics')
@@ -257,12 +338,18 @@ def scan_disks():
     # Get eligible disk list
     result = run_program(['lsblk', '-J', '-O'])
     json_data = json.loads(result.stdout.decode())
-    devs = json_data.get('blockdevices', [])
-    devs = {d['name']: {'lsblk': d, 'Status': 'Pending'} for d in devs
-        if d['type'] == 'disk' and d['hotplug'] == '0'}
+    devs = {}
+    for d in json_data.get('blockdevices', []):
+        if d['type'] == 'disk' and d['hotplug'] == '0':
+            devs[d['name']] = {'lsblk': d}
+            TESTS['NVMe/SMART']['Status'][d['name']] = 'Pending'
+            TESTS['badblocks']['Status'][d['name']] = 'Pending'
     
     for dev, data in devs.items():
         # Get SMART attributes
+        run_program(
+            cmd = 'sudo smartctl -s on /dev/{}'.format(dev).split(),
+            check = False)
         data['smartctl'] = get_smart_details(dev)
     
         # Get NVMe attributes
@@ -300,13 +387,19 @@ def scan_disks():
             show_disk_details(data)
             print_warning("WARNING: Health can't be confirmed for: {}".format(
                 '/dev/{}'.format(dev)))
+            dev_name = data['lsblk']['name']
+            print_standard(' ')
             if ask('Run badblocks for this device anyway?'):
-                data['OVERRIDE'] = True
+                TESTS['NVMe/SMART']['Status'][dev_name] = 'OVERRIDE'
+            else:
+                TESTS['badblocks']['Status'][dev_name] = 'Denied'
+            print_standard(' ') # In case there's more than one "OVERRIDE" disk
 
     TESTS['NVMe/SMART']['Devices'] = devs
     TESTS['badblocks']['Devices'] = devs
 
 def show_disk_details(dev):
+    dev_name = dev['lsblk']['name']
     # Device description
     print_info('Device: /dev/{}'.format(dev['lsblk']['name']))
     for key in ['model', 'size', 'serial']:
@@ -330,8 +423,8 @@ def show_disk_details(dev):
         print_error('ERROR: SMART overall-health assessment result: FAILED')
 
     # Attributes
-    print_info('Attributes:')
     if dev.get('NVMe Disk', False):
+        print_info('Attributes:')
         for attrib, threshold in sorted(ATTRIBUTES['NVMe'].items()):
             if attrib in dev['nvme-cli']:
                 print_standard(
@@ -343,14 +436,16 @@ def show_disk_details(dev):
                     raw_num >= threshold.get('Error', -1)):
                     print_error(raw_str, timestamp=False)
                     if not threshold.get('Ignore', False):
-                        dev['NVMe/SMART']['Status'] = 'NS'
+                        dev['Quick Health OK'] = False
+                        TESTS['NVMe/SMART']['Status'][dev_name] = 'NS'
                 elif (threshold.get('Warning', False) and
                     raw_num >= threshold.get('Warning', -1)):
                     print_warning(raw_str, timestamp=False)
                 else:
                     print_success(raw_str, timestamp=False)
-    else:
+    elif dev['smartctl'].get('ata_smart_attributes', None):
         # SMART attributes
+        print_info('Attributes:')
         s_table = dev['smartctl'].get('ata_smart_attributes', {}).get(
             'table', {})
         s_table = {a.get('id', 'Unknown'): a for a in s_table}
@@ -371,19 +466,13 @@ def show_disk_details(dev):
                     raw_num >= threshold.get('Error', -1)):
                     print_error(raw_str, timestamp=False)
                     if not threshold.get('Ignore', False):
-                        dev['NVMe/SMART']['Status'] = 'NS'
+                        dev['Quick Health OK'] = False
+                        TESTS['SMART']['Status'][dev_name] = 'NS'
                 elif (threshold.get('Warning', False) and
                     raw_num >= threshold.get('Warning', -1)):
                     print_warning(raw_str, timestamp=False)
                 else:
                     print_success(raw_str, timestamp=False)
-
-    # Quick Health OK
-    print_standard('Quick health assessment: ', end='', flush=True)
-    if dev['Quick Health OK']:
-        print_success('Passed.\n', timestamp=False)
-    else:
-        print_error('Failed.\n', timestamp=False)
 
 def show_results():
     clear_screen()
@@ -395,26 +484,33 @@ def show_results():
         TESTS['Progress Out']).split())
 
     # Prime95
-    print_info('\nPrime95:')
-    for log, regex in [
-        ['results.txt', r'(error|fail)'],
-        ['prime.log', r'completed.*0 errors, 0 warnings']]:
-        if log in TESTS['Prime95']:
-            #print_standard(log)
-            lines = [line.strip() for line
-                in TESTS['Prime95'][log].splitlines()
-                if re.search(regex, line, re.IGNORECASE)]
-            for line in lines[-4:]:
-                line = re.sub(r'^.*Worker #\d.*Torture Test (.*)', r'\1', 
-                    line, re.IGNORECASE)
-                if TESTS['Prime95'].get('NS', False):
-                    print_error('  {}'.format(line))
-                else:
-                    print_standard('  {}'.format(line))
+    if TESTS['Prime95']['Enabled']:
+        print_info('\nPrime95:')
+        for log, regex in [
+            ['results.txt', r'(error|fail)'],
+            ['prime.log', r'completed.*0 errors, 0 warnings']]:
+            if log in TESTS['Prime95']:
+                #print_standard(log)
+                lines = [line.strip() for line
+                    in TESTS['Prime95'][log].splitlines()
+                    if re.search(regex, line, re.IGNORECASE)]
+                for line in lines[-4:]:
+                    line = re.sub(r'^.*Worker #\d.*Torture Test (.*)', r'\1', 
+                        line, re.IGNORECASE)
+                    if TESTS['Prime95'].get('NS', False):
+                        print_error('  {}'.format(line))
+                    else:
+                        print_standard('  {}'.format(line))
+        print_standard(' ')
 
-    # NVMe/SMART
-
-    # badblocks
+    # NVMe/SMART / badblocks
+    if TESTS['NVMe/SMART']['Enabled'] or TESTS['badblocks']['Enabled']:
+        for name, dev in sorted(TESTS['NVMe/SMART']['Devices'].items()):
+            show_disk_details(dev)
+            if TESTS['badblocks']['Enabled']:
+                #TODO
+                pass
+            print_standard(' ')
 
     # Done
     pause('Press Enter to return to main menu... ')
@@ -427,32 +523,32 @@ def update_progress():
     output.append('{BLUE}HW  Diagnostics{CLEAR}'.format(**COLORS))
     output.append('───────────────')
     if TESTS['Prime95']['Enabled']:
-        output.append('')
+        output.append(' ')
         output.append('{BLUE}Prime95{s_color}{status:>8}{CLEAR}'.format(
             s_color = get_status_color(TESTS['Prime95']['Status']),
             status = TESTS['Prime95']['Status'],
             **COLORS))
     if TESTS['NVMe/SMART']['Enabled']:
-        output.append('')
+        output.append(' ')
         output.append('{BLUE}NVMe / SMART{CLEAR}'.format(**COLORS))
         if TESTS['NVMe/SMART']['Quick']:
             output.append('{YELLOW} (Quick Check){CLEAR}'.format(**COLORS))
-        for dev, data in sorted(TESTS['NVMe/SMART']['Devices'].items()):
+        for dev, status in sorted(TESTS['NVMe/SMART']['Status'].items()):
             output.append('{dev}{s_color}{status:>{pad}}{CLEAR}'.format(
                 dev = dev,
                 pad = 15-len(dev),
-                s_color = get_status_color(data['Status']),
-                status = data['Status'],
+                s_color = get_status_color(status),
+                status = status,
                 **COLORS))
     if TESTS['badblocks']['Enabled']:
-        output.append('')
+        output.append(' ')
         output.append('{BLUE}badblocks{CLEAR}'.format(**COLORS))
-        for dev, data in sorted(TESTS['badblocks']['Devices'].items()):
+        for dev, status in sorted(TESTS['badblocks']['Status'].items()):
             output.append('{dev}{s_color}{status:>{pad}}{CLEAR}'.format(
                 dev = dev,
                 pad = 15-len(dev),
-                s_color = get_status_color(data['Status']),
-                status = data['Status'],
+                s_color = get_status_color(status),
+                status = status,
                 **COLORS))
 
     # Add line-endings
