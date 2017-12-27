@@ -452,7 +452,9 @@ def show_disk_details(dev):
         for attrib, threshold in sorted(ATTRIBUTES['SMART'].items()):
             if attrib in s_table:
                 print_standard(
-                    '  {:>3}  {:32}'.format(attrib, s_table[attrib]['name']),
+                    '  {:>3}  {:32}'.format(
+                        attrib,
+                        s_table[attrib]['name']).replace('_', ' ').title(),
                     end='', flush=True)
                 raw_str = s_table[attrib]['raw']['string']
                 raw_num = re.sub(r'^(\d+).*$', r'\1', raw_str)
@@ -476,7 +478,7 @@ def show_disk_details(dev):
 
 def show_results():
     clear_screen()
-    print_standard('Results')
+    print_standard('Hardware Diagnostic Results')
     update_progress()
 
     # Set Window layout and show progress
@@ -485,12 +487,12 @@ def show_results():
 
     # Prime95
     if TESTS['Prime95']['Enabled']:
-        print_info('\nPrime95:')
+        print_success('\nPrime95:')
         for log, regex in [
             ['results.txt', r'(error|fail)'],
             ['prime.log', r'completed.*0 errors, 0 warnings']]:
             if log in TESTS['Prime95']:
-                #print_standard(log)
+                print_info('Log: {}'.format(log))
                 lines = [line.strip() for line
                     in TESTS['Prime95'][log].splitlines()
                     if re.search(regex, line, re.IGNORECASE)]
@@ -505,6 +507,7 @@ def show_results():
 
     # NVMe/SMART / badblocks
     if TESTS['NVMe/SMART']['Enabled'] or TESTS['badblocks']['Enabled']:
+        print_success('\nDisks:')
         for name, dev in sorted(TESTS['NVMe/SMART']['Devices'].items()):
             show_disk_details(dev)
             if TESTS['badblocks']['Enabled']:
