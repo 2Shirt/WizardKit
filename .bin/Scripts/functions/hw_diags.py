@@ -36,6 +36,7 @@ TESTS = {
         },
     'badblocks': {
         'Enabled': False,
+        'Results': {},
         'Status': {},
         },
     }
@@ -116,6 +117,58 @@ def menu_diags():
             break
 
 def run_badblocks():
+    aborted = False
+    clear_screen()
+    print_log('\nStart badblocks test(s)\n')
+    progress_file = '{}/badblocks_progress.out'.format(global_vars['LogDir'])
+    update_progress()
+
+    # Set Window layout and start test
+    run_program('tmux split-window -dhl 15 watch -c -n1 -t cat {}'.format(
+        TESTS['Progress Out']).split())
+
+    # Show disk details
+    for name, dev in sorted(TESTS['badblocks']['Devices'].items()):
+        show_disk_details(dev)
+        print_standard(' ')
+    update_progress()
+
+    # Run
+    print_standard('Running badblock test(s):')
+    for name, dev in sorted(TESTS['badblocks']['Devices'].items()):
+        cur_status = TESTS['badblocks']['Status'][name]
+        nvme_smart_status = TESTS['NVMe/SMART']['Status'].get(name, None)
+        if cur_status == 'Denied':
+            # Skip denied disks
+            continue
+        if nvme_smart_status == 'NS':
+            TESTS['badblocks']['Status'][name] = 'Skipped'
+        else:
+            # Not testing SMART, SMART CS, or SMART OVERRIDE
+            print_standard('  /dev/{:11}  '.format(name+'...'), end='', flush=True)
+            run_program('tmux split-window -dl 10 {} {} {}'.format(
+                'hw-diags-badblocks',
+                '/dev/{}'.format(name),
+                progress_file).split())
+            wait_for_process('badblocks')
+            print_standard('Done', timestamp=False)
+
+            # Check results
+            with open(progress_file, 'r') as f:
+                text = f.read()
+                TESTS['badblocks']['Results'][name] = text
+                r = re.search(r'Pass completed.*0/0/0 errors', text)
+                if r:
+                    TESTS['badblocks']['Status'][name] = 'CS'
+                else:
+                    TESTS['badblocks']['Status'][name] = 'NS'
+
+            # Remove temp file
+            os.remove(progress_file)
+        update_progress()
+
+    # Done
+    run_program('tmux kill-pane -a'.split(), check=False)
     pass
 
 def run_mprime():
@@ -255,7 +308,7 @@ def run_smart():
             update_progress()
             print_standard('Running SMART short self-test(s):')
             print_standard(
-                '  /dev/{:8}({} minutes)...'.format(name, test_length),
+                '  /dev/{:8}({} minutes)...  '.format(name, test_length),
                 end='', flush=True)
             run_program(
                 'sudo smartctl -t short /dev/{}'.format(name).split(),
@@ -518,9 +571,19 @@ def show_results():
         print_success('\nDisks:')
         for name, dev in sorted(TESTS['NVMe/SMART']['Devices'].items()):
             show_disk_details(dev)
-            if TESTS['badblocks']['Enabled']:
-                #TODO
-                pass
+            bb_status = TESTS['badblocks']['Status'].get(name, None)
+            if (TESTS['badblocks']['Enabled']
+                and bb_status not in ['Denied', 'OVERRIDE', 'Skipped']):
+                print_info('badblocks:')
+                for line in TESTS['badblocks']['Results'][name].splitlines():
+                    if re.search(r'Pass completed', line, re.IGNORECASE):
+                        line = re.sub(
+                            r'Pass completed,?\s+', r'',
+                            line.strip(), re.IGNORECASE)
+                        if TESTS['badblocks']['Status'][name] == 'CS':
+                            print_standard('  {}'.format(line))
+                        else:
+                            print_error('  {}'.format(line))
             print_standard(' ')
 
     # Done
