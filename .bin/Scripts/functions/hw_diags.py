@@ -262,7 +262,7 @@ def run_mprime():
     # Done
     run_program('tmux kill-pane -a'.split())
 
-def run_smart():
+def run_nvme_smart():
     aborted = False
     clear_screen()
     print_log('\nStart NVMe/SMART test(s)\n')
@@ -378,7 +378,7 @@ def run_tests(tests):
             mprime_aborted = True
     if not mprime_aborted:
         if TESTS['NVMe/SMART']['Enabled']:
-            run_smart()
+            run_nvme_smart()
         if TESTS['badblocks']['Enabled']:
             run_badblocks()
     
@@ -445,6 +445,7 @@ def scan_disks():
             if ask('Run badblocks for this device anyway?'):
                 TESTS['NVMe/SMART']['Status'][dev_name] = 'OVERRIDE'
             else:
+                TESTS['NVMe/SMART']['Status'][dev_name] = 'NS'
                 TESTS['badblocks']['Status'][dev_name] = 'Denied'
             print_standard(' ') # In case there's more than one "OVERRIDE" disk
 
@@ -522,7 +523,7 @@ def show_disk_details(dev):
                     print_error(raw_str, timestamp=False)
                     if not threshold.get('Ignore', False):
                         dev['Quick Health OK'] = False
-                        TESTS['SMART']['Status'][dev_name] = 'NS'
+                        TESTS['NVMe/SMART']['Status'][dev_name] = 'NS'
                 elif (threshold.get('Warning', False) and
                     raw_num >= threshold.get('Warning', -1)):
                     print_warning(raw_str, timestamp=False)
@@ -568,14 +569,15 @@ def show_results():
 
     # NVMe/SMART / badblocks
     if TESTS['NVMe/SMART']['Enabled'] or TESTS['badblocks']['Enabled']:
-        print_success('\nDisks:')
+        print_success('Disks:')
         for name, dev in sorted(TESTS['NVMe/SMART']['Devices'].items()):
             show_disk_details(dev)
             bb_status = TESTS['badblocks']['Status'].get(name, None)
             if (TESTS['badblocks']['Enabled']
                 and bb_status not in ['Denied', 'OVERRIDE', 'Skipped']):
                 print_info('badblocks:')
-                for line in TESTS['badblocks']['Results'][name].splitlines():
+                result = TESTS['badblocks']['Results'].get(name, '')
+                for line in result.splitlines():
                     if re.search(r'Pass completed', line, re.IGNORECASE):
                         line = re.sub(
                             r'Pass completed,?\s+', r'',
