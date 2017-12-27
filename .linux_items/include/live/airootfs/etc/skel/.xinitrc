@@ -13,6 +13,7 @@ nm-applet &
 cbatticon &
 pasystray &
 connect-to-network &
+(sleep 5s && killall dunst) &
 $HOME/.urxvt_default_res &
 $HOME/.update_wallpaper &
 $HOME/.update_conky &

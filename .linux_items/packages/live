@@ -46,6 +46,7 @@ mupdf
 ncdu
 network-manager-applet
 networkmanager
+nvme-cli
 oblogout
 openbox-patched
 p7zip
@@ -54,12 +55,16 @@ pasystray
 pavucontrol
 progsreiserfs
 pulseaudio
+python
+python-psutil
+python-requests
 qemu-guest-agent
 reiserfsprogs
 rfkill
 rng-tools
 rofi
 rxvt-unicode
+smartmontools-svn
 speedtest-cli
 spice-vdagent
 terminus-font
@@ -75,6 +80,7 @@ udevil
 udisks2
 ufw
 unzip
+util-linux
 veracrypt
 vim
 virtualbox-guest-modules-arch

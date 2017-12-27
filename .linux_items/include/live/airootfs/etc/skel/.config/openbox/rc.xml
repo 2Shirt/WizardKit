@@ -314,7 +314,7 @@
     </keybind>
     <keybind key="W-m">
       <action name="Execute">
-        <command>urxvt -title "Mount all Volumes" -e mount-all-volumes-foh</command>
+        <command>urxvt -title "Mount all Volumes" -e mount-all-volumes gui</command>
       </action>
     </keybind>
     <keybind key="W-r">
@@ -324,7 +324,7 @@
     </keybind>
     <keybind key="W-s">
       <action name="Execute">
-        <command>urxvt -title "Hardware Diagnostics" -e hw-diags foh</command>
+        <command>urxvt -title "Hardware Diagnostics" -e hw-diags quick</command>
       </action>
     </keybind>
     <keybind key="W-t">
@@ -334,7 +334,7 @@
     </keybind>
     <keybind key="W-v">
       <action name="Execute">
-        <command>urxvt -title "Hardware Sensors" -e hw-diags-sensors</command>
+        <command>urxvt -title "Hardware Sensors" -e watch -c -n1 -t hw-sensors</command>
       </action>
     </keybind>
     <keybind key="W-w">

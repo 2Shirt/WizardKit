@@ -1,13 +1,13 @@
 #!/bin/bash
 #
-## HW diagnostics - Prime95
+## Wizard Kit: Apple fan speed tool
 
 SMCPATH="/sys/devices/platform/applesmc.768"
 SET_MAX="True"
 
 function usage {
-    echo "Usage: $0 auto|max"
-    echo "  e.g. $0 max"
+    echo "Usage: $(basename "$0") auto|max"
+    echo "  e.g. $(basename "$0") max"
 }
 
 # Set mode
