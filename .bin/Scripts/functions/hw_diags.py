@@ -151,7 +151,7 @@ def run_badblocks():
         else:
             # Not testing SMART, SMART CS, or SMART OVERRIDE
             print_standard('  /dev/{:11}  '.format(name+'...'), end='', flush=True)
-            run_program('tmux split-window -dl 10 {} {} {}'.format(
+            run_program('tmux split-window -dl 5 {} {} {}'.format(
                 'hw-diags-badblocks',
                 '/dev/{}'.format(name),
                 progress_file).split())
@@ -168,8 +168,9 @@ def run_badblocks():
                 else:
                     TESTS['badblocks']['Status'][name] = 'NS'
 
-            # Remove temp file
-            os.remove(progress_file)
+            # Move temp file
+            shutil.move(progress_file, '{}/badblocks-{}.log'.format(
+                global_vars['LogDir'], name))
         update_progress()
 
     # Done
