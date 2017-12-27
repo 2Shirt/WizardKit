@@ -150,6 +150,8 @@ def run_badblocks():
             TESTS['badblocks']['Status'][name] = 'Skipped'
         else:
             # Not testing SMART, SMART CS, or SMART OVERRIDE
+            TESTS['badblocks']['Status'][name] = 'Working'
+            update_progress()
             print_standard('  /dev/{:11}  '.format(name+'...'), end='', flush=True)
             run_program('tmux split-window -dl 5 {} {} {}'.format(
                 'hw-diags-badblocks',
