@@ -5,7 +5,7 @@ if [ "$(fgconsole 2>/dev/null)" -eq "1" ]; then
         sed -i -r 's/openbox-session/i3/' ~/.xinitrc
     fi
     if ! fgrep -q "nox" /proc/cmdline; then
-        startx
+        startx >/dev/null
     else
         hw-diags cli
     fi
