@@ -95,7 +95,7 @@ function copy_live_env() {
     rsync -aI /usr/share/archiso/configs/releng/ "$LIVE_DIR/"
     
     # Add items
-    rsync -aI "$ROOT_DIR/.linux_items/include/live/" "$LIVE_DIR/"
+    rsync -aI "$ROOT_DIR/.linux_items/include/" "$LIVE_DIR/"
     mkdir -p "$LIVE_DIR/airootfs/usr/local/bin"
     rsync -aI "$ROOT_DIR/.bin/Scripts/" "$LIVE_DIR/airootfs/usr/local/bin/"
 
@@ -124,11 +124,6 @@ function run_elevated() {
 function update_live_env() {
     hostname="$(echo "${KIT_NAME_SHORT}-linux" | tr "[:upper:]" "[:lower:]")"
     username="$(echo "${KIT_NAME_SHORT}tech" | tr "[:upper:]" "[:lower:]")"
-    
-    # build.sh
-    if ! grep -iq 'customize_iso' "$LIVE_DIR/build.sh"; then
-        sed -ir "s!run_once make_iso\$!# customize_iso\ncp -a \"$ROOT_DIR/.linux_items/include/iso\"/* \"\${work_dir}/iso\"/\n\nrun_once make_iso!" "$LIVE_DIR/build.sh"
-    fi
 
     # Hostname
     echo "$hostname" > "$LIVE_DIR/airootfs/etc/hostname"
