@@ -27,7 +27,7 @@ if __name__ == '__main__':
 
         # Done
         print_standard('\nDone.')
-        if 'foh' in sys.argv:
+        if 'gui' in sys.argv:
             pause("Press Enter to exit...")
             popen_program(['nohup', 'thunar', '/media'])
         exit_script()
