@@ -93,11 +93,6 @@ function load_settings() {
 function copy_live_env() {
     echo "Copying Archlinux files..."
     rsync -aI /usr/share/archiso/configs/releng/ "$LIVE_DIR/"
-    
-    # Add items
-    rsync -aI "$ROOT_DIR/.linux_items/include/" "$LIVE_DIR/"
-    mkdir -p "$LIVE_DIR/airootfs/usr/local/bin"
-    rsync -aI "$ROOT_DIR/.bin/Scripts/" "$LIVE_DIR/airootfs/usr/local/bin/"
 
     # Remove items
     rm "$LIVE_DIR/airootfs/etc/systemd/scripts/choose-mirror"
@@ -108,6 +103,13 @@ function copy_live_env() {
     rm "$LIVE_DIR/airootfs/etc/udev/rules.d/81-dhcpcd.rules"
     rmdir "$LIVE_DIR/airootfs/etc/udev/rules.d" --ignore-fail-on-non-empty
     rmdir "$LIVE_DIR/airootfs/etc/udev" --ignore-fail-on-non-empty
+    rm "$LIVE_DIR/isolinux/*.cfg"
+    rm "$LIVE_DIR/syslinux/*.cfg" "$LIVE_DIR/syslinux/*.png"
+    
+    # Add items
+    rsync -aI "$ROOT_DIR/.linux_items/include/" "$LIVE_DIR/"
+    mkdir -p "$LIVE_DIR/airootfs/usr/local/bin"
+    rsync -aI "$ROOT_DIR/.bin/Scripts/" "$LIVE_DIR/airootfs/usr/local/bin/"
 }
 
 function run_elevated() {
@@ -125,6 +127,11 @@ function update_live_env() {
     hostname="$(echo "${KIT_NAME_SHORT}-linux" | tr "[:upper:]" "[:lower:]")"
     username="$(echo "${KIT_NAME_SHORT}tech" | tr "[:upper:]" "[:lower:]")"
 
+    # Boot config (legacy)
+    cp "$ROOT_DIR/Images/Pxelinux.png" "$LIVE_DIR/syslinux/pxelinux.png"
+    cp "$ROOT_DIR/Images/Syslinux.png" "$LIVE_DIR/syslinux/syslinux.png"
+    sed -i -r "s/_+/$KIT_NAME_FULL/" "$LIVE_DIR/syslinux/wklive_head.cfg"
+    
     # Hostname
     echo "$hostname" > "$LIVE_DIR/airootfs/etc/hostname"
     echo "127.0.1.1  $hostname.localdomain  $hostname" >> "$LIVE_DIR/airootfs/etc/hosts"
@@ -143,7 +150,7 @@ function update_live_env() {
     echo "sed -i 's/#Server/Server/g' /etc/pacman.d/mirrorlist" >> "$LIVE_DIR/airootfs/root/customize_airootfs.sh"
     
     # MOTD
-    sed -i "s/_+/$KIT_NAME_FULL Linux Environment/" "$LIVE_DIR/airootfs/etc/motd"
+    sed -i -r "s/_+/$KIT_NAME_FULL Linux Environment/" "$LIVE_DIR/airootfs/etc/motd"
 
     # Oh My ZSH
     git clone --depth=1 git://github.com/robbyrussell/oh-my-zsh.git "$SKEL_DIR/.oh-my-zsh"
@@ -257,11 +264,11 @@ function build_iso() {
     # Build ISO
     prefix="$(< "$LIVE_DIR/airootfs/etc/hostname")"
     label="${KIT_NAME_SHORT}_LINUX"
-    "$LIVE_DIR/build.sh" -N "$prefix" -V "$DATE" -L "$label" -w "$TEMP_DIR/Arch" -o "$OUT_DIR" -v | tee -a "$LOG_DIR/$DATETIME.log"
+    "$LIVE_DIR/build.sh" -N "$prefix" -V "$DATE" -L "$label" -D "wklive" -w "$TEMP_DIR/WKLive" -o "$OUT_DIR" -v | tee -a "$LOG_DIR/$DATETIME.log"
 
     # Cleanup
     echo "Removing temp files..."
-    rm "$TEMP_DIR/Arch" -Rf | tee -a "$LOG_DIR/$DATETIME.log"
+    rm "$TEMP_DIR/WKLive" -Rf | tee -a "$LOG_DIR/$DATETIME.log"
 
     echo "Reverting permissions..."
     chown $REAL_USER:$REAL_USER "$LIVE_DIR" -R
