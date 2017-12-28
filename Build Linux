@@ -136,6 +136,20 @@ function update_live_env() {
     curl -Lo "$TEMP_DIR/wimboot.zip" "http://git.ipxe.org/releases/wimboot/wimboot-latest.zip"
     7z e "$TEMP_DIR/wimboot.zip" -o"$LIVE_DIR/wklive/boot" 'wimboot*/LICENSE.txt' 'wimboot*/README.txt' 'wimboot*/wimboot'
 
+    # Boot config (UEFI)
+    mkdir -p "$LIVE_DIR/EFI/boot"
+
+    # Memtest86
+    mkdir -p "$LIVE_DIR/EFI/memtest86/Benchmark"
+    mkdir -p "$TEMP_DIR/memtest86"
+    curl -Lo "$TEMP_DIR/memtest86/memtest86.iso.tar.gz" "https://www.memtest86.com/downloads/memtest86-iso.tar.gz"
+    tar xvf "$TEMP_DIR/memtest86/memtest86.iso.tar.gz" -C "$TEMP_DIR/memtest86"
+    7z x "$TEMP_DIR/memtest86"/*.iso -o"$TEMP_DIR/memtest86"
+    mv "$TEMP_DIR/memtest86/BLACKLIS.CFG" "$LIVE_DIR/EFI/memtest86/blacklist.cfg"
+    mv "$TEMP_DIR/memtest86/BOOTX64.EFI" "$LIVE_DIR/EFI/memtest86/memtestx64.efi"
+    mv "$TEMP_DIR/memtest86/MT86.PNG" "$LIVE_DIR/EFI/memtest86/mt86.png"
+    mv "$TEMP_DIR/memtest86/UNIFONT.BIN" "$LIVE_DIR/EFI/memtest86/unifont.bin"
+
     # build.sh
     if ! grep -iq 'wklive additions' "$LIVE_DIR/build.sh"; then
         sed -i -r 's/^(run_once make_iso)$/# wklive additions\n\1/' "$LIVE_DIR/build.sh"
