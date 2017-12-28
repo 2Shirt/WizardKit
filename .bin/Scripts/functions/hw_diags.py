@@ -108,10 +108,10 @@ def menu_diags(*args):
             run_tests(diag_modes[int(selection)-1]['Tests'])
         elif selection == 'A':
             run_program(['hw-diags-audio'], check=False, pipe=False)
-            sleep(1)
+            pause('Press Enter to return to main menu... ')
         elif selection == 'N':
             run_program(['hw-diags-network'], check=False, pipe=False)
-            sleep(1)
+            pause('Press Enter to return to main menu... ')
         elif selection == 'M':
             run_program(['cmatrix', '-abs'], check=False, pipe=False)
         elif selection == 'P':
