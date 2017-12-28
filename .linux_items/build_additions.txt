@@ -1,0 +1,5 @@
+rsync -aI "${script_path}/wklive/" "${work_dir}/iso/wklive/"
+rm "${work_dir}/iso/EFI" -R
+rm "${work_dir}/iso/loader" -R
+rsync -aI "${script_path}/EFI/" "${work_dir}/iso/EFI/"
+

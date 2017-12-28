@@ -137,8 +137,9 @@ function update_live_env() {
     7z e "$TEMP_DIR/wimboot.zip" -o"$LIVE_DIR/wklive/boot" 'wimboot*/LICENSE.txt' 'wimboot*/README.txt' 'wimboot*/wimboot'
 
     # build.sh
-    if ! grep -iq 'customize_iso' "$LIVE_DIR/build.sh"; then
-        sed -i -r 's!run_once make_iso$!# customize_iso\nrsync -aI "${script_path}/wklive/" "${work_dir}/iso/wklive/"\n\nrun_once make_iso!' "$LIVE_DIR/build.sh"
+    if ! grep -iq 'wklive additions' "$LIVE_DIR/build.sh"; then
+        sed -i -r 's/^(run_once make_iso)$/# wklive additions\n\1/' "$LIVE_DIR/build.sh"
+        sed -i '/# wklive additions/r .linux_items/build_additions.txt' "$LIVE_DIR/build.sh"
     fi
 
     # Hostname
