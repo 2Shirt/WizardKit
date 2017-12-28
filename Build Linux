@@ -44,10 +44,10 @@ function cleanup() {
             fi
         fi
     done
-    mkdir "$BUILD_DIR" 2>/dev/null
-    mkdir "$LOG_DIR" 2>/dev/null
-    mkdir "$OUT_DIR" 2>/dev/null
-    mkdir "$TEMP_DIR" 2>/dev/null
+    mkdir -p "$BUILD_DIR" 2>/dev/null
+    mkdir -p "$LOG_DIR" 2>/dev/null
+    mkdir -p "$OUT_DIR" 2>/dev/null
+    mkdir -p "$TEMP_DIR" 2>/dev/null
 }
 
 function fix_kit_permissions() {
@@ -103,8 +103,8 @@ function copy_live_env() {
     rm "$LIVE_DIR/airootfs/etc/udev/rules.d/81-dhcpcd.rules"
     rmdir "$LIVE_DIR/airootfs/etc/udev/rules.d" --ignore-fail-on-non-empty
     rmdir "$LIVE_DIR/airootfs/etc/udev" --ignore-fail-on-non-empty
-    rm "$LIVE_DIR/isolinux/*.cfg"
-    rm "$LIVE_DIR/syslinux/*.cfg" "$LIVE_DIR/syslinux/*.png"
+    rm "$LIVE_DIR/isolinux"/*.cfg
+    rm "$LIVE_DIR/syslinux"/*.cfg "$LIVE_DIR/syslinux"/*.png
     
     # Add items
     rsync -aI "$ROOT_DIR/.linux_items/include/" "$LIVE_DIR/"
@@ -128,10 +128,19 @@ function update_live_env() {
     username="$(echo "${KIT_NAME_SHORT}tech" | tr "[:upper:]" "[:lower:]")"
 
     # Boot config (legacy)
-    cp "$ROOT_DIR/Images/Pxelinux.png" "$LIVE_DIR/syslinux/pxelinux.png"
-    cp "$ROOT_DIR/Images/Syslinux.png" "$LIVE_DIR/syslinux/syslinux.png"
+    mkdir -p "$LIVE_DIR/wklive"
+    cp "$ROOT_DIR/Images/Pxelinux.png" "$LIVE_DIR/wklive/pxelinux.png"
+    cp "$ROOT_DIR/Images/Syslinux.png" "$LIVE_DIR/wklive/syslinux.png"
     sed -i -r "s/_+/$KIT_NAME_FULL/" "$LIVE_DIR/syslinux/wklive_head.cfg"
-    
+    mkdir -p "$TEMP_DIR" 2>/dev/null
+    curl -Lo "$TEMP_DIR/wimboot.zip" "http://git.ipxe.org/releases/wimboot/wimboot-latest.zip"
+    7z e "$TEMP_DIR/wimboot.zip" -o"$LIVE_DIR/wklive/boot" 'wimboot*/LICENSE.txt' 'wimboot*/README.txt' 'wimboot*/wimboot'
+
+    # build.sh
+    if ! grep -iq 'customize_iso' "$LIVE_DIR/build.sh"; then
+        sed -i -r 's!run_once make_iso$!# customize_iso\nrsync -aI "${script_path}/wklive/" "${work_dir}/iso/wklive/"\n\nrun_once make_iso!' "$LIVE_DIR/build.sh"
+    fi
+
     # Hostname
     echo "$hostname" > "$LIVE_DIR/airootfs/etc/hostname"
     echo "127.0.1.1  $hostname.localdomain  $hostname" >> "$LIVE_DIR/airootfs/etc/hosts"
