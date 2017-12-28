@@ -473,14 +473,13 @@ def show_disk_details(dev):
     dev_name = dev['lsblk']['name']
     # Device description
     print_info('Device: /dev/{}'.format(dev['lsblk']['name']))
-    for key in ['model', 'size', 'serial']:
-        print_standard('  {:8}{}'.format(key, dev['lsblk'].get(key, 'Unknown')))
-    if dev['lsblk'].get('tran', 'Unknown') == 'nvme':
-        print_standard('  {:8}{}'.format('type', 'NVMe'))
-    else:
-        print_standard('  {:8}{}'.format(
-            'type',
-            dev['lsblk'].get('tran', 'Unknown').upper()))
+    print_standard(' {:>4} ({}) {} {}'.format(
+        str(dev['lsblk'].get('size', '???b')).strip(),
+        str(dev['lsblk'].get('tran', '???')).strip().upper().replace(
+            'NVME', 'NVMe'),
+        str(dev['lsblk'].get('model', 'Unknown Model')).strip(),
+        str(dev['lsblk'].get('serial', 'Unknown Serial')).strip(),
+        ))
 
     # Warnings
     if dev.get('NVMe Disk', False):
