@@ -126,18 +126,26 @@ function run_elevated() {
 function update_live_env() {
     hostname="$(echo "${KIT_NAME_SHORT}-linux" | tr "[:upper:]" "[:lower:]")"
     username="$(echo "${KIT_NAME_SHORT}tech" | tr "[:upper:]" "[:lower:]")"
+    label="${KIT_NAME_SHORT}_LINUX"
+    install_dir="$(echo "${KIT_NAME_SHORT}linux" | tr "[:upper:]" "[:lower:]")"
 
     # Boot config (legacy)
-    mkdir -p "$LIVE_DIR/wklive"
-    cp "$ROOT_DIR/Images/Pxelinux.png" "$LIVE_DIR/wklive/pxelinux.png"
-    cp "$ROOT_DIR/Images/Syslinux.png" "$LIVE_DIR/wklive/syslinux.png"
-    sed -i -r "s/_+/$KIT_NAME_FULL/" "$LIVE_DIR/syslinux/wklive_head.cfg"
+    mkdir -p "$LIVE_DIR/$install_dir"
+    cp "$ROOT_DIR/Images/Pxelinux.png" "$LIVE_DIR/$install_dir/pxelinux.png"
+    cp "$ROOT_DIR/Images/Syslinux.png" "$LIVE_DIR/$install_dir/syslinux.png"
+    sed -i -r "s/_+/$KIT_NAME_FULL/" "$LIVE_DIR/syslinux/wk_head.cfg"
     mkdir -p "$TEMP_DIR" 2>/dev/null
     curl -Lo "$TEMP_DIR/wimboot.zip" "http://git.ipxe.org/releases/wimboot/wimboot-latest.zip"
-    7z e "$TEMP_DIR/wimboot.zip" -o"$LIVE_DIR/wklive/boot" 'wimboot*/LICENSE.txt' 'wimboot*/README.txt' 'wimboot*/wimboot'
+    7z e "$TEMP_DIR/wimboot.zip" -o"$LIVE_DIR/$install_dir/boot" 'wimboot*/LICENSE.txt' 'wimboot*/README.txt' 'wimboot*/wimboot'
 
     # Boot config (UEFI)
     mkdir -p "$LIVE_DIR/EFI/boot"
+    cp  "/usr/share/refind/refind_x64.efi" "$LIVE_DIR/EFI/boot/bootx64.efi"
+    cp "$ROOT_DIR/Images/rEFInd.png" "$LIVE_DIR/EFI/boot/rEFInd.png"
+    rsync -aI "/usr/share/refind/drivers_x64/" "$LIVE_DIR/EFI/boot/drivers_x64/"
+    rsync -aI "/usr/share/refind/icons/" "$LIVE_DIR/EFI/boot/icons/" --exclude "/usr/share/refind/icons/svg"
+    sed -i "s/%ARCHISO_LABEL%/${label}/;
+            s/%INSTALL_DIR%/${install_dir}/" "$LIVE_DIR/EFI/boot/refind.conf"
 
     # Memtest86
     mkdir -p "$LIVE_DIR/EFI/memtest86/Benchmark"
@@ -151,9 +159,9 @@ function update_live_env() {
     mv "$TEMP_DIR/memtest86/UNIFONT.BIN" "$LIVE_DIR/EFI/memtest86/unifont.bin"
 
     # build.sh
-    if ! grep -iq 'wklive additions' "$LIVE_DIR/build.sh"; then
-        sed -i -r 's/^(run_once make_iso)$/# wklive additions\n\1/' "$LIVE_DIR/build.sh"
-        sed -i '/# wklive additions/r .linux_items/build_additions.txt' "$LIVE_DIR/build.sh"
+    if ! grep -iq 'wizardkit additions' "$LIVE_DIR/build.sh"; then
+        sed -i -r 's/^(run_once make_iso)$/# wizardkit additions\n\1/' "$LIVE_DIR/build.sh"
+        sed -i '/# wizardkit additions/r .linux_items/build_additions.txt' "$LIVE_DIR/build.sh"
     fi
 
     # Hostname
@@ -288,11 +296,12 @@ function build_iso() {
     # Build ISO
     prefix="$(< "$LIVE_DIR/airootfs/etc/hostname")"
     label="${KIT_NAME_SHORT}_LINUX"
-    "$LIVE_DIR/build.sh" -N "$prefix" -V "$DATE" -L "$label" -D "wklive" -w "$TEMP_DIR/WKLive" -o "$OUT_DIR" -v | tee -a "$LOG_DIR/$DATETIME.log"
+    install_dir="$(echo "${KIT_NAME_SHORT}linux" | tr "[:upper:]" "[:lower:]")"
+    "$LIVE_DIR/build.sh" -N "$prefix" -V "$DATE" -L "$label" -D "$install_dir" -w "$TEMP_DIR/Linux" -o "$OUT_DIR" -v | tee -a "$LOG_DIR/$DATETIME.log"
 
     # Cleanup
     echo "Removing temp files..."
-    rm "$TEMP_DIR/WKLive" -Rf | tee -a "$LOG_DIR/$DATETIME.log"
+    rm "$TEMP_DIR/Linux" -Rf | tee -a "$LOG_DIR/$DATETIME.log"
 
     echo "Reverting permissions..."
     chown $REAL_USER:$REAL_USER "$LIVE_DIR" -R
