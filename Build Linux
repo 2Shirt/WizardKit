@@ -153,10 +153,10 @@ function update_live_env() {
     curl -Lo "$TEMP_DIR/memtest86/memtest86.iso.tar.gz" "https://www.memtest86.com/downloads/memtest86-iso.tar.gz"
     tar xvf "$TEMP_DIR/memtest86/memtest86.iso.tar.gz" -C "$TEMP_DIR/memtest86"
     7z x "$TEMP_DIR/memtest86"/*.iso -o"$TEMP_DIR/memtest86"
-    mv "$TEMP_DIR/memtest86/BLACKLIS.CFG" "$LIVE_DIR/EFI/memtest86/blacklist.cfg"
-    mv "$TEMP_DIR/memtest86/BOOTX64.EFI" "$LIVE_DIR/EFI/memtest86/memtestx64.efi"
-    mv "$TEMP_DIR/memtest86/MT86.PNG" "$LIVE_DIR/EFI/memtest86/mt86.png"
-    mv "$TEMP_DIR/memtest86/UNIFONT.BIN" "$LIVE_DIR/EFI/memtest86/unifont.bin"
+    mv "$TEMP_DIR/memtest86/EFI/BOOT/BLACKLIS.CFG" "$LIVE_DIR/EFI/memtest86/blacklist.cfg"
+    mv "$TEMP_DIR/memtest86/EFI/BOOT/BOOTX64.EFI" "$LIVE_DIR/EFI/memtest86/memtestx64.efi"
+    mv "$TEMP_DIR/memtest86/EFI/BOOT/MT86.PNG" "$LIVE_DIR/EFI/memtest86/mt86.png"
+    mv "$TEMP_DIR/memtest86/EFI/BOOT/UNIFONT.BIN" "$LIVE_DIR/EFI/memtest86/unifont.bin"
 
     # build.sh
     if ! grep -iq 'wizardkit additions' "$LIVE_DIR/build.sh"; then
