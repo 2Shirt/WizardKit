@@ -21,7 +21,7 @@ SOURCE_URLS = {
     'HWiNFO64': 'http://app.oldfoss.com:81/download/HWiNFO/hw64_560.zip',
     'HitmanPro32': 'https://dl.surfright.nl/HitmanPro.exe',
     'HitmanPro64': 'https://dl.surfright.nl/HitmanPro_x64.exe',
-    'IOBit_Uninstaller': 'https://portableapps.com/redirect/?a=IObitUninstallerPortable&t=http%3A%2F%2Fdownloads.portableapps.com%2Fportableapps%2Fiobituninstallerportable%2FIObitUninstallerPortable_7.0.2.49.paf.exe',
+    'IOBit_Uninstaller': 'https://portableapps.com/redirect/?a=IObitUninstallerPortable&t=http%3A%2F%2Fdownloads.portableapps.com%2Fportableapps%2Fiobituninstallerportable%2FIObitUninstallerPortable_7.2.0.11.paf.exe',
     'Intel SSD Toolbox': r'https://downloadmirror.intel.com/27330/eng/Intel%20SSD%20Toolbox%20-%20v3.4.9.exe',
     'KVRT': 'http://devbuilds.kaspersky-labs.com/devbuilds/KVRT/latest/full/KVRT.exe',
     'NotepadPlusPlus': 'https://notepad-plus-plus.org/repository/7.x/7.5.2/npp.7.5.2.bin.minimalist.7z',
