@@ -1,0 +1,21 @@
+#!/bin/bash
+
+BOOT_PATH="/run/archiso/bootmnt/arch/"
+BURNED_IN="/usr/share/wallpaper/burned.in"
+WALLPAPER="$HOME/.wallpaper.png"
+
+function link_wall() {
+    sudo rm "$WALLPAPER"
+    sudo ln -s "$1" "$WALLPAPER"
+}
+
+# Check for wallpaper
+## Checks BOOT_PATH and uses the BURNED_IN file if nothing is found
+for f in "$BOOT_PATH"/{Arch,arch}.{jpg,png} "$BURNED_IN"; do
+    if [[ -f "$f" ]]; then
+        link_wall "$f"
+        break
+    fi
+done
+
+feh --bg-fill "$WALLPAPER"

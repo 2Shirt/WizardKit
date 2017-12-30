@@ -1,0 +1,38 @@
+#!/bin/python3
+#
+## Wizard Kit: Volume mount tool
+
+import os
+import sys
+
+# Init
+os.chdir(os.path.dirname(os.path.realpath(__file__)))
+sys.path.append(os.getcwd())
+from functions.data import *
+init_global_vars()
+
+if __name__ == '__main__':
+    try:
+        # Prep
+        clear_screen()
+        print_standard('{}: Volume mount tool'.format(KIT_NAME_FULL))
+
+        # Mount volumes
+        report = mount_all_volumes()
+
+        # Print report
+        print_info('\nResults')
+        for line in report:
+            show_data(indent=4, width=16, **line[-1])
+
+        # Done
+        print_standard('\nDone.')
+        if 'gui' in sys.argv:
+            pause("Press Enter to exit...")
+            popen_program(['nohup', 'thunar', '/media'])
+        exit_script()
+    except SystemExit:
+        pass
+    except:
+        major_exception()
+

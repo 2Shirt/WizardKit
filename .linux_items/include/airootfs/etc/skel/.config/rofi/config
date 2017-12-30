@@ -1,0 +1,11 @@
+! rofi theme
+rofi.color-enabled: true
+!                  bg       border   separator
+rofi.color-window: argb:d02d3036, #2d3036, #d64937
+!                  bg             fg       bg-alt   hl-bg    hl-fg
+rofi.color-normal: argb:d02d3036, #d8d8d8, argb:d02d3036, #2d3036, #d64937
+rofi.color-active: argb:d0222222, #d64937, argb:d0222222, #d64937, #d8d8d8
+rofi.color-urgent: argb:d0888888, #d8d8d8, argb:d0888888, #888888, #d64937
+
+rofi.separator-style: solid
+rofi.hide-scrollbar: true

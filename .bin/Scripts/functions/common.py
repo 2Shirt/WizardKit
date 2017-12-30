@@ -8,7 +8,11 @@ import subprocess
 import sys
 import time
 import traceback
-import winreg
+try:
+    import winreg
+except ModuleNotFoundError:
+    if psutil.WINDOWS:
+        raise
 
 from subprocess import CalledProcessError
 
@@ -26,9 +30,13 @@ COLORS = {
     'YELLOW': '\033[33m',
     'BLUE': '\033[34m'
 }
-HKU = winreg.HKEY_USERS
-HKCU = winreg.HKEY_CURRENT_USER
-HKLM = winreg.HKEY_LOCAL_MACHINE
+try:
+    HKU = winreg.HKEY_USERS
+    HKCU = winreg.HKEY_CURRENT_USER
+    HKLM = winreg.HKEY_LOCAL_MACHINE
+except NameError:
+    if psutil.WINDOWS:
+        raise
 
 # Error Classes
 class BIOSKeyNotFoundError(Exception):
@@ -86,8 +94,11 @@ def ask(prompt='Kotaero!'):
     return answer
 
 def clear_screen():
-    """Simple wrapper for cls."""
-    os.system('cls')
+    """Simple wrapper for cls/clear."""
+    if psutil.WINDOWS:
+        os.system('cls')
+    else:
+        os.system('clear')
 
 def convert_to_bytes(size):
     """Convert human-readable size str to bytes and return an int."""
@@ -121,7 +132,7 @@ def exit_script(return_value=0):
 
     # Open Log (if it exists)
     log = global_vars.get('LogFile', '')
-    if log and os.path.exists(log):
+    if log and os.path.exists(log) and psutil.WINDOWS:
         try:
             extract_item('NotepadPlusPlus', silent=True)
             popen_program(
@@ -160,8 +171,10 @@ def get_ticket_number():
         _input = input('Enter ticket number: ')
         if re.match(r'^([0-9]+([-_]?\w+|))$', _input):
             ticket_number = _input
-            with open(r'{}\TicketNumber'.format(global_vars['LogDir']), 'w',
-                encoding='utf-8') as f:
+            out_file = r'{}\TicketNumber'.format(global_vars['LogDir'])
+            if not psutil.WINDOWS:
+                out_file = out_file.replace('\\', '/')
+            with open(out_file, 'w', encoding='utf-8') as f:
                 f.write(ticket_number)
     return ticket_number
 
@@ -220,7 +233,8 @@ def major_exception():
 
 def menu_select(title='~ Untitled Menu ~',
     prompt='Please make a selection', secret_exit=False,
-    main_entries=[], action_entries=[], disabled_label='DISABLED'):
+    main_entries=[], action_entries=[], disabled_label='DISABLED',
+    spacer=''):
     """Display options in a menu and return selected option as a str."""
     # Bail early
     if not main_entries and not action_entries:
@@ -231,7 +245,7 @@ def menu_select(title='~ Untitled Menu ~',
         title = '{}\n\n{}'.format(global_vars['Title'], title)
 
     # Build menu
-    menu_splash =   '{}\n\n'.format(title)
+    menu_splash =   '{}\n{}\n'.format(title, spacer)
     width =         len(str(len(main_entries)))
     valid_answers = []
     if (secret_exit):
@@ -242,7 +256,7 @@ def menu_select(title='~ Untitled Menu ~',
         entry = main_entries[i]
         # Add Spacer
         if ('CRLF' in entry):
-            menu_splash += '\n'
+            menu_splash += '{}\n'.format(spacer)
         entry_str = '{number:>{width}}: {name}'.format(
                 number =    i+1,
                 width =     width,
@@ -255,13 +269,13 @@ def menu_select(title='~ Untitled Menu ~',
         else:
             valid_answers.append(str(i+1))
         menu_splash += '{}\n'.format(entry_str)
-    menu_splash += '\n'
+    menu_splash += '{}\n'.format(spacer)
 
     # Add action entries
     for entry in action_entries:
         # Add Spacer
         if ('CRLF' in entry):
-            menu_splash += '\n'
+            menu_splash += '{}\n'.format(spacer)
         valid_answers.append(entry['Letter'])
         menu_splash += '{letter:>{width}}: {name}\n'.format(
             letter =    entry['Letter'].upper(),
@@ -272,7 +286,7 @@ def menu_select(title='~ Untitled Menu ~',
     answer = ''
 
     while (answer.upper() not in valid_answers):
-        os.system('cls')
+        clear_screen()
         print(menu_splash)
         answer = input('{}: '.format(prompt))
 
@@ -294,7 +308,11 @@ def pause(prompt='Press Enter to continue... '):
 
 def ping(addr='google.com'):
     """Attempt to ping addr."""
-    cmd = ['ping', '-n', '2', addr]
+    cmd = [
+        'ping',
+        '-n' if psutil.WINDOWS else '-c',
+        '2',
+        addr]
     run_program(cmd)
 
 def popen_program(cmd, pipe=False, minimized=False, shell=False, **kwargs):
@@ -341,7 +359,7 @@ def print_warning(*args, **kwargs):
 
 def print_log(message='', end='\n', timestamp=True):
     time_str = time.strftime("%Y-%m-%d %H%M%z: ") if timestamp else ''
-    if 'LogFile' in global_vars and global_vars['LogFile'] is not None:
+    if 'LogFile' in global_vars and global_vars['LogFile']:
         with open(global_vars['LogFile'], 'a', encoding='utf-8') as f:
             for line in message.splitlines():
                 f.write('{timestamp}{line}{end}'.format(
@@ -442,10 +460,13 @@ def try_and_print(message='Trying...',
     try:
         out = function(*args, **kwargs)
         if print_return:
-            print_standard(out[0], timestamp=False)
-            for item in out[1:]:
+            str_list = out
+            if isinstance(out, subprocess.CompletedProcess):
+                str_list = out.stdout.decode().strip().splitlines()
+            print_standard(str_list[0].strip(), timestamp=False)
+            for item in str_list[1:]:
                 print_standard('{indent}{item}'.format(
-                    indent=' '*(indent+width), item=item))
+                    indent=' '*(indent+width), item=item.strip()))
         elif silent_function:
             print_success(cs, timestamp=False)
     except w_exceptions as e:
@@ -534,15 +555,22 @@ def wait_for_process(name, poll_rate=3):
 def init_global_vars():
     """Sets global variables based on system info."""
     print_info('Initializing')
-    os.system('title Wizard Kit')
-    init_functions = [
-        ['Checking .bin...',        find_bin],
-        ['Checking environment...', set_common_vars],
-        ['Checking OS...',          check_os],
-        ['Checking tools...',       check_tools],
-        ['Creating folders...',     make_tmp_dirs],
-        ['Clearing collisions...',  clean_env_vars],
-        ]
+    if psutil.WINDOWS:
+        os.system('title Wizard Kit')
+    if psutil.LINUX:
+        init_functions = [
+            ['Checking environment...', set_linux_vars],
+            ['Clearing collisions...',  clean_env_vars],
+            ]
+    else:
+        init_functions = [
+            ['Checking .bin...',        find_bin],
+            ['Checking environment...', set_common_vars],
+            ['Checking OS...',          check_os],
+            ['Checking tools...',       check_tools],
+            ['Creating folders...',     make_tmp_dirs],
+            ['Clearing collisions...',  clean_env_vars],
+            ]
     try:
         for f in init_functions:
             try_and_print(
@@ -712,6 +740,15 @@ def set_common_vars():
         **global_vars)
     global_vars['TmpDir'] =             r'{BinDir}\tmp'.format(
         **global_vars)
+
+def set_linux_vars():
+    result = run_program(['mktemp', '-d'])
+    global_vars['TmpDir'] =             result.stdout.decode().strip()
+    global_vars['Date'] =               time.strftime("%Y-%m-%d")
+    global_vars['Date-Time'] =          time.strftime("%Y-%m-%d_%H%M_%z")
+    global_vars['Env'] =                os.environ.copy()
+    global_vars['BinDir'] =             '/usr/local/bin'
+    global_vars['LogDir'] =             global_vars['TmpDir']
 
 if __name__ == '__main__':
     print("This file is not meant to be called directly.")

@@ -1,0 +1,16 @@
+#!/bin/bash
+
+IF_LIST=($(ip l | egrep '^[0-9]+:\s+(eth|en|wl)' | sed -r 's/^[0-9]+:\s+(\w+):.*/\1/' | sort))
+
+# Add interfaces to conkyrc
+for i in "${IF_LIST[@]}"; do
+    if [[ "${i:0:1}" == "e" ]]; then
+        sed -i -r "s/#Network/Wired:\${alignr}\${addr $i}\n#Network/" ~/.conkyrc
+    else
+        sed -i -r "s/#Network/Wireless:\${alignr}\${addr $i}\n#Network/" ~/.conkyrc
+    fi
+done
+
+# Remove '#Network' line to prevent duplicating lines if this script is re-run
+sed -i -r "s/#Network//" ~/.conkyrc
+

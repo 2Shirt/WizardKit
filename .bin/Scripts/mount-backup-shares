@@ -1,0 +1,38 @@
+#!/bin/python3
+#
+## Wizard Kit: Backup share mount tool
+
+import os
+import sys
+
+# Init
+os.chdir(os.path.dirname(os.path.realpath(__file__)))
+sys.path.append(os.getcwd())
+from functions.data import *
+from functions.network import *
+init_global_vars()
+
+if __name__ == '__main__':
+    try:
+        # Prep
+        clear_screen()
+
+        # Connect
+        connect_to_network()
+
+        # Mount
+        if is_connected():
+            mount_backup_shares()
+        else:
+            # Couldn't connect
+            print_error('ERROR: No network connectivity.')
+        
+        # Done
+        print_standard('\nDone.')
+        #pause("Press Enter to exit...")
+        exit_script()
+    except SystemExit:
+        pass
+    except:
+        major_exception()
+
