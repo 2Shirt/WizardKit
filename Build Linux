@@ -296,8 +296,7 @@ function build_iso() {
     # Build ISO
     prefix="$(< "$LIVE_DIR/airootfs/etc/hostname")"
     label="${KIT_NAME_SHORT}_LINUX"
-    install_dir="$(echo "${KIT_NAME_SHORT}linux" | tr "[:upper:]" "[:lower:]")"
-    "$LIVE_DIR/build.sh" -N "$prefix" -V "$DATE" -L "$label" -D "$install_dir" -w "$TEMP_DIR/Linux" -o "$OUT_DIR" -v | tee -a "$LOG_DIR/$DATETIME.log"
+    "$LIVE_DIR/build.sh" -N "$prefix" -V "$DATE" -L "$label" -w "$TEMP_DIR/Linux" -o "$OUT_DIR" -v | tee -a "$LOG_DIR/$DATETIME.log"
 
     # Cleanup
     echo "Removing temp files..."
