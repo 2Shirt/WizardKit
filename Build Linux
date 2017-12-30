@@ -110,6 +110,7 @@ function copy_live_env() {
     rsync -aI "$ROOT_DIR/.linux_items/include/" "$LIVE_DIR/"
     mkdir -p "$LIVE_DIR/airootfs/usr/local/bin"
     rsync -aI "$ROOT_DIR/.bin/Scripts/" "$LIVE_DIR/airootfs/usr/local/bin/"
+    cp -a "$BUILD_DIR/main.py" "$LIVE_DIR/airootfs/usr/local/bin/"
 }
 
 function run_elevated() {
@@ -144,8 +145,7 @@ function update_live_env() {
     cp "$ROOT_DIR/Images/rEFInd.png" "$LIVE_DIR/EFI/boot/rEFInd.png"
     rsync -aI "/usr/share/refind/drivers_x64/" "$LIVE_DIR/EFI/boot/drivers_x64/"
     rsync -aI "/usr/share/refind/icons/" "$LIVE_DIR/EFI/boot/icons/" --exclude "/usr/share/refind/icons/svg"
-    sed -i "s/%ARCHISO_LABEL%/${label}/;
-            s/%INSTALL_DIR%/${install_dir}/" "$LIVE_DIR/EFI/boot/refind.conf"
+    sed -i "s/%ARCHISO_LABEL%/${label}/" "$LIVE_DIR/EFI/boot/refind.conf"
 
     # Memtest86
     mkdir -p "$LIVE_DIR/EFI/memtest86/Benchmark"
