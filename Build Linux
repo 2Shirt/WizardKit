@@ -128,16 +128,15 @@ function update_live_env() {
     hostname="$(echo "${KIT_NAME_SHORT}-linux" | tr "[:upper:]" "[:lower:]")"
     username="$(echo "${KIT_NAME_SHORT}tech" | tr "[:upper:]" "[:lower:]")"
     label="${KIT_NAME_SHORT}_LINUX"
-    install_dir="$(echo "${KIT_NAME_SHORT}linux" | tr "[:upper:]" "[:lower:]")"
 
     # Boot config (legacy)
-    mkdir -p "$LIVE_DIR/$install_dir"
-    cp "$ROOT_DIR/Images/Pxelinux.png" "$LIVE_DIR/$install_dir/pxelinux.png"
-    cp "$ROOT_DIR/Images/Syslinux.png" "$LIVE_DIR/$install_dir/syslinux.png"
+    mkdir -p "$LIVE_DIR/arch"
+    cp "$ROOT_DIR/Images/Pxelinux.png" "$LIVE_DIR/arch/pxelinux.png"
+    cp "$ROOT_DIR/Images/Syslinux.png" "$LIVE_DIR/arch/syslinux.png"
     sed -i -r "s/_+/$KIT_NAME_FULL/" "$LIVE_DIR/syslinux/wk_head.cfg"
     mkdir -p "$TEMP_DIR" 2>/dev/null
     curl -Lo "$TEMP_DIR/wimboot.zip" "http://git.ipxe.org/releases/wimboot/wimboot-latest.zip"
-    7z e "$TEMP_DIR/wimboot.zip" -o"$LIVE_DIR/$install_dir/boot" 'wimboot*/LICENSE.txt' 'wimboot*/README.txt' 'wimboot*/wimboot'
+    7z e "$TEMP_DIR/wimboot.zip" -o"$LIVE_DIR/arch/boot" 'wimboot*/LICENSE.txt' 'wimboot*/README.txt' 'wimboot*/wimboot'
 
     # Boot config (UEFI)
     mkdir -p "$LIVE_DIR/EFI/boot"
@@ -294,7 +293,7 @@ function build_iso() {
     chmod 600 "$LIVE_DIR/airootfs/etc/skel/.ssh/id_rsa"
     
     # Build ISO
-    prefix="$(< "$LIVE_DIR/airootfs/etc/hostname")"
+    prefix="${KIT_NAME_SHORT}-Linux"
     label="${KIT_NAME_SHORT}_LINUX"
     "$LIVE_DIR/build.sh" -N "$prefix" -V "$DATE" -L "$label" -w "$TEMP_DIR/Linux" -o "$OUT_DIR" -v | tee -a "$LOG_DIR/$DATETIME.log"
 
