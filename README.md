@@ -44,7 +44,7 @@ A collection of scripts to help technicians service Windows systems.
 ### Build Requirements ###
 
 * Arch Linux
-* 4 Gb disk space
+* 6 Gb disk space
 
 ### Initial Setup ###
 
