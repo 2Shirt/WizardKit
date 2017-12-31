@@ -19,7 +19,7 @@ call "%dandi_set_env%" || goto ErrorUnknown
 rem Rewrite main.py using PowerShell to have CRLF/`r`n lineendings
 set "script=%~dp0\.bin\Scripts\borrowed\set-eol.ps1"
 set "main=%~dp0\.bin\Scripts\settings\main.py"
-powershell -executionpolicy bypass -noprofile -file %script% -lineEndings win -file %main% || goto ErrorUnknown
+powershell -executionpolicy bypass -noprofile -file %script% -lineEnding win -file %main% || goto ErrorUnknown
 
 :Launch
 set "script=%~dp0\.bin\Scripts\build_pe.ps1"
