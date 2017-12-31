@@ -1,0 +1,10 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Hardware Diagnostics
+Comment=Hardware Diagnostics
+Exec=urxvt -title "Hardware Diagnostics" -e hw-diags
+Icon=utilities-system-monitor
+Path=/usr/local/bin
+Terminal=false
+StartupNotify=false

@@ -39,6 +39,22 @@ A collection of scripts to help technicians service Windows systems.
 * `Repairs`
 * `Uninstallers`
 
+## Live Linux ##
+
+### Build Requirements ###
+
+* Arch Linux
+* 6 Gb disk space
+
+### Initial Setup ###
+
+* Replace artwork as desired
+* Run `Build_Linux` which will do the following:
+  * Install missing dependancies with pacman
+  * Open `main.py` in nano for configuration
+  * Build the local repo for the AUR packages
+  * Build the live Linux environment (exported as an ISO file)
+
 ## Windows PE ##
 
 ### Build Requirements ###
@@ -49,7 +65,7 @@ A collection of scripts to help technicians service Windows systems.
 
 ### Initial Setup ###
 
-* Replace artwork as desired (if not already done above)
+* Replace artwork as desired
 * Run `Build PE.cmd` which will do the following:
   * Load the WADK environment
   * Open `main.py` in notepad for configuration

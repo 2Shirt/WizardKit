@@ -1,0 +1,10 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Hardware Information
+Comment=Hardware Information
+Exec=hardinfo
+Icon=hardinfo
+Path=/usr/local/bin
+Terminal=false
+StartupNotify=false

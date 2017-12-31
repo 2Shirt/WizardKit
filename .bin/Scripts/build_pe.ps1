@@ -136,8 +136,8 @@ if ($MyInvocation.InvocationName -ne ".") {
             # ConEmu
             @("ConEmuPack.7z", "https://github.com/Maximus5/ConEmu/releases/download/v17.11.09/ConEmuPack.171109.7z"),
             # Fast Copy
-            @("fastcopy64.zip", "http://ftp.vector.co.jp/69/28/2323/FastCopy332_x64.zip"),
-            @("fastcopy32.zip", "http://ftp.vector.co.jp/69/28/2323/FastCopy332.zip"),
+            @("fastcopy64.zip", "http://ftp.vector.co.jp/69/76/2323/FastCopy340_x64.zip"),
+            @("fastcopy32.zip", "http://ftp.vector.co.jp/69/76/2323/FastCopy340.zip"),
             # HWiNFO
             @("hwinfo64.zip", "http://app.oldfoss.com:81/download/HWiNFO/hw64_560.zip"),
             @("hwinfo32.zip", "http://app.oldfoss.com:81/download/HWiNFO/hw32_560.zip"),
