@@ -110,7 +110,7 @@ function copy_live_env() {
     rsync -aI "$ROOT_DIR/.linux_items/include/" "$LIVE_DIR/"
     mkdir -p "$LIVE_DIR/airootfs/usr/local/bin"
     rsync -aI "$ROOT_DIR/.bin/Scripts/" "$LIVE_DIR/airootfs/usr/local/bin/"
-    cp -a "$BUILD_DIR/main.py" "$LIVE_DIR/airootfs/usr/local/bin/"
+    cp -a "$BUILD_DIR/main.py" "$LIVE_DIR/airootfs/usr/local/bin/settings/"
 }
 
 function run_elevated() {
