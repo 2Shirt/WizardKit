@@ -184,12 +184,12 @@ function update_live_env() {
     sed -i -r "s/_+/$KIT_NAME_FULL Linux Environment/" "$LIVE_DIR/airootfs/etc/motd"
 
     # Oh My ZSH
-    git clone --depth=1 git://github.com/robbyrussell/oh-my-zsh.git "$SKEL_DIR/.oh-my-zsh"
+    git clone --depth=1 https://github.com/robbyrussell/oh-my-zsh.git "$SKEL_DIR/.oh-my-zsh"
     rm -Rf "$SKEL_DIR/.oh-my-zsh/.git"
     curl -o "$SKEL_DIR/.oh-my-zsh/themes/lean.zsh-theme" https://raw.githubusercontent.com/miekg/lean/master/prompt_lean_setup
     
     # Openbox theme
-    git clone --depth=1 git@github.com:addy-dclxvi/Openbox-Theme-Collections.git "$TEMP_DIR/ob-themes"
+    git clone --depth=1 https://github.com/addy-dclxvi/Openbox-Theme-Collections.git "$TEMP_DIR/ob-themes"
     mkdir -p "$LIVE_DIR/airootfs/usr/share/themes"
     cp -a "$TEMP_DIR/ob-themes/Triste-Orange" "$LIVE_DIR/airootfs/usr/share/themes/"
 
