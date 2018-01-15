@@ -410,10 +410,18 @@ def scan_disks():
     json_data = json.loads(result.stdout.decode())
     devs = {}
     for d in json_data.get('blockdevices', []):
-        if d['type'] == 'disk' and d['hotplug'] == '0':
-            devs[d['name']] = {'lsblk': d}
-            TESTS['NVMe/SMART']['Status'][d['name']] = 'Pending'
-            TESTS['badblocks']['Status'][d['name']] = 'Pending'
+        if d['type'] == 'disk':
+            if d['hotplug'] == '0':
+                devs[d['name']] = {'lsblk': d}
+                TESTS['NVMe/SMART']['Status'][d['name']] = 'Pending'
+                TESTS['badblocks']['Status'][d['name']] = 'Pending'
+            else:
+                # Skip WizardKit devices
+                wk_label = '{}_LINUX'.format(KIT_NAME_SHORT)
+                if wk_label not in [c.get('label', '') for c in d['children']]:
+                    devs[d['name']] = {'lsblk': d}
+                    TESTS['NVMe/SMART']['Status'][d['name']] = 'Pending'
+                    TESTS['badblocks']['Status'][d['name']] = 'Pending'
     
     for dev, data in devs.items():
         # Get SMART attributes
