@@ -51,7 +51,7 @@ def color_temp(temp):
         color = COLORS['CLEAR']
     return '{color}{prefix}{temp:2.0f}°C{CLEAR}'.format(
         color = color,
-        prefix = '+' if temp>0 else '-',
+        prefix = '-' if temp < 0 else '',
         temp = temp,
         **COLORS)
 
@@ -78,7 +78,7 @@ def get_feature_string(chip, feature):
                 data[name] = ' {}°C'.format(val)
             else:
                 data[name] = '{}{:2.0f}°C'.format(
-                    '+' if temp>0 else '-',
+                    '-' if temp < 0 else '',
                     temp)
         else:
             data[name] = color_temp(val)
