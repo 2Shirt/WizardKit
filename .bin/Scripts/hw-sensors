@@ -61,12 +61,9 @@ def get_feature_string(chip, feature):
     skipname = len(feature.name)+1 # skip common prefix
     data = {}
 
-    if feature.type == sensors.feature.INTRUSION:
-        vals = [sensors.get_value(chip, sf.number) for sf in sfs]
-        # short path for INTRUSION to demonstrate type usage
-        status = "alarm" if int(vals[0]) == 1 else "normal"
-        print_standard('  {:18}  {}'.format(label, status))
-        return
+    if feature.type != sensors.feature.TEMP:
+        # Skip non-temperature sensors
+        return None
     
     for sf in sfs:
         name = sf.name[skipname:].decode("utf-8").strip()
@@ -94,7 +91,7 @@ def get_feature_string(chip, feature):
                 list_data.append('{}: {}'.format(item, data.pop(item)))
         list_data.extend(
             ['{}: {}'.format(k, v) for k, v in sorted(data.items())])
-        data_str = '{:18}  {} ({})'.format(
+        data_str = '{:18}  {} {}'.format(
             label, main_temp, ', '.join(list_data))
     else:
         list_data.extend(sorted(data.items()))
@@ -119,10 +116,13 @@ if __name__ == '__main__':
             chip_name = '{} ({})'.format(
                 sensors.chip_snprintf_name(chip),
                 sensors.get_adapter_name(chip.bus))
-            chip_temps[chip_name] = [chip_name]
-            for feature in sensors.FeatureIterator(chip):
-                chip_temps[chip_name].append(get_feature_string(chip, feature))
-            chip_temps[chip_name].append('')
+            chip_feats = [get_feature_string(chip, feature)
+                for feature in sensors.FeatureIterator(chip)]
+            # Strip empty/None items
+            chip_feats = [f for f in chip_feats if f]
+        
+            if chip_feats:
+                chip_temps[chip_name] = [chip_name, *chip_feats, '']
 
         # Sort chips
         sensor_temps = []
