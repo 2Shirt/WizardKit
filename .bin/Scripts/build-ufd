@@ -1,0 +1,201 @@
+#!/bin/bash
+#
+## Wizard Kit: UFD Build Tool
+
+DEST_DEV="$1"
+DEST_PARTITION="${DEST_DEV}1"
+MAIN_PY="/usr/local/bin/settings/main.py"
+WD=$(pwd)
+EXTRA_DIR="${WD}/Extras"
+MAIN_KIT="$(dirname $(find $WD -type d -name '.bin') 2>/dev/null)"
+LINUX_ISO="$(find $WD -type f -iname '*Linux*iso' | head -1)"
+WINPE_ISO="$(find $WD -type f -iname '*WinPE*iso' | head -1)"
+if [ "$2" == "--silent" ]; then
+    SILENT="True"
+fi
+
+# COLORS
+CLEAR="\e[0m"
+RED="\e[31m"
+GREEN="\e[32m"
+YELLOW="\e[33m"
+BLUE="\e[34m"
+
+# Functions
+function ask() {
+    if [ "$SILENT" == "True" ]; then
+        echo -e "$1 Yes ${BLUE}(Silent)${CLEAR}"
+        return 0
+    fi
+    while :; do
+        read -p "$1 " -r answer
+        if echo "$answer" | egrep -iq '^(y|yes|sure)$'; then
+            return 0
+        elif echo "$answer" | egrep -iq '^(n|no|nope)$'; then
+            return 1
+        fi
+    done
+}
+
+die () {
+    echo "$0:" "$@" >&2
+    echo ""
+    read -p "Press Enter to exit... " -r
+    exit 1
+}
+
+# Load main.py settings
+if [ ! -f "$MAIN_PY" ]; then
+    echo -e "${RED}ERROR${CLEAR}: $MAIN_PY not found."
+    die "Aborted."
+fi
+while read line; do
+    if echo "$line" | egrep -q "^\w+='"; then
+        line="$(echo "$line" | sed -r 's/[\r\n]+//')"
+        eval "$line"
+    fi
+done < "$MAIN_PY"
+if [ -z ${KIT_NAME_FULL+x} ]; then
+    # KIT_NAME_FULL is not set, assume main.py missing or malformatted
+    echo -e "${RED}ERROR${CLEAR}: failed to load settings from $MAIN_PY"
+    die "Aborted."
+fi
+UFD_LABEL="${KIT_NAME_SHORT}_LINUX"
+
+# Check if root
+if [[ "$EUID" -ne 0 ]]; then
+    echo -e "${RED}ERROR${CLEAR}: This script must be run as root."
+    die "Aborted."
+fi
+
+# Check if in tmux
+if ! tmux list-session | grep -q "build-ufd"; then
+    # Reload in tmux
+    tmux new-session -s "build-ufd" "$0" $*
+    exit 0
+fi
+
+# Header
+echo -e "${GREEN}$KIT_NAME_FULL${CLEAR}: UFD Build Tool"
+echo ""
+
+# Dest and Sources Check
+abort="False"
+if [ ! -b "$DEST_DEV" ]; then
+    echo -e "${RED}ERROR${CLEAR}: Device $DEST_DEV not found."
+    abort="True"
+fi
+if [ ! -f "$LINUX_ISO" ]; then
+    echo -e "${RED}ERROR${CLEAR}: Linux ISO not found."
+    abort="True"
+fi
+if [ ! -f "$WINPE_ISO" ]; then
+    echo -e "${RED}ERROR${CLEAR}: WinPE ISO not found."
+    abort="True"
+fi
+if [ ! -d "$MAIN_KIT" ]; then
+    echo -e "${RED}ERROR${CLEAR}: Wizard Kit directory not found."
+    abort="True"
+fi
+if [ ! -d "$EXTRA_DIR" ]; then
+    # Warn but don't abort
+    echo -e "${YELLOW}WARNING${CLEAR}: $EXTRA_DIR not found."
+    echo ""
+    EXTRA_DIR='__None__'
+fi
+if [ "$abort" == "True" ]; then
+    echo ""
+    die "Aborted."
+fi
+
+# Display Job Settings
+echo -e "${BLUE}Sources${CLEAR}"
+echo "Main Kit:  $MAIN_KIT"
+echo "Linux ISO: $LINUX_ISO"
+echo "WinPE ISO: $WINPE_ISO"
+echo "Extras:    $EXTRA_DIR"
+echo ""
+echo -e "${BLUE}Destination${CLEAR}"
+lsblk -n -o NAME,LABEL,SIZE,MODEL,SERIAL $DEST_DEV
+
+# Ask before starting job
+echo ""
+if ask "Is the above information correct?"; then
+    echo ""
+    echo -e "${YELLOW}SAFETY CHECK${CLEAR}"
+    echo "All data will be DELETED from the disk and partition(s) listed above."
+    echo -e "This is irreversible and will lead to ${RED}DATA LOSS.${CLEAR}"
+    if ! ask "Asking again to confirm, is this correct?"; then
+        die "Aborted."
+    fi
+else
+    die "Aborted."
+fi
+
+# Start Build
+echo ""
+echo -e "${GREEN}Building Kit${CLEAR}"
+
+# Format
+echo "Formatting drive..."
+parted "$DEST_DEV" -s -- mklabel msdos mkpart primary fat32 1MiB -1s
+parted "$DEST_DEV" set 1 boot on
+mkfs.vfat -F 32 -n "$UFD_LABEL" "$DEST_PARTITION" >/dev/null 2>&1
+
+# Mount sources and dest
+echo "Mounting sources and destination..."
+mkdir /mnt/{Dest,Linux,WinPE} -p
+mount $DEST_PARTITION /mnt
+mount "$LINUX_ISO" /mnt/Linux -r
+mount "$WINPE_ISO" /mnt/WinPE -r
+
+# Copy files
+echo "Copying Linux files..."
+tmux split-window -l 15 cp -Lrv /mnt/Linux/* /mnt/
+
+echo "Copying WinPE files..."
+tmux split-window -l 15 cp -Lrv /mnt/WinPE/{Boot,bootmgr{,.efi},en-us,sources} /mnt/
+tmux split-window -l 15 cp -Lrv /mnt/WinPE/EFI/Microsoft /mnt/EFI/
+tmux split-window -l 15 cp -Lrv /mnt/WinPE/EFI/Boot/* /mnt/EFI/Microsoft/
+tmux split-window -l 15 cp -Lrv /mnt/WinPE/{Boot/{BCD,boot.sdi},bootmgr} /mnt/sources/
+
+echo "Copying Main Kit..."
+tmux split-window -l 15 cp -Lrv "$MAIN_KIT" /mnt/
+if [ "$EXTRA_DIR" != "__None__" ]; then
+    echo "Copying Extra files..."
+    tmux split-window -l 15 cp -Lrv "$EXTRA_DIR"/* /mnt/
+fi
+
+# Install syslinux
+echo "Copying Syslinux files..."
+tmux split-window -l 15 cp -Lrv /usr/lib/syslinux/bios/*.c32 /mnt/arch/boot/syslinux/
+syslinux --install -d /arch/boot/syslinux/ $DEST_PARTITION >/dev/null 2>&1
+
+echo "Unmounting destination..."
+umount /mnt
+sync
+
+echo "Installing Syslinux MBR..."
+dd bs=440 count=1 if=/usr/lib/syslinux/bios/mbr.bin of=$DEST_DEV >/dev/null 2>&1
+sync
+
+# Cleanup
+echo "Hiding boot files..."
+echo "drive s: file=\"$DEST_PARTITION\"" > /root/.mtoolsrc
+echo 'mtools_skip_check=1' >> /root/.mtoolsrc
+for item in BOOT{,MGR,MGR.EFI} EFI EN-US ISOLINUX LOADER SOURCES SYSLINUX.CFG; do
+    yes | mattrib +h S:/$item >/dev/null 2>&1
+done
+sync
+
+# Unmount Sources
+echo "Unmounting sources..."
+umount /mnt/* -R
+
+# Done
+echo ""
+echo "Done."
+echo ""
+read -p "Press Enter to exit..." -r
+exit 0
+

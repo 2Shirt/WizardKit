@@ -22,7 +22,7 @@ attrib +h OUT_KIT\.cbin >nul 2>&1
 rem Rewrite main.py using PowerShell to have CRLF/`r`n lineendings
 set "script=OUT_KIT\.bin\Scripts\borrowed\set-eol.ps1"
 set "main=OUT_KIT\.bin\Scripts\settings\main.py"
-powershell -executionpolicy bypass -noprofile -file %script% -lineEndings win -file %main% || goto ErrorUnknown
+powershell -executionpolicy bypass -noprofile -file %script% -lineEnding win -file %main% || goto ErrorUnknown
 
 :Launch
 set "script=OUT_KIT\.bin\Scripts\build_kit.ps1"
