@@ -749,6 +749,10 @@ def set_linux_vars():
     global_vars['Env'] =                os.environ.copy()
     global_vars['BinDir'] =             '/usr/local/bin'
     global_vars['LogDir'] =             global_vars['TmpDir']
+    global_vars['Tools'] = {
+        'wimlib-imagex': 'wimlib-imagex',
+        'SevenZip': '7z',
+        }
 
 if __name__ == '__main__':
     print("This file is not meant to be called directly.")
