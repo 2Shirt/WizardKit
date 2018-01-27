@@ -393,11 +393,19 @@ def scan_source(source_obj, dest_path, rel_path='', interactive=True):
             if not interactive:
                 print_success('Auto-Selected: {}'.format(item.path))
                 root_items.append('{}'.format(item.path))
-            elif ask('Extract: "{}{}{}" ?'.format(
-                rel_path,
-                os.sep if rel_path else '',
-                item.name)):
-                root_items.append('{}'.format(item.path))
+            else:
+                prompt = 'Transfer: "{}{}{}" ?'.format(
+                    rel_path,
+                    os.sep if rel_path else '',
+                    item.name)
+                choices = ['Yes', 'No', 'All', 'Quit']
+                answer = choice(prompt=prompt, choices=choices)
+                if answer == 'Quit':
+                    abort()
+                elif answer == 'All':
+                    interactive = False
+                if answer in ['Yes', 'All']:
+                    root_items.append('{}'.format(item.path))
         if REGEX_WINDOWS_OLD.search(item.name):
             item.name = '{}{}{}'.format(
                 rel_path,
