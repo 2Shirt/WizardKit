@@ -4,6 +4,7 @@ base-devel
 curl
 dos2unix
 git
+hwloc
 libewf
 openssh
 p7zip
