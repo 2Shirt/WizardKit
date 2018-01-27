@@ -93,6 +93,34 @@ def ask(prompt='Kotaero!'):
     print_log(message=message)
     return answer
 
+def choice(choices, prompt='Kotaero!'):
+    """Prompt the user with a choice question, log answer, and returns str."""
+    answer = None
+    choices = [str(c) for c in choices]
+    choices_short = {c[:1].upper(): c for c in choices}
+    prompt = '{} [{}]: '.format(prompt, '/'.join(choices))
+    regex = '^({}|{})$'.format(
+        '|'.join([c[:1] for c in choices]),
+        '|'.join(choices))
+
+    # Get user's choice
+    while answer is None:
+        tmp = input(prompt)
+        if re.search(regex, tmp, re.IGNORECASE):
+            answer = tmp
+
+    # Log result
+    message = '{prompt}{answer_text}'.format(
+        prompt = prompt,
+        answer_text = 'Yes' if answer else 'No')
+    print_log(message=message)
+
+    # Fix answer formatting to match provided values
+    answer = choices_short[answer[:1].upper()]
+
+    # Done
+    return answer
+
 def clear_screen():
     """Simple wrapper for cls/clear."""
     if psutil.WINDOWS:
