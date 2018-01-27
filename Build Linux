@@ -296,6 +296,13 @@ function build_iso() {
     chown root:root "$LIVE_DIR" -R
     chmod 700 "$LIVE_DIR/airootfs/etc/skel/.ssh"
     chmod 600 "$LIVE_DIR/airootfs/etc/skel/.ssh/id_rsa"
+
+    # Removing cached (and possibly outdated) custom repo packages
+    for package in $(cat "$ROOT_DIR/.linux_items/packages/aur"); do
+        if [[ -f /var/cache/pacman/pkg/${package}* ]]; then
+            rm /var/cache/pacman/pkg/${package}*
+        fi
+    done
     
     # Build ISO
     prefix="${KIT_NAME_SHORT}-Linux"
