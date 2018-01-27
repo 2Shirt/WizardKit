@@ -83,6 +83,13 @@ def menu_diags(*args):
         {'Letter': 'Q', 'Name': 'Quit', 'CRLF': True},
         ]
 
+    # CLI-mode actions
+    if 'DISPLAY' not in global_vars['Env']:
+        actions.extend([
+            {'Letter': 'R', 'Name': 'Reboot', 'CRLF': True},
+            {'Letter': 'S', 'Name': 'Shutdown'},
+            ])
+
     # Quick disk check
     if 'quick' in args:
         run_tests(['Quick', 'NVMe/SMART'])
@@ -118,6 +125,10 @@ def menu_diags(*args):
             run_program(
                 'pipes -t 0 -t 1 -t 2 -t 3 -p 5 -R -r 4000'.split(),
                 check=False, pipe=False)
+        elif selection == 'R':
+            run_program(['reboot'])
+        elif selection == 'S':
+            run_program(['poweroff'])
         elif selection == 'Q':
             break
 
