@@ -80,14 +80,6 @@ if __name__ == '__main__':
         try_and_print(message='Installed RAM:',
             function=show_installed_ram, ns='Unknown', silent_function=False)
 
-        # Upload info
-        if ENABLED_UPLOAD_DATA:
-            print_info('Finalizing')
-            try_and_print(message='Compressing Info...',
-                function=compress_info, cs='Done')
-            try_and_print(message='Uploading to NAS...',
-                function=upload_info, cs='Done')
-
         # Play audio, show devices, open Windows updates, and open Activation
         popen_program(['mmc', 'devmgmt.msc'])
         run_hwinfo_sensors()

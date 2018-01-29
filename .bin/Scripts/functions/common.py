@@ -563,60 +563,6 @@ global_vars: {}'''.format(f.read(), sys.argv, global_vars)
         # No LogFile defined (or invalid LogFile)
         raise GenericError
 
-
-def upload_data(path, file):
-    """Add CLIENT_INFO_SERVER to authorized connections and upload file."""
-    if not ENABLED_UPLOAD_DATA:
-        raise GenericError('Feature disabled.')
-    
-    extract_item('PuTTY', filter='wizkit.ppk psftp.exe', silent=True)
-
-    # Authorize connection to the server
-    winreg.CreateKey(HKCU, r'Software\SimonTatham\PuTTY\SshHostKeys')
-    with winreg.OpenKey(HKCU, r'Software\SimonTatham\PuTTY\SshHostKeys',
-        access=winreg.KEY_WRITE) as key:
-        winreg.SetValueEx(key,
-            'rsa2@22:{IP}'.format(**CLIENT_INFO_SERVER), 0,
-            winreg.REG_SZ, CLIENT_INFO_SERVER['RegEntry'])
-
-    # Write batch file
-    with open(r'{}\psftp.batch'.format(global_vars['TmpDir']),
-        'w', encoding='ascii') as f:
-        f.write('lcd "{path}"\n'.format(path=path))
-        f.write('cd "{Share}"\n'.format(**CLIENT_INFO_SERVER))
-        f.write('mkdir {TicketNumber}\n'.format(**global_vars))
-        f.write('cd {TicketNumber}\n'.format(**global_vars))
-        f.write('put "{file}"\n'.format(file=file))
-
-    # Upload Info
-    cmd = [
-        global_vars['Tools']['PuTTY-PSFTP'],
-        '-noagent',
-        '-i', r'{BinDir}\PuTTY\wizkit.ppk'.format(**global_vars),
-        '{User}@{IP}'.format(**CLIENT_INFO_SERVER),
-        '-b', r'{TmpDir}\psftp.batch'.format(**global_vars)]
-    run_program(cmd)
-
-def upload_info():
-    """Upload compressed Info file to the NAS as set in settings.main.py."""
-    if not ENABLED_UPLOAD_DATA:
-        raise GenericError('Feature disabled.')
-    
-    path = '{ClientDir}'.format(**global_vars)
-    file = 'Info_{Date-Time}.7z'.format(**global_vars)
-    upload_data(path, file)
-
-def compress_info():
-    """Compress ClientDir info folders with 7-Zip for upload_info()."""
-    path = '{ClientDir}'.format(**global_vars)
-    file = 'Info_{Date-Time}.7z'.format(**global_vars)
-    _cmd = [
-        global_vars['Tools']['SevenZip'],
-        'a', '-t7z', '-mx=9', '-bso0', '-bse0',
-        r'{}\{}'.format(path, file),
-        r'{ClientDir}\Info'.format(**global_vars)]
-    run_program(_cmd)
-
 def wait_for_process(name, poll_rate=3):
     """Wait for process by name."""
     running = True
