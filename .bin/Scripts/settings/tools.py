@@ -35,8 +35,6 @@ TOOLS = {
     'ProduKey': {
         '32': r'ProduKey\ProduKey.exe',
         '64': r'ProduKey\ProduKey64.exe'},
-    'PuTTY-PSFTP': {
-        '32': r'PuTTY\PSFTP.EXE'},
     'RKill': {
         '32': r'RKill\RKill.exe'},
     'SevenZip': {
