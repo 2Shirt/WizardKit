@@ -255,7 +255,20 @@ def major_exception():
     print_warning(SUPPORT_MESSAGE)
     print(traceback.format_exc())
     print_log(traceback.format_exc())
-    sleep(30)
+    try:
+        upload_crash_details()
+    except GenericAbort:
+        # User declined upload
+        print_warning('Upload: Aborted')
+        sleep(30)
+    except GenericError:
+        # No log file or uploading disabled
+        sleep(30)
+    except:
+        print_error('Upload: NS')
+        sleep(30)
+    else:
+        print_success('Upload: CS')
     pause('Press Enter to exit...')
     exit_script(1)
 
@@ -514,6 +527,42 @@ def try_and_print(message='Trying...',
         raise
     else:
         return {'CS': not bool(err), 'Error': err, 'Out': out}
+
+def upload_crash_details():
+    if not ENABLED_UPLOAD_DATA:
+        raise GenericError
+
+    import requests
+    if 'LogFile' in global_vars and global_vars['LogFile']:
+        if ask('Upload crash details to {}?'.format(CRASH_SERVER['Name'])):
+            with open(global_vars['LogFile']) as f:
+                data = '''{}
+#############################
+Runtime Details:
+
+sys.argv: {}
+
+global_vars: {}'''.format(f.read(), sys.argv, global_vars)
+                filename = global_vars.get('LogFile', 'Unknown')
+                filename = re.sub(r'.*(\\|/)', '', filename)
+                filename += '.txt'
+                url = '{}/Crash_{}__{}'.format(
+                    CRASH_SERVER['Url'],
+                    global_vars.get('Date-Time', 'Unknown Date-Time'),
+                    filename)
+                r = requests.put(url, data=data,
+                    headers = {'X-Requested-With': 'XMLHttpRequest'},
+                    auth = (CRASH_SERVER['User'], CRASH_SERVER['Pass']))
+                # Raise exception if upload NS
+                if not r.ok:
+                    raise Exception
+        else:
+            # User said no
+            raise GenericAbort
+    else:
+        # No LogFile defined (or invalid LogFile)
+        raise GenericError
+
 
 def upload_data(path, file):
     """Add CLIENT_INFO_SERVER to authorized connections and upload file."""

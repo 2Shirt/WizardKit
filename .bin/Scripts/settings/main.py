@@ -54,6 +54,12 @@ CLIENT_INFO_SERVER = {
     'Share':        '/srv/ClientInfo',
     'User':         'upload',
 }
+CRASH_SERVER = {
+    'Name':         'CrashServer',
+    'Url':          '',
+    'User':         '',
+    'Pass':         '',
+}
 OFFICE_SERVER = {
     'IP':           OFFICE_SERVER_IP,
     'Name':         'ServerOne',
