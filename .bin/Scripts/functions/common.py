@@ -447,9 +447,6 @@ def show_data(message='~Some message~', data='~Some data~', indent=8, width=32,
     else:
         print_standard(message)
 
-def show_info(message='~Some message~', info='~Some info~', indent=8, width=32):
-    show_data(message=message, data=info, indent=indent, width=width)
-
 def sleep(seconds=2):
     """Wait for a while."""
     time.sleep(seconds)

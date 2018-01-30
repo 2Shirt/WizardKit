@@ -23,7 +23,7 @@ if __name__ == '__main__':
         
         # Show details
         print_info('{}: CBS Cleanup Tool\n'.format(KIT_NAME_FULL))
-        show_info('Backup / Temp path:', dest)
+        show_data('Backup / Temp path:', dest)
         print_standard('\n')
         if (not ask('Proceed with CBS cleanup?')):
             abort()
