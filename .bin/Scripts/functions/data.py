@@ -353,6 +353,7 @@ def run_wimextract(source, items, dest):
     run_program(cmd)
 
 def list_source_items(source_obj, rel_path=None):
+    """List items in a dir or WIM, returns a list of SourceItem objects."""
     items = []
     rel_path = '{}{}'.format(os.sep, rel_path) if rel_path else ''
     if source_obj.is_dir():
@@ -470,6 +471,7 @@ def scan_source(source_obj, dest_path, rel_path='', interactive=True):
     return selected_items
 
 def get_source_item_obj(source_obj, rel_path, item_path):
+    """Check if the item exists and return a SourceItem object if it does."""
     item_obj = None
     item_path = re.sub(r'(\\|/)', os.sep, item_path)
     if source_obj.is_dir():
@@ -481,6 +483,8 @@ def get_source_item_obj(source_obj, rel_path, item_path):
                 rel_path,
                 os.sep if rel_path else '',
                 item_path))
+        if not os.path.exists(item_obj.path):
+            item_obj = None
     else:
         # Assuming WIM file
         if psutil.WINDOWS:
@@ -734,12 +738,12 @@ def transfer_source(source_obj, dest_path, selected_items):
             raise GenericError
 
 def umount_backup_shares():
-    """Unnount the backup shares regardless of current status."""
+    """Unmount the backup shares regardless of current status."""
     for server in BACKUP_SERVERS:
         umount_network_share(server)
 
 def umount_network_share(server):
-    """Unnount a network share defined by server."""
+    """Unmount a network share defined by server."""
     cmd = r'net use \\{IP}\{Share} /delete'.format(**server)
     cmd = cmd.split(' ')
     try:

@@ -12,6 +12,7 @@ REGEX_DISK_MBR = re.compile(r'Disk ID: [A-Z0-9]+', re.IGNORECASE)
 REGEX_DISK_RAW = re.compile(r'Disk ID: 00000000', re.IGNORECASE)
 
 def assign_volume_letters():
+    """Assign a volume letter to all available volumes."""
     remove_volume_letters()
     
     # Write script
@@ -24,6 +25,7 @@ def assign_volume_letters():
     run_diskpart(script)
 
 def get_boot_mode():
+    """Check if the boot mode was UEFI or legacy."""
     boot_mode = 'Legacy'
     try:
         reg_key = winreg.OpenKey(
@@ -37,6 +39,7 @@ def get_boot_mode():
     return boot_mode
 
 def get_disk_details(disk):
+    """Get disk details using DiskPart."""
     details = {}
     script = [
         'select disk {}'.format(disk['Number']),
@@ -61,6 +64,7 @@ def get_disk_details(disk):
     return details
     
 def get_disks():
+    """Get list of attached disks using DiskPart."""
     disks = []
     
     try:
@@ -79,6 +83,7 @@ def get_disks():
     return disks
 
 def get_partition_details(disk, partition):
+    """Get partition details using DiskPart and fsutil."""
     details = {}
     script = [
         'select disk {}'.format(disk['Number']),
@@ -157,6 +162,7 @@ def get_partition_details(disk, partition):
     return details
 
 def get_partitions(disk):
+    """Get list of partition using DiskPart."""
     partitions = []
     script = [
         'select disk {}'.format(disk['Number']),
@@ -179,6 +185,7 @@ def get_partitions(disk):
     return partitions
 
 def get_table_type(disk):
+    """Get disk partition table type using DiskPart."""
     part_type = 'Unknown'
     script = [
         'select disk {}'.format(disk['Number']),
@@ -200,6 +207,7 @@ def get_table_type(disk):
     return part_type
 
 def get_volumes():
+    """Get list of volumes using DiskPart."""
     vols = []
     try:
         result = run_diskpart(['list volume'])
@@ -214,9 +222,11 @@ def get_volumes():
     return vols
 
 def is_bad_partition(par):
+    """Check if the partition is accessible."""
     return 'Letter' not in par or REGEX_BAD_PARTITION.search(par['FileSystem'])
 
 def prep_disk_for_formatting(disk=None):
+    """Gather details about the disk and its partitions."""
     disk['Format Warnings'] = '\n'
     width = len(str(len(disk['Partitions'])))
     
@@ -261,6 +271,7 @@ def prep_disk_for_formatting(disk=None):
         partition['Display String'] = display
 
 def reassign_volume_letter(letter, new_letter='I'):
+    """Assign a new letter to a volume using DiskPart."""
     if not letter:
         # Ignore
         return None
@@ -276,6 +287,7 @@ def reassign_volume_letter(letter, new_letter='I'):
         return new_letter
 
 def remove_volume_letters(keep=None):
+    """Remove all assigned volume letters using DiskPart."""
     if not keep:
         keep = ''
     
@@ -292,6 +304,7 @@ def remove_volume_letters(keep=None):
         pass
 
 def run_diskpart(script):
+    """Run DiskPart script."""
     tempfile = r'{}\diskpart.script'.format(global_vars['Env']['TMP'])
     
     # Write script

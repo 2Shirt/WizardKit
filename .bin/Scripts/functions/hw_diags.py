@@ -42,6 +42,7 @@ TESTS = {
     }
 
 def get_smart_details(dev):
+    """Get SMART data for dev if possible, returns dict."""
     cmd = 'sudo smartctl --all --json /dev/{}'.format(dev).split()
     result = run_program(cmd, check=False)
     try:
@@ -51,6 +52,7 @@ def get_smart_details(dev):
         return {}
 
 def get_status_color(s):
+    """Get color based on status, returns str."""
     color = COLORS['CLEAR']
     if s in ['Denied', 'NS', 'OVERRIDE', 'Unknown']:
         color = COLORS['RED']
@@ -61,6 +63,7 @@ def get_status_color(s):
     return color
 
 def menu_diags(*args):
+    """Main HW-Diagnostic menu."""
     diag_modes = [
         {'Name': 'All tests',
             'Tests': ['Prime95', 'NVMe/SMART', 'badblocks']},
@@ -133,6 +136,7 @@ def menu_diags(*args):
             break
 
 def run_badblocks():
+    """Run a read-only test for all detected disks."""
     aborted = False
     clear_screen()
     print_log('\nStart badblocks test(s)\n')
@@ -191,6 +195,7 @@ def run_badblocks():
     pass
 
 def run_mprime():
+    """Run Prime95 for MPRIME_LIMIT minutes while showing the temps."""
     aborted = False
     clear_screen()
     print_log('\nStart Prime95 test')
@@ -282,6 +287,7 @@ def run_mprime():
     run_program('tmux kill-pane -a'.split())
 
 def run_nvme_smart():
+    """Run the built-in NVMe or SMART test for all detected disks."""
     aborted = False
     clear_screen()
     print_log('\nStart NVMe/SMART test(s)\n')
@@ -376,6 +382,7 @@ def run_nvme_smart():
     run_program('tmux kill-pane -a'.split(), check=False)
 
 def run_tests(tests):
+    """Run selected hardware test(s)."""
     print_log('Starting Hardware Diagnostics')
     print_log('\nRunning tests: {}'.format(', '.join(tests)))
     # Enable selected tests
@@ -414,6 +421,7 @@ def run_tests(tests):
             pause('Press Enter to exit...')
 
 def scan_disks():
+    """Scan for disks eligible for hardware testing."""
     clear_screen()
 
     # Get eligible disk list
@@ -489,6 +497,7 @@ def scan_disks():
     TESTS['badblocks']['Devices'] = devs
 
 def show_disk_details(dev):
+    """Display disk details."""
     dev_name = dev['lsblk']['name']
     # Device description
     print_info('Device: /dev/{}'.format(dev['lsblk']['name']))
@@ -566,6 +575,7 @@ def show_disk_details(dev):
                     print_success(raw_str, timestamp=False)
 
 def show_results():
+    """Show results for selected test(s)."""
     clear_screen()
     print_log('\n───────────────────────────')
     print_standard('Hardware Diagnostic Results')
@@ -629,6 +639,7 @@ def show_results():
     run_program('tmux kill-pane -a'.split())
 
 def update_progress():
+    """Update progress file."""
     if 'Progress Out' not in TESTS:
         TESTS['Progress Out'] = '{}/progress.out'.format(global_vars['LogDir'])
     output = []

@@ -399,6 +399,7 @@ def print_warning(*args, **kwargs):
     print_standard(*args, color=COLORS['YELLOW'], **kwargs)
 
 def print_log(message='', end='\n', timestamp=True):
+    """Writes message to a log if LogFile is set."""
     time_str = time.strftime("%Y-%m-%d %H%M%z: ") if timestamp else ''
     if 'LogFile' in global_vars and global_vars['LogFile']:
         with open(global_vars['LogFile'], 'a', encoding='utf-8') as f:
@@ -526,6 +527,9 @@ def try_and_print(message='Trying...',
         return {'CS': not bool(err), 'Error': err, 'Out': out}
 
 def upload_crash_details():
+    """Upload log and runtime data to the CRASH_SERVER.
+    
+    Intended for uploading to a public Nextcloud share."""
     if not ENABLED_UPLOAD_DATA:
         raise GenericError
 
@@ -762,6 +766,9 @@ def set_common_vars():
         **global_vars)
 
 def set_linux_vars():
+    """Set common variables in a Linux environment.
+    
+    These assume we're running under a WK-Linux build."""
     result = run_program(['mktemp', '-d'])
     global_vars['TmpDir'] =             result.stdout.decode().strip()
     global_vars['Date'] =               time.strftime("%Y-%m-%d")
