@@ -28,7 +28,7 @@ function ask() {
         return 0
     fi
     while :; do
-        read -p "$1 " -r answer
+        read -p "$1 [Y/N] " -r answer
         if echo "$answer" | egrep -iq '^(y|yes|sure)$'; then
             return 0
         elif echo "$answer" | egrep -iq '^(n|no|nope)$'; then
@@ -145,34 +145,34 @@ mkfs.vfat -F 32 -n "$UFD_LABEL" "$DEST_PARTITION" >/dev/null 2>&1
 # Mount sources and dest
 echo "Mounting sources and destination..."
 mkdir /mnt/{Dest,Linux,WinPE} -p
-mount $DEST_PARTITION /mnt
+mount $DEST_PARTITION /mnt/Dest
 mount "$LINUX_ISO" /mnt/Linux -r
 mount "$WINPE_ISO" /mnt/WinPE -r
 
 # Copy files
 echo "Copying Linux files..."
-tmux split-window -l 15 cp -Lrv /mnt/Linux/* /mnt/
+tmux split-window -l 15 cp -Lrv /mnt/Linux/* /mnt/Dest/
 
 echo "Copying WinPE files..."
-tmux split-window -l 15 cp -Lrv /mnt/WinPE/{Boot,bootmgr{,.efi},en-us,sources} /mnt/
-tmux split-window -l 15 cp -Lrv /mnt/WinPE/EFI/Microsoft /mnt/EFI/
-tmux split-window -l 15 cp -Lrv /mnt/WinPE/EFI/Boot/* /mnt/EFI/Microsoft/
-tmux split-window -l 15 cp -Lrv /mnt/WinPE/{Boot/{BCD,boot.sdi},bootmgr} /mnt/sources/
+tmux split-window -l 15 cp -Lrv /mnt/WinPE/{Boot,bootmgr{,.efi},en-us,sources} /mnt/Dest/
+tmux split-window -l 15 cp -Lrv /mnt/WinPE/EFI/Microsoft /mnt/Dest/EFI/
+tmux split-window -l 15 cp -Lrv /mnt/WinPE/EFI/Boot/* /mnt/Dest/EFI/Microsoft/
+tmux split-window -l 15 cp -Lrv /mnt/WinPE/{Boot/{BCD,boot.sdi},bootmgr} /mnt/Dest/sources/
 
 echo "Copying Main Kit..."
-tmux split-window -l 15 cp -Lrv "$MAIN_KIT" /mnt/
+tmux split-window -l 15 cp -Lrv "$MAIN_KIT" /mnt/Dest/
 if [ "$EXTRA_DIR" != "__None__" ]; then
     echo "Copying Extra files..."
-    tmux split-window -l 15 cp -Lrv "$EXTRA_DIR"/* /mnt/
+    tmux split-window -l 15 cp -Lrv "$EXTRA_DIR"/* /mnt/Dest/
 fi
 
 # Install syslinux
 echo "Copying Syslinux files..."
-tmux split-window -l 15 cp -Lrv /usr/lib/syslinux/bios/*.c32 /mnt/arch/boot/syslinux/
+tmux split-window -l 15 cp -Lrv /usr/lib/syslinux/bios/*.c32 /mnt/Dest/arch/boot/syslinux/
 syslinux --install -d /arch/boot/syslinux/ $DEST_PARTITION >/dev/null 2>&1
 
 echo "Unmounting destination..."
-umount /mnt
+umount /mnt/Dest
 sync
 
 echo "Installing Syslinux MBR..."
@@ -190,7 +190,7 @@ sync
 
 # Unmount Sources
 echo "Unmounting sources..."
-umount /mnt/* -R
+umount /mnt/{Linux,WinPE} -R
 
 # Done
 echo ""
