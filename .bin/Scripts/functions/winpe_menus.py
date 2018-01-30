@@ -80,7 +80,7 @@ def menu_backup():
     ticket_number = get_ticket_number()
 
     # Mount backup shares
-    mount_backup_shares()
+    mount_backup_shares(read_write=True)
 
     # Select destination
     destination = select_backup_destination(auto_select=False)

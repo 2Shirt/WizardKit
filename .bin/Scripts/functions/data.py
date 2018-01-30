@@ -239,7 +239,7 @@ def mount_all_volumes():
         line.append(info)
     return report
 
-def mount_backup_shares():
+def mount_backup_shares(read_write=False):
     """Mount the backup shares unless labeled as already mounted."""
     if psutil.LINUX:
         mounted_data = get_mounted_data()
@@ -258,12 +258,22 @@ def mount_backup_shares():
             print_warning(mounted_str)
             continue
         
-        mount_network_share(server)
+        mount_network_share(server, read_write)
 
-def mount_network_share(server):
+def mount_network_share(server, read_write=False):
     """Mount a network share defined by server."""
+    if read_write:
+        username = server['RW-User']
+        password = server['RW-Pass']
+    else:
+        username = server['User']
+        password = server['Pass']
     if psutil.WINDOWS:
-        cmd = r'net use \\{IP}\{Share} /user:{User} {Pass}'.format(**server)
+        cmd = r'net use \\{ip}\{share} /user:{username} {password}'.format(
+            ip = server['IP'],
+            share = server['Share'],
+            username = username,
+            password = password)
         cmd = cmd.split(' ')
         warning = r'Failed to mount \\{Name}\{Share}, {IP} unreachable.'.format(
             **server)
@@ -278,7 +288,10 @@ def mount_network_share(server):
             'sudo', 'mount',
             '//{IP}/{Share}'.format(**server),
             '/Backups/{Name}'.format(**server),
-            '-o', 'username={User},password={Pass}'.format(**server)]
+            '-o', '{}username={},password={}'.format(
+                '' if read_write else 'ro,',
+                username,
+                password)]
         warning = 'Failed to mount /Backups/{Name}, {IP} unreachable.'.format(
             **server)
         error = 'Failed to mount /Backups/{Name}'.format(**server)
@@ -514,7 +527,7 @@ def select_source(ticket_number):
     local_sources = []
     remote_sources = []
     sources = []
-    mount_backup_shares()
+    mount_backup_shares(read_write=False)
 
     # Check for ticket folders on servers
     for server in BACKUP_SERVERS:

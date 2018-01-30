@@ -154,9 +154,12 @@ def format_mbr(disk):
     run_diskpart(script)
 
 def mount_windows_share():
-    """Mount the  Windows images share unless labeled as already mounted."""
+    """Mount the Windows images share unless labeled as already mounted."""
     if not WINDOWS_SERVER['Mounted']:
-        mount_network_share(WINDOWS_SERVER)
+        # Mounting read-write in case a backup was done in the same session
+        # and the server was left mounted read-write. This avoids throwing an
+        # error by trying to mount the same server with multiple credentials.
+        mount_network_share(WINDOWS_SERVER, read_write=True)
 
 def select_windows_version():
     actions = [

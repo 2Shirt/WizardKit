@@ -35,6 +35,8 @@ BACKUP_SERVERS = [
         'Share':    'Backups',
         'User':     'restore',
         'Pass':     'Abracadabra',
+        'RW-User':  'backup',
+        'RW-Pass':  'Abracadabra',
     },
     {   'IP':       '10.0.0.11',
         'Name':     'ServerTwo',
@@ -42,6 +44,8 @@ BACKUP_SERVERS = [
         'Share':    'Backups',
         'User':     'restore',
         'Pass':     'Abracadabra',
+        'RW-User':  'backup',
+        'RW-Pass':  'Abracadabra',
     },
 ]
 CRASH_SERVER = {
@@ -57,6 +61,8 @@ OFFICE_SERVER = {
     'Share':        'Office',
     'User':         'restore',
     'Pass':         'Abracadabra',
+    'RW-User':      'backup',
+    'RW-Pass':      'Abracadabra',
 }
 QUICKBOOKS_SERVER = {
     'IP':           QUICKBOOKS_SERVER_IP,
@@ -65,6 +71,8 @@ QUICKBOOKS_SERVER = {
     'Share':        'QuickBooks',
     'User':         'restore',
     'Pass':         'Abracadabra',
+    'RW-User':      'backup',
+    'RW-Pass':      'Abracadabra',
 }
 WINDOWS_SERVER = {
     'IP':           '10.0.0.10',
@@ -73,6 +81,8 @@ WINDOWS_SERVER = {
     'Share':        'Windows',
     'User':         'restore',
     'Pass':         'Abracadabra',
+    'RW-User':      'backup',
+    'RW-Pass':      'Abracadabra',
 }
 
 if __name__ == '__main__':
