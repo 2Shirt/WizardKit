@@ -179,7 +179,7 @@ def select_windows_version():
         raise GenericAbort
 
 def setup_windows(windows_image, windows_version):
-    """Apply a Windows image to W:\"""
+    """Apply a Windows image to W:"""
     cmd = [
         global_vars['Tools']['wimlib-imagex'],
         'apply',
