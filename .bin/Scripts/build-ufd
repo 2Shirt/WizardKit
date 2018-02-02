@@ -2,16 +2,25 @@
 #
 ## Wizard Kit: UFD Build Tool
 
+set -o errexit
+set -o errtrace
+set -o nounset
+set -o pipefail
+
 DEST_DEV="$1"
 DEST_PARTITION="${DEST_DEV}1"
 MAIN_PY="/usr/local/bin/settings/main.py"
+LOG_FILE="${HOME}/build-ufd_${DEST_DEV##*/}_$(date +%Y-%m-%d_%H%M_%z).log"
+RSYNC_ARGS="-hrtuvS --modify-window=1 --progress"
 WD=$(pwd)
 EXTRA_DIR="${WD}/Extras"
-MAIN_KIT="$(dirname $(find $WD -type d -name '.bin') 2>/dev/null)"
-LINUX_ISO="$(find $WD -type f -iname '*Linux*iso' | head -1)"
-WINPE_ISO="$(find $WD -type f -iname '*WinPE*iso' | head -1)"
-if [ "$2" == "--silent" ]; then
+MAIN_KIT="$(dirname $(find $WD -type d -name '.bin' || true) 2>/dev/null || true)"
+LINUX_ISO="$((find $WD -maxdepth 1 -type f -iname '*Linux*iso' 2>/dev/null || echo "__Missing__") | sort -r | head -1)"
+WINPE_ISO="$((find $WD -maxdepth 1 -type f -iname '*WinPE*amd64*iso' 2>/dev/null || echo "__Missing__") | sort -r | head -1)"
+if [ "${2:-}" == "--silent" ]; then
     SILENT="True"
+else
+    SILENT="False"
 fi
 
 # COLORS
@@ -23,12 +32,12 @@ BLUE="\e[34m"
 
 # Functions
 function ask() {
-    if [ "$SILENT" == "True" ]; then
-        echo -e "$1 Yes ${BLUE}(Silent)${CLEAR}"
+    if [[ "${SILENT}" == "True" ]]; then
+        echo -e "${1:-} Yes ${BLUE}(Silent)${CLEAR}"
         return 0
     fi
     while :; do
-        read -p "$1 [Y/N] " -r answer
+        read -p "${1:-} [Y/N] " -r answer
         if echo "$answer" | egrep -iq '^(y|yes|sure)$'; then
             return 0
         elif echo "$answer" | egrep -iq '^(n|no|nope)$'; then
@@ -38,7 +47,7 @@ function ask() {
 }
 
 die () {
-    echo "$0:" "$@" >&2
+    echo "$@" >&2
     echo ""
     read -p "Press Enter to exit... " -r
     exit 1
@@ -69,9 +78,9 @@ if [[ "$EUID" -ne 0 ]]; then
 fi
 
 # Check if in tmux
-if ! tmux list-session | grep -q "build-ufd"; then
+if ! tmux list-session 2>/dev/null | grep -q "build-ufd"; then
     # Reload in tmux
-    tmux new-session -s "build-ufd" "$0" $*
+    tmux new-session -s "build-ufd" "${0:-}" $*
     exit 0
 fi
 
@@ -135,62 +144,67 @@ fi
 # Start Build
 echo ""
 echo -e "${GREEN}Building Kit${CLEAR}"
+touch "$LOG_FILE"
+tmux split-window -dl 10 tail -f "$LOG_FILE"
 
 # Format
 echo "Formatting drive..."
-parted "$DEST_DEV" -s -- mklabel msdos mkpart primary fat32 1MiB -1s
-parted "$DEST_DEV" set 1 boot on
-mkfs.vfat -F 32 -n "$UFD_LABEL" "$DEST_PARTITION" >/dev/null 2>&1
+parted "$DEST_DEV" -s -- mklabel msdos mkpart primary fat32 1MiB -1s >> "$LOG_FILE" 2>&1
+parted "$DEST_DEV" set 1 boot on >> "$LOG_FILE" 2>&1
+mkfs.vfat -F 32 -n "$UFD_LABEL" "$DEST_PARTITION" >> "$LOG_FILE" 2>&1
 
 # Mount sources and dest
 echo "Mounting sources and destination..."
-mkdir /mnt/{Dest,Linux,WinPE} -p
-mount $DEST_PARTITION /mnt/Dest
-mount "$LINUX_ISO" /mnt/Linux -r
-mount "$WINPE_ISO" /mnt/WinPE -r
+mkdir /mnt/{Dest,Linux,WinPE} -p >> "$LOG_FILE" 2>&1
+mount $DEST_PARTITION /mnt/Dest >> "$LOG_FILE" 2>&1
+mount "$LINUX_ISO" /mnt/Linux -r >> "$LOG_FILE" 2>&1
+mount "$WINPE_ISO" /mnt/WinPE -r >> "$LOG_FILE" 2>&1
 
 # Copy files
 echo "Copying Linux files..."
-tmux split-window -l 15 cp -Lrv /mnt/Linux/* /mnt/Dest/
+rsync ${RSYNC_ARGS} /mnt/Linux/* /mnt/Dest/ >> "$LOG_FILE" 2>&1
 
 echo "Copying WinPE files..."
-tmux split-window -l 15 cp -Lrv /mnt/WinPE/{Boot,bootmgr{,.efi},en-us,sources} /mnt/Dest/
-tmux split-window -l 15 cp -Lrv /mnt/WinPE/EFI/Microsoft /mnt/Dest/EFI/
-tmux split-window -l 15 cp -Lrv /mnt/WinPE/EFI/Boot/* /mnt/Dest/EFI/Microsoft/
-tmux split-window -l 15 cp -Lrv /mnt/WinPE/{Boot/{BCD,boot.sdi},bootmgr} /mnt/Dest/sources/
+rsync ${RSYNC_ARGS} /mnt/WinPE/{Boot,bootmgr{,.efi},en-us,sources} /mnt/Dest/ >> "$LOG_FILE" 2>&1
+rsync ${RSYNC_ARGS} /mnt/WinPE/EFI/Microsoft /mnt/Dest/EFI/ >> "$LOG_FILE" 2>&1
+rsync ${RSYNC_ARGS} /mnt/WinPE/EFI/Boot/* /mnt/Dest/EFI/Microsoft/ >> "$LOG_FILE" 2>&1
+rsync ${RSYNC_ARGS} /mnt/WinPE/{Boot/{BCD,boot.sdi},bootmgr} /mnt/Dest/sources/ >> "$LOG_FILE" 2>&1
 
 echo "Copying Main Kit..."
-tmux split-window -l 15 cp -Lrv "$MAIN_KIT" /mnt/Dest/
+rsync ${RSYNC_ARGS} "$MAIN_KIT/" "/mnt/Dest/$KIT_NAME_FULL/" >> "$LOG_FILE" 2>&1
 if [ "$EXTRA_DIR" != "__None__" ]; then
     echo "Copying Extra files..."
-    tmux split-window -l 15 cp -Lrv "$EXTRA_DIR"/* /mnt/Dest/
+    rsync ${RSYNC_ARGS} "$EXTRA_DIR"/* /mnt/Dest/ >> "$LOG_FILE" 2>&1
 fi
 
 # Install syslinux
 echo "Copying Syslinux files..."
-tmux split-window -l 15 cp -Lrv /usr/lib/syslinux/bios/*.c32 /mnt/Dest/arch/boot/syslinux/
-syslinux --install -d /arch/boot/syslinux/ $DEST_PARTITION >/dev/null 2>&1
+rsync ${RSYNC_ARGS} /usr/lib/syslinux/bios/*.c32 /mnt/Dest/arch/boot/syslinux/ >> "$LOG_FILE" 2>&1
+syslinux --install -d /arch/boot/syslinux/ $DEST_PARTITION >> "$LOG_FILE" 2>&1
 
 echo "Unmounting destination..."
-umount /mnt/Dest
+umount /mnt/Dest >> "$LOG_FILE" 2>&1
 sync
 
 echo "Installing Syslinux MBR..."
-dd bs=440 count=1 if=/usr/lib/syslinux/bios/mbr.bin of=$DEST_DEV >/dev/null 2>&1
+dd bs=440 count=1 if=/usr/lib/syslinux/bios/mbr.bin of=$DEST_DEV >> "$LOG_FILE" 2>&1
 sync
 
 # Cleanup
 echo "Hiding boot files..."
 echo "drive s: file=\"$DEST_PARTITION\"" > /root/.mtoolsrc
 echo 'mtools_skip_check=1' >> /root/.mtoolsrc
-for item in BOOT{,MGR,MGR.EFI} EFI EN-US ISOLINUX LOADER SOURCES SYSLINUX.CFG; do
-    yes | mattrib +h S:/$item >/dev/null 2>&1
+for item in boot{,mgr,mgr.efi} efi en-us images isolinux sources "$KIT_NAME_FULL"/{.bin,.cbin}; do
+    yes | mattrib +h "S:/$item" >> "$LOG_FILE" 2>&1 || true
 done
 sync
 
 # Unmount Sources
 echo "Unmounting sources..."
-umount /mnt/{Linux,WinPE} -R
+umount /mnt/{Linux,WinPE} -R >> "$LOG_FILE" 2>&1
+
+# Close progress pane
+pkill -f "tail.*$LOG_FILE"
 
 # Done
 echo ""
