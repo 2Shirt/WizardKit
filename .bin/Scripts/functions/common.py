@@ -93,6 +93,34 @@ def ask(prompt='Kotaero!'):
     print_log(message=message)
     return answer
 
+def choice(choices, prompt='Kotaero!'):
+    """Prompt the user with a choice question, log answer, and returns str."""
+    answer = None
+    choices = [str(c) for c in choices]
+    choices_short = {c[:1].upper(): c for c in choices}
+    prompt = '{} [{}]: '.format(prompt, '/'.join(choices))
+    regex = '^({}|{})$'.format(
+        '|'.join([c[:1] for c in choices]),
+        '|'.join(choices))
+
+    # Get user's choice
+    while answer is None:
+        tmp = input(prompt)
+        if re.search(regex, tmp, re.IGNORECASE):
+            answer = tmp
+
+    # Log result
+    message = '{prompt}{answer_text}'.format(
+        prompt = prompt,
+        answer_text = 'Yes' if answer else 'No')
+    print_log(message=message)
+
+    # Fix answer formatting to match provided values
+    answer = choices_short[answer[:1].upper()]
+
+    # Done
+    return answer
+
 def clear_screen():
     """Simple wrapper for cls/clear."""
     if psutil.WINDOWS:
@@ -227,7 +255,20 @@ def major_exception():
     print_warning(SUPPORT_MESSAGE)
     print(traceback.format_exc())
     print_log(traceback.format_exc())
-    sleep(30)
+    try:
+        upload_crash_details()
+    except GenericAbort:
+        # User declined upload
+        print_warning('Upload: Aborted')
+        sleep(30)
+    except GenericError:
+        # No log file or uploading disabled
+        sleep(30)
+    except:
+        print_error('Upload: NS')
+        sleep(30)
+    else:
+        print_success('Upload: CS')
     pause('Press Enter to exit...')
     exit_script(1)
 
@@ -358,6 +399,7 @@ def print_warning(*args, **kwargs):
     print_standard(*args, color=COLORS['YELLOW'], **kwargs)
 
 def print_log(message='', end='\n', timestamp=True):
+    """Writes message to a log if LogFile is set."""
     time_str = time.strftime("%Y-%m-%d %H%M%z: ") if timestamp else ''
     if 'LogFile' in global_vars and global_vars['LogFile']:
         with open(global_vars['LogFile'], 'a', encoding='utf-8') as f:
@@ -405,9 +447,6 @@ def show_data(message='~Some message~', data='~Some data~', indent=8, width=32,
         print_info(message)
     else:
         print_standard(message)
-
-def show_info(message='~Some message~', info='~Some info~', indent=8, width=32):
-    show_data(message=message, data=info, indent=indent, width=width)
 
 def sleep(seconds=2):
     """Wait for a while."""
@@ -487,58 +526,43 @@ def try_and_print(message='Trying...',
     else:
         return {'CS': not bool(err), 'Error': err, 'Out': out}
 
-def upload_data(path, file):
-    """Add CLIENT_INFO_SERVER to authorized connections and upload file."""
-    if not ENABLED_UPLOAD_DATA:
-        raise GenericError('Feature disabled.')
+def upload_crash_details():
+    """Upload log and runtime data to the CRASH_SERVER.
     
-    extract_item('PuTTY', filter='wizkit.ppk psftp.exe', silent=True)
-
-    # Authorize connection to the server
-    winreg.CreateKey(HKCU, r'Software\SimonTatham\PuTTY\SshHostKeys')
-    with winreg.OpenKey(HKCU, r'Software\SimonTatham\PuTTY\SshHostKeys',
-        access=winreg.KEY_WRITE) as key:
-        winreg.SetValueEx(key,
-            'rsa2@22:{IP}'.format(**CLIENT_INFO_SERVER), 0,
-            winreg.REG_SZ, CLIENT_INFO_SERVER['RegEntry'])
-
-    # Write batch file
-    with open(r'{}\psftp.batch'.format(global_vars['TmpDir']),
-        'w', encoding='ascii') as f:
-        f.write('lcd "{path}"\n'.format(path=path))
-        f.write('cd "{Share}"\n'.format(**CLIENT_INFO_SERVER))
-        f.write('mkdir {TicketNumber}\n'.format(**global_vars))
-        f.write('cd {TicketNumber}\n'.format(**global_vars))
-        f.write('put "{file}"\n'.format(file=file))
-
-    # Upload Info
-    cmd = [
-        global_vars['Tools']['PuTTY-PSFTP'],
-        '-noagent',
-        '-i', r'{BinDir}\PuTTY\wizkit.ppk'.format(**global_vars),
-        '{User}@{IP}'.format(**CLIENT_INFO_SERVER),
-        '-b', r'{TmpDir}\psftp.batch'.format(**global_vars)]
-    run_program(cmd)
-
-def upload_info():
-    """Upload compressed Info file to the NAS as set in settings.main.py."""
+    Intended for uploading to a public Nextcloud share."""
     if not ENABLED_UPLOAD_DATA:
-        raise GenericError('Feature disabled.')
-    
-    path = '{ClientDir}'.format(**global_vars)
-    file = 'Info_{Date-Time}.7z'.format(**global_vars)
-    upload_data(path, file)
+        raise GenericError
 
-def compress_info():
-    """Compress ClientDir info folders with 7-Zip for upload_info()."""
-    path = '{ClientDir}'.format(**global_vars)
-    file = 'Info_{Date-Time}.7z'.format(**global_vars)
-    _cmd = [
-        global_vars['Tools']['SevenZip'],
-        'a', '-t7z', '-mx=9', '-bso0', '-bse0',
-        r'{}\{}'.format(path, file),
-        r'{ClientDir}\Info'.format(**global_vars)]
-    run_program(_cmd)
+    import requests
+    if 'LogFile' in global_vars and global_vars['LogFile']:
+        if ask('Upload crash details to {}?'.format(CRASH_SERVER['Name'])):
+            with open(global_vars['LogFile']) as f:
+                data = '''{}
+#############################
+Runtime Details:
+
+sys.argv: {}
+
+global_vars: {}'''.format(f.read(), sys.argv, global_vars)
+                filename = global_vars.get('LogFile', 'Unknown')
+                filename = re.sub(r'.*(\\|/)', '', filename)
+                filename += '.txt'
+                url = '{}/Crash_{}__{}'.format(
+                    CRASH_SERVER['Url'],
+                    global_vars.get('Date-Time', 'Unknown Date-Time'),
+                    filename)
+                r = requests.put(url, data=data,
+                    headers = {'X-Requested-With': 'XMLHttpRequest'},
+                    auth = (CRASH_SERVER['User'], CRASH_SERVER['Pass']))
+                # Raise exception if upload NS
+                if not r.ok:
+                    raise Exception
+        else:
+            # User said no
+            raise GenericAbort
+    else:
+        # No LogFile defined (or invalid LogFile)
+        raise GenericError
 
 def wait_for_process(name, poll_rate=3):
     """Wait for process by name."""
@@ -742,6 +766,9 @@ def set_common_vars():
         **global_vars)
 
 def set_linux_vars():
+    """Set common variables in a Linux environment.
+    
+    These assume we're running under a WK-Linux build."""
     result = run_program(['mktemp', '-d'])
     global_vars['TmpDir'] =             result.stdout.decode().strip()
     global_vars['Date'] =               time.strftime("%Y-%m-%d")
@@ -749,6 +776,10 @@ def set_linux_vars():
     global_vars['Env'] =                os.environ.copy()
     global_vars['BinDir'] =             '/usr/local/bin'
     global_vars['LogDir'] =             global_vars['TmpDir']
+    global_vars['Tools'] = {
+        'wimlib-imagex': 'wimlib-imagex',
+        'SevenZip': '7z',
+        }
 
 if __name__ == '__main__':
     print("This file is not meant to be called directly.")

@@ -28,9 +28,9 @@ if __name__ == '__main__':
         # Transfer
         clear_screen()
         print_info('Transfer Details:\n')
-        show_info('Ticket:',        ticket_number)
-        show_info('Source:',        source.path)
-        show_info('Destination:',   dest)
+        show_data('Ticket:',        ticket_number)
+        show_data('Source:',        source.path)
+        show_data('Destination:',   dest)
         
         if (not ask('Proceed with transfer?')):
             umount_backup_shares()

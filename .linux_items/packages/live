@@ -41,7 +41,7 @@ mdadm
 mediainfo
 mesa-demos
 mkvtoolnix-cli
-mprime-bin
+mprime
 mpv
 mupdf
 ncdu
@@ -50,6 +50,7 @@ networkmanager
 nvme-cli
 oblogout
 openbox-patched
+otf-font-awesome-4
 p7zip
 papirus-icon-theme
 pasystray
@@ -75,7 +76,7 @@ tint2
 tk
 tmux
 tree
-ttf-font-awesome
+ttf-font-awesome-4
 ttf-inconsolata
 udevil
 udisks2

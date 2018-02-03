@@ -7,7 +7,7 @@ A collection of scripts to help technicians service Windows systems.
 ### Build Requirements ###
 
 * PowerShell 3.0 or newer<sup>1</sup>
-* 6 Gb disk space
+* 10 Gb disk space
 
 ### Initial Setup ###
 
@@ -49,19 +49,39 @@ A collection of scripts to help technicians service Windows systems.
 ### Initial Setup ###
 
 * Replace artwork as desired
-* Run `Build_Linux` which will do the following:
-  * Install missing dependancies with pacman
-  * Open `main.py` in nano for configuration
-  * Build the local repo for the AUR packages
-  * Build the live Linux environment (exported as an ISO file)
+* Install Arch Linux in a virtual machine ([VirtualBox](https://www.virtualbox.org/) is a good option for Windows systems).
+  * See the [installation guide](https://wiki.archlinux.org/index.php/Installation_guide) for details.
+* Add a standard user to the Arch Linux installation.
+  * See the [wiki page](https://wiki.archlinux.org/index.php/Users_and_groups#User_management) for details.
+* Install git # `pacman -Syu git`
+* _(Recommended)_ Install and configure `sudo`
+  * See the [wiki page](https://wiki.archlinux.org/index.php/Sudo) for details.
+* Login to the user added above
+* Download the Github repo $ `git clone https://github.com/2Shirt/WizardKit.git`
+* Run the build script
+  * $ `cd WizardKit`
+  * $ `./Build\ Linux -b`
+  * The build script does the following:
+    * Installs missing dependencies via `pacman`
+    * Opens `main.py` in `nano` for configuration
+    * Downloads, builds, and adds AUR packages to a local repo
+    * Builds the Live Linux ISO
+
+### Notes ###
+
+* The WinPE boot options require files to be copied from a completed WinPE build.
+  * This is done below for the Combined UFD
 
 ## Windows PE ##
 
 ### Build Requirements ###
 
 * Windows Assessment and Deployment Kit for Windows 10
+  * Deployment Tools
+  * Windows Preinstallation Environment (Windows PE)
+  * _All other features are not required_
 * PowerShell 3.0 or newer
-* 2 Gb disk space
+* 8 Gb disk space
 
 ### Initial Setup ###
 
@@ -72,5 +92,56 @@ A collection of scripts to help technicians service Windows systems.
   * Download all tools
   * Build both 32-bit & 64-bit PE images (exported as ISO files)
 
+## Combined Wizard Kit ##
+
+### Build Requirements ###
+
+* 64-bit system or virtual machine
+* 4 Gb RAM
+* 8 Gb USB flash drive _(16 Gb or larger recommended)_
+
+### Overview ###
+
+There's a `build-ufd` script which does the following:
+
+* Checks for the presence if the Linux ISO and the (64-bit) WinPE ISO.
+* Formats the selected UFD using FAT32.
+  * All data will be deleted from the UFD resulting in **DATA LOSS**.
+* Copies the required files from the Linux ISO, WinPE ISO, and Main Kit folder to the UFD.
+* Installs Syslinux to the UFD making it bootable on legacy systems.
+* Sets the boot files/folders to be hidden under Windows.
+
+### Setup ###
+
+* Boot to a Live Linux ISO built following the instructions above.
+  * You can apply it to a UFD using [rufus](https://rufus.akeo.ie/) for physical systems.
+  * Virtual machines should be able to use the Linux ISO directly.
+* Put the Linux ISO, the WinPE ISO, and the Main Kit folder _(usually "OUT_KIT")_ in the same directory.
+  * "OUT_KIT" will be renamed on the UFD using `$KIT_NAME_FULL`
+    * `$KIT_NAME_FULL` defaults to "Wizard Kit" but can be changed in `main.py`
+  * "OUT_KIT" can be renamed in the source folder.
+    * The script searched for the ".bin" folder and uses it's parent folder as the Main Kit source.
+  * Additional files/folders can be included by putting them in a folder named "Extras".
+    * These files/folders will be copied to the root of the UFD.
+  * To include images for the WinPE Setup section, put the files in "Extras/images".
+    * WinPE Setup will recognize ESD, WIM, and SWM<sup>2</sup> images.
+    * The filenames should be "Win7", "Win8", or "Win10"
+  * The final layout should be similar to this: _(assuming it's mounted to "/Sources")_
+    * **(Required)** `/Sources/OUT_KIT`
+    * **(Required)** `/Sources/WK-Linux-2018-01-01-x86_64.iso`
+    * **(Required)** `/Sources/WK-WinPE-2018-01-01-amd64.iso`
+    * _(Optional)_ `/Sources/Extras/Essential Windows Updates`
+    * _(Optional)_ `/Sources/Extras/images/Win7.wim`
+    * _(Optional)_ `/Sources/Extras/images/Win8.wim`
+    * _(Optional)_ `/Sources/Extras/images/Win10.esd`
+* Connect the UFD but don't mount it.
+* Mount the device, or connect to the share, with the ISOs and Main Kit folder.
+* $ `cd /Sources` _(replace with real path to source files)_
+* Get the device name of the UFD.
+  * You can use $ `lsblk --fs` or $ `inxi -Dxx` to help.
+* $ `sudo build-ufd /dev/sdX` _(replace `/dev/sdX` with the desired device)_
+  * **2nd Warning**: All data will be erased from the UFD resulting in **DATA LOSS**.
+
 ## Notes ##
 1. PowerShell 6.0 on Windows 7 is not supported by the build script.
+2. See [wimlib-imagex](https://wimlib.net/) for details about split WIM images.

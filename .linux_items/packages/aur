@@ -2,15 +2,13 @@ aic94xx-firmware
 bash-pipes
 gtk-theme-arc-git
 hfsprogs
-i3-gaps
 i3lock-fancy-git
-mprime-bin
+mprime
 nvme-cli
 openbox-patched
 papirus-icon-theme
 pasystray
 smartmontools-svn
 testdisk-wip
-ttf-font-awesome
+ttf-font-awesome-4
 wd719x-firmware
-wimlib

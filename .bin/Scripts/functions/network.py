@@ -54,6 +54,7 @@ def is_connected():
     return False
 
 def show_valid_addresses():
+    """Show all valid private IP addresses assigned to the system."""
     devs = psutil.net_if_addrs()
     for dev, families in sorted(devs.items()):
         for family in families:
@@ -62,6 +63,7 @@ def show_valid_addresses():
                 show_data(message=dev, data=family.address)
 
 def speedtest():
+    """Run a network speedtest using speedtest-cli."""
     result = run_program(['speedtest-cli', '--simple'])
     output = [line.strip() for line in result.stdout.decode().splitlines()
         if line.strip()]

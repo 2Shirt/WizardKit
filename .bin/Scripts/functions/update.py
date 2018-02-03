@@ -9,6 +9,7 @@ from settings.music import *
 from settings.sources import *
 
 def compress_and_remove_item(item):
+    """Compress and delete an item unless an error is encountered."""
     try:
         compress_item(item)
     except:
@@ -17,6 +18,7 @@ def compress_and_remove_item(item):
         remove_item(item.path)
 
 def compress_item(item):
+    """Compress an item in a 7-Zip archive using the ARCHIVE_PASSWORD."""
     # Prep
     prev_dir = os.getcwd()
     dest = '{}.7z'.format(item.path)
@@ -58,9 +60,11 @@ def download_generic(out_dir, out_name, source_url):
         raise GenericError('Failed to download file.')
 
 def download_to_temp(out_name, source_url):
+    """Download a file to the TmpDir."""
     download_generic(global_vars['TmpDir'], out_name, source_url)
 
 def extract_generic(source, dest, mode='x', sz_args=[]):
+    """Extract a file to a destination."""
     cmd = [
         global_vars['Tools']['SevenZip'],
         mode, source, r'-o{}'.format(dest),
@@ -70,11 +74,13 @@ def extract_generic(source, dest, mode='x', sz_args=[]):
     run_program(cmd)
 
 def extract_temp_to_bin(source, item, mode='x', sz_args=[]):
+    """Extract a file to the .bin folder."""
     source = r'{}\{}'.format(global_vars['TmpDir'], source)
     dest = r'{}\{}'.format(global_vars['BinDir'], item)
     extract_generic(source, dest, mode, sz_args)
 
 def extract_temp_to_cbin(source, item, mode='x', sz_args=[]):
+    """Extract a file to the .cbin folder."""
     source = r'{}\{}'.format(global_vars['TmpDir'], source)
     dest = r'{}\{}'.format(global_vars['CBinDir'], item)
     include_path = r'{}\_include\{}'.format(global_vars['CBinDir'], item)
@@ -83,6 +89,7 @@ def extract_temp_to_cbin(source, item, mode='x', sz_args=[]):
     extract_generic(source, dest, mode, sz_args)
 
 def generate_launcher(section, name, options):
+    """Generate a launcher script."""
     # Prep
     dest = r'{}\{}'.format(global_vars['BaseDir'], section)
     if section == '(Root)':
@@ -119,6 +126,7 @@ def generate_launcher(section, name, options):
         f.write('\n'.join(out_text))
 
 def remove_item(item_path):
+    """Delete a file or folder."""
     if os.path.exists(item_path):
         if os.path.isdir(item_path):
             shutil.rmtree(item_path, ignore_errors=True)
@@ -126,6 +134,7 @@ def remove_item(item_path):
             os.remove(item_path)
 
 def remove_from_kit(item):
+    """Delete a file or folder from the .bin/.cbin folders."""
     item_locations = []
     for p in [global_vars['BinDir'], global_vars['CBinDir']]:
         item_locations.append(r'{}\{}'.format(p, item))
@@ -134,6 +143,7 @@ def remove_from_kit(item):
         remove_item(item_path)
 
 def remove_from_temp(item):
+    """Delete a file or folder from the TmpDir folder."""
     item_path = r'{}\{}'.format(global_vars['TmpDir'], item)
     remove_item(item_path)
 
@@ -159,6 +169,7 @@ def resolve_dynamic_url(source_url, regex):
     return url
 
 def scan_for_net_installers(server, family_name, min_year):
+    """Scan network shares for installers."""
     if not server['Mounted']:
         mount_network_share(server)
     

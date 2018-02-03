@@ -460,8 +460,8 @@ def show_user_data_summary(indent=8, width=32):
                         indent =    ' ' * indent,
                         width =     width,
                         folder =    folder,
-                        size =      folders[folder]['Size'],
-                        path =      folders[folder]['Path']))
+                        size =      folders[folder].get('Size', 'Unknown'),
+                        path =      folders[folder].get('Path', 'Unknown')))
 
 if __name__ == '__main__':
     print("This file is not meant to be called directly.")

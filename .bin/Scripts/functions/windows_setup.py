@@ -154,11 +154,15 @@ def format_mbr(disk):
     run_diskpart(script)
 
 def mount_windows_share():
-    """Mount the  Windows images share unless labeled as already mounted."""
+    """Mount the Windows images share unless labeled as already mounted."""
     if not WINDOWS_SERVER['Mounted']:
-        mount_network_share(WINDOWS_SERVER)
+        # Mounting read-write in case a backup was done in the same session
+        # and the server was left mounted read-write. This avoids throwing an
+        # error by trying to mount the same server with multiple credentials.
+        mount_network_share(WINDOWS_SERVER, read_write=True)
 
 def select_windows_version():
+    """Select Windows version from a menu, returns dict."""
     actions = [
         {'Name': 'Main Menu', 'Letter': 'M'},
         ]
@@ -175,6 +179,7 @@ def select_windows_version():
         raise GenericAbort
 
 def setup_windows(windows_image, windows_version):
+    """Apply a Windows image to W:"""
     cmd = [
         global_vars['Tools']['wimlib-imagex'],
         'apply',
@@ -186,6 +191,7 @@ def setup_windows(windows_image, windows_version):
     run_program(cmd)
 
 def setup_windows_re(windows_version, windows_letter='W', tools_letter='T'):
+    """Setup the WinRE partition."""
     win = r'{}:\Windows'.format(windows_letter)
     winre = r'{}\System32\Recovery\WinRE.wim'.format(win)
     dest = r'{}:\Recovery\WindowsRE'.format(tools_letter)
@@ -203,6 +209,7 @@ def setup_windows_re(windows_version, windows_letter='W', tools_letter='T'):
     run_program(cmd)
 
 def update_boot_partition(system_letter='S', windows_letter='W', mode='ALL'):
+    """Setup the Windows boot partition."""
     cmd = [
         r'{}\Windows\System32\bcdboot.exe'.format(
             global_vars['Env']['SYSTEMDRIVE']),
@@ -212,6 +219,7 @@ def update_boot_partition(system_letter='S', windows_letter='W', mode='ALL'):
     run_program(cmd)
 
 def wim_contains_image(filename, imagename):
+    """Check if an ESD/WIM contains the specified image, returns bool."""
     cmd = [
         global_vars['Tools']['wimlib-imagex'],
         'info',

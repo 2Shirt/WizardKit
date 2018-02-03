@@ -11,6 +11,7 @@ REGEX_BAD_PATH_NAMES = re.compile(
     re.IGNORECASE)
 
 def backup_partition(disk, par):
+    """Create a backup image of a partition."""
     if par.get('Image Exists', False) or par['Number'] in disk['Bad Partitions']:
         raise GenericAbort
     
@@ -28,9 +29,15 @@ def backup_partition(disk, par):
     run_program(cmd)
 
 def fix_path(path):
+    """Replace invalid filename characters with underscores."""
     return REGEX_BAD_PATH_NAMES.sub('_', path)
 
 def prep_disk_for_backup(destination, disk, ticket_number):
+    """Gather details about the disk and its partitions.
+    
+    This includes partitions that can't be backed up,
+        whether backups already exist on the BACKUP_SERVER,
+        partition names/sizes/used space, etc."""
     disk['Clobber Risk'] = []
     width = len(str(len(disk['Partitions'])))
 
@@ -102,7 +109,7 @@ def prep_disk_for_backup(destination, disk, ticket_number):
     disk['Backup Warnings'] = warnings
 
 def select_backup_destination(auto_select=True):
-    # Build menu
+    """Select a backup destination from a menu, returns server dict."""
     destinations = [s for s in BACKUP_SERVERS if s['Mounted']]
     actions = [
         {'Name': 'Main Menu', 'Letter': 'M'},
@@ -136,6 +143,7 @@ def select_backup_destination(auto_select=True):
         return destinations[int(selection)-1]
 
 def verify_wim_backup(partition):
+    """Verify WIM integrity."""
     if not os.path.exists(partition['Image Path']):
         raise PathNotFoundError
     cmd = [

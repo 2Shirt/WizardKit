@@ -11,14 +11,10 @@ KIT_NAME_FULL='Wizard Kit'
 KIT_NAME_SHORT='WK'
 SUPPORT_MESSAGE='Please let 2Shirt know by opening an issue on GitHub'
 # Live Linux
-DIAG_SHARE='/srv/ClientInfo'
-DIAG_USER='wkdiag'
 MPRIME_LIMIT='7'                          # of minutes to run Prime95 during hw-diags
 ROOT_PASSWORD='Abracadabra'
-SKIP_UPLOAD='False'
 TECH_PASSWORD='Abracadabra'
 # Server IP addresses
-DIAG_SERVER='10.0.0.10'
 OFFICE_SERVER_IP='10.0.0.10'
 QUICKBOOKS_SERVER_IP='10.0.0.10'
 # Time Zones
@@ -39,6 +35,8 @@ BACKUP_SERVERS = [
         'Share':    'Backups',
         'User':     'restore',
         'Pass':     'Abracadabra',
+        'RW-User':  'backup',
+        'RW-Pass':  'Abracadabra',
     },
     {   'IP':       '10.0.0.11',
         'Name':     'ServerTwo',
@@ -46,13 +44,15 @@ BACKUP_SERVERS = [
         'Share':    'Backups',
         'User':     'restore',
         'Pass':     'Abracadabra',
+        'RW-User':  'backup',
+        'RW-Pass':  'Abracadabra',
     },
 ]
-CLIENT_INFO_SERVER = {
-    'IP':           '10.0.0.10',
-    'RegEntry':     r'0x10001,0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000',
-    'Share':        '/srv/ClientInfo',
-    'User':         'upload',
+CRASH_SERVER = {
+    'Name':         'CrashServer',
+    'Url':          '',
+    'User':         '',
+    'Pass':         '',
 }
 OFFICE_SERVER = {
     'IP':           OFFICE_SERVER_IP,
@@ -61,6 +61,8 @@ OFFICE_SERVER = {
     'Share':        'Office',
     'User':         'restore',
     'Pass':         'Abracadabra',
+    'RW-User':      'backup',
+    'RW-Pass':      'Abracadabra',
 }
 QUICKBOOKS_SERVER = {
     'IP':           QUICKBOOKS_SERVER_IP,
@@ -69,6 +71,8 @@ QUICKBOOKS_SERVER = {
     'Share':        'QuickBooks',
     'User':         'restore',
     'Pass':         'Abracadabra',
+    'RW-User':      'backup',
+    'RW-Pass':      'Abracadabra',
 }
 WINDOWS_SERVER = {
     'IP':           '10.0.0.10',
@@ -77,6 +81,8 @@ WINDOWS_SERVER = {
     'Share':        'Windows',
     'User':         'restore',
     'Pass':         'Abracadabra',
+    'RW-User':      'backup',
+    'RW-Pass':      'Abracadabra',
 }
 
 if __name__ == '__main__':

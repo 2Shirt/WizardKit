@@ -441,6 +441,12 @@ LAUNCHERS = {
             },
         },
     r'Misc': {
+        'Cleanup CBS Temp Files': {
+            'L_TYPE': 'PyScript',
+            'L_PATH': 'Scripts',
+            'L_ITEM': 'cbs_fix.py',
+            'L_ELEV': 'True',
+            },
         'ConEmu (as ADMIN)': {
             'L_TYPE': 'Executable',
             'L_PATH': 'ConEmu',

@@ -51,6 +51,7 @@ PE_TOOLS = {
     }
 
 def check_pe_tools():
+    """Fix tool paths for WinPE layout."""
     for k in PE_TOOLS.keys():
         PE_TOOLS[k]['Path'] = r'{}\{}'.format(
             global_vars['BinDir'], PE_TOOLS[k]['Path'])
@@ -80,7 +81,7 @@ def menu_backup():
     ticket_number = get_ticket_number()
 
     # Mount backup shares
-    mount_backup_shares()
+    mount_backup_shares(read_write=True)
 
     # Select destination
     destination = select_backup_destination(auto_select=False)
@@ -203,6 +204,7 @@ def menu_backup():
     pause('\nPress Enter to return to main menu... ')
 
 def menu_root():
+    """Main WinPE menu."""
     check_pe_tools()
     menus = [
         {'Name': 'Create Backups', 'Menu': menu_backup},
@@ -381,6 +383,7 @@ def menu_setup():
     pause('\nPress Enter to return to main menu... ')
 
 def menu_tools():
+    """Tool launcher menu."""
     tools = [{'Name': k} for k in sorted(PE_TOOLS.keys())]
     actions = [{'Name': 'Main Menu', 'Letter': 'M'},]
     set_title(KIT_NAME_FULL)
@@ -409,6 +412,7 @@ def menu_tools():
             break
 
 def select_minidump_path():
+    """Select BSOD minidump path from a menu."""
     dumps = []
 
     # Assign volume letters first

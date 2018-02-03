@@ -1,0 +1,215 @@
+#!/bin/bash
+#
+## Wizard Kit: UFD Build Tool
+
+set -o errexit
+set -o errtrace
+set -o nounset
+set -o pipefail
+
+DEST_DEV="$1"
+DEST_PARTITION="${DEST_DEV}1"
+MAIN_PY="/usr/local/bin/settings/main.py"
+LOG_FILE="${HOME}/build-ufd_${DEST_DEV##*/}_$(date +%Y-%m-%d_%H%M_%z).log"
+RSYNC_ARGS="-hrtuvS --modify-window=1 --progress"
+WD=$(pwd)
+EXTRA_DIR="${WD}/Extras"
+MAIN_KIT="$(dirname $(find $WD -type d -name '.bin' || true) 2>/dev/null || true)"
+LINUX_ISO="$((find $WD -maxdepth 1 -type f -iname '*Linux*iso' 2>/dev/null || echo "__Missing__") | sort -r | head -1)"
+WINPE_ISO="$((find $WD -maxdepth 1 -type f -iname '*WinPE*amd64*iso' 2>/dev/null || echo "__Missing__") | sort -r | head -1)"
+if [ "${2:-}" == "--silent" ]; then
+    SILENT="True"
+else
+    SILENT="False"
+fi
+
+# COLORS
+CLEAR="\e[0m"
+RED="\e[31m"
+GREEN="\e[32m"
+YELLOW="\e[33m"
+BLUE="\e[34m"
+
+# Functions
+function ask() {
+    if [[ "${SILENT}" == "True" ]]; then
+        echo -e "${1:-} Yes ${BLUE}(Silent)${CLEAR}"
+        return 0
+    fi
+    while :; do
+        read -p "${1:-} [Y/N] " -r answer
+        if echo "$answer" | egrep -iq '^(y|yes|sure)$'; then
+            return 0
+        elif echo "$answer" | egrep -iq '^(n|no|nope)$'; then
+            return 1
+        fi
+    done
+}
+
+die () {
+    echo "$@" >&2
+    echo ""
+    read -p "Press Enter to exit... " -r
+    exit 1
+}
+
+# Load main.py settings
+if [ ! -f "$MAIN_PY" ]; then
+    echo -e "${RED}ERROR${CLEAR}: $MAIN_PY not found."
+    die "Aborted."
+fi
+while read line; do
+    if echo "$line" | egrep -q "^\w+='"; then
+        line="$(echo "$line" | sed -r 's/[\r\n]+//')"
+        eval "$line"
+    fi
+done < "$MAIN_PY"
+if [ -z ${KIT_NAME_FULL+x} ]; then
+    # KIT_NAME_FULL is not set, assume main.py missing or malformatted
+    echo -e "${RED}ERROR${CLEAR}: failed to load settings from $MAIN_PY"
+    die "Aborted."
+fi
+UFD_LABEL="${KIT_NAME_SHORT}_LINUX"
+
+# Check if root
+if [[ "$EUID" -ne 0 ]]; then
+    echo -e "${RED}ERROR${CLEAR}: This script must be run as root."
+    die "Aborted."
+fi
+
+# Check if in tmux
+if ! tmux list-session 2>/dev/null | grep -q "build-ufd"; then
+    # Reload in tmux
+    tmux new-session -s "build-ufd" "${0:-}" $*
+    exit 0
+fi
+
+# Header
+echo -e "${GREEN}$KIT_NAME_FULL${CLEAR}: UFD Build Tool"
+echo ""
+
+# Dest and Sources Check
+abort="False"
+if [ ! -b "$DEST_DEV" ]; then
+    echo -e "${RED}ERROR${CLEAR}: Device $DEST_DEV not found."
+    abort="True"
+fi
+if [ ! -f "$LINUX_ISO" ]; then
+    echo -e "${RED}ERROR${CLEAR}: Linux ISO not found."
+    abort="True"
+fi
+if [ ! -f "$WINPE_ISO" ]; then
+    echo -e "${RED}ERROR${CLEAR}: WinPE ISO not found."
+    abort="True"
+fi
+if [ ! -d "$MAIN_KIT" ]; then
+    echo -e "${RED}ERROR${CLEAR}: Wizard Kit directory not found."
+    abort="True"
+fi
+if [ ! -d "$EXTRA_DIR" ]; then
+    # Warn but don't abort
+    echo -e "${YELLOW}WARNING${CLEAR}: $EXTRA_DIR not found."
+    echo ""
+    EXTRA_DIR='__None__'
+fi
+if [ "$abort" == "True" ]; then
+    echo ""
+    die "Aborted."
+fi
+
+# Display Job Settings
+echo -e "${BLUE}Sources${CLEAR}"
+echo "Main Kit:  $MAIN_KIT"
+echo "Linux ISO: $LINUX_ISO"
+echo "WinPE ISO: $WINPE_ISO"
+echo "Extras:    $EXTRA_DIR"
+echo ""
+echo -e "${BLUE}Destination${CLEAR}"
+lsblk -n -o NAME,LABEL,SIZE,MODEL,SERIAL $DEST_DEV
+
+# Ask before starting job
+echo ""
+if ask "Is the above information correct?"; then
+    echo ""
+    echo -e "${YELLOW}SAFETY CHECK${CLEAR}"
+    echo "All data will be DELETED from the disk and partition(s) listed above."
+    echo -e "This is irreversible and will lead to ${RED}DATA LOSS.${CLEAR}"
+    if ! ask "Asking again to confirm, is this correct?"; then
+        die "Aborted."
+    fi
+else
+    die "Aborted."
+fi
+
+# Start Build
+echo ""
+echo -e "${GREEN}Building Kit${CLEAR}"
+touch "$LOG_FILE"
+tmux split-window -dl 10 tail -f "$LOG_FILE"
+
+# Format
+echo "Formatting drive..."
+parted "$DEST_DEV" -s -- mklabel msdos mkpart primary fat32 1MiB -1s >> "$LOG_FILE" 2>&1
+parted "$DEST_DEV" set 1 boot on >> "$LOG_FILE" 2>&1
+mkfs.vfat -F 32 -n "$UFD_LABEL" "$DEST_PARTITION" >> "$LOG_FILE" 2>&1
+
+# Mount sources and dest
+echo "Mounting sources and destination..."
+mkdir /mnt/{Dest,Linux,WinPE} -p >> "$LOG_FILE" 2>&1
+mount $DEST_PARTITION /mnt/Dest >> "$LOG_FILE" 2>&1
+mount "$LINUX_ISO" /mnt/Linux -r >> "$LOG_FILE" 2>&1
+mount "$WINPE_ISO" /mnt/WinPE -r >> "$LOG_FILE" 2>&1
+
+# Copy files
+echo "Copying Linux files..."
+rsync ${RSYNC_ARGS} /mnt/Linux/* /mnt/Dest/ >> "$LOG_FILE" 2>&1
+
+echo "Copying WinPE files..."
+rsync ${RSYNC_ARGS} /mnt/WinPE/{Boot,bootmgr{,.efi},en-us,sources} /mnt/Dest/ >> "$LOG_FILE" 2>&1
+rsync ${RSYNC_ARGS} /mnt/WinPE/EFI/Microsoft /mnt/Dest/EFI/ >> "$LOG_FILE" 2>&1
+rsync ${RSYNC_ARGS} /mnt/WinPE/EFI/Boot/* /mnt/Dest/EFI/Microsoft/ >> "$LOG_FILE" 2>&1
+rsync ${RSYNC_ARGS} /mnt/WinPE/{Boot/{BCD,boot.sdi},bootmgr} /mnt/Dest/sources/ >> "$LOG_FILE" 2>&1
+
+echo "Copying Main Kit..."
+rsync ${RSYNC_ARGS} "$MAIN_KIT/" "/mnt/Dest/$KIT_NAME_FULL/" >> "$LOG_FILE" 2>&1
+if [ "$EXTRA_DIR" != "__None__" ]; then
+    echo "Copying Extra files..."
+    rsync ${RSYNC_ARGS} "$EXTRA_DIR"/* /mnt/Dest/ >> "$LOG_FILE" 2>&1
+fi
+
+# Install syslinux
+echo "Copying Syslinux files..."
+rsync ${RSYNC_ARGS} /usr/lib/syslinux/bios/*.c32 /mnt/Dest/arch/boot/syslinux/ >> "$LOG_FILE" 2>&1
+syslinux --install -d /arch/boot/syslinux/ $DEST_PARTITION >> "$LOG_FILE" 2>&1
+
+echo "Unmounting destination..."
+umount /mnt/Dest >> "$LOG_FILE" 2>&1
+sync
+
+echo "Installing Syslinux MBR..."
+dd bs=440 count=1 if=/usr/lib/syslinux/bios/mbr.bin of=$DEST_DEV >> "$LOG_FILE" 2>&1
+sync
+
+# Cleanup
+echo "Hiding boot files..."
+echo "drive s: file=\"$DEST_PARTITION\"" > /root/.mtoolsrc
+echo 'mtools_skip_check=1' >> /root/.mtoolsrc
+for item in boot{,mgr,mgr.efi} efi en-us images isolinux sources "$KIT_NAME_FULL"/{.bin,.cbin}; do
+    yes | mattrib +h "S:/$item" >> "$LOG_FILE" 2>&1 || true
+done
+sync
+
+# Unmount Sources
+echo "Unmounting sources..."
+umount /mnt/{Linux,WinPE} -R >> "$LOG_FILE" 2>&1
+
+# Close progress pane
+pkill -f "tail.*$LOG_FILE"
+
+# Done
+echo ""
+echo "Done."
+echo ""
+read -p "Press Enter to exit..." -r
+exit 0
+
