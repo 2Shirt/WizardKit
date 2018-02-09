@@ -757,17 +757,13 @@ def update_treesizefree():
     
     # Download
     download_to_temp(
-        'treesizefree.zip.gz', SOURCE_URLS['TreeSizeFree'])
+        'treesizefree.zip', SOURCE_URLS['TreeSizeFree'])
     
     # Extract files
-    ## NOTE: When downloaded using requests it is a .zip.gz?
-    source = r'{}\treesizefree.zip.gz'.format(global_vars['TmpDir'])
-    extract_generic(source, global_vars['TmpDir'])
     extract_temp_to_cbin('treesizefree.zip', 'TreeSizeFree')
     
     # Cleanup
     remove_from_temp('treesizefree.zip')
-    remove_from_temp('treesizefree.zip.gz')
 
 def update_xmplay():
     # Stop running processes
