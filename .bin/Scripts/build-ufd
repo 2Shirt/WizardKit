@@ -43,7 +43,7 @@ __dir="$(cd "$(dirname "${BASH_SOURCE[${__b3bp_tmp_source_idx:-0}]}")" && pwd)"
 __file="${__dir}/$(basename "${BASH_SOURCE[${__b3bp_tmp_source_idx:-0}]}")"
 __base="$(basename "${__file}" .sh)"
 __wd="$(pwd)"
-__usage_example="Usage: ${0} --ufd-device [device] --linux-iso [path] --main-kit [path] --winpe-iso [path]"
+__usage_example="Usage: sudo $(basename "${0}") --ufd-device [device] --linux-iso [path] --main-kit [path] --winpe-iso [path]"
 __all_args=""
 for a in "${@}"; do
     if [[ "${a:0:1}" == "-" ]]; then
@@ -325,7 +325,14 @@ fi
 ##############################################################################
 
 function __b3bp_cleanup_before_exit () {
-  umount /mnt/{Dest,Linux,WinPE} -R
+  if [[ "$EUID" -eq 0 ]]; then
+    for d in Dest Linux WinPE; do
+      if [[ -d "/mnt/${d}" ]]; then
+        umount "/mnt/${d}" || true
+        rmdir "/mnt/${d}" || true
+      fi
+    done
+  fi
   if [[ "${?}" != "0" ]]; then
     info "Sources unmounted"
   fi
@@ -360,12 +367,6 @@ fi
 # verbose mode
 if [[ "${arg_v:?}" = "1" ]]; then
   set -o verbose
-fi
-
-# help mode
-if [[ "${arg_h:?}" = "1" ]]; then
-  # Help exists with code 1
-  help "Help using ${0}"
 fi
 
 
@@ -545,6 +546,7 @@ rsync ${RSYNC_ARGS} /mnt/WinPE/{Boot/{BCD,boot.sdi},bootmgr} /mnt/Dest/sources/ 
 
 echo "Copying Main Kit..."
 rsync ${RSYNC_ARGS} "${MAIN_KIT}/" "/mnt/Dest/${KIT_NAME_FULL}/" >> "${LOG_FILE}" 2>&1
+
 if [ "${EXTRA_DIR}" != "__None__" ]; then
     echo "Copying Extra files..."
     rsync ${RSYNC_ARGS} "${EXTRA_DIR}"/* /mnt/Dest/ >> "${LOG_FILE}" 2>&1
@@ -557,6 +559,7 @@ syslinux --install -d /arch/boot/syslinux/ ${DEST_PAR} >> "${LOG_FILE}" 2>&1
 
 echo "Unmounting destination..."
 umount /mnt/Dest >> "${LOG_FILE}" 2>&1
+rmdir /mnt/Dest >> "${LOG_FILE}" 2>&1
 sync
 
 echo "Installing Syslinux MBR..."
@@ -574,7 +577,10 @@ sync
 
 # Unmount Sources
 echo "Unmounting sources..."
-umount /mnt/{Linux,WinPE} -R >> "${LOG_FILE}" 2>&1
+for d in Linux WinPE; do
+    umount "/mnt/${d}" >> "${LOG_FILE}" 2>&1 || true
+    rmdir "/mnt/${d}" >> "${LOG_FILE}" 2>&1 || true
+done
 
 # Close progress pane
 pkill -f "tail.*${LOG_FILE}"
