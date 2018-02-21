@@ -116,31 +116,19 @@ There's a `build-ufd` script which does the following:
 * Boot to a Live Linux ISO built following the instructions above.
   * You can apply it to a UFD using [rufus](https://rufus.akeo.ie/) for physical systems.
   * Virtual machines should be able to use the Linux ISO directly.
-* Put the Linux ISO, the WinPE ISO, and the Main Kit folder _(usually "OUT_KIT")_ in the same directory.
-  * "OUT_KIT" will be renamed on the UFD using `$KIT_NAME_FULL`
+* Mount the device(s) or network share(s) that contain the Linux ISO, WinPE ISO, and Main Kit folder.
+* Connect the UFD but don't mount it.
+* Get the device name of the UFD.
+  * You can use $ `inxi -Dxx` or $ `lsblk --fs` to help.
+* $ `sudo build-ufd --ufd-device [device] --linux-iso [path] --main-kit [path] --winpe-iso [path]`
+  * **2nd Warning**: All data will be erased from the UFD resulting in **DATA LOSS**.
+  * NOTE: The Main Kit folder will be renamed on the UFD using `$KIT_NAME_FULL`
     * `$KIT_NAME_FULL` defaults to "Wizard Kit" but can be changed in `main.py`
-  * "OUT_KIT" can be renamed in the source folder.
-    * The script searched for the ".bin" folder and uses it's parent folder as the Main Kit source.
-  * Additional files/folders can be included by putting them in a folder named "Extras".
-    * These files/folders will be copied to the root of the UFD.
+  * You can include extra items by using the `--extra-dir` option
+    * _(e.g. $ `sudo build-ufd --ufd-device [device] --linux-iso [path] --main-kit [path] --winpe-iso [path] --extra-dir [path]`)_
   * To include images for the WinPE Setup section, put the files in "Extras/images".
     * WinPE Setup will recognize ESD, WIM, and SWM<sup>2</sup> images.
     * The filenames should be "Win7", "Win8", or "Win10"
-  * The final layout should be similar to this: _(assuming it's mounted to "/Sources")_
-    * **(Required)** `/Sources/OUT_KIT`
-    * **(Required)** `/Sources/WK-Linux-2018-01-01-x86_64.iso`
-    * **(Required)** `/Sources/WK-WinPE-2018-01-01-amd64.iso`
-    * _(Optional)_ `/Sources/Extras/Essential Windows Updates`
-    * _(Optional)_ `/Sources/Extras/images/Win7.wim`
-    * _(Optional)_ `/Sources/Extras/images/Win8.wim`
-    * _(Optional)_ `/Sources/Extras/images/Win10.esd`
-* Connect the UFD but don't mount it.
-* Mount the device, or connect to the share, with the ISOs and Main Kit folder.
-* $ `cd /Sources` _(replace with real path to source files)_
-* Get the device name of the UFD.
-  * You can use $ `lsblk --fs` or $ `inxi -Dxx` to help.
-* $ `sudo build-ufd /dev/sdX` _(replace `/dev/sdX` with the desired device)_
-  * **2nd Warning**: All data will be erased from the UFD resulting in **DATA LOSS**.
 
 ## Notes ##
 1. PowerShell 6.0 on Windows 7 is not supported by the build script.
