@@ -325,6 +325,7 @@ fi
 ##############################################################################
 
 function __b3bp_cleanup_before_exit () {
+  umount /mnt/{Dest,Linux,WinPE} -R
   if [[ "${?}" != "0" ]]; then
     info "Sources unmounted"
   fi
@@ -444,19 +445,19 @@ YELLOW="\e[33m"
 BLUE="\e[34m"
 
 # Load main.py settings
-if [ ! -f "$MAIN_PY" ]; then
-    echo -e "${RED}ERROR${CLEAR}: $MAIN_PY not found."
+if [ ! -f "${MAIN_PY}" ]; then
+    echo -e "${RED}ERROR${CLEAR}: ${MAIN_PY} not found."
     abort
 fi
 while read line; do
-    if echo "$line" | egrep -q "^\w+='"; then
-        line="$(echo "$line" | sed -r 's/[\r\n]+//')"
-        eval "$line"
+    if echo "${line}" | egrep -q "^\w+='"; then
+        line="$(echo "${line}" | sed -r 's/[\r\n]+//')"
+        eval "${line}"
     fi
-done < "$MAIN_PY"
+done < "${MAIN_PY}"
 if [ -z ${KIT_NAME_FULL+x} ]; then
     # KIT_NAME_FULL is not set, assume main.py missing or malformatted
-    echo -e "${RED}ERROR${CLEAR}: failed to load settings from $MAIN_PY"
+    echo -e "${RED}ERROR${CLEAR}: failed to load settings from ${MAIN_PY}"
     abort
 fi
 UFD_LABEL="${KIT_NAME_SHORT}_LINUX"
@@ -476,7 +477,7 @@ if ! tmux list-session 2>/dev/null | grep -q "build-ufd"; then
 fi
 
 # Header
-echo -e "${GREEN}$KIT_NAME_FULL${CLEAR}: UFD Build Tool"
+echo -e "${GREEN}${KIT_NAME_FULL}${CLEAR}: UFD Build Tool"
 echo ""
 
 # Verify sources
@@ -513,14 +514,73 @@ else
     abort
 fi
 
-# Debug
-info "arg_u: ${arg_u}"
-info "arg_m: ${arg_m}"
-info "arg_l: ${arg_l}"
-info "arg_w: ${arg_w}"
-info "arg_e: ${arg_e}"
-info "arg_h: ${arg_h}"
-info "arg_d: ${arg_d}"
-info "arg_v: ${arg_v}"
-info "arg_F: ${arg_F}"
-read -r -p "Done? " meh
+# Start Build
+echo ""
+echo -e "${GREEN}Building Kit${CLEAR}"
+touch "${LOG_FILE}"
+tmux split-window -dl 10 tail -f "${LOG_FILE}"
+
+# Format
+echo "Formatting drive..."
+parted "${DEST_DEV}" -s -- mklabel msdos mkpart primary fat32 1MiB -1s >> "${LOG_FILE}" 2>&1
+parted "${DEST_DEV}" set 1 boot on >> "${LOG_FILE}" 2>&1
+mkfs.vfat -F 32 -n "${UFD_LABEL}" "${DEST_PAR}" >> "${LOG_FILE}" 2>&1
+
+# Mount sources and dest
+echo "Mounting sources and destination..."
+mkdir /mnt/{Dest,Linux,WinPE} -p >> "${LOG_FILE}" 2>&1
+mount ${DEST_PAR} /mnt/Dest >> "${LOG_FILE}" 2>&1
+mount "${LINUX_ISO}" /mnt/Linux -r >> "${LOG_FILE}" 2>&1
+mount "${WINPE_ISO}" /mnt/WinPE -r >> "${LOG_FILE}" 2>&1
+
+# Copy files
+echo "Copying Linux files..."
+rsync ${RSYNC_ARGS} /mnt/Linux/* /mnt/Dest/ >> "${LOG_FILE}" 2>&1
+
+echo "Copying WinPE files..."
+rsync ${RSYNC_ARGS} /mnt/WinPE/{Boot,bootmgr{,.efi},en-us,sources} /mnt/Dest/ >> "${LOG_FILE}" 2>&1
+rsync ${RSYNC_ARGS} /mnt/WinPE/EFI/Microsoft /mnt/Dest/EFI/ >> "${LOG_FILE}" 2>&1
+rsync ${RSYNC_ARGS} /mnt/WinPE/EFI/Boot/* /mnt/Dest/EFI/Microsoft/ >> "${LOG_FILE}" 2>&1
+rsync ${RSYNC_ARGS} /mnt/WinPE/{Boot/{BCD,boot.sdi},bootmgr} /mnt/Dest/sources/ >> "${LOG_FILE}" 2>&1
+
+echo "Copying Main Kit..."
+rsync ${RSYNC_ARGS} "${MAIN_KIT}/" "/mnt/Dest/${KIT_NAME_FULL}/" >> "${LOG_FILE}" 2>&1
+if [ "${EXTRA_DIR}" != "__None__" ]; then
+    echo "Copying Extra files..."
+    rsync ${RSYNC_ARGS} "${EXTRA_DIR}"/* /mnt/Dest/ >> "${LOG_FILE}" 2>&1
+fi
+
+# Install syslinux
+echo "Copying Syslinux files..."
+rsync ${RSYNC_ARGS} /usr/lib/syslinux/bios/*.c32 /mnt/Dest/arch/boot/syslinux/ >> "${LOG_FILE}" 2>&1
+syslinux --install -d /arch/boot/syslinux/ ${DEST_PAR} >> "${LOG_FILE}" 2>&1
+
+echo "Unmounting destination..."
+umount /mnt/Dest >> "${LOG_FILE}" 2>&1
+sync
+
+echo "Installing Syslinux MBR..."
+dd bs=440 count=1 if=/usr/lib/syslinux/bios/mbr.bin of=${DEST_DEV} >> "${LOG_FILE}" 2>&1
+sync
+
+# Cleanup
+echo "Hiding boot files..."
+echo "drive s: file=\"${DEST_PAR}\"" > /root/.mtoolsrc
+echo 'mtools_skip_check=1' >> /root/.mtoolsrc
+for item in boot{,mgr,mgr.efi} efi en-us images isolinux sources "${KIT_NAME_FULL}"/{.bin,.cbin}; do
+    yes | mattrib +h "S:/${item}" >> "${LOG_FILE}" 2>&1 || true
+done
+sync
+
+# Unmount Sources
+echo "Unmounting sources..."
+umount /mnt/{Linux,WinPE} -R >> "${LOG_FILE}" 2>&1
+
+# Close progress pane
+pkill -f "tail.*${LOG_FILE}"
+
+# Done
+echo ""
+echo "Done."
+echo ""
+exit 0
