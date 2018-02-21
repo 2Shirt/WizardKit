@@ -412,16 +412,13 @@ def update_hwinfo():
         kill_process(exe)
     
     # Download
-    download_to_temp('HWiNFO32.zip', SOURCE_URLS['HWiNFO32'])
-    download_to_temp('HWiNFO64.zip', SOURCE_URLS['HWiNFO64'])
+    download_to_temp('HWiNFO.zip', SOURCE_URLS['HWiNFO'])
     
     # Extract files
-    extract_temp_to_bin('HWiNFO32.zip', 'HWiNFO')
-    extract_temp_to_bin('HWiNFO64.zip', 'HWiNFO')
+    extract_temp_to_bin('HWiNFO.zip', 'HWiNFO')
     
     # Cleanup
-    remove_from_temp('HWiNFO32.zip')
-    remove_from_temp('HWiNFO64.zip')
+    remove_from_temp('HWiNFO.zip')
 
 def update_produkey():
     # Stop running processes
