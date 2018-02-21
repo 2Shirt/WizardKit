@@ -547,7 +547,7 @@ rsync ${RSYNC_ARGS} /mnt/WinPE/{Boot/{BCD,boot.sdi},bootmgr} /mnt/Dest/sources/ 
 echo "Copying Main Kit..."
 rsync ${RSYNC_ARGS} "${MAIN_KIT}/" "/mnt/Dest/${KIT_NAME_FULL}/" >> "${LOG_FILE}" 2>&1
 
-if [ "${EXTRA_DIR}" != "__None__" ]; then
+if [[ ! -z "${EXTRA_DIR:-}" ]]; then
     echo "Copying Extra files..."
     rsync ${RSYNC_ARGS} "${EXTRA_DIR}"/* /mnt/Dest/ >> "${LOG_FILE}" 2>&1
 fi
