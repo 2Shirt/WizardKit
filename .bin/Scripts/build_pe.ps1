@@ -136,8 +136,8 @@ if ($MyInvocation.InvocationName -ne ".") {
             # ConEmu
             @("ConEmuPack.7z", "https://github.com/Maximus5/ConEmu/releases/download/v17.11.09/ConEmuPack.171109.7z"),
             # Fast Copy
-            @("fastcopy64.zip", "http://ftp.vector.co.jp/69/76/2323/FastCopy340_x64.zip"),
-            @("fastcopy32.zip", "http://ftp.vector.co.jp/69/76/2323/FastCopy340.zip"),
+            @("fastcopy64.zip", "http://ftp.vector.co.jp/69/93/2323/FastCopy341_x64.zip"),
+            @("fastcopy32.zip", "http://ftp.vector.co.jp/69/93/2323/FastCopy341.zip"),
             # HWiNFO
             @("hwinfo.zip", "ftp://ftp.sac.sk/sac/utildiag/hwi_572.zip"),
             # Killer Network Drivers
@@ -146,8 +146,8 @@ if ($MyInvocation.InvocationName -ne ".") {
                 ("http://www.killernetworking.com"+(FindDynamicUrl "http://www.killernetworking.com/driver-downloads/item/killer-drivers-inf" "Download Killer-Ethernet").replace('&amp;', '&'))
             ),
             # Notepad++
-            @("npp_amd64.7z", "https://notepad-plus-plus.org/repository/7.x/7.5.2/npp.7.5.2.bin.minimalist.x64.7z"),
-            @("npp_x86.7z", "https://notepad-plus-plus.org/repository/7.x/7.5.2/npp.7.5.2.bin.minimalist.7z"),
+            @("npp_amd64.7z", "https://notepad-plus-plus.org/repository/7.x/7.5.4/npp.7.5.4.bin.minimalist.x64.7z"),
+            @("npp_x86.7z", "https://notepad-plus-plus.org/repository/7.x/7.5.4/npp.7.5.4.bin.minimalist.7z"),
             # NT Password Editor
             @("ntpwed.zip", "http://cdslow.org.ru/files/ntpwedit/ntpwed07.zip"),
             # Prime95
