@@ -17,7 +17,7 @@ SOURCE_URLS = {
     'FastCopy32': 'http://ftp.vector.co.jp/69/93/2323/FastCopy341.zip',
     'FastCopy64': 'http://ftp.vector.co.jp/69/93/2323/FastCopy341_x64.zip',
     'Firefox uBO': 'https://addons.cdn.mozilla.net/user-media/addons/607454/ublock_origin-1.15.10-an+fx.xpi?filehash=sha256%3A30b258803fd6cd988c5ba479f2f6ff5b4e9b40110c81e3421a6867b20ec718a6',
-    'HWiNFO': 'https://www.hwinfo.com/files/hwi_572.zip',
+    'HWiNFO': 'https://www.fosshub.com/HWiNFO.html/hwi_572.zip',
     'HitmanPro32': 'https://dl.surfright.nl/HitmanPro.exe',
     'HitmanPro64': 'https://dl.surfright.nl/HitmanPro_x64.exe',
     'IOBit_Uninstaller': 'https://portableapps.com/redirect/?a=IObitUninstallerPortable&t=http%3A%2F%2Fdownloads.portableapps.com%2Fportableapps%2Fiobituninstallerportable%2FIObitUninstallerPortable_7.3.0.13.paf.exe',

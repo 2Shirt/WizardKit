@@ -139,8 +139,7 @@ if ($MyInvocation.InvocationName -ne ".") {
             @("fastcopy64.zip", "http://ftp.vector.co.jp/69/76/2323/FastCopy340_x64.zip"),
             @("fastcopy32.zip", "http://ftp.vector.co.jp/69/76/2323/FastCopy340.zip"),
             # HWiNFO
-            @("hwinfo64.zip", "http://app.oldfoss.com:81/download/HWiNFO/hw64_560.zip"),
-            @("hwinfo32.zip", "http://app.oldfoss.com:81/download/HWiNFO/hw32_560.zip"),
+            @("hwinfo.zip", "ftp://ftp.sac.sk/sac/utildiag/hwi_572.zip"),
             # Killer Network Drivers
             @(
                 "killerinf.zip",
@@ -295,14 +294,14 @@ if ($MyInvocation.InvocationName -ne ".") {
         Write-Host "Extracting: HWiNFO"
         try {
             $ArgumentList = @(
-                "e", "$Temp\hwinfo64.zip", "-o$Build\bin\amd64\HWiNFO",
+                "e", "$Temp\hwinfo.zip", "-o$Build\bin\amd64\HWiNFO",
                 "-aoa", "-bso0", "-bse0", "-bsp0", "HWiNFO64.exe")
             Start-Process -FilePath $SevenZip -ArgumentList $ArgumentList -NoNewWindow -Wait
             $ArgumentList = @(
-                "e", "$Temp\hwinfo32.zip", "-o$Build\bin\x86\HWiNFO",
+                "e", "$Temp\hwinfo.zip", "-o$Build\bin\x86\HWiNFO",
                 "-aoa", "-bso0", "-bse0", "-bsp0", "HWiNFO32.exe")
             Start-Process -FilePath $SevenZip -ArgumentList $ArgumentList -NoNewWindow -Wait
-            Remove-Item "$Temp\hwinfo*"
+            # Remove-Item "$Temp\hwinfo.zip"
             Move-Item "$Build\bin\amd64\HWiNFO\HWiNFO64.exe" "$Build\bin\amd64\HWiNFO\HWiNFO.exe" -Force
             Move-Item "$Build\bin\x86\HWiNFO\HWiNFO32.exe" "$Build\bin\x86\HWiNFO\HWiNFO.exe" -Force
         }
