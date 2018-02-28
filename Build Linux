@@ -32,7 +32,7 @@ fi
 
 function ask() {
     while :; do
-        read -p "$1 " -r answer
+        read -p "$1 [Y/N] " -r answer
         if echo "$answer" | egrep -iq '^(y|yes|sure)$'; then
             return 0
         elif echo "$answer" | egrep -iq '^(n|no|nope)$'; then
@@ -122,10 +122,20 @@ function run_elevated() {
     prog="$1"
     shift
     if which sudo >/dev/null 2>&1; then
-        sudo "$prog" $*
+        if ! sudo "$prog" $*; then
+            echo "ERROR: Failed to run '$prog'"
+            if ask "Retry?"; then
+                sudo "$prog" $*
+            fi
+        fi
     else
         echo -n "Root "
-        su -c "export REAL_USER=$USER && '$prog' $*"
+        if ! su -c "export REAL_USER=$USER && '$prog' $*"; then
+            echo "ERROR: Failed to run '$prog'"
+            if ask "Retry?"; then
+                su -c "export REAL_USER=$USER && '$prog' $*"
+            fi
+        fi
     fi
 }
 
