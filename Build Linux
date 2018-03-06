@@ -273,7 +273,7 @@ function update_repo() {
         curl -LsfO https://aur.archlinux.org/cgit/aur.git/snapshot/$p.tar.gz
         tar xf $p.tar.gz
         pushd $p >/dev/null
-        makepkg -s --noconfirm
+        makepkg -d
         popd >/dev/null
         mv -n $p/*xz "$REPO_DIR"/
     done < "$ROOT_DIR/.linux_items/packages/aur"
