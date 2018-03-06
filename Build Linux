@@ -71,20 +71,26 @@ function load_settings() {
     ## Answer:      https://stackoverflow.com/a/13864829
     ## Answer by:   https://stackoverflow.com/users/1633643/lionel
     ## Answer edit: https://stackoverflow.com/users/-1/community
+    _main_path="$BUILD_DIR/main.py"
     if [ ! -z ${KIT_NAME_FULL+x} ]; then
         # KIT_NAME_FULL is set
         return 0 # Skip loading settings from main.py
     fi
 
-    # Copy settings
-    if [[ ! -e "$BUILD_DIR/main.py" ]] || ask "Overwrite main.py?"; then
-        cp -bv "$ROOT_DIR/.bin/Scripts/settings/main.py" "$BUILD_DIR/main.py"
-        dos2unix "$BUILD_DIR/main.py"
-    fi
+    if [[ "${1:-}" == "--edit" ]]; then
+        # Copy settings
+        if [[ ! -e "$BUILD_DIR/main.py" ]] || ask "Overwrite main.py?"; then
+            cp -bv "$ROOT_DIR/.bin/Scripts/settings/main.py" "$BUILD_DIR/main.py"
+            dos2unix "$BUILD_DIR/main.py"
+        fi
 
-    # Edit settings
-    read -p "Press Enter to open settings... " -r
-    "$EDITOR" "$BUILD_DIR/main.py"
+        # Edit settings
+        read -p "Press Enter to open settings... " -r
+        "$EDITOR" "$BUILD_DIR/main.py"
+    else
+        # Load settings from $LIVE_DIR
+        _main_path="$LIVE_DIR/airootfs/usr/local/bin/settings/main.py"
+    fi
 
     # Load settings
     while read line; do
@@ -92,7 +98,7 @@ function load_settings() {
             line="$(echo "$line" | sed -r 's/[\r\n]+//')"
             eval "$line"
         fi
-    done < "$BUILD_DIR/main.py"
+    done < "$_main_path"
 }
 
 function copy_live_env() {
@@ -325,6 +331,7 @@ function build_iso() {
 
     echo "Reverting permissions..."
     chown $REAL_USER:$REAL_USER "$LIVE_DIR" -R
+    chown $REAL_USER:$REAL_USER "$OUT_DIR" -R
 }
 
 function build_full() {
@@ -338,7 +345,7 @@ function build_full() {
     cleanup
     fix_kit_permissions
     install_deps
-    load_settings
+    load_settings --edit
     update_repo
     copy_live_env
     update_live_env
@@ -370,7 +377,7 @@ case ${1:-} in
         ;;
     
     -p|--prep-live-env)
-        load_settings
+        load_settings --edit
         copy_live_env
         update_live_env
         echo Done
