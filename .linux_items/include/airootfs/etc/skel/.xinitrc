@@ -11,7 +11,7 @@ sleep 1s
 conky -d
 nm-applet &
 cbatticon &
-pasystray &
+volumeicon &
 connect-to-network &
 (sleep 5s && killall dunst) &
 $HOME/.urxvt_default_res &
