@@ -6,6 +6,7 @@ dos2unix
 git
 hwloc
 lhasa
+libbsd
 libewf
 openssh
 p7zip
