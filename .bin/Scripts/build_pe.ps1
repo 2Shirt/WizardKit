@@ -128,13 +128,13 @@ if ($MyInvocation.InvocationName -ne ".") {
         ## Download Tools ##
         $ToolSources = @(
             # 7-Zip
-            @("7z-installer.msi", "http://www.7-zip.org/a/7z1701.msi"),
-            @("7z-extra.7z", "http://www.7-zip.org/a/7z1701-extra.7z"),
+            @("7z-installer.msi", "http://www.7-zip.org/a/7z1801.msi"),
+            @("7z-extra.7z", "http://www.7-zip.org/a/7z1801-extra.7z"),
             # Blue Screen View
             @("bluescreenview64.zip", "http://www.nirsoft.net/utils/bluescreenview-x64.zip"),
             @("bluescreenview32.zip", "http://www.nirsoft.net/utils/bluescreenview.zip"),
             # ConEmu
-            @("ConEmuPack.7z", "https://github.com/Maximus5/ConEmu/releases/download/v17.11.09/ConEmuPack.171109.7z"),
+            @("ConEmuPack.7z", "https://github.com/Maximus5/ConEmu/releases/download/v18.02.06/ConEmuPack.180206.7z"),
             # Fast Copy
             @("fastcopy64.zip", "http://ftp.vector.co.jp/69/93/2323/FastCopy341_x64.zip"),
             @("fastcopy32.zip", "http://ftp.vector.co.jp/69/93/2323/FastCopy341.zip"),
@@ -146,19 +146,19 @@ if ($MyInvocation.InvocationName -ne ".") {
                 ("http://www.killernetworking.com"+(FindDynamicUrl "http://www.killernetworking.com/driver-downloads/item/killer-drivers-inf" "Download Killer-Ethernet").replace('&amp;', '&'))
             ),
             # Notepad++
-            @("npp_amd64.7z", "https://notepad-plus-plus.org/repository/7.x/7.5.4/npp.7.5.4.bin.minimalist.x64.7z"),
-            @("npp_x86.7z", "https://notepad-plus-plus.org/repository/7.x/7.5.4/npp.7.5.4.bin.minimalist.7z"),
+            @("npp_amd64.7z", "https://notepad-plus-plus.org/repository/7.x/7.5.5/npp.7.5.5.bin.minimalist.x64.7z"),
+            @("npp_x86.7z", "https://notepad-plus-plus.org/repository/7.x/7.5.5/npp.7.5.5.bin.minimalist.7z"),
             # NT Password Editor
             @("ntpwed.zip", "http://cdslow.org.ru/files/ntpwedit/ntpwed07.zip"),
             # Prime95
-            @("prime95_64.zip", "http://www.mersenne.org/ftp_root/gimps/p95v294b5.win64.zip"),
-            @("prime95_32.zip", "http://www.mersenne.org/ftp_root/gimps/p95v294b5.win32.zip"),
+            @("prime95_64.zip", "http://www.mersenne.org/ftp_root/gimps/p95v294b8.win64.zip"),
+            @("prime95_32.zip", "http://www.mersenne.org/ftp_root/gimps/p95v294b7.win32.zip"),
             # ProduKey
             @("produkey64.zip", "http://www.nirsoft.net/utils/produkey-x64.zip"),
             @("produkey32.zip", "http://www.nirsoft.net/utils/produkey.zip"),
             # Python
-            @("python64.zip", "https://www.python.org/ftp/python/3.6.3/python-3.6.3-embed-amd64.zip"),
-            @("python32.zip", "https://www.python.org/ftp/python/3.6.3/python-3.6.3-embed-win32.zip"),
+            @("python64.zip", "https://www.python.org/ftp/python/3.6.4/python-3.6.4-embed-amd64.zip"),
+            @("python32.zip", "https://www.python.org/ftp/python/3.6.4/python-3.6.4-embed-win32.zip"),
             # Python: psutil
             @(
                 "psutil64.whl",
