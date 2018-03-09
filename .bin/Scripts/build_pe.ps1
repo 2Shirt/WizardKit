@@ -141,7 +141,7 @@ if ($MyInvocation.InvocationName -ne ".") {
             @("fastcopy64.zip", "http://ftp.vector.co.jp/69/93/2323/FastCopy341_x64.zip"),
             @("fastcopy32.zip", "http://ftp.vector.co.jp/69/93/2323/FastCopy341.zip"),
             # HWiNFO
-            @("hwinfo.zip", "ftp://ftp.sac.sk/sac/utildiag/hwi_572.zip"),
+            @("hwinfo.zip", "http://app.oldfoss.com:81/download/HWiNFO/hwi_574.zip"),
             # Killer Network Drivers
             @(
                 "killerinf.zip",

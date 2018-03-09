@@ -411,14 +411,8 @@ def update_hwinfo():
     for exe in ['HWiNFO32.exe', 'HWiNFO64.exe']:
         kill_process(exe)
     
-    # Get url
-    url = resolve_dynamic_url(
-        SOURCE_URLS['HWiNFO'],
-        '.*download.fosshub.*HWiNFO/hwi.*zip')
-    url = re.sub(r'.*src="([^"]+)".*', r'\1', url)
-    
     # Download
-    download_to_temp('HWiNFO.zip', url)
+    download_to_temp('HWiNFO.zip', SOURCE_URLS['HWiNFO'])
     
     # Extract files
     extract_temp_to_bin('HWiNFO.zip', 'HWiNFO')
