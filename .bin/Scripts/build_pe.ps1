@@ -18,6 +18,8 @@ $Host.UI.RawUI.BackgroundColor = "Black"
 $Host.UI.RawUI.ForegroundColor = "White"
 $HostSystem32 = "{0}\System32" -f $Env:SystemRoot
 $DISM = "{0}\DISM.exe" -f $Env:DISMRoot
+#Enable TLS 1.2
+[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 
 ## Functions ##
 function Ask-User ($text = "Kotaero") {

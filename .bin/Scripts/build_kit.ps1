@@ -14,6 +14,8 @@ $System32 = "{0}\System32" -f $Env:SystemRoot
 Push-Location "$WD"
 $Host.UI.RawUI.BackgroundColor = "black"
 $Host.UI.RawUI.ForegroundColor = "white"
+#Enable TLS 1.2
+[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 
 
 ## Functions ##
