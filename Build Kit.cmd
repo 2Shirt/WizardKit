@@ -9,6 +9,7 @@ call :CheckFlags %*
 
 :PrepNewKit
 rem Copy base files to a new folder OUT_KIT
+robocopy /e .kit_items OUT_KIT
 robocopy /e .bin OUT_KIT\.bin
 robocopy /e .cbin OUT_KIT\.cbin
 copy LICENSE.txt OUT_KIT\LICENSE.txt
