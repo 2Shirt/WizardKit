@@ -18,6 +18,8 @@ $Host.UI.RawUI.BackgroundColor = "Black"
 $Host.UI.RawUI.ForegroundColor = "White"
 $HostSystem32 = "{0}\System32" -f $Env:SystemRoot
 $DISM = "{0}\DISM.exe" -f $Env:DISMRoot
+#Enable TLS 1.2
+[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 
 ## Functions ##
 function Ask-User ($text = "Kotaero") {
@@ -128,38 +130,37 @@ if ($MyInvocation.InvocationName -ne ".") {
         ## Download Tools ##
         $ToolSources = @(
             # 7-Zip
-            @("7z-installer.msi", "http://www.7-zip.org/a/7z1701.msi"),
-            @("7z-extra.7z", "http://www.7-zip.org/a/7z1701-extra.7z"),
+            @("7z-installer.msi", "http://www.7-zip.org/a/7z1801.msi"),
+            @("7z-extra.7z", "http://www.7-zip.org/a/7z1801-extra.7z"),
             # Blue Screen View
             @("bluescreenview64.zip", "http://www.nirsoft.net/utils/bluescreenview-x64.zip"),
             @("bluescreenview32.zip", "http://www.nirsoft.net/utils/bluescreenview.zip"),
             # ConEmu
-            @("ConEmuPack.7z", "https://github.com/Maximus5/ConEmu/releases/download/v17.11.09/ConEmuPack.171109.7z"),
+            @("ConEmuPack.7z", "https://github.com/Maximus5/ConEmu/releases/download/v18.02.06/ConEmuPack.180206.7z"),
             # Fast Copy
-            @("fastcopy64.zip", "http://ftp.vector.co.jp/69/76/2323/FastCopy340_x64.zip"),
-            @("fastcopy32.zip", "http://ftp.vector.co.jp/69/76/2323/FastCopy340.zip"),
+            @("fastcopy64.zip", "http://ftp.vector.co.jp/69/93/2323/FastCopy341_x64.zip"),
+            @("fastcopy32.zip", "http://ftp.vector.co.jp/69/93/2323/FastCopy341.zip"),
             # HWiNFO
-            @("hwinfo64.zip", "http://app.oldfoss.com:81/download/HWiNFO/hw64_560.zip"),
-            @("hwinfo32.zip", "http://app.oldfoss.com:81/download/HWiNFO/hw32_560.zip"),
+            @("hwinfo.zip", "http://app.oldfoss.com:81/download/HWiNFO/hwi_574.zip"),
             # Killer Network Drivers
             @(
                 "killerinf.zip",
                 ("http://www.killernetworking.com"+(FindDynamicUrl "http://www.killernetworking.com/driver-downloads/item/killer-drivers-inf" "Download Killer-Ethernet").replace('&amp;', '&'))
             ),
             # Notepad++
-            @("npp_amd64.7z", "https://notepad-plus-plus.org/repository/7.x/7.5.2/npp.7.5.2.bin.minimalist.x64.7z"),
-            @("npp_x86.7z", "https://notepad-plus-plus.org/repository/7.x/7.5.2/npp.7.5.2.bin.minimalist.7z"),
+            @("npp_amd64.7z", "https://notepad-plus-plus.org/repository/7.x/7.5.5/npp.7.5.5.bin.minimalist.x64.7z"),
+            @("npp_x86.7z", "https://notepad-plus-plus.org/repository/7.x/7.5.5/npp.7.5.5.bin.minimalist.7z"),
             # NT Password Editor
             @("ntpwed.zip", "http://cdslow.org.ru/files/ntpwedit/ntpwed07.zip"),
             # Prime95
-            @("prime95_64.zip", "http://www.mersenne.org/ftp_root/gimps/p95v294b5.win64.zip"),
-            @("prime95_32.zip", "http://www.mersenne.org/ftp_root/gimps/p95v294b5.win32.zip"),
+            @("prime95_64.zip", "http://www.mersenne.org/ftp_root/gimps/p95v294b8.win64.zip"),
+            @("prime95_32.zip", "http://www.mersenne.org/ftp_root/gimps/p95v294b7.win32.zip"),
             # ProduKey
             @("produkey64.zip", "http://www.nirsoft.net/utils/produkey-x64.zip"),
             @("produkey32.zip", "http://www.nirsoft.net/utils/produkey.zip"),
             # Python
-            @("python64.zip", "https://www.python.org/ftp/python/3.6.3/python-3.6.3-embed-amd64.zip"),
-            @("python32.zip", "https://www.python.org/ftp/python/3.6.3/python-3.6.3-embed-win32.zip"),
+            @("python64.zip", "https://www.python.org/ftp/python/3.6.4/python-3.6.4-embed-amd64.zip"),
+            @("python32.zip", "https://www.python.org/ftp/python/3.6.4/python-3.6.4-embed-win32.zip"),
             # Python: psutil
             @(
                 "psutil64.whl",
@@ -295,14 +296,14 @@ if ($MyInvocation.InvocationName -ne ".") {
         Write-Host "Extracting: HWiNFO"
         try {
             $ArgumentList = @(
-                "e", "$Temp\hwinfo64.zip", "-o$Build\bin\amd64\HWiNFO",
+                "e", "$Temp\hwinfo.zip", "-o$Build\bin\amd64\HWiNFO",
                 "-aoa", "-bso0", "-bse0", "-bsp0", "HWiNFO64.exe")
             Start-Process -FilePath $SevenZip -ArgumentList $ArgumentList -NoNewWindow -Wait
             $ArgumentList = @(
-                "e", "$Temp\hwinfo32.zip", "-o$Build\bin\x86\HWiNFO",
+                "e", "$Temp\hwinfo.zip", "-o$Build\bin\x86\HWiNFO",
                 "-aoa", "-bso0", "-bse0", "-bsp0", "HWiNFO32.exe")
             Start-Process -FilePath $SevenZip -ArgumentList $ArgumentList -NoNewWindow -Wait
-            Remove-Item "$Temp\hwinfo*"
+            # Remove-Item "$Temp\hwinfo.zip"
             Move-Item "$Build\bin\amd64\HWiNFO\HWiNFO64.exe" "$Build\bin\amd64\HWiNFO\HWiNFO.exe" -Force
             Move-Item "$Build\bin\x86\HWiNFO\HWiNFO32.exe" "$Build\bin\x86\HWiNFO\HWiNFO.exe" -Force
         }

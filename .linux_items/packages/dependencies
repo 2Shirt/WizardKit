@@ -5,10 +5,15 @@ curl
 dos2unix
 git
 hwloc
+lhasa
+libbsd
 libewf
+ntfs-3g
 openssh
 p7zip
+pango
 progsreiserfs
 refind-efi
 rsync
+subversion
 syslinux

@@ -571,8 +571,12 @@ def wait_for_process(name, poll_rate=3):
         sleep(poll_rate)
         running = False
         for proc in psutil.process_iter():
-            if re.search(r'^{}'.format(name), proc.name(), re.IGNORECASE):
-                running = True
+            try:
+                if re.search(r'^{}'.format(name), proc.name(), re.IGNORECASE):
+                    running = True
+            except psutil._exceptions.NoSuchProcess:
+                # Assuming process closed during iteration
+                pass
     sleep(1)
 
 # global_vars functions

@@ -1,0 +1,32 @@
+#!/bin/bash
+#
+## Wizard Kit: RAW image mounting tool
+
+set -o errexit
+set -o errtrace
+set -o nounset
+set -o pipefail
+
+LOOPDEV="$(losetup -f)"
+
+function usage {
+    echo "Usage: $(basename "$0") [image]"
+    echo "  e.g. $(basename "$0") HDD.dd"
+}
+
+if [[ -f "${1:-}" ]]; then
+    sudo losetup -P "${LOOPDEV}" "${1:-}"
+    sleep 1
+    if [[ -b "${LOOPDEV}p1" ]]; then
+        # losetup detected partitions
+        for dev in "${LOOPDEV}p"*; do
+            udevil mount -o ro "${dev}" || true
+        done
+    else
+        # losetup did not detect partitions, attempt whole image
+        udevil mount -o to "${LOOPDEV}" || true
+    fi
+else
+    usage
+    exit 1
+fi

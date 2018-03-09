@@ -14,6 +14,8 @@ $System32 = "{0}\System32" -f $Env:SystemRoot
 Push-Location "$WD"
 $Host.UI.RawUI.BackgroundColor = "black"
 $Host.UI.RawUI.ForegroundColor = "white"
+#Enable TLS 1.2
+[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 
 
 ## Functions ##
@@ -76,21 +78,21 @@ if ($MyInvocation.InvocationName -ne ".") {
     $Path = $Temp
 
     # 7-Zip
-    DownloadFile -Path $Path -Name "7z-installer.msi" -Url "http://www.7-zip.org/a/7z1701.msi"
-    DownloadFile -Path $Path -Name "7z-extra.7z" -Url "http://www.7-zip.org/a/7z1701-extra.7z"
+    DownloadFile -Path $Path -Name "7z-installer.msi" -Url "http://www.7-zip.org/a/7z1801.msi"
+    DownloadFile -Path $Path -Name "7z-extra.7z" -Url "http://www.7-zip.org/a/7z1801-extra.7z"
 
     # ConEmu
-    $Url = "https://github.com/Maximus5/ConEmu/releases/download/v17.11.09/ConEmuPack.171109.7z"
+    $Url = "https://github.com/Maximus5/ConEmu/releases/download/v18.02.06/ConEmuPack.180206.7z"
     DownloadFile -Path $Path -Name "ConEmuPack.7z" -Url $Url
 
     # Notepad++
-    $Url = "https://notepad-plus-plus.org/repository/7.x/7.5.2/npp.7.5.2.bin.minimalist.7z"
+    $Url = "https://notepad-plus-plus.org/repository/7.x/7.5.5/npp.7.5.5.bin.minimalist.7z"
     DownloadFile -Path $Path -Name "npp.7z" -Url $Url
 
     # Python
-    $Url = "https://www.python.org/ftp/python/3.6.3/python-3.6.3-embed-win32.zip"
+    $Url = "https://www.python.org/ftp/python/3.6.4/python-3.6.4-embed-win32.zip"
     DownloadFile -Path $Path -Name "python32.zip" -Url $Url
-    $Url = "https://www.python.org/ftp/python/3.6.3/python-3.6.3-embed-amd64.zip"
+    $Url = "https://www.python.org/ftp/python/3.6.4/python-3.6.4-embed-amd64.zip"
     DownloadFile -Path $Path -Name "python64.zip" -Url $Url
 
     # Python: psutil

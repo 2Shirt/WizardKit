@@ -1,6 +1,7 @@
 aic94xx-firmware
 alsa-utils
 antiword
+arc-gtk-theme
 bash-pipes
 bc
 bluez
@@ -22,7 +23,6 @@ firefox
 gnome-keyring
 gparted
 gsmartcontrol
-gtk-theme-arc-git
 hardinfo
 hexedit
 hfsprogs
@@ -53,10 +53,7 @@ openbox-patched
 otf-font-awesome-4
 p7zip
 papirus-icon-theme
-pasystray
-pavucontrol
 progsreiserfs
-pulseaudio
 python
 python-psutil
 python-requests
@@ -87,6 +84,7 @@ veracrypt
 vim
 virtualbox-guest-modules-arch
 virtualbox-guest-utils
+volumeicon
 wd719x-firmware
 wimlib
 xf86-input-libinput

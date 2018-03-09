@@ -150,6 +150,10 @@ def cleanup_transfer(dest_path):
                 except Exception:
                     pass
 
+def fix_path_sep(path_str):
+    """Replace non-native and duplicate dir separators, returns str."""
+    return re.sub(r'(\\|/)+', lambda s: os.sep, path_str)
+
 def is_valid_wim_file(item):
     """Checks if the provided os.DirEntry is a valid WIM file, returns bool."""
     valid = bool(item.is_file() and REGEX_WIM_FILE.search(item.name))
@@ -378,7 +382,7 @@ def list_source_items(source_obj, rel_path=None):
             raise
 
         # Strip non-root items
-        items = [re.sub(r'(\\|/)', os.sep, i.strip())
+        items = [fix_path_sep(i.strip())
             for i in items.stdout.decode('utf-8', 'ignore').splitlines()]
         if rel_path:
             items = [i.replace(rel_path, '') for i in items]
@@ -473,7 +477,7 @@ def scan_source(source_obj, dest_path, rel_path='', interactive=True):
 def get_source_item_obj(source_obj, rel_path, item_path):
     """Check if the item exists and return a SourceItem object if it does."""
     item_obj = None
-    item_path = re.sub(r'(\\|/)', os.sep, item_path)
+    item_path = fix_path_sep(item_path)
     if source_obj.is_dir():
         item_obj = SourceItem(
             name = item_path,

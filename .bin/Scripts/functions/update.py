@@ -412,16 +412,13 @@ def update_hwinfo():
         kill_process(exe)
     
     # Download
-    download_to_temp('HWiNFO32.zip', SOURCE_URLS['HWiNFO32'])
-    download_to_temp('HWiNFO64.zip', SOURCE_URLS['HWiNFO64'])
+    download_to_temp('HWiNFO.zip', SOURCE_URLS['HWiNFO'])
     
     # Extract files
-    extract_temp_to_bin('HWiNFO32.zip', 'HWiNFO')
-    extract_temp_to_bin('HWiNFO64.zip', 'HWiNFO')
+    extract_temp_to_bin('HWiNFO.zip', 'HWiNFO')
     
     # Cleanup
-    remove_from_temp('HWiNFO32.zip')
-    remove_from_temp('HWiNFO64.zip')
+    remove_from_temp('HWiNFO.zip')
 
 def update_produkey():
     # Stop running processes
@@ -757,17 +754,13 @@ def update_treesizefree():
     
     # Download
     download_to_temp(
-        'treesizefree.zip.gz', SOURCE_URLS['TreeSizeFree'])
+        'treesizefree.zip', SOURCE_URLS['TreeSizeFree'])
     
     # Extract files
-    ## NOTE: When downloaded using requests it is a .zip.gz?
-    source = r'{}\treesizefree.zip.gz'.format(global_vars['TmpDir'])
-    extract_generic(source, global_vars['TmpDir'])
     extract_temp_to_cbin('treesizefree.zip', 'TreeSizeFree')
     
     # Cleanup
     remove_from_temp('treesizefree.zip')
-    remove_from_temp('treesizefree.zip.gz')
 
 def update_xmplay():
     # Stop running processes

@@ -32,7 +32,7 @@ fi
 
 function ask() {
     while :; do
-        read -p "$1 " -r answer
+        read -p "$1 [Y/N] " -r answer
         if echo "$answer" | egrep -iq '^(y|yes|sure)$'; then
             return 0
         elif echo "$answer" | egrep -iq '^(n|no|nope)$'; then
@@ -71,20 +71,26 @@ function load_settings() {
     ## Answer:      https://stackoverflow.com/a/13864829
     ## Answer by:   https://stackoverflow.com/users/1633643/lionel
     ## Answer edit: https://stackoverflow.com/users/-1/community
+    _main_path="$BUILD_DIR/main.py"
     if [ ! -z ${KIT_NAME_FULL+x} ]; then
         # KIT_NAME_FULL is set
         return 0 # Skip loading settings from main.py
     fi
 
-    # Copy settings
-    if [[ ! -e "$BUILD_DIR/main.py" ]] || ask "Overwrite main.py?"; then
-        cp -bv "$ROOT_DIR/.bin/Scripts/settings/main.py" "$BUILD_DIR/main.py"
-        dos2unix "$BUILD_DIR/main.py"
-    fi
+    if [[ "${1:-}" == "--edit" ]]; then
+        # Copy settings
+        if [[ ! -e "$BUILD_DIR/main.py" ]] || ask "Overwrite main.py?"; then
+            cp -bv "$ROOT_DIR/.bin/Scripts/settings/main.py" "$BUILD_DIR/main.py"
+            dos2unix "$BUILD_DIR/main.py"
+        fi
 
-    # Edit settings
-    read -p "Press Enter to open settings... " -r
-    "$EDITOR" "$BUILD_DIR/main.py"
+        # Edit settings
+        read -p "Press Enter to open settings... " -r
+        "$EDITOR" "$BUILD_DIR/main.py"
+    else
+        # Load settings from $LIVE_DIR
+        _main_path="$LIVE_DIR/airootfs/usr/local/bin/settings/main.py"
+    fi
 
     # Load settings
     while read line; do
@@ -92,7 +98,7 @@ function load_settings() {
             line="$(echo "$line" | sed -r 's/[\r\n]+//')"
             eval "$line"
         fi
-    done < "$BUILD_DIR/main.py"
+    done < "$_main_path"
 }
 
 function copy_live_env() {
@@ -122,10 +128,20 @@ function run_elevated() {
     prog="$1"
     shift
     if which sudo >/dev/null 2>&1; then
-        sudo "$prog" $*
+        if ! sudo "$prog" $*; then
+            echo "ERROR: Failed to run '$prog'"
+            if ask "Retry?"; then
+                sudo "$prog" $*
+            fi
+        fi
     else
         echo -n "Root "
-        su -c "export REAL_USER=$USER && '$prog' $*"
+        if ! su -c "export REAL_USER=$USER && '$prog' $*"; then
+            echo "ERROR: Failed to run '$prog'"
+            if ask "Retry?"; then
+                su -c "export REAL_USER=$USER && '$prog' $*"
+            fi
+        fi
     fi
 }
 
@@ -263,7 +279,7 @@ function update_repo() {
         curl -LsfO https://aur.archlinux.org/cgit/aur.git/snapshot/$p.tar.gz
         tar xf $p.tar.gz
         pushd $p >/dev/null
-        makepkg -s --noconfirm
+        makepkg -d
         popd >/dev/null
         mv -n $p/*xz "$REPO_DIR"/
     done < "$ROOT_DIR/.linux_items/packages/aur"
@@ -315,6 +331,7 @@ function build_iso() {
 
     echo "Reverting permissions..."
     chown $REAL_USER:$REAL_USER "$LIVE_DIR" -R
+    chown $REAL_USER:$REAL_USER "$OUT_DIR" -R
 }
 
 function build_full() {
@@ -328,7 +345,7 @@ function build_full() {
     cleanup
     fix_kit_permissions
     install_deps
-    load_settings
+    load_settings --edit
     update_repo
     copy_live_env
     update_live_env
@@ -360,7 +377,7 @@ case ${1:-} in
         ;;
     
     -p|--prep-live-env)
-        load_settings
+        load_settings --edit
         copy_live_env
         update_live_env
         echo Done
