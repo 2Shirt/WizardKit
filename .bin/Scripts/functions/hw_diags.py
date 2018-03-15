@@ -437,7 +437,7 @@ def scan_disks():
             else:
                 # Skip WizardKit devices
                 wk_label = '{}_LINUX'.format(KIT_NAME_SHORT)
-                if wk_label not in [c.get('label', '') for c in d['children']]:
+                if wk_label not in [c.get('label', '') for c in d.get('children', [])]:
                     devs[d['name']] = {'lsblk': d}
                     TESTS['NVMe/SMART']['Status'][d['name']] = 'Pending'
                     TESTS['badblocks']['Status'][d['name']] = 'Pending'
