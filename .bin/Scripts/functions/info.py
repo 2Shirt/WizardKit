@@ -97,7 +97,7 @@ def backup_registry():
 def get_folder_size(path):
     """Get (human-readable) size of folder passed, returns str."""
     size = 'Unknown'
-    cmd = [global_vars['Tools']['Du'], '-nobanner', '-q', path]
+    cmd = [global_vars['Tools']['Du'], '-c', '-nobanner', '-q', path]
     try:
         out = run_program(cmd)
     except FileNotFoundError:
@@ -107,10 +107,13 @@ def get_folder_size(path):
         # Failed to get folder size
         pass
     else:
-        size = out.stdout.decode().splitlines()[4]
-        size = re.sub(r'Size:\s+([\d,]+)\sbytes$', r'\1', size)
-        size = size.replace(',', '')
-        size = human_readable_size(size)
+        try:
+            size = out.stdout.decode().split(',')[-2]
+        except IndexError:
+            # Failed to parse csv data
+            pass
+        else:
+            size = human_readable_size(size)
     return size
 
 def get_installed_office():
@@ -442,6 +445,11 @@ def show_user_data_summary(indent=8, width=32):
     users = [u for u in users if u['Active']]
     get_user_folder_sizes(users)
     for user in users:
+        if ('Size' not in user['Profile']
+            and not any(user['Shell Folders'])
+            and not any(user['Extra Folders'])):
+            # Skip empty users
+            continue
         print_success('{indent}User: {user}'.format(
             indent = ' '*int(indent/2),
             user = user['Name']))
