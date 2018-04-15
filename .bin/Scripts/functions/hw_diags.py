@@ -80,6 +80,7 @@ def menu_diags(*args):
         ]
     actions = [
         {'Letter': 'A', 'Name': 'Audio test'},
+        {'Letter': 'K', 'Name': 'Keyboard test'},
         {'Letter': 'N', 'Name': 'Network test'},
         {'Letter': 'M', 'Name': 'Screen Saver - Matrix', 'CRLF': True},
         {'Letter': 'P', 'Name': 'Screen Saver - Pipes'},
@@ -119,6 +120,8 @@ def menu_diags(*args):
         elif selection == 'A':
             run_program(['hw-diags-audio'], check=False, pipe=False)
             pause('Press Enter to return to main menu... ')
+        elif selection == 'K':
+            run_program(['xev', '-event', 'keyboard'], check=False, pipe=False)
         elif selection == 'N':
             run_program(['hw-diags-network'], check=False, pipe=False)
             pause('Press Enter to return to main menu... ')
