@@ -131,9 +131,9 @@ def clear_screen():
 def convert_to_bytes(size):
     """Convert human-readable size str to bytes and return an int."""
     size = str(size)
-    tmp = re.search(r'(\d+)\s+([KMGT]B)', size.upper())
+    tmp = re.search(r'(\d+\.?\d*)\s+([KMGT]B)', size.upper())
     if tmp:
-        size = int(tmp.group(1))
+        size = float(tmp.group(1))
         units = tmp.group(2)
         if units == 'TB':
             size *= 1099511627776
@@ -143,6 +143,7 @@ def convert_to_bytes(size):
             size *= 1048576
         elif units == 'KB':
             size *= 1024
+        size = int(size)
     else:
         return -1
 
