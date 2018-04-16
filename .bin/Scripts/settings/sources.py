@@ -1,7 +1,7 @@
 # Wizard Kit: Settings - Sources
 
 SOURCE_URLS = {
-    'AIDA64': 'http://download.aida64.com/aida64engineer597.exe',
+    'AIDA64': 'http://download.aida64.com/aida64engineer597.zip',
     'Adobe Reader DC': 'http://ardownload.adobe.com/pub/adobe/reader/win/AcrobatDC/1801120035/AcroRdrDC1801120035_en_US.exe',
     'AdwCleaner': 'https://toolslib.net/downloads/finish/1-adwcleaner/',
     'Autoruns': 'https://download.sysinternals.com/files/Autoruns.zip',
