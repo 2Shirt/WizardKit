@@ -153,6 +153,7 @@ function help () {
   ADVANCED:
   -d --debug            Enable debug mode
   -v --verbose          Enable verbose mode
+  -M --use-mbr          Use real MBR instead of GPT w/ Protective MBR
   -F --force            Bypass all confirmation messages. USE WITH EXTREME CAUTION!
 EOF
 
@@ -378,6 +379,11 @@ if [[ "${arg_F:?}" == 1 ]]; then
 else
     SILENT="False"
 fi
+if [[ "${arg_M:?}" == 1 ]]; then
+    USE_MBR="True"
+else
+    USE_MBR="False"
+fi
 
 if [[ "${arg_h:?}" == 1 ]]; then
     help "${__usage_example}"
@@ -499,6 +505,9 @@ echo "Extra Dir: ${EXTRA_DIR:-(Not Specified)}"
 echo ""
 echo -e "${BLUE}Destination${CLEAR}"
 lsblk -n -o NAME,LABEL,SIZE,MODEL,SERIAL "${DEST_DEV}"
+if [[ "${USE_MBR}" == "True" ]]; then
+    echo -e "${YELLOW}Formatting using legacy MBR${CLEAR}"
+fi
 echo ""
 
 # Ask before starting job
@@ -523,8 +532,15 @@ tmux split-window -dl 10 tail -f "${LOG_FILE}"
 
 # Format
 echo "Formatting drive..."
-parted "${DEST_DEV}" -s -- mklabel msdos mkpart primary fat32 1MiB -1s >> "${LOG_FILE}" 2>&1
-parted "${DEST_DEV}" set 1 boot on >> "${LOG_FILE}" 2>&1
+if [[ "${USE_MBR}" == "True" ]]; then
+    parted "${DEST_DEV}" --script -- mklabel msdos mkpart primary fat32 4MiB -1s >> "${LOG_FILE}" 2>&1
+    parted "${DEST_DEV}" set 1 boot on >> "${LOG_FILE}" 2>&1
+else
+    parted "${DEST_DEV}" --script -- mklabel gpt mkpart primary fat32 4MiB -4MiB >> "${LOG_FILE}" 2>&1
+    parted "${DEST_DEV}" set 1 legacy_boot on >> "${LOG_FILE}" 2>&1
+    #parted "${DEST_DEV}" disk_set pmbr_boot on >> "${LOG_FILE}" 2>&1
+    # pmbr_boot breaks detection on some UEFI MOBOs
+fi
 mkfs.vfat -F 32 -n "${UFD_LABEL}" "${DEST_PAR}" >> "${LOG_FILE}" 2>&1
 
 # Mount sources and dest
@@ -563,7 +579,11 @@ rmdir /mnt/Dest >> "${LOG_FILE}" 2>&1
 sync
 
 echo "Installing Syslinux MBR..."
-dd bs=440 count=1 if=/usr/lib/syslinux/bios/mbr.bin of=${DEST_DEV} >> "${LOG_FILE}" 2>&1
+if [[ "${USE_MBR}" == "True" ]]; then
+    dd bs=440 count=1 if=/usr/lib/syslinux/bios/mbr.bin of=${DEST_DEV} >> "${LOG_FILE}" 2>&1
+else
+    dd bs=440 count=1 if=/usr/lib/syslinux/bios/gptmbr.bin of=${DEST_DEV} >> "${LOG_FILE}" 2>&1
+fi
 sync
 
 # Cleanup
