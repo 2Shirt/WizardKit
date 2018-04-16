@@ -147,7 +147,7 @@ function run_elevated() {
 
 function update_live_env() {
     hostname="$(echo "${KIT_NAME_SHORT}-linux" | tr "[:upper:]" "[:lower:]")"
-    username="$(echo "${KIT_NAME_SHORT}tech" | tr "[:upper:]" "[:lower:]")"
+    username="tech"
     label="${KIT_NAME_SHORT}_LINUX"
 
     # Boot config (legacy)
