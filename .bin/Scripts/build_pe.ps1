@@ -141,15 +141,15 @@ if ($MyInvocation.InvocationName -ne ".") {
             @("fastcopy64.zip", "http://ftp.vector.co.jp/69/93/2323/FastCopy341_x64.zip"),
             @("fastcopy32.zip", "http://ftp.vector.co.jp/69/93/2323/FastCopy341.zip"),
             # HWiNFO
-            @("hwinfo.zip", "http://app.oldfoss.com:81/download/HWiNFO/hwi_574.zip"),
+            @("hwinfo.zip", "http://app.oldfoss.com:81/download/HWiNFO/hwi_582.zip"),
             # Killer Network Drivers
             @(
                 "killerinf.zip",
                 ("http://www.killernetworking.com"+(FindDynamicUrl "http://www.killernetworking.com/driver-downloads/item/killer-drivers-inf" "Download Killer-Ethernet").replace('&amp;', '&'))
             ),
             # Notepad++
-            @("npp_amd64.7z", "https://notepad-plus-plus.org/repository/7.x/7.5.5/npp.7.5.5.bin.minimalist.x64.7z"),
-            @("npp_x86.7z", "https://notepad-plus-plus.org/repository/7.x/7.5.5/npp.7.5.5.bin.minimalist.7z"),
+            @("npp_amd64.7z", "https://notepad-plus-plus.org/repository/7.x/7.5.6/npp.7.5.6.bin.minimalist.x64.7z"),
+            @("npp_x86.7z", "https://notepad-plus-plus.org/repository/7.x/7.5.6/npp.7.5.6.bin.minimalist.7z"),
             # NT Password Editor
             @("ntpwed.zip", "http://cdslow.org.ru/files/ntpwedit/ntpwed07.zip"),
             # Prime95

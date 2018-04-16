@@ -86,7 +86,7 @@ if ($MyInvocation.InvocationName -ne ".") {
     DownloadFile -Path $Path -Name "ConEmuPack.7z" -Url $Url
 
     # Notepad++
-    $Url = "https://notepad-plus-plus.org/repository/7.x/7.5.5/npp.7.5.5.bin.minimalist.7z"
+    $Url = "https://notepad-plus-plus.org/repository/7.x/7.5.6/npp.7.5.6.bin.minimalist.7z"
     DownloadFile -Path $Path -Name "npp.7z" -Url $Url
 
     # Python
