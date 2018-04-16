@@ -164,11 +164,11 @@ if ($MyInvocation.InvocationName -ne ".") {
             # Python: psutil
             @(
                 "psutil64.whl",
-                (FindDynamicUrl "https://pypi.python.org/pypi/psutil" "href=.*-cp36-cp36m-win_amd64.whl")
+                (FindDynamicUrl "https://pypi.org/project/psutil/" "href=.*-cp36-cp36m-win_amd64.whl")
             ),
             @(
                 "psutil32.whl",
-                (FindDynamicUrl "https://pypi.python.org/pypi/psutil" "href=.*-cp36-cp36m-win32.whl")
+                (FindDynamicUrl "https://pypi.org/project/psutil/" "href=.*-cp36-cp36m-win32.whl")
             ),
             # Q-Dir
             @("qdir64.zip", "https://www.softwareok.com/Download/Q-Dir_Portable_x64.zip"),
