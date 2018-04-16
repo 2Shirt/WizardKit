@@ -46,6 +46,14 @@ TESTS = {
         },
     }
 
+def get_read_rate(s):
+    """Get read rate in bytes/s from dd progress output."""
+    real_rate = None
+    if re.search(r'[KMGT]B/s', s):
+        human_rate = re.sub(r'^.*\s+(\d+\.?\d*)\s+(.B)/s\s*$', r'\1 \2', s)
+        real_rate = convert_to_bytes(human_rate)
+    return real_rate
+
 def get_smart_details(dev):
     """Get SMART data for dev if possible, returns dict."""
     cmd = 'sudo smartctl --all --json /dev/{}'.format(dev).split()
@@ -253,15 +261,15 @@ def run_iobenchmark():
                 text = f.read()
                 io_stats = text.replace('\r', '\n').split('\n')
                 try:
-                    io_stats = [re.sub(r'.*\s+(\d+) MB/s\s*$', r'\1', stat)
-                        for stat in io_stats if 'MB/s' in stat]
-                    io_stats = [int(x) for x in io_stats]
-                    TESTS['iobenchmark']['Results'][name] = 'Read speed: {:0.0f} MB/s (Min: {}, Max: {})'.format(
+                    io_stats = [get_read_rate(s) for s in io_stats]
+                    io_stats = [float(s/1048576) for s in io_stats if s]
+                    TESTS['iobenchmark']['Results'][name] = 'Read speed: {:3.1f} MB/s (Min: {:3.1f}, Max: {:3.1f})'.format(
                         sum(io_stats) / len(io_stats),
                         min(io_stats),
                         max(io_stats))
                     TESTS['iobenchmark']['Status'][name] = 'CS'
                 except:
+                    # Requires manual testing
                     TESTS['iobenchmark']['Status'][name] = 'NS'
 
             # Move temp file
@@ -569,7 +577,7 @@ def scan_disks():
                 '/dev/{}'.format(dev)))
             dev_name = data['lsblk']['name']
             print_standard(' ')
-            if ask('Run badblocks for this device anyway?'):
+            if ask('Run tests on this device anyway?'):
                 TESTS['NVMe/SMART']['Status'][dev_name] = 'OVERRIDE'
             else:
                 TESTS['NVMe/SMART']['Status'][dev_name] = 'NS'
