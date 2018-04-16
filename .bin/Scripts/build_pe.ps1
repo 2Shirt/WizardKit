@@ -451,6 +451,7 @@ if ($MyInvocation.InvocationName -ne ".") {
                 "x", "$Temp\qdir64.zip", "-o$Build\bin\amd64",
                 "-aoa", "-bso0", "-bse0", "-bsp0")
             Start-Process -FilePath $SevenZip -ArgumentList $ArgumentList -NoNewWindow -Wait
+            Move-Item "$Build\bin\amd64\Q-Dir\Q-Dir_x64.exe" "$Build\bin\amd64\Q-Dir\Q-Dir.exe" -Force
             $ArgumentList = @(
                 "x", "$Temp\qdir32.zip", "-o$Build\bin\x86",
                 "-aoa", "-bso0", "-bse0", "-bsp0")
