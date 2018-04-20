@@ -27,7 +27,7 @@ set iso_date=%_yyyy%-%_mm%-%_dd%
 
 :SetVars
 set "SETTINGS=%bin%\Scripts\settings\main.py"
-for /f "tokens=* usebackq" %%f in (`findstr KIT_NAME_SHORT %SETTINGS%`) do (
+for /f "tokens=* usebackq" %%f in (`findstr KIT_NAME_SHORT "%SETTINGS%"`) do (
     set "_v=%%f"
     set "_v=!_v:*'=!"
     set "KIT_NAME_SHORT=!_v:~0,-1!"

@@ -22,7 +22,7 @@ rem Set variables using settings\main.py file
 set "SETTINGS=%bin%\Scripts\settings\main.py"
 for %%v in (ARCHIVE_PASSWORD KIT_NAME_FULL OFFICE_SERVER_IP QUICKBOOKS_SERVER_IP) do (
     set "var=%%v"
-    for /f "tokens=* usebackq" %%f in (`findstr "!var!=" %SETTINGS%`) do (
+    for /f "tokens=* usebackq" %%f in (`findstr "!var!=" "%SETTINGS%"`) do (
         set "_v=%%f"
         set "_v=!_v:*'=!"
         set "%%v=!_v:~0,-1!"
@@ -280,9 +280,9 @@ rem Create VB script
 mkdir "%bin%\tmp" 2>nul
 echo Set UAC = CreateObject^("Shell.Application"^) > "%bin%\tmp\Elevate.vbs"
 if defined L_NCMD (
-    echo UAC.ShellExecute "%PYTHON%", "%script%", "", "runas", 3 >> "%bin%\tmp\Elevate.vbs"
+    echo UAC.ShellExecute "%PYTHON%", """%script%""", "", "runas", 3 >> "%bin%\tmp\Elevate.vbs"
 ) else (
-    echo UAC.ShellExecute "%CON%", "-run %PYTHON% %script% -new_console:n", "", "runas", 1 >> "%bin%\tmp\Elevate.vbs"
+    echo UAC.ShellExecute "%CON%", "-run ""%PYTHON%"" ""%script%"" -new_console:n", "", "runas", 1 >> "%bin%\tmp\Elevate.vbs"
 )
 
 rem Run
