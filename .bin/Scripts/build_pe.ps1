@@ -141,15 +141,15 @@ if ($MyInvocation.InvocationName -ne ".") {
             @("fastcopy64.zip", "http://ftp.vector.co.jp/69/93/2323/FastCopy341_x64.zip"),
             @("fastcopy32.zip", "http://ftp.vector.co.jp/69/93/2323/FastCopy341.zip"),
             # HWiNFO
-            @("hwinfo.zip", "http://app.oldfoss.com:81/download/HWiNFO/hwi_574.zip"),
+            @("hwinfo.zip", "http://app.oldfoss.com:81/download/HWiNFO/hwi_582.zip"),
             # Killer Network Drivers
             @(
                 "killerinf.zip",
                 ("http://www.killernetworking.com"+(FindDynamicUrl "http://www.killernetworking.com/driver-downloads/item/killer-drivers-inf" "Download Killer-Ethernet").replace('&amp;', '&'))
             ),
             # Notepad++
-            @("npp_amd64.7z", "https://notepad-plus-plus.org/repository/7.x/7.5.5/npp.7.5.5.bin.minimalist.x64.7z"),
-            @("npp_x86.7z", "https://notepad-plus-plus.org/repository/7.x/7.5.5/npp.7.5.5.bin.minimalist.7z"),
+            @("npp_amd64.7z", "https://notepad-plus-plus.org/repository/7.x/7.5.6/npp.7.5.6.bin.minimalist.x64.7z"),
+            @("npp_x86.7z", "https://notepad-plus-plus.org/repository/7.x/7.5.6/npp.7.5.6.bin.minimalist.7z"),
             # NT Password Editor
             @("ntpwed.zip", "http://cdslow.org.ru/files/ntpwedit/ntpwed07.zip"),
             # Prime95
@@ -164,11 +164,11 @@ if ($MyInvocation.InvocationName -ne ".") {
             # Python: psutil
             @(
                 "psutil64.whl",
-                (FindDynamicUrl "https://pypi.python.org/pypi/psutil" "href=.*-cp36-cp36m-win_amd64.whl")
+                (FindDynamicUrl "https://pypi.org/project/psutil/" "href=.*-cp36-cp36m-win_amd64.whl")
             ),
             @(
                 "psutil32.whl",
-                (FindDynamicUrl "https://pypi.python.org/pypi/psutil" "href=.*-cp36-cp36m-win32.whl")
+                (FindDynamicUrl "https://pypi.org/project/psutil/" "href=.*-cp36-cp36m-win32.whl")
             ),
             # Q-Dir
             @("qdir64.zip", "https://www.softwareok.com/Download/Q-Dir_Portable_x64.zip"),
@@ -451,6 +451,7 @@ if ($MyInvocation.InvocationName -ne ".") {
                 "x", "$Temp\qdir64.zip", "-o$Build\bin\amd64",
                 "-aoa", "-bso0", "-bse0", "-bsp0")
             Start-Process -FilePath $SevenZip -ArgumentList $ArgumentList -NoNewWindow -Wait
+            Move-Item "$Build\bin\amd64\Q-Dir\Q-Dir_x64.exe" "$Build\bin\amd64\Q-Dir\Q-Dir.exe" -Force
             $ArgumentList = @(
                 "x", "$Temp\qdir32.zip", "-o$Build\bin\x86",
                 "-aoa", "-bso0", "-bse0", "-bsp0")

@@ -86,7 +86,7 @@ if ($MyInvocation.InvocationName -ne ".") {
     DownloadFile -Path $Path -Name "ConEmuPack.7z" -Url $Url
 
     # Notepad++
-    $Url = "https://notepad-plus-plus.org/repository/7.x/7.5.5/npp.7.5.5.bin.minimalist.7z"
+    $Url = "https://notepad-plus-plus.org/repository/7.x/7.5.6/npp.7.5.6.bin.minimalist.7z"
     DownloadFile -Path $Path -Name "npp.7z" -Url $Url
 
     # Python
@@ -96,7 +96,7 @@ if ($MyInvocation.InvocationName -ne ".") {
     DownloadFile -Path $Path -Name "python64.zip" -Url $Url
 
     # Python: psutil
-    $DownloadPage = "https://pypi.python.org/pypi/psutil"
+    $DownloadPage = "https://pypi.org/project/psutil/"
     $RegEx = "href=.*-cp36-cp36m-win32.whl"
     $Url = FindDynamicUrl $DownloadPage $RegEx
     DownloadFile -Path $Path -Name "psutil32.whl" -Url $Url
@@ -107,7 +107,7 @@ if ($MyInvocation.InvocationName -ne ".") {
     # Python: requests & dependancies
     $RegEx = "href=.*.py3-none-any.whl"
     foreach ($Module in @("chardet", "certifi", "idna", "urllib3", "requests")) {
-        $DownloadPage = "https://pypi.python.org/pypi/$Module"
+        $DownloadPage = "https://pypi.org/project/$Module/"
         $Name = "$Module.whl"
         $Url = FindDynamicUrl -SourcePage $DownloadPage -RegEx $RegEx
         DownloadFile -Path $Path -Name $Name -Url $Url

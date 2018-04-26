@@ -39,7 +39,20 @@ TESTS = {
         'Results': {},
         'Status': {},
         },
+    'iobenchmark': {
+        'Enabled': False,
+        'Results': {},
+        'Status': {},
+        },
     }
+
+def get_read_rate(s):
+    """Get read rate in bytes/s from dd progress output."""
+    real_rate = None
+    if re.search(r'[KMGT]B/s', s):
+        human_rate = re.sub(r'^.*\s+(\d+\.?\d*)\s+(.B)/s\s*$', r'\1 \2', s)
+        real_rate = convert_to_bytes(human_rate)
+    return real_rate
 
 def get_smart_details(dev):
     """Get SMART data for dev if possible, returns dict."""
@@ -66,20 +79,23 @@ def menu_diags(*args):
     """Main HW-Diagnostic menu."""
     diag_modes = [
         {'Name': 'All tests',
-            'Tests': ['Prime95', 'NVMe/SMART', 'badblocks']},
+            'Tests': ['Prime95', 'NVMe/SMART', 'badblocks', 'iobenchmark']},
         {'Name': 'Prime95',
             'Tests': ['Prime95']},
-        {'Name': 'NVMe/SMART & badblocks',
-            'Tests': ['NVMe/SMART', 'badblocks']},
+        {'Name': 'All drive tests',
+            'Tests': ['NVMe/SMART', 'badblocks', 'iobenchmark']},
         {'Name': 'NVMe/SMART',
             'Tests': ['NVMe/SMART']},
         {'Name': 'badblocks',
             'Tests': ['badblocks']},
+        {'Name': 'I/O Benchmark',
+            'Tests': ['iobenchmark']},
         {'Name': 'Quick drive test',
             'Tests': ['Quick', 'NVMe/SMART']},
         ]
     actions = [
         {'Letter': 'A', 'Name': 'Audio test'},
+        {'Letter': 'K', 'Name': 'Keyboard test'},
         {'Letter': 'N', 'Name': 'Network test'},
         {'Letter': 'M', 'Name': 'Screen Saver - Matrix', 'CRLF': True},
         {'Letter': 'P', 'Name': 'Screen Saver - Pipes'},
@@ -119,6 +135,8 @@ def menu_diags(*args):
         elif selection == 'A':
             run_program(['hw-diags-audio'], check=False, pipe=False)
             pause('Press Enter to return to main menu... ')
+        elif selection == 'K':
+            run_program(['xev', '-event', 'keyboard'], check=False, pipe=False)
         elif selection == 'N':
             run_program(['hw-diags-network'], check=False, pipe=False)
             pause('Press Enter to return to main menu... ')
@@ -187,6 +205,75 @@ def run_badblocks():
 
             # Move temp file
             shutil.move(progress_file, '{}/badblocks-{}.log'.format(
+                global_vars['LogDir'], name))
+        update_progress()
+
+    # Done
+    run_program('tmux kill-pane -a'.split(), check=False)
+    pass
+
+def run_iobenchmark():
+    """Run a read-only test for all detected disks."""
+    aborted = False
+    clear_screen()
+    print_log('\nStart I/O Benchmark test(s)\n')
+    progress_file = '{}/iobenchmark_progress.out'.format(global_vars['LogDir'])
+    update_progress()
+
+    # Set Window layout and start test
+    run_program('tmux split-window -dhl 15 watch -c -n1 -t cat {}'.format(
+        TESTS['Progress Out']).split())
+
+    # Show disk details
+    for name, dev in sorted(TESTS['iobenchmark']['Devices'].items()):
+        show_disk_details(dev)
+        print_standard(' ')
+    update_progress()
+
+    # Run
+    print_standard('Running benchmark test(s):')
+    for name, dev in sorted(TESTS['iobenchmark']['Devices'].items()):
+        cur_status = TESTS['iobenchmark']['Status'][name]
+        nvme_smart_status = TESTS['NVMe/SMART']['Status'].get(name, None)
+        bb_status = TESTS['badblocks']['Status'].get(name, None)
+        if cur_status == 'Denied':
+            # Skip denied disks
+            continue
+        if nvme_smart_status == 'NS':
+            TESTS['iobenchmark']['Status'][name] = 'Skipped'
+        elif bb_status in ['NS', 'Skipped']:
+            TESTS['iobenchmark']['Status'][name] = 'Skipped'
+        else:
+            # (SMART tests not run or CS/OVERRIDE)
+            #   AND (BADBLOCKS tests not run or CS)
+            TESTS['iobenchmark']['Status'][name] = 'Working'
+            update_progress()
+            print_standard('  /dev/{:11}  '.format(name+'...'), end='', flush=True)
+            run_program('tmux split-window -dl 5 {} {} {}'.format(
+                'hw-diags-iobenchmark',
+                '/dev/{}'.format(name),
+                progress_file).split())
+            wait_for_process('dd')
+            print_standard('Done', timestamp=False)
+
+            # Check results
+            with open(progress_file, 'r') as f:
+                text = f.read()
+                io_stats = text.replace('\r', '\n').split('\n')
+                try:
+                    io_stats = [get_read_rate(s) for s in io_stats]
+                    io_stats = [float(s/1048576) for s in io_stats if s]
+                    TESTS['iobenchmark']['Results'][name] = 'Read speed: {:3.1f} MB/s (Min: {:3.1f}, Max: {:3.1f})'.format(
+                        sum(io_stats) / len(io_stats),
+                        min(io_stats),
+                        max(io_stats))
+                    TESTS['iobenchmark']['Status'][name] = 'CS'
+                except:
+                    # Requires manual testing
+                    TESTS['iobenchmark']['Status'][name] = 'NS'
+
+            # Move temp file
+            shutil.move(progress_file, '{}/iobenchmark-{}.log'.format(
                 global_vars['LogDir'], name))
         update_progress()
 
@@ -386,12 +473,12 @@ def run_tests(tests):
     print_log('Starting Hardware Diagnostics')
     print_log('\nRunning tests: {}'.format(', '.join(tests)))
     # Enable selected tests
-    for t in ['Prime95', 'NVMe/SMART', 'badblocks']:
+    for t in ['Prime95', 'NVMe/SMART', 'badblocks', 'iobenchmark']:
         TESTS[t]['Enabled'] = t in tests
     TESTS['NVMe/SMART']['Quick'] = 'Quick' in tests
 
     # Initialize
-    if TESTS['NVMe/SMART']['Enabled'] or TESTS['badblocks']['Enabled']:
+    if TESTS['NVMe/SMART']['Enabled'] or TESTS['badblocks']['Enabled'] or TESTS['iobenchmark']['Enabled']:
         scan_disks()
     update_progress()
 
@@ -407,6 +494,8 @@ def run_tests(tests):
             run_nvme_smart()
         if TESTS['badblocks']['Enabled']:
             run_badblocks()
+        if TESTS['iobenchmark']['Enabled']:
+            run_iobenchmark()
     
     # Show results
     show_results()
@@ -434,13 +523,15 @@ def scan_disks():
                 devs[d['name']] = {'lsblk': d}
                 TESTS['NVMe/SMART']['Status'][d['name']] = 'Pending'
                 TESTS['badblocks']['Status'][d['name']] = 'Pending'
+                TESTS['iobenchmark']['Status'][d['name']] = 'Pending'
             else:
                 # Skip WizardKit devices
                 wk_label = '{}_LINUX'.format(KIT_NAME_SHORT)
-                if wk_label not in [c.get('label', '') for c in d['children']]:
+                if wk_label not in [c.get('label', '') for c in d.get('children', [])]:
                     devs[d['name']] = {'lsblk': d}
                     TESTS['NVMe/SMART']['Status'][d['name']] = 'Pending'
                     TESTS['badblocks']['Status'][d['name']] = 'Pending'
+                    TESTS['iobenchmark']['Status'][d['name']] = 'Pending'
     
     for dev, data in devs.items():
         # Get SMART attributes
@@ -480,21 +571,23 @@ def scan_disks():
             data['SMART Support'] = False
             
         # Ask for manual overrides if necessary
-        if not data['Quick Health OK'] and TESTS['badblocks']['Enabled']:
+        if not data['Quick Health OK'] and (TESTS['badblocks']['Enabled'] or TESTS['iobenchmark']['Enabled']):
             show_disk_details(data)
             print_warning("WARNING: Health can't be confirmed for: {}".format(
                 '/dev/{}'.format(dev)))
             dev_name = data['lsblk']['name']
             print_standard(' ')
-            if ask('Run badblocks for this device anyway?'):
+            if ask('Run tests on this device anyway?'):
                 TESTS['NVMe/SMART']['Status'][dev_name] = 'OVERRIDE'
             else:
                 TESTS['NVMe/SMART']['Status'][dev_name] = 'NS'
                 TESTS['badblocks']['Status'][dev_name] = 'Denied'
+                TESTS['iobenchmark']['Status'][dev_name] = 'Denied'
             print_standard(' ') # In case there's more than one "OVERRIDE" disk
 
     TESTS['NVMe/SMART']['Devices'] = devs
     TESTS['badblocks']['Devices'] = devs
+    TESTS['iobenchmark']['Devices'] = devs
 
 def show_disk_details(dev):
     """Display disk details."""
@@ -613,8 +706,8 @@ def show_results():
                 print('  {}'.format(line.strip()))
         print_standard(' ')
 
-    # NVMe/SMART / badblocks
-    if TESTS['NVMe/SMART']['Enabled'] or TESTS['badblocks']['Enabled']:
+    # NVMe/SMART / badblocks / iobenchmark
+    if TESTS['NVMe/SMART']['Enabled'] or TESTS['badblocks']['Enabled'] or TESTS['iobenchmark']['Enabled']:
         print_success('Disks:')
         for name, dev in sorted(TESTS['NVMe/SMART']['Devices'].items()):
             show_disk_details(dev)
@@ -632,6 +725,12 @@ def show_results():
                             print_standard('  {}'.format(line))
                         else:
                             print_error('  {}'.format(line))
+            io_status = TESTS['iobenchmark']['Status'].get(name, None)
+            if (TESTS['iobenchmark']['Enabled']
+                and io_status not in ['Denied', 'OVERRIDE', 'Skipped']):
+                print_info('Benchmark:')
+                result = TESTS['iobenchmark']['Results'].get(name, '')
+                print_standard('  {}'.format(result))
             print_standard(' ')
 
     # Done
@@ -667,6 +766,16 @@ def update_progress():
         output.append(' ')
         output.append('{BLUE}badblocks{CLEAR}'.format(**COLORS))
         for dev, status in sorted(TESTS['badblocks']['Status'].items()):
+            output.append('{dev}{s_color}{status:>{pad}}{CLEAR}'.format(
+                dev = dev,
+                pad = 15-len(dev),
+                s_color = get_status_color(status),
+                status = status,
+                **COLORS))
+    if TESTS['iobenchmark']['Enabled']:
+        output.append(' ')
+        output.append('{BLUE}I/O Benchmark{CLEAR}'.format(**COLORS))
+        for dev, status in sorted(TESTS['iobenchmark']['Status'].items()):
             output.append('{dev}{s_color}{status:>{pad}}{CLEAR}'.format(
                 dev = dev,
                 pad = 15-len(dev),

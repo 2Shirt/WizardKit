@@ -15,7 +15,7 @@ rem Set variables using settings\main.py file
 set "SETTINGS=%bin%\Scripts\settings\main.py"
 for %%v in (ARCHIVE_PASSWORD KIT_NAME_FULL) do (
     set "var=%%v"
-    for /f "tokens=* usebackq" %%f in (`findstr "!var!=" %SETTINGS%`) do (
+    for /f "tokens=* usebackq" %%f in (`findstr "!var!=" "%SETTINGS%"`) do (
         set "_v=%%f"
         set "_v=!_v:*'=!"
         set "%%v=!_v:~0,-1!"

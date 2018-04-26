@@ -5,9 +5,16 @@ curl
 dos2unix
 git
 hwloc
+imlib2
 lhasa
 libbsd
 libewf
+librsvg
+libsm
+libxcursor
+libxinerama
+libxml2
+libxrandr
 ntfs-3g
 openssh
 p7zip
@@ -15,5 +22,6 @@ pango
 progsreiserfs
 refind-efi
 rsync
+startup-notification
 subversion
 syslinux

@@ -69,7 +69,7 @@ popd
 :SetTitle
 rem Sets title using KIT_NAME_FULL from settings\main.py
 set "SETTINGS=%bin%\Scripts\settings\main.py"
-for /f "tokens=* usebackq" %%f in (`findstr KIT_NAME_FULL %SETTINGS%`) do (
+for /f "tokens=* usebackq" %%f in (`findstr KIT_NAME_FULL "%SETTINGS%"`) do (
     set "_v=%%f"
     set "_v=!_v:*'=!"
     set "KIT_NAME_FULL=!_v:~0,-1!"
