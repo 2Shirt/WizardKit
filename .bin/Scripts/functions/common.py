@@ -18,6 +18,7 @@ from subprocess import CalledProcessError
 
 from settings.main import *
 from settings.tools import *
+from settings.windows_builds import *
 
 # Global variables
 global_vars = {}
@@ -615,93 +616,42 @@ def check_os():
     # Query registry
     path = r'SOFTWARE\Microsoft\Windows NT\CurrentVersion'
     with winreg.OpenKey(HKLM, path) as key:
-        for name in ['CurrentBuild', 'CurrentVersion', 'ProductName']:
+        for name in ['CurrentBuild', 'ProductName']:
             try:
                 tmp[name] = winreg.QueryValueEx(key, name)[0]
             except FileNotFoundError:
                 tmp[name] = 'Unknown'
-    try:
-        tmp['CurrentBuild'] = int(tmp['CurrentBuild'])
-    except ValueError:
-        # This should be interesting...
-        tmp['CurrentBuild'] = -1
-    try:
-        tmp['CurrentVersion'] = float(tmp['CurrentVersion'])
-    except ValueError:
-        # This should also be interesting...
-        tmp['CurrentVersion'] = -1
 
     # Check bit depth
     tmp['Arch'] = 32
     if 'PROGRAMFILES(X86)' in global_vars['Env']:
         tmp['Arch'] = 64
 
+    # Get Windows build info
+    build_info = WINDOWS_BUILDS.get(
+        tmp['CurrentBuild'],
+        ('Unknown', 'Build {}'.format(tmp['CurrentBuild']), None, None, 'unrecognized'))
+    tmp['Version'] = build_info.pop(0)
+    tmp['Release'] = build_info.pop(0)
+    tmp['Codename'] = build_info.pop(0)
+    tmp['Marketing Name'] = build_info.pop(0)
+    tmp['Notes'] = build_info.pop(0)
+
     # Set name
     tmp['Name'] = tmp['ProductName']
-    if tmp['CurrentBuild'] == 7601:
-        tmp['Name'] += ' SP1' # Win 7
-    if tmp['CurrentBuild'] == 9600:
-        tmp['Name'] += ' Update' # Win 8.1u
-    if tmp['CurrentBuild'] == 10240:
-        tmp['Name'] += ' Release 1507 "Threshold 1"'
-    if tmp['CurrentBuild'] == 10586:
-        tmp['Name'] += ' Release 1511 "Threshold 2"'
-    if tmp['CurrentBuild'] == 14393:
-        tmp['Name'] += ' Release 1607 "Redstone 1" / "Anniversary Update"'
-    if tmp['CurrentBuild'] == 15063:
-        tmp['Name'] += ' Release 1703 "Redstone 2" / "Creators Update"'
-    if tmp['CurrentBuild'] == 16299:
-        tmp['Name'] += ' Release 1709 "Redstone 3" / "Fall Creators Update"'
+    if tmp['Release']:
+        tmp['Name'] += ' {}'.format(tmp['Release'])
+    if tmp['Codename']:
+        tmp['Name'] += ' "{}"'.format(tmp['Codename'])
+    if tmp['Marketing Name']:
+        tmp['Name'] += ' / "{}"'.format(tmp['Marketing Name'])
     tmp['Name'] = re.sub(r'\s+', ' ', tmp['Name'])
-    
+
     # Set display name
     tmp['DisplayName'] = '{} x{}'.format(tmp['Name'], tmp['Arch'])
-    if tmp['CurrentBuild'] in [7600, 9200, 10240, 10586]:
-        tmp['DisplayName'] += ' (very outdated)'
-    elif tmp['CurrentBuild'] in [7601, 9600, 14393, 15063]:
-        tmp['DisplayName'] += ' (outdated)'
-    elif tmp['CurrentBuild'] == 16299:
-        pass # Current Win10 release
-    else:
-        tmp['DisplayName'] += ' (unrecognized)'
-
-    # Set version
-    if tmp['CurrentVersion'] == 6.0:
-        tmp['Version'] = 'Vista'
-    elif tmp['CurrentVersion'] == 6.1:
-        tmp['Version'] = '7'
-    elif 6.2 <= tmp['CurrentVersion'] <= 6.3:
-        if tmp['CurrentBuild'] <= 9600:
-            tmp['Version'] = '8'
-        elif tmp['CurrentBuild'] >= 10240:
-            tmp['Version'] = '10'
-        else:
-            tmp['Version'] = 'Unknown'
+    if tmp['Notes']:
+        tmp['Name'] += ' ({})'.format(tmp['Notes'])
     
-    # == vista ==
-    # 6.0.6000
-    # 6.0.6001 # SP1
-    # 6.0.6002 # SP2
-    # ==== 7 ====
-    # 6.1.7600
-    # 6.1.7601 # SP1
-    # 6.1.7602 # Umm.. where'd this come from?
-    # ==== 8 ====
-    # 6.2.9200
-    # === 8.1 ===
-    # 6.3.9200
-    # === 8.1u ==
-    # 6.3.9600
-    # === 10 v1507 "Threshold 1" ==
-    # 6.3.10240
-    # === 10 v1511 "Threshold 2" ==
-    # 6.3.10586
-    # === 10 v1607 "Redstone 1" "Anniversary Update" ==
-    # 6.3.14393
-    # === 10 v1703 "Redstone 2" "Creators Update" ==
-    # 6.3.15063
-    # === 10 v1709 "Redstone 3" "Fall Creators Update" ==
-    # 6.3.16299
     global_vars['OS'] = tmp
 
 def check_tools():

@@ -220,7 +220,7 @@ def install_chrome_extensions():
 
 def install_classicstart_skin():
     """Extract ClassicStart skin to installation folder."""
-    if global_vars['OS']['Version'] not in ['8', '10']:
+    if global_vars['OS']['Version'] not in ('8', '8.1', '10'):
         raise UnsupportedOSError
     extract_item('ClassicStartSkin', silent=True)
     source = r'{BinDir}\ClassicStartSkin\Metro-Win10-Black.skin7'.format(
@@ -245,7 +245,7 @@ def install_firefox_extensions():
 
 def install_ninite_bundle(mse=False):
     """Run Ninite file(s) based on OS version."""
-    if global_vars['OS']['Version'] in ['8', '10']:
+    if global_vars['OS']['Version'] in ('8', '8.1', '10'):
         # Modern selection
         popen_program(r'{BaseDir}\Installers\Extras\Bundles\Modern.exe'.format(
             **global_vars))

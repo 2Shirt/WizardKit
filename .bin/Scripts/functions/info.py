@@ -419,7 +419,7 @@ def show_os_name():
         # Show all 32-bit installs as an error message
         print_error(os_name, timestamp=False)
     else:
-        if re.search(r'(unrecognized|very outdated)', os_name, re.IGNORECASE):
+        if re.search(r'(preview build|unrecognized|unsupported)', os_name, re.IGNORECASE):
             print_error(os_name, timestamp=False)
         elif re.search(r'outdated', os_name, re.IGNORECASE):
             print_warning(os_name, timestamp=False)

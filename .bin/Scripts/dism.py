@@ -23,7 +23,7 @@ if __name__ == '__main__':
                 'GenericRepair':        'Repaired',
                 'UnsupportedOSError':   'Unsupported OS',
             }}
-        disabled = bool(global_vars['OS']['Version'] not in ['8', '10'])
+        disabled = bool(global_vars['OS']['Version'] not in ('8', '8.1', '10'))
         options = [
             {'Name': 'Check Health', 'Repair': False, 'Disabled': disabled},
             {'Name': 'Restore Health', 'Repair': True, 'Disabled': disabled}]

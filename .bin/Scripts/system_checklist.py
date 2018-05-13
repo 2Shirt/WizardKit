@@ -70,7 +70,7 @@ if __name__ == '__main__':
         try_and_print(message='Activation:',
             function=show_os_activation, ns='Unknown', silent_function=False)
         if (not windows_is_activated()
-            and global_vars['OS']['Version'] in ('8', '10')):
+            and global_vars['OS']['Version'] in ('8', '8.1', '10')):
             try_and_print(message='BIOS Activation:',
                 function=activate_with_bios,
                 other_results=other_results)

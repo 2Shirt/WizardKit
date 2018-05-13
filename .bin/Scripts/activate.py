@@ -29,7 +29,7 @@ if __name__ == '__main__':
         activation_methods = [
             {'Name': 'Activate with BIOS key', 'Function': activate_with_bios},
             ]
-        if global_vars['OS']['Version'] not in ['8', '10']:
+        if global_vars['OS']['Version'] not in ('8', '8.1', '10'):
             activation_methods[0]['Disabled'] = True
         actions = [
             {'Name': 'Quit', 'Letter': 'Q'},
