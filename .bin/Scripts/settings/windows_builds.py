@@ -10,7 +10,9 @@ WINDOWS_BUILDS = {
      '7600': (  '7',        'RTM',      'Vienna',       None,                   'unsupported'),
      '7601': (  '7',        'SP1',      'Vienna',       None,                   'outdated'),
      
-     '9200': (  '8',        'RTM',      None,           None,                   'unsupported'),
+     #9199 is a fake build since Win 8 is 6.2.9200 but that collides with Win 8.1 (6.3.9200)
+     '9199': (  '8',        'RTM',      None,           None,                   'unsupported'),
+
      '9200': (  '8.1',      None,       'Blue',         None,                   'outdated'),
      '9600': (  '8.1',      None,       'Update',       None,                   None),
      

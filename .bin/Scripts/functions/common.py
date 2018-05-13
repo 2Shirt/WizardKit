@@ -616,11 +616,20 @@ def check_os():
     # Query registry
     path = r'SOFTWARE\Microsoft\Windows NT\CurrentVersion'
     with winreg.OpenKey(HKLM, path) as key:
-        for name in ['CurrentBuild', 'ProductName']:
+        for name in ['CurrentBuild', 'CurrentVersion', 'ProductName']:
             try:
                 tmp[name] = winreg.QueryValueEx(key, name)[0]
             except FileNotFoundError:
                 tmp[name] = 'Unknown'
+
+    # Handle CurrentBuild collision
+    if tmp['CurrentBuild'] == '9200':
+        if tmp['CurrentVersion'] == '6.2':
+            # Windown 8, set to fake build number
+            tmp['CurrentBuild'] = '9199'
+        else:
+            # Windows 8.1, leave alone
+            pass
 
     # Check bit depth
     tmp['Arch'] = 32
@@ -631,6 +640,7 @@ def check_os():
     build_info = WINDOWS_BUILDS.get(
         tmp['CurrentBuild'],
         ('Unknown', 'Build {}'.format(tmp['CurrentBuild']), None, None, 'unrecognized'))
+    build_info = list(build_info)
     tmp['Version'] = build_info.pop(0)
     tmp['Release'] = build_info.pop(0)
     tmp['Codename'] = build_info.pop(0)
@@ -650,7 +660,7 @@ def check_os():
     # Set display name
     tmp['DisplayName'] = '{} x{}'.format(tmp['Name'], tmp['Arch'])
     if tmp['Notes']:
-        tmp['Name'] += ' ({})'.format(tmp['Notes'])
+        tmp['DisplayName'] += ' ({})'.format(tmp['Notes'])
     
     global_vars['OS'] = tmp
 
