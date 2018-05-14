@@ -16,6 +16,9 @@ class LocalDisk():
     def is_dir(self):
         # Should always be true
         return True
+    def is_file(self):
+        # Should always be false
+        return False
 
 class SourceItem():
     def __init__(self, name, path):
@@ -404,7 +407,13 @@ def scan_source(source_obj, dest_path, rel_path='', interactive=True):
     root_items = []
     item_list = list_source_items(source_obj, rel_path)
     for item in item_list:
-        if REGEX_INCL_ROOT_ITEMS.search(item.name):
+        if REGEX_WINDOWS_OLD.search(item.name):
+            item.name = '{}{}{}'.format(
+                rel_path,
+                os.sep if rel_path else '',
+                item.name)
+            win_olds.append(item)
+        elif REGEX_INCL_ROOT_ITEMS.search(item.name):
             print_success('Auto-Selected: {}'.format(item.path))
             root_items.append('{}'.format(item.path))
         elif not REGEX_EXCL_ROOT_ITEMS.search(item.name):
@@ -424,12 +433,6 @@ def scan_source(source_obj, dest_path, rel_path='', interactive=True):
                     interactive = False
                 if answer in ['Yes', 'All']:
                     root_items.append('{}'.format(item.path))
-        if REGEX_WINDOWS_OLD.search(item.name):
-            item.name = '{}{}{}'.format(
-                rel_path,
-                os.sep if rel_path else '',
-                item.name)
-            win_olds.append(item)
     if root_items:
         selected_items.append({
             'Message':      '{}{}Root Items...'.format(
@@ -446,7 +449,8 @@ def scan_source(source_obj, dest_path, rel_path='', interactive=True):
                 rel_path,
                 ' ' if rel_path else ''),
             'Items':        [font_obj.path],
-            'Destination':  dest_path})
+            'Destination':  '{}{}Windows'.format(
+                dest_path, os.sep)})
 
     # Registry
     registry_items = []
@@ -461,13 +465,14 @@ def scan_source(source_obj, dest_path, rel_path='', interactive=True):
                 rel_path,
                 ' ' if rel_path else ''),
             'Items':        registry_items.copy(),
-            'Destination':  dest_path})
+            'Destination':  '{}{}Windows{}System32'.format(
+                dest_path, os.sep, os.sep)})
 
     # Windows.old(s)
     for old in win_olds:
         selected_items.extend(scan_source(
             source_obj,
-            dest_path,
+            '{}{}{}'.format(dest_path, os.sep, old.name),
             rel_path=old.name,
             interactive=False))
     
@@ -630,6 +635,31 @@ def select_source(ticket_number):
                     '  Local', d.mountpoint),
                 'Sort': d.mountpoint,
                 'Source': LocalDisk(d)})
+            # Check for images and subfolders
+            for item in os.scandir(d.mountpoint):
+                if REGEX_WIM_FILE.search(item.name):
+                    try:
+                        size = human_readable_size(item.stat().st_size)
+                    except Exception:
+                        size = '  ?  ?' # unknown
+                    local_sources.append({
+                        'Disabled': bool(not is_valid_wim_file(item)),
+                        'Name': r'{:9}| Image-Based:  {:>7}  {}{}'.format(
+                            '  Local', size, d.mountpoint, item.name),
+                        'Sort': r'{}{}'.format(d.mountpoint, item.name),
+                        'Source': item})
+                elif REGEX_EXCL_ROOT_ITEMS.search(item.name):
+                    pass
+                elif REGEX_EXCL_ITEMS.search(item.name):
+                    pass
+                elif item.is_dir():
+                    # Add folder to local_sources
+                    local_sources.append({
+                        'Name': r'{:9}| File-Based:     [DIR]  {}{}'.format(
+                            '  Local', d.mountpoint, item.name),
+                        'Sort': r'{}{}'.format(d.mountpoint, item.name),
+                        'Source': item})
+                    
     set_thread_error_mode(silent=False) # Return to normal
 
     # Build Menu
@@ -736,7 +766,7 @@ def transfer_source(source_obj, dest_path, selected_items):
                     function=run_wimextract, cs='Done',
                     source=source_obj.path,
                     items=group['Items'],
-                    dest=group['Destination'])
+                    dest=dest_path)
         else:
             print_error('ERROR: Unsupported image: {}'.format(source_obj.path))
             raise GenericError
