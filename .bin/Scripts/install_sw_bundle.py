@@ -19,6 +19,7 @@ if __name__ == '__main__':
         other_results = {
             'Error': {
                 'CalledProcessError':   'Unknown Error',
+                'FileNotFoundError':    'File not found',
             },
             'Warning': {
                 'GenericRepair':        'Repaired',
@@ -36,12 +37,14 @@ if __name__ == '__main__':
         
         print_info('Installing Programs')
         if answer_adobe_reader:
-            install_adobe_reader()
+            try_and_print(message='Adobe Reader DC...',
+                function=install_adobe_reader, other_results=other_results)
         if answer_vcr:
             install_vcredists()
         if answer_ninite:
             try_and_print(message='Ninite bundle...',
-                function=install_ninite_bundle, cs='Started', mse=answer_mse)
+                function=install_ninite_bundle, cs='Started',
+                mse=answer_mse, other_results=other_results)
         if answer_extensions:
             wait_for_process('ninite.exe')
             print_info('Installing Extensions')
@@ -51,7 +54,8 @@ if __name__ == '__main__':
             try_and_print(message='Google Chrome extensions...',
                 function=install_chrome_extensions)
             try_and_print(message='Mozilla Firefox extensions...',
-                function=install_firefox_extensions)
+                function=install_firefox_extensions,
+                other_results=other_results)
         print_standard('\nDone.')
         exit_script()
     except SystemExit:

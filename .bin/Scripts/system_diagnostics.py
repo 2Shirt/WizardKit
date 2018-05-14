@@ -25,7 +25,7 @@ if __name__ == '__main__':
         other_results = {
             'Error': {
                 'CalledProcessError':   'Unknown Error',
-                'FileNotFoundError':    'Program not found',
+                'FileNotFoundError':    'File not found',
             },
             'Warning': {
                 'GenericRepair':        'Repaired',

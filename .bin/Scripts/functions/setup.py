@@ -5,6 +5,12 @@ from functions.common import *
 # STATIC VARIABLES
 HKCU = winreg.HKEY_CURRENT_USER
 HKLM = winreg.HKEY_LOCAL_MACHINE
+OTHER_RESULTS = {
+    'Error': {
+        'CalledProcessError':   'Unknown Error',
+        'FileNotFoundError':    'File not found',
+    },
+    'Warning': {}}
 SETTINGS_CLASSIC_START = {
     r'Software\IvoSoft\ClassicShell\Settings': {},
     r'Software\IvoSoft\ClassicStartMenu': {
@@ -212,7 +218,7 @@ def install_adobe_reader():
         '/msi', '/norestart', '/quiet',
         'ALLUSERS=1',
         'EULA_ACCEPT=YES']
-    try_and_print(message='Adobe Reader DC...', function=run_program, cmd=cmd)
+    run_program(cmd)
 
 def install_chrome_extensions():
     """Update registry to 'install' Google Chrome extensions for all users."""
@@ -235,12 +241,16 @@ def install_firefox_extensions():
     """Extract Firefox extensions to installation folder."""
     dist_path = r'{PROGRAMFILES}\Mozilla Firefox\distribution\extensions'.format(
         **global_vars['Env'])
+    source_path = r'{CBinDir}\FirefoxExtensions.7z'.format(**global_vars)
+    if not os.path.exists(source_path):
+        raise FileNotFoundError
+    
     # Extract extension(s) to distribution folder
     cmd = [
         global_vars['Tools']['SevenZip'], 'x', '-aos', '-bso0', '-bse0',
         '-p{ArchivePassword}'.format(**global_vars),
         '-o{dist_path}'.format(dist_path=dist_path),
-        r'{CBinDir}\FirefoxExtensions.7z'.format(**global_vars)]
+        source_path]
     run_program(cmd)
 
 def install_ninite_bundle(mse=False):
@@ -264,7 +274,8 @@ def install_vcredists():
     prev_dir = os.getcwd()
     os.chdir(r'{BinDir}\_vcredists'.format(**global_vars))
     for vcr in VCR_REDISTS:
-        try_and_print(message=vcr['Name'], function=run_program, cmd=vcr['Cmd'])
+        try_and_print(message=vcr['Name'], function=run_program,
+            cmd=vcr['Cmd'], other_results=OTHER_RESULTS)
 
     os.chdir(prev_dir)
 

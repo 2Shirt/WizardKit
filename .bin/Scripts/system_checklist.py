@@ -26,7 +26,7 @@ if __name__ == '__main__':
             'Error': {
                 'CalledProcessError':   'Unknown Error',
                 'BIOSKeyNotFoundError': 'BIOS key not found',
-                'FileNotFoundError':    'Program not found',
+                'FileNotFoundError':    'File not found',
             },
             'Warning': {}}
         print_info('Starting System Checklist for Ticket #{}\n'.format(
