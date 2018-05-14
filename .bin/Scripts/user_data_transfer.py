@@ -43,7 +43,8 @@ if __name__ == '__main__':
         umount_backup_shares()
         
         # Done
-        run_kvrt()
+        try_and_print(message='Running KVRT...',
+            function=run_kvrt, cs='Started')
         print_standard('\nDone.')
         pause("Press Enter to exit...")
         exit_script()

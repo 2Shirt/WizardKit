@@ -81,13 +81,18 @@ if __name__ == '__main__':
             function=show_installed_ram, ns='Unknown', silent_function=False)
 
         # Play audio, show devices, open Windows updates, and open Activation
-        popen_program(['mmc', 'devmgmt.msc'])
-        run_hwinfo_sensors()
-        popen_program(['control', '/name', 'Microsoft.WindowsUpdate'])
+        try_and_print(message='Opening Device Manager...',
+            function=open_device_manager, cs='Started')
+        try_and_print(message='Opening HWiNFO (Sensors)...',
+            function=run_hwinfo_sensors, cs='Started')
+        try_and_print(message='Opening Windows Updates...',
+            function=open_windows_updates, cs='Started')
         if not windows_is_activated():
-            popen_program('slui')
+            try_and_print(message='Opening Windows Activation...',
+                function=open_windows_activation, cs='Started')
         sleep(3)
-        run_xmplay()
+        try_and_print(message='Running XMPlay...',
+            function=run_xmplay, cs='Started')
 
         # Done
         print_standard('\nDone.')

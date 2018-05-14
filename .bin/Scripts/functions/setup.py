@@ -268,5 +268,15 @@ def install_vcredists():
 
     os.chdir(prev_dir)
 
+# Misc
+def open_device_manager():
+    popen_program(['mmc', 'devmgmt.msc'])
+
+def open_windows_activation():
+    popen_program(['slui'])
+
+def open_windows_updates():
+    popen_program(['control', '/name', 'Microsoft.WindowsUpdate'])
+
 if __name__ == '__main__':
     print("This file is not meant to be called directly.")
