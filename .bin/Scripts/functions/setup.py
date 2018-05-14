@@ -272,7 +272,11 @@ def install_vcredists():
     """Install all supported Visual C++ runtimes."""
     extract_item('_vcredists', silent=True)
     prev_dir = os.getcwd()
-    os.chdir(r'{BinDir}\_vcredists'.format(**global_vars))
+    try:
+        os.chdir(r'{BinDir}\_vcredists'.format(**global_vars))
+    except FileNotFoundError:
+        # Ignored since the loop below will report the errors
+        pass
     for vcr in VCR_REDISTS:
         try_and_print(message=vcr['Name'], function=run_program,
             cmd=vcr['Cmd'], other_results=OTHER_RESULTS)
