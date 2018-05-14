@@ -75,8 +75,12 @@ if __name__ == '__main__':
             try_and_print(message='BIOS Activation:',
                 function=activate_with_bios,
                 other_results=other_results)
+        try_and_print(message='Installed Antivirus:',
+            function=get_installed_antivirus, ns='Unknown',
+            other_results=other_results, print_return=True)
         try_and_print(message='Installed Office:',
-            function=get_installed_office, ns='Unknown', print_return=True)
+            function=get_installed_office, ns='Unknown',
+            other_results=other_results, print_return=True)
         show_free_space()
         try_and_print(message='Installed RAM:',
             function=show_installed_ram, ns='Unknown', silent_function=False)
