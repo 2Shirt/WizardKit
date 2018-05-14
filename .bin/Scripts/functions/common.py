@@ -470,7 +470,12 @@ def stay_awake():
 
 def get_exception(s):
     """Get exception by name, returns Exception object."""
-    return getattr(sys.modules[__name__], s)
+    try:
+        obj = getattr(sys.modules[__name__], s)
+    except AttributeError:
+        # Try builtin classes
+        obj = getattr(sys.modules['builtins'], s)
+    return obj
 
 def try_and_print(message='Trying...',
     function=None, cs='CS', ns='NS', other_results={},
