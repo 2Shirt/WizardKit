@@ -189,8 +189,10 @@ function update_live_env() {
     echo "127.0.1.1  $hostname.localdomain  $hostname" >> "$LIVE_DIR/airootfs/etc/hosts"
     
     # Live packages
-    sed -i -r 's/^(b43|clonezilla|gpm|grml|refind|testdisk|vim)/#\1/' "$LIVE_DIR/packages.both"
-    cat "$ROOT_DIR/.linux_items/packages/live" >> "$LIVE_DIR/packages.both"
+    while read -r p; do
+        sed -i "/$p/d" "$LIVE_DIR/packages.both"
+    done < "$ROOT_DIR/.linux_items/packages/live_remove"
+    cat "$ROOT_DIR/.linux_items/packages/live_add" >> "$LIVE_DIR/packages.both"
     echo "[custom]" >> "$LIVE_DIR/pacman.conf"
     echo "SigLevel = Optional TrustAll" >> "$LIVE_DIR/pacman.conf"
     echo "Server = file://$REPO_DIR" >> "$LIVE_DIR/pacman.conf"
