@@ -70,7 +70,7 @@ function DownloadFile ($Path, $Name, $Url) {
     }
     catch {
         Write-Host ("  ERROR: Failed to download file." ) -ForegroundColor "Red"
-        $DownloadErrors += 1
+        $global:DownloadErrors += 1
     }
 }
 function FindDynamicUrl ($SourcePage, $RegEx) {
