@@ -503,7 +503,7 @@ def run_tests(tests):
     # Open log
     if not TESTS['NVMe/SMART']['Quick']:
         try:
-            popen_program(['nohup', 'leafpad', global_vars['LogFile']])
+            popen_program(['nohup', 'leafpad', global_vars['LogFile']], pipe=True)
         except Exception:
             print_error('ERROR: Failed to open log: {}'.format(
                 global_vars['LogFile']))
