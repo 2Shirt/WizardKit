@@ -264,13 +264,14 @@ def menu_setup():
     windows_version = select_windows_version()
     
     # Find Windows image
+    # NOTE: Reassign volume letters to ensure all devices are scanned
+    try_and_print(
+        message = 'Assigning volume letters...',
+        function = assign_volume_letters,
+        other_results = other_results)
     windows_image = find_windows_image(windows_version)
 
     # Scan disks
-    try_and_print(
-        message = 'Assigning letters...',
-        function = assign_volume_letters,
-        other_results = other_results)
     result = try_and_print(
         message = 'Getting disk info...',
         function = scan_disks,
