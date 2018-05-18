@@ -436,13 +436,14 @@ function ask() {
 # VARIABLES
 DEST_DEV="${arg_u}"
 DEST_PAR="${DEST_DEV}1"
-LOG_FILE="$(getent passwd tech | cut -d: -f6)/build-ufd_${DEST_DEV##*/}_$(date +%Y-%m-%d_%H%M_%z).log"
+LOG_FILE="$(getent passwd "$SUDO_USER" | cut -d: -f6)/Logs/build-ufd_${DEST_DEV##*/}_$(date +%Y-%m-%d_%H%M_%z).log"
 MAIN_PY="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/settings/main.py"
 RSYNC_ARGS="-hrtuvS --modify-window=1 --progress"
 MAIN_KIT="$(realpath "${arg_m:-}" 2>/dev/null || true)"
 LINUX_ISO="$(realpath "${arg_l:-}" 2>/dev/null || true)"
 WINPE_ISO="$(realpath "${arg_w:-}" 2>/dev/null || true)"
 EXTRA_DIR="$(realpath "${arg_e:-}" 2>/dev/null || true)"
+mkdir -p "$(dirname "$LOG_FILE")"
 
 # COLORS
 CLEAR="\e[0m"
