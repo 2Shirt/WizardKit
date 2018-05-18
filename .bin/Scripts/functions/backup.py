@@ -32,7 +32,7 @@ def fix_path(path):
     """Replace invalid filename characters with underscores."""
     return REGEX_BAD_PATH_NAMES.sub('_', path)
 
-def prep_disk_for_backup(destination, disk, ticket_number):
+def prep_disk_for_backup(destination, disk, backup_prefix):
     """Gather details about the disk and its partitions.
     
     This includes partitions that can't be backed up,
@@ -71,10 +71,10 @@ def prep_disk_for_backup(destination, disk, ticket_number):
             par['Image Name'] = par['Name'] if par['Name'] else 'Unknown'
             if 'IP' in destination:
                 par['Image Path'] = r'\\{}\{}\{}'.format(
-                    destination['IP'], destination['Share'], ticket_number)
+                    destination['IP'], destination['Share'], backup_prefix)
             else:
                 par['Image Path'] = r'{}:\{}'.format(
-                    ticket_number, destination['Letter'])
+                    destination['Letter'], backup_prefix)
             par['Image Path'] += r'\{}_{}.wim'.format(
                 par['Number'], par['Image Name'])
             par['Image Path'] = fix_path(par['Image Path'])
