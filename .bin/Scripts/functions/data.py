@@ -534,21 +534,21 @@ def select_destination(folder_path, prompt='Select destination'):
 
     return path
 
-def select_source(ticket_number):
-    """Select backup from those found on the BACKUP_SERVERS for the ticket."""
+def select_source(backup_prefix):
+    """Select backup from those found on the BACKUP_SERVERS matching the prefix."""
     selected_source = None
     local_sources = []
     remote_sources = []
     sources = []
     mount_backup_shares(read_write=False)
 
-    # Check for ticket folders on servers
+    # Check for prefix folders on servers
     for server in BACKUP_SERVERS:
         if server['Mounted']:
             print_standard('Scanning {}...'.format(server['Name']))
             for d in os.scandir(r'\\{IP}\{Share}'.format(**server)):
                 if (d.is_dir()
-                    and d.name.lower().startswith(ticket_number.lower())):
+                    and d.name.lower().startswith(backup_prefix.lower())):
                     # Add folder to remote_sources
                     remote_sources.append({
                         'Name': '{:9}| File-Based:     [DIR]  {}'.format(
@@ -558,19 +558,19 @@ def select_source(ticket_number):
                         'Source': d})
 
     # Check for images and subfolders
-    for ticket_path in remote_sources.copy():
-        for item in os.scandir(ticket_path['Source'].path):
+    for prefix_path in remote_sources.copy():
+        for item in os.scandir(prefix_path['Source'].path):
             if item.is_dir():
                 # Add folder to remote_sources
                 remote_sources.append({
                     'Name': r'{:9}| File-Based:     [DIR]  {}\{}'.format(
-                        ticket_path['Server']['Name'],  # Server
-                        ticket_path['Source'].name,     # Ticket folder
+                        prefix_path['Server']['Name'],  # Server
+                        prefix_path['Source'].name,     # Prefix folder
                         item.name,                      # Sub-folder
                         ),
-                    'Server': ticket_path['Server'],
+                    'Server': prefix_path['Server'],
                     'Sort': r'{}\{}'.format(
-                        ticket_path['Source'].name,     # Ticket folder
+                        prefix_path['Source'].name,     # Prefix folder
                         item.name,                      # Sub-folder
                         ),
                     'Source': item})
@@ -586,15 +586,15 @@ def select_source(ticket_number):
                         remote_sources.append({
                             'Disabled': bool(not is_valid_wim_file(subitem)),
                             'Name': r'{:9}| Image-Based:  {:>7}  {}\{}\{}'.format(
-                                ticket_path['Server']['Name'],  # Server
+                                prefix_path['Server']['Name'],  # Server
                                 size,                           # Size (duh)
-                                ticket_path['Source'].name,     # Ticket folder
+                                prefix_path['Source'].name,     # Prefix folder
                                 item.name,                      # Sub-folder
                                 subitem.name,                   # Image file
                                 ),
-                            'Server': ticket_path['Server'],
+                            'Server': prefix_path['Server'],
                             'Sort': r'{}\{}\{}'.format(
-                                ticket_path['Source'].name,     # Ticket folder
+                                prefix_path['Source'].name,     # Prefix folder
                                 item.name,                      # Sub-folder
                                 subitem.name,                   # Image file
                                 ),
@@ -608,14 +608,14 @@ def select_source(ticket_number):
                 remote_sources.append({
                     'Disabled': bool(not is_valid_wim_file(item)),
                     'Name': r'{:9}| Image-Based:  {:>7}  {}\{}'.format(
-                        ticket_path['Server']['Name'],  # Server
+                        prefix_path['Server']['Name'],  # Server
                         size,                           # Size (duh)
-                        ticket_path['Source'].name,     # Ticket folder
+                        prefix_path['Source'].name,     # Prefix folder
                         item.name,                      # Image file
                         ),
-                    'Server': ticket_path['Server'],
+                    'Server': prefix_path['Server'],
                     'Sort': r'{}\{}'.format(
-                        ticket_path['Source'].name,     # Ticket folder
+                        prefix_path['Source'].name,     # Prefix folder
                         item.name,                      # Image file
                         ),
                     'Source': item})
@@ -682,8 +682,8 @@ def select_source(ticket_number):
         else:
             selected_source = sources[int(selection)-1]['Source']
     else:
-        print_error('ERROR: No backups found for ticket: {}.'.format(
-            ticket_number))
+        print_error('ERROR: No backups found using prefix: {}.'.format(
+            backup_prefix))
         umount_backup_shares()
         pause("Press Enter to exit...")
         exit_script()

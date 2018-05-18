@@ -18,17 +18,28 @@ if __name__ == '__main__':
         stay_awake()
         clear_screen()
         print_info('{}: User Data Transfer Tool\n'.format(KIT_NAME_FULL))
+        
+        # Get backup name prefix
         ticket_number = get_ticket_number()
+        if ENABLED_TICKET_NUMBERS:
+            backup_prefix = ticket_number
+        else:
+            backup_prefix = get_simple_string(prompt='Enter backup name prefix')
+        
+        # Set destination
         folder_path = r'{}\Transfer'.format(KIT_NAME_SHORT)
         dest = select_destination(folder_path=folder_path,
             prompt='Which disk are we transferring to?')
-        source = select_source(ticket_number)
+        
+        # Set source items
+        source = select_source(backup_prefix)
         items = scan_source(source, dest)
         
         # Transfer
         clear_screen()
         print_info('Transfer Details:\n')
-        show_data('Ticket:',        ticket_number)
+        if ENABLED_TICKET_NUMBERS:
+            show_data('Ticket:',        ticket_number)
         show_data('Source:',        source.path)
         show_data('Destination:',   dest)
         
