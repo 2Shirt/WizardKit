@@ -177,8 +177,8 @@ if ($MyInvocation.InvocationName -ne ".") {
             @("testdisk32.zip", "https://www.cgsecurity.org/testdisk-7.1-WIP.win.zip"),
             @("testdisk64.zip", "https://www.cgsecurity.org/testdisk-7.1-WIP.win64.zip"),
             # wimlib-imagex
-            @("wimlib32.zip", "https://wimlib.net/downloads/wimlib-1.12.0-windows-i686-bin.zip")
-            @("wimlib64.zip", "https://wimlib.net/downloads/wimlib-1.12.0-windows-x86_64-bin.zip"),
+            @("wimlib32.zip", "https://wimlib.net/downloads/wimlib-1.12.0-windows-i686-bin.zip"),
+            @("wimlib64.zip", "https://wimlib.net/downloads/wimlib-1.12.0-windows-x86_64-bin.zip")
         )
         foreach ($Tool in $ToolSources) {
             DownloadFile -Path $Temp -Name $Tool[0] -Url $Tool[1]
