@@ -25,6 +25,7 @@ if __name__ == '__main__':
             backup_prefix = ticket_number
         else:
             backup_prefix = get_simple_string(prompt='Enter backup name prefix')
+            backup_prefix = backup_prefix.replace(' ', '_')
         
         # Set destination
         folder_path = r'{}\Transfer'.format(KIT_NAME_SHORT)

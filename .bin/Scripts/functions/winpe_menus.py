@@ -83,7 +83,14 @@ def menu_backup():
         backup_prefix = ticket_number
     else:
         backup_prefix = get_simple_string(prompt='Enter backup name prefix')
+        backup_prefix = backup_prefix.replace(' ', '_')
 
+    # Assign drive letters
+    try_and_print(
+        message = 'Assigning letters...',
+        function = assign_volume_letters,
+        other_results = other_results)
+    
     # Mount backup shares
     mount_backup_shares(read_write=True)
 
@@ -91,10 +98,6 @@ def menu_backup():
     destination = select_backup_destination(auto_select=False)
 
     # Scan disks
-    try_and_print(
-        message = 'Assigning letters...',
-        function = assign_volume_letters,
-        other_results = other_results)
     result = try_and_print(
         message = 'Getting disk info...',
         function = scan_disks,
@@ -111,7 +114,7 @@ def menu_backup():
         raise GenericAbort
     
     # "Prep" disk
-    prep_disk_for_backup(destination, disk, dest_prefix)
+    prep_disk_for_backup(destination, disk, backup_prefix)
 
     # Display details for backup task
     clear_screen()

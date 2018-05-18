@@ -1,5 +1,7 @@
 # Wizard Kit: Functions - Backup
 
+import ctypes
+
 from functions.disk import *
 
 # Regex
@@ -30,7 +32,39 @@ def backup_partition(disk, par):
 
 def fix_path(path):
     """Replace invalid filename characters with underscores."""
-    return REGEX_BAD_PATH_NAMES.sub('_', path)
+    local_drive = path[1:2] == ':'
+    new_path = REGEX_BAD_PATH_NAMES.sub('_', path)
+    if local_drive:
+        new_path = '{}:{}'.format(new_path[0:1], new_path[2:])
+    return new_path
+
+def get_volume_display_name(mountpoint):
+    """Get display name from volume mountpoint and label, returns str."""
+    name = mountpoint
+    try:
+        kernel32 = ctypes.windll.kernel32
+        vol_name_buffer = ctypes.create_unicode_buffer(1024)
+        fs_name_buffer = ctypes.create_unicode_buffer(1024)
+        serial_number = None
+        max_component_length = None
+        file_system_flags = None
+        
+        vol_info = kernel32.GetVolumeInformationW(
+            ctypes.c_wchar_p(mountpoint),
+            vol_name_buffer,
+            ctypes.sizeof(vol_name_buffer),
+            serial_number,
+            max_component_length,
+            file_system_flags,
+            fs_name_buffer,
+            ctypes.sizeof(fs_name_buffer)
+            )
+        
+        name = '{} "{}"'.format(name, vol_name_buffer.value)
+    except:
+        pass
+    
+    return name
 
 def prep_disk_for_backup(destination, disk, backup_prefix):
     """Gather details about the disk and its partitions.
@@ -114,7 +148,20 @@ def select_backup_destination(auto_select=True):
     actions = [
         {'Name': 'Main Menu', 'Letter': 'M'},
         ]
-
+    
+    # Add local disks
+    for d in psutil.disk_partitions():
+        if re.search(r'^{}'.format(global_vars['Env']['SYSTEMDRIVE']), d.mountpoint, re.IGNORECASE):
+            # Skip current OS drive
+            pass
+        elif 'fixed' in d.opts:
+            # Skip DVD, etc
+            destinations.append({
+                'Name':     'Local Disk - {}'.format(
+                    get_volume_display_name(d.mountpoint)),
+                'Letter':   re.sub(r'^(\w):\\.*$', r'\1', d.mountpoint),
+                })
+    
     # Size check
     for dest in destinations:
         if 'IP' in dest:
