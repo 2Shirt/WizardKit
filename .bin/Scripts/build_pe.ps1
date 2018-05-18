@@ -130,16 +130,16 @@ if ($MyInvocation.InvocationName -ne ".") {
         ## Download Tools ##
         $ToolSources = @(
             # 7-Zip
-            @("7z-installer.msi", "http://www.7-zip.org/a/7z1801.msi"),
-            @("7z-extra.7z", "http://www.7-zip.org/a/7z1801-extra.7z"),
+            @("7z-installer.msi", "https://www.7-zip.org/a/7z1805.msi"),
+            @("7z-extra.7z", "https://www.7-zip.org/a/7z1805-extra.7z"),
             # Blue Screen View
-            @("bluescreenview64.zip", "http://www.nirsoft.net/utils/bluescreenview-x64.zip"),
             @("bluescreenview32.zip", "http://www.nirsoft.net/utils/bluescreenview.zip"),
+            @("bluescreenview64.zip", "http://www.nirsoft.net/utils/bluescreenview-x64.zip"),
             # ConEmu
-            @("ConEmuPack.7z", "https://github.com/Maximus5/ConEmu/releases/download/v18.02.06/ConEmuPack.180206.7z"),
+            @("ConEmuPack.7z", "https://github.com/Maximus5/ConEmu/releases/download/v18.05.06/ConEmuPack.180506.7z"),
             # Fast Copy
-            @("fastcopy64.zip", "http://ftp.vector.co.jp/69/93/2323/FastCopy341_x64.zip"),
             @("fastcopy32.zip", "http://ftp.vector.co.jp/69/93/2323/FastCopy341.zip"),
+            @("fastcopy64.zip", "http://ftp.vector.co.jp/69/93/2323/FastCopy341_x64.zip"),
             # HWiNFO
             @("hwinfo.zip", "http://app.oldfoss.com:81/download/HWiNFO/hwi_582.zip"),
             # Killer Network Drivers
@@ -148,19 +148,19 @@ if ($MyInvocation.InvocationName -ne ".") {
                 ("http://www.killernetworking.com"+(FindDynamicUrl "http://www.killernetworking.com/driver-downloads/item/killer-drivers-inf" "Download Killer-Ethernet").replace('&amp;', '&'))
             ),
             # Notepad++
-            @("npp_amd64.7z", "https://notepad-plus-plus.org/repository/7.x/7.5.6/npp.7.5.6.bin.minimalist.x64.7z"),
             @("npp_x86.7z", "https://notepad-plus-plus.org/repository/7.x/7.5.6/npp.7.5.6.bin.minimalist.7z"),
+            @("npp_amd64.7z", "https://notepad-plus-plus.org/repository/7.x/7.5.6/npp.7.5.6.bin.minimalist.x64.7z"),
             # NT Password Editor
             @("ntpwed.zip", "http://cdslow.org.ru/files/ntpwedit/ntpwed07.zip"),
             # Prime95
-            @("prime95_64.zip", "http://www.mersenne.org/ftp_root/gimps/p95v294b8.win64.zip"),
             @("prime95_32.zip", "http://www.mersenne.org/ftp_root/gimps/p95v294b7.win32.zip"),
+            @("prime95_64.zip", "http://www.mersenne.org/ftp_root/gimps/p95v294b8.win64.zip"),
             # ProduKey
-            @("produkey64.zip", "http://www.nirsoft.net/utils/produkey-x64.zip"),
             @("produkey32.zip", "http://www.nirsoft.net/utils/produkey.zip"),
+            @("produkey64.zip", "http://www.nirsoft.net/utils/produkey-x64.zip"),
             # Python
-            @("python64.zip", "https://www.python.org/ftp/python/3.6.4/python-3.6.4-embed-amd64.zip"),
-            @("python32.zip", "https://www.python.org/ftp/python/3.6.4/python-3.6.4-embed-win32.zip"),
+            @("python32.zip", "https://www.python.org/ftp/python/3.6.5/python-3.6.5-embed-win32.zip"),
+            @("python64.zip", "https://www.python.org/ftp/python/3.6.5/python-3.6.5-embed-amd64.zip"),
             # Python: psutil
             @(
                 "psutil64.whl",
@@ -171,14 +171,14 @@ if ($MyInvocation.InvocationName -ne ".") {
                 (FindDynamicUrl "https://pypi.org/project/psutil/" "href=.*-cp36-cp36m-win32.whl")
             ),
             # Q-Dir
-            @("qdir64.zip", "https://www.softwareok.com/Download/Q-Dir_Portable_x64.zip"),
             @("qdir32.zip", "https://www.softwareok.com/Download/Q-Dir_Portable.zip"),
+            @("qdir64.zip", "https://www.softwareok.com/Download/Q-Dir_Portable_x64.zip"),
             # TestDisk / PhotoRec
-            @("testdisk64.zip", "https://www.cgsecurity.org/testdisk-7.1-WIP.win64.zip"),
             @("testdisk32.zip", "https://www.cgsecurity.org/testdisk-7.1-WIP.win.zip"),
+            @("testdisk64.zip", "https://www.cgsecurity.org/testdisk-7.1-WIP.win64.zip"),
             # wimlib-imagex
-            @("wimlib64.zip", "https://wimlib.net/downloads/wimlib-1.12.0-windows-x86_64-bin.zip"),
             @("wimlib32.zip", "https://wimlib.net/downloads/wimlib-1.12.0-windows-i686-bin.zip")
+            @("wimlib64.zip", "https://wimlib.net/downloads/wimlib-1.12.0-windows-x86_64-bin.zip"),
         )
         foreach ($Tool in $ToolSources) {
             DownloadFile -Path $Temp -Name $Tool[0] -Url $Tool[1]
