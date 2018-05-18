@@ -190,6 +190,9 @@ def extract_item(item, filter='', silent=False):
         print_standard('Extracting "{item}"...'.format(item=item))
     try:
         run_program(cmd)
+    except FileNotFoundError:
+        if not silent:
+            print_warning('WARNING: Archive not found')
     except subprocess.CalledProcessError:
         if not silent:
             print_warning('WARNING: Errors encountered while exctracting data')
