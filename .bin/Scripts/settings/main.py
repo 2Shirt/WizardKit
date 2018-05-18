@@ -2,6 +2,7 @@
 
 # Features
 ENABLED_UPLOAD_DATA = False
+ENABLED_TICKET_NUMBERS = False
 
 # STATIC VARIABLES (also used by BASH and BATCH files)
 ## NOTE: There are no spaces around the = for easier parsing in BASH and BATCH

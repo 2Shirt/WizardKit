@@ -190,12 +190,17 @@ def extract_item(item, filter='', silent=False):
         print_standard('Extracting "{item}"...'.format(item=item))
     try:
         run_program(cmd)
+    except FileNotFoundError:
+        if not silent:
+            print_warning('WARNING: Archive not found')
     except subprocess.CalledProcessError:
         if not silent:
             print_warning('WARNING: Errors encountered while exctracting data')
 
 def get_ticket_number():
     """Get TicketNumber from user, save in LogDir, and return as str."""
+    if not ENABLED_TICKET_NUMBERS:
+        return None
     ticket_number = None
     while ticket_number is None:
         _input = input('Enter ticket number: ')
@@ -207,6 +212,15 @@ def get_ticket_number():
             with open(out_file, 'w', encoding='utf-8') as f:
                 f.write(ticket_number)
     return ticket_number
+
+def get_simple_string(prompt='Enter string'):
+    """Get string from user (only alphanumeric/space chars) and return as str."""
+    simple_string = None
+    while simple_string is None:
+        _input = input('{}: '.format(prompt))
+        if re.match(r'^(\w|-| )+$', _input, re.ASCII):
+            simple_string = _input.strip()
+    return simple_string
 
 def human_readable_size(size, decimals=0):
     """Convert size in bytes to a human-readable format and return a str."""

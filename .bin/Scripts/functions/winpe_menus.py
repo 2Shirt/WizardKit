@@ -75,11 +75,22 @@ def menu_backup():
         }}
     set_title('{}: Backup Menu'.format(KIT_NAME_FULL))
 
-    # Set ticket Number
+    # Set backup prefix
     clear_screen()
     print_standard('{}\n'.format(global_vars['Title']))
     ticket_number = get_ticket_number()
+    if ENABLED_TICKET_NUMBERS:
+        backup_prefix = ticket_number
+    else:
+        backup_prefix = get_simple_string(prompt='Enter backup name prefix')
+        backup_prefix = backup_prefix.replace(' ', '_')
 
+    # Assign drive letters
+    try_and_print(
+        message = 'Assigning letters...',
+        function = assign_volume_letters,
+        other_results = other_results)
+    
     # Mount backup shares
     mount_backup_shares(read_write=True)
 
@@ -87,10 +98,6 @@ def menu_backup():
     destination = select_backup_destination(auto_select=False)
 
     # Scan disks
-    try_and_print(
-        message = 'Assigning letters...',
-        function = assign_volume_letters,
-        other_results = other_results)
     result = try_and_print(
         message = 'Getting disk info...',
         function = scan_disks,
@@ -107,12 +114,13 @@ def menu_backup():
         raise GenericAbort
     
     # "Prep" disk
-    prep_disk_for_backup(destination, disk, ticket_number)
+    prep_disk_for_backup(destination, disk, backup_prefix)
 
     # Display details for backup task
     clear_screen()
     print_info('Create Backup - Details:\n')
-    show_data(message='Ticket:', data=ticket_number)
+    if ENABLED_TICKET_NUMBERS:
+        show_data(message='Ticket:', data=ticket_number)
     show_data(
         message = 'Source:',
         data = '[{}] ({}) {} {}'.format(
@@ -293,7 +301,8 @@ def menu_setup():
     # Display details for setup task
     clear_screen()
     print_info('Setup Windows - Details:\n')
-    show_data(message='Ticket:', data=ticket_number)
+    if ENABLED_TICKET_NUMBERS:
+        show_data(message='Ticket:', data=ticket_number)
     show_data(message='Installing:', data=windows_version['Name'])
     show_data(
         message = 'Boot Method:',
