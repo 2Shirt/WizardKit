@@ -444,6 +444,7 @@ LINUX_ISO="$(realpath "${arg_l:-}" 2>/dev/null || true)"
 WINPE_ISO="$(realpath "${arg_w:-}" 2>/dev/null || true)"
 EXTRA_DIR="$(realpath "${arg_e:-}" 2>/dev/null || true)"
 mkdir -p "$(dirname "$LOG_FILE")"
+chown "$SUDO_USER:$SUDO_USER" -R "$(dirname "$LOG_FILE")"
 
 # COLORS
 CLEAR="\e[0m"
