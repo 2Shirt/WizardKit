@@ -125,9 +125,9 @@ def menu_diags(*args):
             if diag_modes[int(selection)-1]['Name'] != 'Quick drive test':
                 # Save log for non-quick tests
                 ticket_number = get_ticket_number()
-                global_vars['LogDir'] = '{}/Tickets/{}'.format(
+                global_vars['LogDir'] = '{}/Logs/{}'.format(
                     global_vars['Env']['HOME'],
-                    ticket_number)
+                    ticket_number if ticket_number else global_vars['Date-Time'])
                 os.makedirs(global_vars['LogDir'], exist_ok=True)
                 global_vars['LogFile'] = '{}/Hardware Diagnostics.log'.format(
                     global_vars['LogDir'])
@@ -503,7 +503,7 @@ def run_tests(tests):
     # Open log
     if not TESTS['NVMe/SMART']['Quick']:
         try:
-            popen_program(['nohup', 'leafpad', global_vars['LogFile']])
+            popen_program(['nohup', 'leafpad', global_vars['LogFile']], pipe=True)
         except Exception:
             print_error('ERROR: Failed to open log: {}'.format(
                 global_vars['LogFile']))

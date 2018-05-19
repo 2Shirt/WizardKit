@@ -29,8 +29,11 @@ if __name__ == '__main__':
                 'FileNotFoundError':    'File not found',
             },
             'Warning': {}}
-        print_info('Starting System Checklist for Ticket #{}\n'.format(
-            ticket_number))
+        if ENABLED_TICKET_NUMBERS:
+            print_info('Starting System Checklist for Ticket #{}\n'.format(
+                ticket_number))
+        else:
+            print_info('Starting System Checklist\n')
 
         # Configure
         print_info('Configure')
