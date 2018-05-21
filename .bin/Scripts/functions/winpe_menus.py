@@ -391,6 +391,11 @@ def menu_setup():
         other_results = other_results,
         windows_version = windows_version)
 
+    # Copy WinPE log(s)
+    source = r'{}\Info'.format(global_vars['ClientDir'])
+    dest = r'W:\{}\Info'.format(KIT_NAME_SHORT)
+    shutil.copytree(source, dest)
+
     # Print summary
     print_standard('\nDone.')
     if 'LogFile' in global_vars and ask('\nReview log?'):
