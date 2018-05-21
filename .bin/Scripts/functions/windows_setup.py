@@ -50,7 +50,8 @@ def find_windows_image(windows_version):
             path = '{}images\{}.{}'.format(d.mountpoint, imagefile, ext)
             if os.path.isfile(path) and wim_contains_image(path, imagename):
                 image['Path'] = path
-                image['Source'] = d.mountpoint[:1]
+                image['Letter'] = d.mountpoint[:1].upper()
+                image['Local'] = True
                 if ext == 'swm':
                     image['Glob'] = '--ref="{}*.swm"'.format(image['Path'][:-4])
                 break
@@ -68,7 +69,8 @@ def find_windows_image(windows_version):
                     ext)
                 if os.path.isfile(path) and wim_contains_image(path, imagename):
                     image['Path'] = path
-                    image['Source'] = None
+                    image['Letter'] = None
+                    image['Local'] = False
                     if ext == 'swm':
                         image['Glob'] = '--ref="{}*.swm"'.format(
                             image['Path'][:-4])

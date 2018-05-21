@@ -337,10 +337,22 @@ def menu_setup():
         raise GenericAbort
 
     # Remove volume letters so S, T, & W can be used below
-    remove_volume_letters(keep=windows_image['Source'])
-    new_letter = reassign_volume_letter(letter=windows_image['Source'])
-    if new_letter:
-        windows_image['Source'] = new_letter
+    try_and_print(
+        message = 'Removing volume letters...',
+        function = remove_volume_letters,
+        other_results = other_results,
+        keep=windows_image['Letter'])
+   
+    # Assign new letter for local source if necessary
+    if windows_image['Local'] and windows_image['Letter'] in ['S', 'T', 'W']:
+        new_letter = try_and_print(
+            message = 'Reassigning source volume letter...',
+            function = reassign_volume_letter,
+            other_results = other_results,
+            letter=windows_image['Letter'])
+        windows_image['Path'] = '{}{}'.format(
+            new_letter, windows_image['Path'][1:])
+        windows_image['Letter'] = new_letter
 
     # Format and partition disk
     result = try_and_print(
