@@ -34,8 +34,6 @@ if __name__ == '__main__':
         if ENABLED_TICKET_NUMBERS:
             print_info('Starting System Diagnostics for Ticket #{}\n'.format(
                 ticket_number))
-        else:
-            print_info('Starting System Diagnostics\n')
         
         # Sanitize Environment
         print_info('Sanitizing Environment')
