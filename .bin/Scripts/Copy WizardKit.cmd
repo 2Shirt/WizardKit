@@ -67,7 +67,7 @@ start "" /wait "%fastcopy%" %fastcopy_args% %_sources% /to="%dest%\.bin\"
 echo Copying .cbin...
 mkdir "%dest%\.cbin" >nul 2>&1
 attrib +h "%dest%\.cbin"
-start "" /wait "%fastcopy%" %fastcopy_args% %cbin%\* /to="%dest%\.cbin\"
+start "" /wait "%fastcopy%" %fastcopy_args% "%cbin%"\* /to="%dest%\.cbin\"
 
 :CopyMainData
 echo Copying Main Kit...
