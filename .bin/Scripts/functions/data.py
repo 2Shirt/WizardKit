@@ -170,93 +170,106 @@ def is_valid_wim_file(item):
             print_log('WARNING: Image "{}" damaged.'.format(item.name))
     return valid
 
-def get_mounted_data():
+def get_mounted_volumes():
     """Get mounted volumes, returns dict."""
     cmd = [
         'findmnt', '-J', '-b', '-i',
-        't', (
-            'autofs,binfmt_misc,cgroup,cgroup2,configfs,debugfs,devpts,devtmpfs,'
+        '-t', (
+            'autofs,binfmt_misc,bpf,cgroup,cgroup2,configfs,debugfs,devpts,devtmpfs,'
             'hugetlbfs,mqueue,proc,pstore,securityfs,sysfs,tmpfs'
             ),
         '-o', 'SOURCE,TARGET,FSTYPE,LABEL,SIZE,AVAIL,USED']
     result = run_program(cmd)
     json_data = json.loads(result.stdout.decode())
-    mounted_data = []
+    mounted_volumes = []
     for item in json_data.get('filesystems', []):
-        mounted_data.append(item)
-        mounted_data.extend(item.get('children', []))
-    return {item['source']: item for item in mounted_data}
+        mounted_volumes.append(item)
+        mounted_volumes.extend(item.get('children', []))
+    return {item['source']: item for item in mounted_volumes}
 
 def mount_all_volumes():
-    """Mount all attached devices with recognized filesystems."""
-    report = []
+    """Mount all detected filesystems."""
+    report = {}
 
     # Get list of block devices
-    cmd = ['lsblk', '-J', '-o', 'NAME,FSTYPE,LABEL,UUID,PARTTYPE,TYPE,SIZE']
+    cmd = [
+        'lsblk', '-J', '-p',
+        '-o', 'NAME,FSTYPE,LABEL,UUID,PARTTYPE,TYPE,SIZE']
     result = run_program(cmd)
     json_data = json.loads(result.stdout.decode())
     devs = json_data.get('blockdevices', [])
 
-    # Get list of mounted devices
-    mounted_data = get_mounted_data()
-    mounted_list = [m['source'] for m in mounted_data.values()]
-
-    # Loop over devices
+    # Get list of volumes
+    volumes = {}
     for dev in devs:
-        dev_path = '/dev/{}'.format(dev['name'])
-        if re.search(r'^(loop|sr)', dev['name'], re.IGNORECASE):
-            # Skip loopback devices and optical media
-            report.append([dev_path, 'Skipped'])
-            continue
         for child in dev.get('children', []):
-            child_path = '/dev/{}'.format(child['name'])
-            if child_path in mounted_list:
-                report.append([child_path, 'Already Mounted'])
-            else:
-                try:
-                    run_program(['udevil', 'mount', '-o', 'ro', child_path])
-                    report.append([child_path, 'CS'])
-                except subprocess.CalledProcessError:
-                    report.append([child_path, 'NS'])
+            volumes.update({child['name']: child})
+            for grandchild in child.get('children', []):
+                volumes.update({grandchild['name']: grandchild})
+    
+    # Get list of mounted volumes
+    mounted_volumes = get_mounted_volumes()
 
-    # Update list of mounted devices
-    mounted_data = get_mounted_data()
-    mounted_list = [m['source'] for m in mounted_data.values()]
-
-    # Update report lines for show_data()
-    for line in report:
-        _path = line[0]
-        _result = line[1]
-        info = {'message': '{}:'.format(_path)}
-        if _path in mounted_list:
-            info['data'] = 'Mounted on {}'.format(
-                mounted_data[_path]['target'])
-            info['data'] = '{:40} ({} used, {} free)'.format(
-                info['data'],
-                human_readable_size(mounted_data[_path]['used']),
-                human_readable_size(mounted_data[_path]['avail']))
-            if _result == 'Already Mounted':
-                info['warning'] = True
-        elif _result == 'Skipped':
-            info['data'] = 'Skipped'
-            info['warning'] = True
+    # Loop over volumes
+    for vol_path, vol_data in volumes.items():
+        vol_data['show_data'] = {
+            'message': vol_path.replace('/dev/mapper/', ''),
+            'data': None,
+            }
+        if re.search(r'^loop\d', vol_path, re.IGNORECASE):
+            # Skip loopback devices
+            vol_data['show_data']['data'] = 'Skipped'
+            vol_data['show_data']['warning'] = True
+            report[vol_path] = vol_data
+        elif 'children' in vol_data:
+            # Skip LVM/RAID partitions (the real volume is mounted separately)
+            vol_data['show_data']['data'] = vol_data.get('fstype', 'UNKNOWN')
+            if vol_data.get('label', None):
+                vol_data['show_data']['data'] += ' "{}"'.format(vol_data['label'])
+            vol_data['show_data']['info'] = True
+            report[vol_path] = vol_data
         else:
-            info['data'] = 'Failed to mount'
-            info['error'] = True
-        line.append(info)
+            if vol_path in mounted_volumes:
+                vol_data['show_data']['warning'] = True
+            else:
+                # Mount volume
+                try:
+                    run_program(['udevil', 'mount', '-o', 'ro', vol_path])
+                except subprocess.CalledProcessError:
+                    vol_data['show_data']['data'] = 'Failed to mount'
+                    vol_data['show_data']['error'] = True
+            # Update mounted_volumes data
+            mounted_volumes = get_mounted_volumes()
+
+            # Format pretty result string
+            if vol_data['show_data']['data'] != 'Failed to mount':
+                size_used = human_readable_size(
+                    mounted_volumes[vol_path]['used'])
+                size_avail = human_readable_size(
+                    mounted_volumes[vol_path]['avail'])
+                vol_data['show_data']['data'] = 'Mounted on {}'.format(
+                    mounted_volumes[vol_path]['target'])
+                vol_data['show_data']['data'] = '{:40} ({} used, {} free)'.format(
+                    vol_data['show_data']['data'],
+                    size_used,
+                    size_avail)
+
+            # Update report
+            report[vol_path] = vol_data
+
     return report
 
 def mount_backup_shares(read_write=False):
     """Mount the backup shares unless labeled as already mounted."""
     if psutil.LINUX:
-        mounted_data = get_mounted_data()
+        mounted_volumes = get_mounted_volumes()
     for server in BACKUP_SERVERS:
         if psutil.LINUX:
             # Update mounted status
             source = '//{IP}/{Share}'.format(**server)
             dest = '/Backups/{Name}'.format(**server)
             mounted_str = '(Already) Mounted {}'.format(dest)
-            data = mounted_data.get(source, {})
+            data = mounted_volumes.get(source, {})
             if dest == data.get('target', ''):
                 server['Mounted'] = True
         elif psutil.WINDOWS:

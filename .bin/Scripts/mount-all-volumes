@@ -22,8 +22,8 @@ if __name__ == '__main__':
 
         # Print report
         print_info('\nResults')
-        for line in report:
-            show_data(indent=4, width=16, **line[-1])
+        for vol_name, vol_data in sorted(report.items()):
+            show_data(indent=4, width=20, **vol_data['show_data'])
 
         # Done
         print_standard('\nDone.')
