@@ -176,7 +176,7 @@ NINITE_SOURCES = {
         'Launchy.exe': 'launchy',
         'RealVNC.exe': 'realvnc',
         'Revo Uninstaller.exe': 'revo',
-        'TeamViewer 12.exe': 'teamviewer12',
+        'TeamViewer 13.exe': 'teamviewer13',
         'TeraCopy.exe': 'teracopy',
         'WinDirStat.exe': 'windirstat',
         },
