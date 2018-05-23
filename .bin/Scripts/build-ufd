@@ -595,7 +595,7 @@ sync
 echo "Hiding boot files..."
 echo "drive s: file=\"${DEST_PAR}\"" > /root/.mtoolsrc
 echo 'mtools_skip_check=1' >> /root/.mtoolsrc
-for item in boot{,mgr,mgr.efi} efi en-us images isolinux sources "${KIT_NAME_FULL}"/{.bin,.cbin}; do
+for item in arch Boot bootmgr{,.efi} EFI en-us images isolinux sources "${KIT_NAME_FULL}"/{.bin,.cbin}; do
     yes | mattrib +h "S:/${item}" >> "${LOG_FILE}" 2>&1 || true
 done
 sync
