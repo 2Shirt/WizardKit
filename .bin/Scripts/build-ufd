@@ -469,7 +469,8 @@ if [ -z ${KIT_NAME_FULL+x} ]; then
     echo -e "${RED}ERROR${CLEAR}: failed to load settings from ${MAIN_PY}"
     abort
 fi
-UFD_LABEL="${KIT_NAME_SHORT}_LINUX"
+ISO_LABEL="${KIT_NAME_SHORT}_LINUX"
+UFD_LABEL="${KIT_NAME_SHORT}_UFD"
 
 # Check if root
 if [[ "$EUID" -ne 0 ]]; then
@@ -555,6 +556,8 @@ mount "${WINPE_ISO}" /mnt/WinPE -r >> "${LOG_FILE}" 2>&1
 # Copy files
 echo "Copying Linux files..."
 rsync ${RSYNC_ARGS} /mnt/Linux/* /mnt/Dest/ >> "${LOG_FILE}" 2>&1
+sed -i "s/${ISO_LABEL}/${UFD_LABEL}/" /mnt/Dest/EFI/boot/refind.conf
+sed -i "s/${ISO_LABEL}/${UFD_LABEL}/" /mnt/Dest/arch/boot/syslinux/*cfg
 
 echo "Copying WinPE files..."
 rsync ${RSYNC_ARGS} /mnt/WinPE/{Boot,bootmgr{,.efi},en-us,sources} /mnt/Dest/ >> "${LOG_FILE}" 2>&1
