@@ -32,8 +32,6 @@ if __name__ == '__main__':
         if ENABLED_TICKET_NUMBERS:
             print_info('Starting System Checklist for Ticket #{}\n'.format(
                 ticket_number))
-        else:
-            print_info('Starting System Checklist\n')
 
         # Configure
         print_info('Configure')
@@ -78,15 +76,15 @@ if __name__ == '__main__':
             try_and_print(message='BIOS Activation:',
                 function=activate_with_bios,
                 other_results=other_results)
+        try_and_print(message='Installed RAM:',
+            function=show_installed_ram, ns='Unknown', silent_function=False)
+        show_free_space()
         try_and_print(message='Installed Antivirus:',
             function=get_installed_antivirus, ns='Unknown',
             other_results=other_results, print_return=True)
         try_and_print(message='Installed Office:',
             function=get_installed_office, ns='Unknown',
             other_results=other_results, print_return=True)
-        show_free_space()
-        try_and_print(message='Installed RAM:',
-            function=show_installed_ram, ns='Unknown', silent_function=False)
 
         # Play audio, show devices, open Windows updates, and open Activation
         try_and_print(message='Opening Device Manager...',

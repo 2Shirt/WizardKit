@@ -87,19 +87,23 @@ if __name__ == '__main__':
         
         # Summary
         print_info('Summary')
-        try_and_print(message='Temp Size:',
-            function=show_temp_files_size, silent_function=False)
-        show_free_space()
-        try_and_print(message='Installed RAM:',
-            function=show_installed_ram, ns='Unknown', silent_function=False)
-        try_and_print(message='Installed Office:',
-            function=get_installed_office, ns='Unknown', print_return=True)
-        try_and_print(message='Product Keys:',
-            function=get_product_keys, ns='Unknown', print_return=True)
         try_and_print(message='Operating System:',
             function=show_os_name, ns='Unknown', silent_function=False)
-        try_and_print(message='',
+        try_and_print(message='Activation:',
             function=show_os_activation, ns='Unknown', silent_function=False)
+        try_and_print(message='Installed RAM:',
+            function=show_installed_ram, ns='Unknown', silent_function=False)
+        show_free_space()
+        try_and_print(message='Temp Size:',
+            function=show_temp_files_size, silent_function=False)
+        try_and_print(message='Installed Antivirus:',
+            function=get_installed_antivirus, ns='Unknown',
+            other_results=other_results, print_return=True)
+        try_and_print(message='Installed Office:',
+            function=get_installed_office, ns='Unknown',
+            other_results=other_results, print_return=True)
+        try_and_print(message='Product Keys:',
+            function=get_product_keys, ns='Unknown', print_return=True)
         
         # User data
         print_info('User Data')
