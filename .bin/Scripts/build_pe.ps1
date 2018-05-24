@@ -176,6 +176,8 @@ if ($MyInvocation.InvocationName -ne ".") {
             # TestDisk / PhotoRec
             @("testdisk32.zip", "https://www.cgsecurity.org/testdisk-7.1-WIP.win.zip"),
             @("testdisk64.zip", "https://www.cgsecurity.org/testdisk-7.1-WIP.win64.zip"),
+            # VirtIO drivers
+            @("virtio-win.iso", "https://fedorapeople.org/groups/virt/virtio-win/direct-downloads/latest-virtio/virtio-win.iso"),
             # wimlib-imagex
             @("wimlib32.zip", "https://wimlib.net/downloads/wimlib-1.12.0-windows-i686-bin.zip"),
             @("wimlib64.zip", "https://wimlib.net/downloads/wimlib-1.12.0-windows-x86_64-bin.zip")
@@ -207,8 +209,6 @@ if ($MyInvocation.InvocationName -ne ".") {
                 "-aoa", "-bso0", "-bse0", "-bsp0",
                 "7za.exe", "*.txt")
             Start-Process -FilePath $SevenZip -ArgumentList $ArgumentList -NoNewWindow -Wait
-            Remove-Item "$Temp\7z*" -Recurse
-            $SevenZip = "$Build\bin\x86\7-Zip\7za.exe"
         }
         catch {
             Write-Host ("  ERROR: Failed to extract files." ) -ForegroundColor "Red"
@@ -225,7 +225,6 @@ if ($MyInvocation.InvocationName -ne ".") {
                 "x", "$Temp\bluescreenview32.zip", "-o$Build\bin\x86\BlueScreenView",
                 "-aoa", "-bso0", "-bse0", "-bsp0")
             Start-Process -FilePath $SevenZip -ArgumentList $ArgumentList -NoNewWindow -Wait
-            Remove-Item "$Temp\bluescreenview*"
         }
         catch {
             Write-Host ("  ERROR: Failed to extract files." ) -ForegroundColor "Red"
@@ -248,7 +247,6 @@ if ($MyInvocation.InvocationName -ne ".") {
             Start-Process -FilePath $SevenZip -ArgumentList $ArgumentList -NoNewWindow -Wait
             Remove-Item "$Build\bin\x86\ConEmu\ConEmu64.exe"
             Remove-Item "$Build\bin\x86\ConEmu\ConEmu64.map"
-            Remove-Item "$Temp\ConEmuPack*"
         }
         catch {
             Write-Host ("  ERROR: Failed to extract files." ) -ForegroundColor "Red"
@@ -267,7 +265,6 @@ if ($MyInvocation.InvocationName -ne ".") {
                 "-aoa", "-bso0", "-bse0", "-bsp0",
                 "-x!setup.exe", "-x!*.dll")
             Start-Process -FilePath $SevenZip -ArgumentList $ArgumentList -NoNewWindow -Wait
-            Remove-Item "$Temp\fastcopy*"
         }
         catch {
             Write-Host ("  ERROR: Failed to extract files." ) -ForegroundColor "Red"
@@ -286,7 +283,6 @@ if ($MyInvocation.InvocationName -ne ".") {
                 "-aoa", "-bso0", "-bse0", "-bsp0",
                 "Production\Windows10-x86\Eth\*")
             Start-Process -FilePath $SevenZip -ArgumentList $ArgumentList -NoNewWindow -Wait
-            Remove-Item "$Temp\killerinf*"
         }
         catch {
             Write-Host ("  ERROR: Failed to extract files." ) -ForegroundColor "Red"
@@ -303,7 +299,6 @@ if ($MyInvocation.InvocationName -ne ".") {
                 "e", "$Temp\hwinfo.zip", "-o$Build\bin\x86\HWiNFO",
                 "-aoa", "-bso0", "-bse0", "-bsp0", "HWiNFO32.exe")
             Start-Process -FilePath $SevenZip -ArgumentList $ArgumentList -NoNewWindow -Wait
-            # Remove-Item "$Temp\hwinfo.zip"
             Move-Item "$Build\bin\amd64\HWiNFO\HWiNFO64.exe" "$Build\bin\amd64\HWiNFO\HWiNFO.exe" -Force
             Move-Item "$Build\bin\x86\HWiNFO\HWiNFO32.exe" "$Build\bin\x86\HWiNFO\HWiNFO.exe" -Force
         }
@@ -322,7 +317,6 @@ if ($MyInvocation.InvocationName -ne ".") {
                 "x", "$Temp\npp_x86.7z", "-o$Build\bin\x86\NotepadPlusPlus",
                 "-aoa", "-bso0", "-bse0", "-bsp0")
             Start-Process -FilePath $SevenZip -ArgumentList $ArgumentList -NoNewWindow -Wait
-            Remove-Item "$Temp\npp*"
             Move-Item "$Build\bin\amd64\NotepadPlusPlus\notepad++.exe" "$Build\bin\amd64\NotepadPlusPlus\notepadplusplus.exe" -Force
             Move-Item "$Build\bin\x86\NotepadPlusPlus\notepad++.exe" "$Build\bin\x86\NotepadPlusPlus\notepadplusplus.exe" -Force
         }
@@ -344,7 +338,6 @@ if ($MyInvocation.InvocationName -ne ".") {
                 "-aoa", "-bso0", "-bse0", "-bsp0",
                 "ntpwedit.exe", "*.txt")
             Start-Process -FilePath $SevenZip -ArgumentList $ArgumentList -NoNewWindow -Wait
-            Remove-Item "$Temp\ntpwed*"
         }
         catch {
             Write-Host ("  ERROR: Failed to extract files." ) -ForegroundColor "Red"
@@ -369,7 +362,6 @@ if ($MyInvocation.InvocationName -ne ".") {
             Start-Process -FilePath $SevenZip -ArgumentList $ArgumentList -NoNewWindow -Wait
             Move-Item "$Build\bin\x86\TestDisk\testdisk-7.1-WIP\*" "$Build\bin\x86\TestDisk" -Force
             Remove-Item "$Build\bin\x86\TestDisk\testdisk-7.1-WIP" -Recurse -Force
-            Remove-Item "$Temp\testdisk*"
         }
         catch {
             Write-Host ("  ERROR: Failed to extract files." ) -ForegroundColor "Red"
@@ -386,7 +378,6 @@ if ($MyInvocation.InvocationName -ne ".") {
                 "x", "$Temp\prime95_32.zip", "-o$Build\bin\x86\Prime95",
                 "-aoa", "-bso0", "-bse0", "-bsp0")
             Start-Process -FilePath $SevenZip -ArgumentList $ArgumentList -NoNewWindow -Wait
-            Remove-Item "$Temp\prime95*"
         }
         catch {
             Write-Host ("  ERROR: Failed to extract files." ) -ForegroundColor "Red"
@@ -402,7 +393,6 @@ if ($MyInvocation.InvocationName -ne ".") {
                 "x", "$Temp\produkey32.zip", "-o$Build\bin\x86\ProduKey",
                 "-aoa", "-bso0", "-bse0", "-bsp0")
             Start-Process -FilePath $SevenZip -ArgumentList $ArgumentList -NoNewWindow -Wait
-            Remove-Item "$Temp\produkey*"
         }
         catch {
             Write-Host ("  ERROR: Failed to extract files." ) -ForegroundColor "Red"
@@ -441,8 +431,6 @@ if ($MyInvocation.InvocationName -ne ".") {
         catch {
             Write-Host ("  ERROR: Failed to extract files." ) -ForegroundColor "Red"
         }
-        Remove-Item "$Temp\python*"
-        Remove-Item "$Temp\*.whl"
     
         # Q-Dir
         Write-Host "Extracting: Q-Dir"
@@ -456,7 +444,24 @@ if ($MyInvocation.InvocationName -ne ".") {
                 "x", "$Temp\qdir32.zip", "-o$Build\bin\x86",
                 "-aoa", "-bso0", "-bse0", "-bsp0")
             Start-Process -FilePath $SevenZip -ArgumentList $ArgumentList -NoNewWindow -Wait
-            Remove-Item "$Temp\qdir*"
+        }
+        catch {
+            Write-Host ("  ERROR: Failed to extract files." ) -ForegroundColor "Red"
+        }
+        
+        # VirtIO Drivers
+        Write-Host "Extracting: VirtIO Drivers"
+        try {
+            $ArgumentList = @(
+                "e", "$Temp\virtio-win.iso", "-o$Build\Drivers\amd64\VirtIO",
+                "-aoa", "-bso0", "-bse0", "-bsp0",
+                "*\w10\amd64\*")
+            Start-Process -FilePath $SevenZip -ArgumentList $ArgumentList -NoNewWindow -Wait
+            $ArgumentList = @(
+                "e", "$Temp\virtio-win.iso", "-o$Build\Drivers\x86\VirtIO",
+                "-aoa", "-bso0", "-bse0", "-bsp0",
+                "*\w10\x86\*")
+            Start-Process -FilePath $SevenZip -ArgumentList $ArgumentList -NoNewWindow -Wait
         }
         catch {
             Write-Host ("  ERROR: Failed to extract files." ) -ForegroundColor "Red"
@@ -472,10 +477,14 @@ if ($MyInvocation.InvocationName -ne ".") {
                 "x", "$Temp\wimlib32.zip", "-o$Build\bin\x86\wimlib",
                 "-aoa", "-bso0", "-bse0", "-bsp0")
             Start-Process -FilePath $SevenZip -ArgumentList $ArgumentList -NoNewWindow -Wait
-            Remove-Item "$Temp\wimlib*"
         }
         catch {
             Write-Host ("  ERROR: Failed to extract files." ) -ForegroundColor "Red"
+        }
+        
+        ## Cleanup ##
+        if (Ask-User "Delete temp files?") {
+            Remove-Item "$Temp" -Recurse
         }
     }
     
