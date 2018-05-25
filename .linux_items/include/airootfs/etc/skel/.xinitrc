@@ -6,7 +6,7 @@ xset s off
 xset -dpms
 eval $(ssh-agent)
 export SSH_AUTH_SOCK
-compton --backend xrender &
+compton --backend xrender --xrender-sync --xrender-sync-fence &
 sleep 1s
 conky -d
 nm-applet &

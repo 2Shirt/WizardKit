@@ -2,7 +2,7 @@
 
 SOURCE_URLS = {
     'AIDA64': 'http://download.aida64.com/aida64engineer597.zip',
-    'Adobe Reader DC': 'http://ardownload.adobe.com/pub/adobe/reader/win/AcrobatDC/1801120035/AcroRdrDC1801120035_en_US.exe',
+    'Adobe Reader DC': 'http://ardownload.adobe.com/pub/adobe/reader/win/AcrobatDC/1801120040/AcroRdrDC1801120040_en_US.exe',
     'AdwCleaner': 'https://toolslib.net/downloads/finish/1-adwcleaner/',
     'Autoruns': 'https://download.sysinternals.com/files/Autoruns.zip',
     'BleachBit': 'https://download.bleachbit.org/BleachBit-2.0-portable.zip',
@@ -16,7 +16,7 @@ SOURCE_URLS = {
     'Everything64': 'https://www.voidtools.com/Everything-1.4.1.895.x64.zip',
     'FastCopy32': 'http://ftp.vector.co.jp/69/93/2323/FastCopy341.zip',
     'FastCopy64': 'http://ftp.vector.co.jp/69/93/2323/FastCopy341_x64.zip',
-    'Firefox uBO': 'https://addons.cdn.mozilla.net/user-media/addons/607454/ublock_origin-1.15.10-an+fx.xpi?filehash=sha256%3A30b258803fd6cd988c5ba479f2f6ff5b4e9b40110c81e3421a6867b20ec718a6',
+    'Firefox uBO': 'https://addons.mozilla.org/firefox/downloads/file/956394/ublock_origin-1.16.6-an+fx.xpi',
     'HWiNFO': 'http://app.oldfoss.com:81/download/HWiNFO/hwi_582.zip',
     'HitmanPro32': 'https://dl.surfright.nl/HitmanPro.exe',
     'HitmanPro64': 'https://dl.surfright.nl/HitmanPro_x64.exe',
@@ -25,7 +25,7 @@ SOURCE_URLS = {
     'KVRT': 'http://devbuilds.kaspersky-labs.com/devbuilds/KVRT/latest/full/KVRT.exe',
     'NotepadPlusPlus': 'https://notepad-plus-plus.org/repository/7.x/7.5.6/npp.7.5.6.bin.minimalist.7z',
     'Office Deployment Tool 2013': 'https://download.microsoft.com/download/6/2/3/6230F7A2-D8A9-478B-AC5C-57091B632FCF/officedeploymenttool_x86_4827-1000.exe',
-    'Office Deployment Tool 2016': 'https://download.microsoft.com/download/2/7/A/27AF1BE6-DD20-4CB4-B154-EBAB8A7D4A7E/officedeploymenttool_8529.3600.exe',
+    'Office Deployment Tool 2016': 'https://download.microsoft.com/download/2/7/A/27AF1BE6-DD20-4CB4-B154-EBAB8A7D4A7E/officedeploymenttool_9326.3600.exe',
     'ProduKey32': 'http://www.nirsoft.net/utils/produkey.zip',
     'ProduKey64': 'http://www.nirsoft.net/utils/produkey-x64.zip',
     'PuTTY': 'https://the.earth.li/~sgtatham/putty/latest/w32/putty.zip',
@@ -176,7 +176,7 @@ NINITE_SOURCES = {
         'Launchy.exe': 'launchy',
         'RealVNC.exe': 'realvnc',
         'Revo Uninstaller.exe': 'revo',
-        'TeamViewer 12.exe': 'teamviewer12',
+        'TeamViewer 13.exe': 'teamviewer13',
         'TeraCopy.exe': 'teracopy',
         'WinDirStat.exe': 'windirstat',
         },
@@ -196,6 +196,7 @@ RST_SOURCES = {
     'SetupRST_14.8.exe': 'https://downloadmirror.intel.com/26759/eng/setuprst.exe',
     'SetupRST_15.8.exe': 'https://downloadmirror.intel.com/27442/eng/SetupRST.exe',
     'SetupRST_15.9.exe': 'https://downloadmirror.intel.com/27400/eng/SetupRST.exe',
+    'SetupRST_16.0.exe': 'https://downloadmirror.intel.com/27681/eng/SetupRST.exe',
     }
 
 

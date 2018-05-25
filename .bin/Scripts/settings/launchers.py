@@ -8,18 +8,6 @@ LAUNCHERS = {
             'L_ITEM': 'activate.py',
             'L_ELEV': 'True',
             },
-        'Enter SafeMode': {
-            'L_TYPE': 'PyScript',
-            'L_PATH': 'Scripts',
-            'L_ITEM': 'safemode_enter.py',
-            'L_ELEV': 'True',
-            },
-        'Exit SafeMode': {
-            'L_TYPE': 'PyScript',
-            'L_PATH': 'Scripts',
-            'L_ITEM': 'safemode_exit.py',
-            'L_ELEV': 'True',
-            },
         'System Checklist': {
             'L_TYPE': 'PyScript',
             'L_PATH': 'Scripts',
@@ -294,8 +282,8 @@ LAUNCHERS = {
         'Intel RST (Current Release)': {
             'L_TYPE': 'Executable',
             'L_PATH': '_Drivers\Intel RST',
-            'L_ITEM': 'SetupRST_15.9.exe',
-            'L_7ZIP': 'SetupRST_15.9.exe',
+            'L_ITEM': 'SetupRST_16.0.exe',
+            'L_7ZIP': 'SetupRST_16.0.exe',
             },
         'Intel RST (Previous Releases)': {
             'L_TYPE': 'Folder',
@@ -458,11 +446,23 @@ LAUNCHERS = {
             'L_PATH': 'ConEmu',
             'L_ITEM': 'ConEmu.exe',
             },
+        'Enter SafeMode': {
+            'L_TYPE': 'PyScript',
+            'L_PATH': 'Scripts',
+            'L_ITEM': 'safemode_enter.py',
+            'L_ELEV': 'True',
+            },
         'Everything': {
             'L_TYPE': 'Executable',
             'L_PATH': 'Everything',
             'L_ITEM': 'Everything.exe',
             'L_ARGS': '-nodb',
+            'L_ELEV': 'True',
+            },
+        'Exit SafeMode': {
+            'L_TYPE': 'PyScript',
+            'L_PATH': 'Scripts',
+            'L_ITEM': 'safemode_exit.py',
             'L_ELEV': 'True',
             },
         'Notepad++': {

@@ -1,0 +1,27 @@
+#!/bin/bash
+#
+
+BLUE='\033[34m'
+CLEAR='\033[0m'
+
+# List devices
+IFS=$'\n'
+for line in $(lsblk -do NAME,TRAN,SIZE,VENDOR,MODEL,SERIAL); do
+    if [[ "${line:0:4}" == "NAME" ]]; then
+        echo -e "${BLUE}${line}${CLEAR}"
+    else
+        echo "${line}"
+    fi
+done
+echo ""
+
+# List partitions
+for line in $(lsblk -o NAME,SIZE,FSTYPE,LABEL,MOUNTPOINT); do
+    if [[ "${line:0:4}" == "NAME" ]]; then
+        echo -e "${BLUE}${line}${CLEAR}"
+    else
+        echo "${line}"
+    fi
+done
+echo ""
+

@@ -26,10 +26,12 @@ if __name__ == '__main__':
             'Error': {
                 'CalledProcessError':   'Unknown Error',
                 'BIOSKeyNotFoundError': 'BIOS key not found',
+                'FileNotFoundError':    'File not found',
             },
             'Warning': {}}
-        print_info('Starting System Checklist for Ticket #{}\n'.format(
-            ticket_number))
+        if ENABLED_TICKET_NUMBERS:
+            print_info('Starting System Checklist for Ticket #{}\n'.format(
+                ticket_number))
 
         # Configure
         print_info('Configure')
@@ -44,20 +46,20 @@ if __name__ == '__main__':
         try_and_print(message='Desktop...',
             function=cleanup_desktop, cs='Done')
         try_and_print(message='AdwCleaner...',
-            function=cleanup_adwcleaner, cs='Done')
+            function=cleanup_adwcleaner, cs='Done', other_results=other_results)
 
         # Export system info
         print_info('Backup System Information')
         try_and_print(message='AIDA64 reports...',
-            function=run_aida64, cs='Done')
+            function=run_aida64, cs='Done', other_results=other_results)
         try_and_print(message='File listing...',
-            function=backup_file_list, cs='Done')
+            function=backup_file_list, cs='Done', other_results=other_results)
         try_and_print(message='Power plans...',
             function=backup_power_plans, cs='Done')
-        try_and_print(message='Product Keys...',
+        try_and_print(message='Product Keys...', other_results=other_results,
             function=run_produkey, cs='Done')
         try_and_print(message='Registry...',
-            function=backup_registry, cs='Done')
+            function=backup_registry, cs='Done', other_results=other_results)
 
         # User data
         print_info('User Data')
@@ -70,24 +72,33 @@ if __name__ == '__main__':
         try_and_print(message='Activation:',
             function=show_os_activation, ns='Unknown', silent_function=False)
         if (not windows_is_activated()
-            and global_vars['OS']['Version'] in ('8', '10')):
+            and global_vars['OS']['Version'] in ('8', '8.1', '10')):
             try_and_print(message='BIOS Activation:',
                 function=activate_with_bios,
                 other_results=other_results)
-        try_and_print(message='Installed Office:',
-            function=get_installed_office, ns='Unknown', print_return=True)
-        show_free_space()
         try_and_print(message='Installed RAM:',
             function=show_installed_ram, ns='Unknown', silent_function=False)
+        show_free_space()
+        try_and_print(message='Installed Antivirus:',
+            function=get_installed_antivirus, ns='Unknown',
+            other_results=other_results, print_return=True)
+        try_and_print(message='Installed Office:',
+            function=get_installed_office, ns='Unknown',
+            other_results=other_results, print_return=True)
 
         # Play audio, show devices, open Windows updates, and open Activation
-        popen_program(['mmc', 'devmgmt.msc'])
-        run_hwinfo_sensors()
-        popen_program(['control', '/name', 'Microsoft.WindowsUpdate'])
+        try_and_print(message='Opening Device Manager...',
+            function=open_device_manager, cs='Started')
+        try_and_print(message='Opening HWiNFO (Sensors)...',
+            function=run_hwinfo_sensors, cs='Started', other_results=other_results)
+        try_and_print(message='Opening Windows Updates...',
+            function=open_windows_updates, cs='Started')
         if not windows_is_activated():
-            popen_program('slui')
+            try_and_print(message='Opening Windows Activation...',
+                function=open_windows_activation, cs='Started')
         sleep(3)
-        run_xmplay()
+        try_and_print(message='Running XMPlay...',
+            function=run_xmplay, cs='Started', other_results=other_results)
 
         # Done
         print_standard('\nDone.')

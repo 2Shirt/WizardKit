@@ -11,7 +11,7 @@ def run_chkdsk(repair=False):
 
 def run_chkdsk_scan():
     """Run CHKDSK in a "split window" and report errors."""
-    if global_vars['OS']['Version'] in ['8', '10']:
+    if global_vars['OS']['Version'] in ('8', '8.1', '10'):
         cmd = ['chkdsk', global_vars['Env']['SYSTEMDRIVE'], '/scan', '/perf']
     else:
         cmd = ['chkdsk', global_vars['Env']['SYSTEMDRIVE']]
@@ -44,7 +44,7 @@ def run_chkdsk_offline():
 
 def run_dism(repair=False):
     """Run DISM /RestoreHealth, then /CheckHealth, and then report errors."""
-    if global_vars['OS']['Version'] in ['8', '10']:
+    if global_vars['OS']['Version'] in ('8', '8.1', '10'):
         if repair:
             # Restore Health
             cmd = [

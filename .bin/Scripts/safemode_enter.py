@@ -3,13 +3,10 @@
 import os
 import sys
 
-# STATIC VARIABLES
-REG_MSISERVER = r'HKLM\SYSTEM\CurrentControlSet\Control\SafeBoot\Network\MSIServer'
-
 # Init
 os.chdir(os.path.dirname(os.path.realpath(__file__)))
 sys.path.append(os.getcwd())
-from functions.common import *
+from functions.safemode import *
 init_global_vars()
 os.system('title {}: SafeMode Tool'.format(KIT_NAME_FULL))
 
@@ -17,26 +14,23 @@ if __name__ == '__main__':
     try:
         clear_screen()
         print_info('{}: SafeMode Tool\n'.format(KIT_NAME_FULL))
+        other_results = {
+            'Error': {'CalledProcessError':   'Unknown Error'},
+            'Warning': {}}
+        
         if not ask('Enable booting to SafeMode (with Networking)?'):
             abort()
         
-        # Edit BCD to set safeboot as default
-        cmd = ['bcdedit', '/set', '{default}', 'safeboot', 'network']
-        run_program(cmd, check=False)
-        
-        # Enable MSI access under safemode
-        cmd = ['reg', 'add', REG_MSISERVER, '/f']
-        run_program(cmd, check=False)
-        cmd = ['reg', 'add', REG_MSISERVER, '/ve',
-                '/t', 'REG_SZ', '/d', 'Service', '/f']
-        run_program(cmd, check=False)
-    
-        ## Done ##
-        pause('Press Enter to reboot...')
-        cmd = ['shutdown', '-r', '-t', '3']
-        run_program(cmd, check=False)
+        # Configure SafeMode
+        try_and_print(message='Set BCD option...',
+            function=enable_safemode, other_results=other_results)
+        try_and_print(message='Enable MSI in SafeMode...',
+            function=enable_safemode_msi, other_results=other_results)
         
         # Done
+        print_standard('\nDone.')
+        pause('Press Enter to reboot...')
+        reboot()
         exit_script()
     except SystemExit:
         pass

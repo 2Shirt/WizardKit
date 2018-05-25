@@ -16,6 +16,9 @@ class LocalDisk():
     def is_dir(self):
         # Should always be true
         return True
+    def is_file(self):
+        # Should always be false
+        return False
 
 class SourceItem():
     def __init__(self, name, path):
@@ -167,93 +170,106 @@ def is_valid_wim_file(item):
             print_log('WARNING: Image "{}" damaged.'.format(item.name))
     return valid
 
-def get_mounted_data():
+def get_mounted_volumes():
     """Get mounted volumes, returns dict."""
     cmd = [
         'findmnt', '-J', '-b', '-i',
-        't', (
-            'autofs,binfmt_misc,cgroup,cgroup2,configfs,debugfs,devpts,devtmpfs,'
+        '-t', (
+            'autofs,binfmt_misc,bpf,cgroup,cgroup2,configfs,debugfs,devpts,devtmpfs,'
             'hugetlbfs,mqueue,proc,pstore,securityfs,sysfs,tmpfs'
             ),
         '-o', 'SOURCE,TARGET,FSTYPE,LABEL,SIZE,AVAIL,USED']
     result = run_program(cmd)
     json_data = json.loads(result.stdout.decode())
-    mounted_data = []
+    mounted_volumes = []
     for item in json_data.get('filesystems', []):
-        mounted_data.append(item)
-        mounted_data.extend(item.get('children', []))
-    return {item['source']: item for item in mounted_data}
+        mounted_volumes.append(item)
+        mounted_volumes.extend(item.get('children', []))
+    return {item['source']: item for item in mounted_volumes}
 
 def mount_all_volumes():
-    """Mount all attached devices with recognized filesystems."""
-    report = []
+    """Mount all detected filesystems."""
+    report = {}
 
     # Get list of block devices
-    cmd = ['lsblk', '-J', '-o', 'NAME,FSTYPE,LABEL,UUID,PARTTYPE,TYPE,SIZE']
+    cmd = [
+        'lsblk', '-J', '-p',
+        '-o', 'NAME,FSTYPE,LABEL,UUID,PARTTYPE,TYPE,SIZE']
     result = run_program(cmd)
     json_data = json.loads(result.stdout.decode())
     devs = json_data.get('blockdevices', [])
 
-    # Get list of mounted devices
-    mounted_data = get_mounted_data()
-    mounted_list = [m['source'] for m in mounted_data.values()]
-
-    # Loop over devices
+    # Get list of volumes
+    volumes = {}
     for dev in devs:
-        dev_path = '/dev/{}'.format(dev['name'])
-        if re.search(r'^(loop|sr)', dev['name'], re.IGNORECASE):
-            # Skip loopback devices and optical media
-            report.append([dev_path, 'Skipped'])
-            continue
         for child in dev.get('children', []):
-            child_path = '/dev/{}'.format(child['name'])
-            if child_path in mounted_list:
-                report.append([child_path, 'Already Mounted'])
-            else:
-                try:
-                    run_program(['udevil', 'mount', '-o', 'ro', child_path])
-                    report.append([child_path, 'CS'])
-                except subprocess.CalledProcessError:
-                    report.append([child_path, 'NS'])
+            volumes.update({child['name']: child})
+            for grandchild in child.get('children', []):
+                volumes.update({grandchild['name']: grandchild})
+    
+    # Get list of mounted volumes
+    mounted_volumes = get_mounted_volumes()
 
-    # Update list of mounted devices
-    mounted_data = get_mounted_data()
-    mounted_list = [m['source'] for m in mounted_data.values()]
-
-    # Update report lines for show_data()
-    for line in report:
-        _path = line[0]
-        _result = line[1]
-        info = {'message': '{}:'.format(_path)}
-        if _path in mounted_list:
-            info['data'] = 'Mounted on {}'.format(
-                mounted_data[_path]['target'])
-            info['data'] = '{:40} ({} used, {} free)'.format(
-                info['data'],
-                human_readable_size(mounted_data[_path]['used']),
-                human_readable_size(mounted_data[_path]['avail']))
-            if _result == 'Already Mounted':
-                info['warning'] = True
-        elif _result == 'Skipped':
-            info['data'] = 'Skipped'
-            info['warning'] = True
+    # Loop over volumes
+    for vol_path, vol_data in volumes.items():
+        vol_data['show_data'] = {
+            'message': vol_path.replace('/dev/mapper/', ''),
+            'data': None,
+            }
+        if re.search(r'^loop\d', vol_path, re.IGNORECASE):
+            # Skip loopback devices
+            vol_data['show_data']['data'] = 'Skipped'
+            vol_data['show_data']['warning'] = True
+            report[vol_path] = vol_data
+        elif 'children' in vol_data:
+            # Skip LVM/RAID partitions (the real volume is mounted separately)
+            vol_data['show_data']['data'] = vol_data.get('fstype', 'UNKNOWN')
+            if vol_data.get('label', None):
+                vol_data['show_data']['data'] += ' "{}"'.format(vol_data['label'])
+            vol_data['show_data']['info'] = True
+            report[vol_path] = vol_data
         else:
-            info['data'] = 'Failed to mount'
-            info['error'] = True
-        line.append(info)
+            if vol_path in mounted_volumes:
+                vol_data['show_data']['warning'] = True
+            else:
+                # Mount volume
+                try:
+                    run_program(['udevil', 'mount', '-o', 'ro', vol_path])
+                except subprocess.CalledProcessError:
+                    vol_data['show_data']['data'] = 'Failed to mount'
+                    vol_data['show_data']['error'] = True
+            # Update mounted_volumes data
+            mounted_volumes = get_mounted_volumes()
+
+            # Format pretty result string
+            if vol_data['show_data']['data'] != 'Failed to mount':
+                size_used = human_readable_size(
+                    mounted_volumes[vol_path]['used'])
+                size_avail = human_readable_size(
+                    mounted_volumes[vol_path]['avail'])
+                vol_data['show_data']['data'] = 'Mounted on {}'.format(
+                    mounted_volumes[vol_path]['target'])
+                vol_data['show_data']['data'] = '{:40} ({} used, {} free)'.format(
+                    vol_data['show_data']['data'],
+                    size_used,
+                    size_avail)
+
+            # Update report
+            report[vol_path] = vol_data
+
     return report
 
 def mount_backup_shares(read_write=False):
     """Mount the backup shares unless labeled as already mounted."""
     if psutil.LINUX:
-        mounted_data = get_mounted_data()
+        mounted_volumes = get_mounted_volumes()
     for server in BACKUP_SERVERS:
         if psutil.LINUX:
             # Update mounted status
             source = '//{IP}/{Share}'.format(**server)
             dest = '/Backups/{Name}'.format(**server)
             mounted_str = '(Already) Mounted {}'.format(dest)
-            data = mounted_data.get(source, {})
+            data = mounted_volumes.get(source, {})
             if dest == data.get('target', ''):
                 server['Mounted'] = True
         elif psutil.WINDOWS:
@@ -404,7 +420,13 @@ def scan_source(source_obj, dest_path, rel_path='', interactive=True):
     root_items = []
     item_list = list_source_items(source_obj, rel_path)
     for item in item_list:
-        if REGEX_INCL_ROOT_ITEMS.search(item.name):
+        if REGEX_WINDOWS_OLD.search(item.name):
+            item.name = '{}{}{}'.format(
+                rel_path,
+                os.sep if rel_path else '',
+                item.name)
+            win_olds.append(item)
+        elif REGEX_INCL_ROOT_ITEMS.search(item.name):
             print_success('Auto-Selected: {}'.format(item.path))
             root_items.append('{}'.format(item.path))
         elif not REGEX_EXCL_ROOT_ITEMS.search(item.name):
@@ -424,12 +446,6 @@ def scan_source(source_obj, dest_path, rel_path='', interactive=True):
                     interactive = False
                 if answer in ['Yes', 'All']:
                     root_items.append('{}'.format(item.path))
-        if REGEX_WINDOWS_OLD.search(item.name):
-            item.name = '{}{}{}'.format(
-                rel_path,
-                os.sep if rel_path else '',
-                item.name)
-            win_olds.append(item)
     if root_items:
         selected_items.append({
             'Message':      '{}{}Root Items...'.format(
@@ -446,7 +462,8 @@ def scan_source(source_obj, dest_path, rel_path='', interactive=True):
                 rel_path,
                 ' ' if rel_path else ''),
             'Items':        [font_obj.path],
-            'Destination':  dest_path})
+            'Destination':  '{}{}Windows'.format(
+                dest_path, os.sep)})
 
     # Registry
     registry_items = []
@@ -461,13 +478,14 @@ def scan_source(source_obj, dest_path, rel_path='', interactive=True):
                 rel_path,
                 ' ' if rel_path else ''),
             'Items':        registry_items.copy(),
-            'Destination':  dest_path})
+            'Destination':  '{}{}Windows{}System32'.format(
+                dest_path, os.sep, os.sep)})
 
     # Windows.old(s)
     for old in win_olds:
         selected_items.extend(scan_source(
             source_obj,
-            dest_path,
+            '{}{}{}'.format(dest_path, os.sep, old.name),
             rel_path=old.name,
             interactive=False))
     
@@ -529,21 +547,21 @@ def select_destination(folder_path, prompt='Select destination'):
 
     return path
 
-def select_source(ticket_number):
-    """Select backup from those found on the BACKUP_SERVERS for the ticket."""
+def select_source(backup_prefix):
+    """Select backup from those found on the BACKUP_SERVERS matching the prefix."""
     selected_source = None
     local_sources = []
     remote_sources = []
     sources = []
     mount_backup_shares(read_write=False)
 
-    # Check for ticket folders on servers
+    # Check for prefix folders on servers
     for server in BACKUP_SERVERS:
         if server['Mounted']:
             print_standard('Scanning {}...'.format(server['Name']))
             for d in os.scandir(r'\\{IP}\{Share}'.format(**server)):
                 if (d.is_dir()
-                    and d.name.lower().startswith(ticket_number.lower())):
+                    and d.name.lower().startswith(backup_prefix.lower())):
                     # Add folder to remote_sources
                     remote_sources.append({
                         'Name': '{:9}| File-Based:     [DIR]  {}'.format(
@@ -553,19 +571,19 @@ def select_source(ticket_number):
                         'Source': d})
 
     # Check for images and subfolders
-    for ticket_path in remote_sources.copy():
-        for item in os.scandir(ticket_path['Source'].path):
+    for prefix_path in remote_sources.copy():
+        for item in os.scandir(prefix_path['Source'].path):
             if item.is_dir():
                 # Add folder to remote_sources
                 remote_sources.append({
                     'Name': r'{:9}| File-Based:     [DIR]  {}\{}'.format(
-                        ticket_path['Server']['Name'],  # Server
-                        ticket_path['Source'].name,     # Ticket folder
+                        prefix_path['Server']['Name'],  # Server
+                        prefix_path['Source'].name,     # Prefix folder
                         item.name,                      # Sub-folder
                         ),
-                    'Server': ticket_path['Server'],
+                    'Server': prefix_path['Server'],
                     'Sort': r'{}\{}'.format(
-                        ticket_path['Source'].name,     # Ticket folder
+                        prefix_path['Source'].name,     # Prefix folder
                         item.name,                      # Sub-folder
                         ),
                     'Source': item})
@@ -581,15 +599,15 @@ def select_source(ticket_number):
                         remote_sources.append({
                             'Disabled': bool(not is_valid_wim_file(subitem)),
                             'Name': r'{:9}| Image-Based:  {:>7}  {}\{}\{}'.format(
-                                ticket_path['Server']['Name'],  # Server
+                                prefix_path['Server']['Name'],  # Server
                                 size,                           # Size (duh)
-                                ticket_path['Source'].name,     # Ticket folder
+                                prefix_path['Source'].name,     # Prefix folder
                                 item.name,                      # Sub-folder
                                 subitem.name,                   # Image file
                                 ),
-                            'Server': ticket_path['Server'],
+                            'Server': prefix_path['Server'],
                             'Sort': r'{}\{}\{}'.format(
-                                ticket_path['Source'].name,     # Ticket folder
+                                prefix_path['Source'].name,     # Prefix folder
                                 item.name,                      # Sub-folder
                                 subitem.name,                   # Image file
                                 ),
@@ -603,14 +621,14 @@ def select_source(ticket_number):
                 remote_sources.append({
                     'Disabled': bool(not is_valid_wim_file(item)),
                     'Name': r'{:9}| Image-Based:  {:>7}  {}\{}'.format(
-                        ticket_path['Server']['Name'],  # Server
+                        prefix_path['Server']['Name'],  # Server
                         size,                           # Size (duh)
-                        ticket_path['Source'].name,     # Ticket folder
+                        prefix_path['Source'].name,     # Prefix folder
                         item.name,                      # Image file
                         ),
-                    'Server': ticket_path['Server'],
+                    'Server': prefix_path['Server'],
                     'Sort': r'{}\{}'.format(
-                        ticket_path['Source'].name,     # Ticket folder
+                        prefix_path['Source'].name,     # Prefix folder
                         item.name,                      # Image file
                         ),
                     'Source': item})
@@ -630,6 +648,31 @@ def select_source(ticket_number):
                     '  Local', d.mountpoint),
                 'Sort': d.mountpoint,
                 'Source': LocalDisk(d)})
+            # Check for images and subfolders
+            for item in os.scandir(d.mountpoint):
+                if REGEX_WIM_FILE.search(item.name):
+                    try:
+                        size = human_readable_size(item.stat().st_size)
+                    except Exception:
+                        size = '  ?  ?' # unknown
+                    local_sources.append({
+                        'Disabled': bool(not is_valid_wim_file(item)),
+                        'Name': r'{:9}| Image-Based:  {:>7}  {}{}'.format(
+                            '  Local', size, d.mountpoint, item.name),
+                        'Sort': r'{}{}'.format(d.mountpoint, item.name),
+                        'Source': item})
+                elif REGEX_EXCL_ROOT_ITEMS.search(item.name):
+                    pass
+                elif REGEX_EXCL_ITEMS.search(item.name):
+                    pass
+                elif item.is_dir():
+                    # Add folder to local_sources
+                    local_sources.append({
+                        'Name': r'{:9}| File-Based:     [DIR]  {}{}'.format(
+                            '  Local', d.mountpoint, item.name),
+                        'Sort': r'{}{}'.format(d.mountpoint, item.name),
+                        'Source': item})
+                    
     set_thread_error_mode(silent=False) # Return to normal
 
     # Build Menu
@@ -652,8 +695,8 @@ def select_source(ticket_number):
         else:
             selected_source = sources[int(selection)-1]['Source']
     else:
-        print_error('ERROR: No backups found for ticket: {}.'.format(
-            ticket_number))
+        print_error('ERROR: No backups found using prefix: {}.'.format(
+            backup_prefix))
         umount_backup_shares()
         pause("Press Enter to exit...")
         exit_script()
@@ -736,7 +779,7 @@ def transfer_source(source_obj, dest_path, selected_items):
                     function=run_wimextract, cs='Done',
                     source=source_obj.path,
                     items=group['Items'],
-                    dest=group['Destination'])
+                    dest=dest_path)
         else:
             print_error('ERROR: Unsupported image: {}'.format(source_obj.path))
             raise GenericError

@@ -75,11 +75,22 @@ def menu_backup():
         }}
     set_title('{}: Backup Menu'.format(KIT_NAME_FULL))
 
-    # Set ticket Number
+    # Set backup prefix
     clear_screen()
     print_standard('{}\n'.format(global_vars['Title']))
     ticket_number = get_ticket_number()
+    if ENABLED_TICKET_NUMBERS:
+        backup_prefix = ticket_number
+    else:
+        backup_prefix = get_simple_string(prompt='Enter backup name prefix')
+        backup_prefix = backup_prefix.replace(' ', '_')
 
+    # Assign drive letters
+    try_and_print(
+        message = 'Assigning letters...',
+        function = assign_volume_letters,
+        other_results = other_results)
+    
     # Mount backup shares
     mount_backup_shares(read_write=True)
 
@@ -87,10 +98,6 @@ def menu_backup():
     destination = select_backup_destination(auto_select=False)
 
     # Scan disks
-    try_and_print(
-        message = 'Assigning letters...',
-        function = assign_volume_letters,
-        other_results = other_results)
     result = try_and_print(
         message = 'Getting disk info...',
         function = scan_disks,
@@ -107,12 +114,13 @@ def menu_backup():
         raise GenericAbort
     
     # "Prep" disk
-    prep_disk_for_backup(destination, disk, ticket_number)
+    prep_disk_for_backup(destination, disk, backup_prefix)
 
     # Display details for backup task
     clear_screen()
     print_info('Create Backup - Details:\n')
-    show_data(message='Ticket:', data=ticket_number)
+    if ENABLED_TICKET_NUMBERS:
+        show_data(message='Ticket:', data=ticket_number)
     show_data(
         message = 'Source:',
         data = '[{}] ({}) {} {}'.format(
@@ -264,13 +272,14 @@ def menu_setup():
     windows_version = select_windows_version()
     
     # Find Windows image
+    # NOTE: Reassign volume letters to ensure all devices are scanned
+    try_and_print(
+        message = 'Assigning volume letters...',
+        function = assign_volume_letters,
+        other_results = other_results)
     windows_image = find_windows_image(windows_version)
 
     # Scan disks
-    try_and_print(
-        message = 'Assigning letters...',
-        function = assign_volume_letters,
-        other_results = other_results)
     result = try_and_print(
         message = 'Getting disk info...',
         function = scan_disks,
@@ -292,7 +301,8 @@ def menu_setup():
     # Display details for setup task
     clear_screen()
     print_info('Setup Windows - Details:\n')
-    show_data(message='Ticket:', data=ticket_number)
+    if ENABLED_TICKET_NUMBERS:
+        show_data(message='Ticket:', data=ticket_number)
     show_data(message='Installing:', data=windows_version['Name'])
     show_data(
         message = 'Boot Method:',
@@ -327,10 +337,22 @@ def menu_setup():
         raise GenericAbort
 
     # Remove volume letters so S, T, & W can be used below
-    remove_volume_letters(keep=windows_image['Source'])
-    new_letter = reassign_volume_letter(letter=windows_image['Source'])
-    if new_letter:
-        windows_image['Source'] = new_letter
+    try_and_print(
+        message = 'Removing volume letters...',
+        function = remove_volume_letters,
+        other_results = other_results,
+        keep=windows_image['Letter'])
+   
+    # Assign new letter for local source if necessary
+    if windows_image['Local'] and windows_image['Letter'] in ['S', 'T', 'W']:
+        new_letter = try_and_print(
+            message = 'Reassigning source volume letter...',
+            function = reassign_volume_letter,
+            other_results = other_results,
+            letter=windows_image['Letter'])
+        windows_image['Path'] = '{}{}'.format(
+            new_letter, windows_image['Path'][1:])
+        windows_image['Letter'] = new_letter
 
     # Format and partition disk
     result = try_and_print(
@@ -368,6 +390,11 @@ def menu_setup():
         function = setup_windows_re,
         other_results = other_results,
         windows_version = windows_version)
+
+    # Copy WinPE log(s)
+    source = r'{}\Info'.format(global_vars['ClientDir'])
+    dest = r'W:\{}\Info'.format(KIT_NAME_SHORT)
+    shutil.copytree(source, dest)
 
     # Print summary
     print_standard('\nDone.')

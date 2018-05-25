@@ -5,6 +5,12 @@ from functions.common import *
 # STATIC VARIABLES
 HKCU = winreg.HKEY_CURRENT_USER
 HKLM = winreg.HKEY_LOCAL_MACHINE
+OTHER_RESULTS = {
+    'Error': {
+        'CalledProcessError':   'Unknown Error',
+        'FileNotFoundError':    'File not found',
+    },
+    'Warning': {}}
 SETTINGS_CLASSIC_START = {
     r'Software\IvoSoft\ClassicShell\Settings': {},
     r'Software\IvoSoft\ClassicStartMenu': {
@@ -212,7 +218,7 @@ def install_adobe_reader():
         '/msi', '/norestart', '/quiet',
         'ALLUSERS=1',
         'EULA_ACCEPT=YES']
-    try_and_print(message='Adobe Reader DC...', function=run_program, cmd=cmd)
+    run_program(cmd)
 
 def install_chrome_extensions():
     """Update registry to 'install' Google Chrome extensions for all users."""
@@ -220,7 +226,7 @@ def install_chrome_extensions():
 
 def install_classicstart_skin():
     """Extract ClassicStart skin to installation folder."""
-    if global_vars['OS']['Version'] not in ['8', '10']:
+    if global_vars['OS']['Version'] not in ('8', '8.1', '10'):
         raise UnsupportedOSError
     extract_item('ClassicStartSkin', silent=True)
     source = r'{BinDir}\ClassicStartSkin\Metro-Win10-Black.skin7'.format(
@@ -235,17 +241,21 @@ def install_firefox_extensions():
     """Extract Firefox extensions to installation folder."""
     dist_path = r'{PROGRAMFILES}\Mozilla Firefox\distribution\extensions'.format(
         **global_vars['Env'])
+    source_path = r'{CBinDir}\FirefoxExtensions.7z'.format(**global_vars)
+    if not os.path.exists(source_path):
+        raise FileNotFoundError
+    
     # Extract extension(s) to distribution folder
     cmd = [
         global_vars['Tools']['SevenZip'], 'x', '-aos', '-bso0', '-bse0',
         '-p{ArchivePassword}'.format(**global_vars),
         '-o{dist_path}'.format(dist_path=dist_path),
-        r'{CBinDir}\FirefoxExtensions.7z'.format(**global_vars)]
+        source_path]
     run_program(cmd)
 
 def install_ninite_bundle(mse=False):
     """Run Ninite file(s) based on OS version."""
-    if global_vars['OS']['Version'] in ['8', '10']:
+    if global_vars['OS']['Version'] in ('8', '8.1', '10'):
         # Modern selection
         popen_program(r'{BaseDir}\Installers\Extras\Bundles\Modern.exe'.format(
             **global_vars))
@@ -262,11 +272,26 @@ def install_vcredists():
     """Install all supported Visual C++ runtimes."""
     extract_item('_vcredists', silent=True)
     prev_dir = os.getcwd()
-    os.chdir(r'{BinDir}\_vcredists'.format(**global_vars))
+    try:
+        os.chdir(r'{BinDir}\_vcredists'.format(**global_vars))
+    except FileNotFoundError:
+        # Ignored since the loop below will report the errors
+        pass
     for vcr in VCR_REDISTS:
-        try_and_print(message=vcr['Name'], function=run_program, cmd=vcr['Cmd'])
+        try_and_print(message=vcr['Name'], function=run_program,
+            cmd=vcr['Cmd'], other_results=OTHER_RESULTS)
 
     os.chdir(prev_dir)
+
+# Misc
+def open_device_manager():
+    popen_program(['mmc', 'devmgmt.msc'])
+
+def open_windows_activation():
+    popen_program(['slui'])
+
+def open_windows_updates():
+    popen_program(['control', '/name', 'Microsoft.WindowsUpdate'])
 
 if __name__ == '__main__':
     print("This file is not meant to be called directly.")

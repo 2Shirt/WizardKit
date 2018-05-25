@@ -25,22 +25,24 @@ if __name__ == '__main__':
         other_results = {
             'Error': {
                 'CalledProcessError':   'Unknown Error',
+                'FileNotFoundError':    'File not found',
             },
             'Warning': {
                 'GenericRepair':        'Repaired',
                 'UnsupportedOSError':   'Unsupported OS',
             }}
-        print_info('Starting System Diagnostics for Ticket #{}\n'.format(
-            ticket_number))
+        if ENABLED_TICKET_NUMBERS:
+            print_info('Starting System Diagnostics for Ticket #{}\n'.format(
+                ticket_number))
         
         # Sanitize Environment
         print_info('Sanitizing Environment')
         # try_and_print(message='Killing processes...',
         #     function=run_process_killer, cs='Done')
         try_and_print(message='Running RKill...',
-            function=run_rkill, cs='Done')
+            function=run_rkill, cs='Done', other_results=other_results)
         try_and_print(message='Running TDSSKiller...',
-            function=run_tdsskiller, cs='Done')
+            function=run_tdsskiller, cs='Done', other_results=other_results)
         
         # Re-run if earlier process was stopped.
         stay_awake()
@@ -49,9 +51,9 @@ if __name__ == '__main__':
         print_info('Starting Background Scans')
         check_connection()
         try_and_print(message='Running HitmanPro...',
-            function=run_hitmanpro, cs='Started')
+            function=run_hitmanpro, cs='Started', other_results=other_results)
         try_and_print(message='Running Autoruns...',
-            function=run_autoruns, cs='Started')
+            function=run_autoruns, cs='Started', other_results=other_results)
         
         # OS Health Checks
         print_info('OS Health Checks')
@@ -70,34 +72,38 @@ if __name__ == '__main__':
         # Export system info
         print_info('Backup System Information')
         try_and_print(message='AIDA64 reports...',
-            function=run_aida64, cs='Done')
+            function=run_aida64, cs='Done', other_results=other_results)
         try_and_print(message='BleachBit report...',
-            function=run_bleachbit, cs='Done')
+            function=run_bleachbit, cs='Done', other_results=other_results)
         backup_browsers()
         try_and_print(message='File listing...',
-            function=backup_file_list, cs='Done')
+            function=backup_file_list, cs='Done', other_results=other_results)
         try_and_print(message='Power plans...',
             function=backup_power_plans, cs='Done')
         try_and_print(message='Product Keys...',
-            function=run_produkey, cs='Done')
+            function=run_produkey, cs='Done', other_results=other_results)
         try_and_print(message='Registry...',
-            function=backup_registry, cs='Done')
+            function=backup_registry, cs='Done', other_results=other_results)
         
         # Summary
         print_info('Summary')
-        try_and_print(message='Temp Size:',
-            function=show_temp_files_size, silent_function=False)
-        show_free_space()
-        try_and_print(message='Installed RAM:',
-            function=show_installed_ram, ns='Unknown', silent_function=False)
-        try_and_print(message='Installed Office:',
-            function=get_installed_office, ns='Unknown', print_return=True)
-        try_and_print(message='Product Keys:',
-            function=get_product_keys, ns='Unknown', print_return=True)
         try_and_print(message='Operating System:',
             function=show_os_name, ns='Unknown', silent_function=False)
-        try_and_print(message='',
+        try_and_print(message='Activation:',
             function=show_os_activation, ns='Unknown', silent_function=False)
+        try_and_print(message='Installed RAM:',
+            function=show_installed_ram, ns='Unknown', silent_function=False)
+        show_free_space()
+        try_and_print(message='Temp Size:',
+            function=show_temp_files_size, silent_function=False)
+        try_and_print(message='Installed Antivirus:',
+            function=get_installed_antivirus, ns='Unknown',
+            other_results=other_results, print_return=True)
+        try_and_print(message='Installed Office:',
+            function=get_installed_office, ns='Unknown',
+            other_results=other_results, print_return=True)
+        try_and_print(message='Product Keys:',
+            function=get_product_keys, ns='Unknown', print_return=True)
         
         # User data
         print_info('User Data')

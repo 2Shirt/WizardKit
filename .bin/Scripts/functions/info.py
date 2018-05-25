@@ -116,6 +116,36 @@ def get_folder_size(path):
             size = human_readable_size(size)
     return size
 
+def get_installed_antivirus():
+    """Get list of installed Antivirus programs."""
+    programs = []
+    cmd = ['WMIC', r'/namespace:\\root\SecurityCenter2',
+        'path', 'AntivirusProduct',
+        'get', 'displayName', '/value']
+    out = run_program(cmd)
+    out = out.stdout.decode().strip()
+    products = out.splitlines()
+    products = [p.split('=')[1] for p in products if p]
+    for prod in sorted(products):
+        # Get product state and check if it's enabled
+        # credit: https://jdhitsolutions.com/blog/powershell/5187/get-antivirus-product-status-with-powershell/
+        cmd = ['WMIC', r'/namespace:\\root\SecurityCenter2',
+            'path', 'AntivirusProduct',
+            'where', 'displayName="{}"'.format(prod),
+            'get', 'productState', '/value']
+        out = run_program(cmd)
+        out = out.stdout.decode().strip()
+        state = out.split('=')[1]
+        state = hex(int(state))
+        if str(state)[3:5] != '10':
+            programs.append('[Disabled] {}'.format(prod))
+        else:
+            programs.append(prod)
+
+    if len(programs) == 0:
+        programs = ['No programs found']
+    return programs
+
 def get_installed_office():
     """Get list of installed Office programs."""
     programs = []
@@ -419,7 +449,7 @@ def show_os_name():
         # Show all 32-bit installs as an error message
         print_error(os_name, timestamp=False)
     else:
-        if re.search(r'(unrecognized|very outdated)', os_name, re.IGNORECASE):
+        if re.search(r'(preview build|unrecognized|unsupported)', os_name, re.IGNORECASE):
             print_error(os_name, timestamp=False)
         elif re.search(r'outdated', os_name, re.IGNORECASE):
             print_warning(os_name, timestamp=False)

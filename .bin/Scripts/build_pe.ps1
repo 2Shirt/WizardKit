@@ -70,7 +70,7 @@ function DownloadFile ($Path, $Name, $Url) {
     }
     catch {
         Write-Host ("  ERROR: Failed to download file." ) -ForegroundColor "Red"
-        $DownloadErrors += 1
+        $global:DownloadErrors += 1
     }
 }
 function FindDynamicUrl ($SourcePage, $RegEx) {
@@ -130,16 +130,16 @@ if ($MyInvocation.InvocationName -ne ".") {
         ## Download Tools ##
         $ToolSources = @(
             # 7-Zip
-            @("7z-installer.msi", "http://www.7-zip.org/a/7z1801.msi"),
-            @("7z-extra.7z", "http://www.7-zip.org/a/7z1801-extra.7z"),
+            @("7z-installer.msi", "https://www.7-zip.org/a/7z1805.msi"),
+            @("7z-extra.7z", "https://www.7-zip.org/a/7z1805-extra.7z"),
             # Blue Screen View
-            @("bluescreenview64.zip", "http://www.nirsoft.net/utils/bluescreenview-x64.zip"),
             @("bluescreenview32.zip", "http://www.nirsoft.net/utils/bluescreenview.zip"),
+            @("bluescreenview64.zip", "http://www.nirsoft.net/utils/bluescreenview-x64.zip"),
             # ConEmu
-            @("ConEmuPack.7z", "https://github.com/Maximus5/ConEmu/releases/download/v18.02.06/ConEmuPack.180206.7z"),
+            @("ConEmuPack.7z", "https://github.com/Maximus5/ConEmu/releases/download/v18.05.06/ConEmuPack.180506.7z"),
             # Fast Copy
-            @("fastcopy64.zip", "http://ftp.vector.co.jp/69/93/2323/FastCopy341_x64.zip"),
             @("fastcopy32.zip", "http://ftp.vector.co.jp/69/93/2323/FastCopy341.zip"),
+            @("fastcopy64.zip", "http://ftp.vector.co.jp/69/93/2323/FastCopy341_x64.zip"),
             # HWiNFO
             @("hwinfo.zip", "http://app.oldfoss.com:81/download/HWiNFO/hwi_582.zip"),
             # Killer Network Drivers
@@ -148,19 +148,19 @@ if ($MyInvocation.InvocationName -ne ".") {
                 ("http://www.killernetworking.com"+(FindDynamicUrl "http://www.killernetworking.com/driver-downloads/item/killer-drivers-inf" "Download Killer-Ethernet").replace('&amp;', '&'))
             ),
             # Notepad++
-            @("npp_amd64.7z", "https://notepad-plus-plus.org/repository/7.x/7.5.6/npp.7.5.6.bin.minimalist.x64.7z"),
             @("npp_x86.7z", "https://notepad-plus-plus.org/repository/7.x/7.5.6/npp.7.5.6.bin.minimalist.7z"),
+            @("npp_amd64.7z", "https://notepad-plus-plus.org/repository/7.x/7.5.6/npp.7.5.6.bin.minimalist.x64.7z"),
             # NT Password Editor
             @("ntpwed.zip", "http://cdslow.org.ru/files/ntpwedit/ntpwed07.zip"),
             # Prime95
-            @("prime95_64.zip", "http://www.mersenne.org/ftp_root/gimps/p95v294b8.win64.zip"),
             @("prime95_32.zip", "http://www.mersenne.org/ftp_root/gimps/p95v294b7.win32.zip"),
+            @("prime95_64.zip", "http://www.mersenne.org/ftp_root/gimps/p95v294b8.win64.zip"),
             # ProduKey
-            @("produkey64.zip", "http://www.nirsoft.net/utils/produkey-x64.zip"),
             @("produkey32.zip", "http://www.nirsoft.net/utils/produkey.zip"),
+            @("produkey64.zip", "http://www.nirsoft.net/utils/produkey-x64.zip"),
             # Python
-            @("python64.zip", "https://www.python.org/ftp/python/3.6.4/python-3.6.4-embed-amd64.zip"),
-            @("python32.zip", "https://www.python.org/ftp/python/3.6.4/python-3.6.4-embed-win32.zip"),
+            @("python32.zip", "https://www.python.org/ftp/python/3.6.5/python-3.6.5-embed-win32.zip"),
+            @("python64.zip", "https://www.python.org/ftp/python/3.6.5/python-3.6.5-embed-amd64.zip"),
             # Python: psutil
             @(
                 "psutil64.whl",
@@ -171,14 +171,16 @@ if ($MyInvocation.InvocationName -ne ".") {
                 (FindDynamicUrl "https://pypi.org/project/psutil/" "href=.*-cp36-cp36m-win32.whl")
             ),
             # Q-Dir
-            @("qdir64.zip", "https://www.softwareok.com/Download/Q-Dir_Portable_x64.zip"),
             @("qdir32.zip", "https://www.softwareok.com/Download/Q-Dir_Portable.zip"),
+            @("qdir64.zip", "https://www.softwareok.com/Download/Q-Dir_Portable_x64.zip"),
             # TestDisk / PhotoRec
-            @("testdisk64.zip", "https://www.cgsecurity.org/testdisk-7.1-WIP.win64.zip"),
             @("testdisk32.zip", "https://www.cgsecurity.org/testdisk-7.1-WIP.win.zip"),
+            @("testdisk64.zip", "https://www.cgsecurity.org/testdisk-7.1-WIP.win64.zip"),
+            # VirtIO drivers
+            @("virtio-win.iso", "https://fedorapeople.org/groups/virt/virtio-win/direct-downloads/latest-virtio/virtio-win.iso"),
             # wimlib-imagex
-            @("wimlib64.zip", "https://wimlib.net/downloads/wimlib-1.12.0-windows-x86_64-bin.zip"),
-            @("wimlib32.zip", "https://wimlib.net/downloads/wimlib-1.12.0-windows-i686-bin.zip")
+            @("wimlib32.zip", "https://wimlib.net/downloads/wimlib-1.12.0-windows-i686-bin.zip"),
+            @("wimlib64.zip", "https://wimlib.net/downloads/wimlib-1.12.0-windows-x86_64-bin.zip")
         )
         foreach ($Tool in $ToolSources) {
             DownloadFile -Path $Temp -Name $Tool[0] -Url $Tool[1]
@@ -207,8 +209,6 @@ if ($MyInvocation.InvocationName -ne ".") {
                 "-aoa", "-bso0", "-bse0", "-bsp0",
                 "7za.exe", "*.txt")
             Start-Process -FilePath $SevenZip -ArgumentList $ArgumentList -NoNewWindow -Wait
-            Remove-Item "$Temp\7z*" -Recurse
-            $SevenZip = "$Build\bin\x86\7-Zip\7za.exe"
         }
         catch {
             Write-Host ("  ERROR: Failed to extract files." ) -ForegroundColor "Red"
@@ -225,7 +225,6 @@ if ($MyInvocation.InvocationName -ne ".") {
                 "x", "$Temp\bluescreenview32.zip", "-o$Build\bin\x86\BlueScreenView",
                 "-aoa", "-bso0", "-bse0", "-bsp0")
             Start-Process -FilePath $SevenZip -ArgumentList $ArgumentList -NoNewWindow -Wait
-            Remove-Item "$Temp\bluescreenview*"
         }
         catch {
             Write-Host ("  ERROR: Failed to extract files." ) -ForegroundColor "Red"
@@ -248,7 +247,6 @@ if ($MyInvocation.InvocationName -ne ".") {
             Start-Process -FilePath $SevenZip -ArgumentList $ArgumentList -NoNewWindow -Wait
             Remove-Item "$Build\bin\x86\ConEmu\ConEmu64.exe"
             Remove-Item "$Build\bin\x86\ConEmu\ConEmu64.map"
-            Remove-Item "$Temp\ConEmuPack*"
         }
         catch {
             Write-Host ("  ERROR: Failed to extract files." ) -ForegroundColor "Red"
@@ -267,7 +265,6 @@ if ($MyInvocation.InvocationName -ne ".") {
                 "-aoa", "-bso0", "-bse0", "-bsp0",
                 "-x!setup.exe", "-x!*.dll")
             Start-Process -FilePath $SevenZip -ArgumentList $ArgumentList -NoNewWindow -Wait
-            Remove-Item "$Temp\fastcopy*"
         }
         catch {
             Write-Host ("  ERROR: Failed to extract files." ) -ForegroundColor "Red"
@@ -286,7 +283,6 @@ if ($MyInvocation.InvocationName -ne ".") {
                 "-aoa", "-bso0", "-bse0", "-bsp0",
                 "Production\Windows10-x86\Eth\*")
             Start-Process -FilePath $SevenZip -ArgumentList $ArgumentList -NoNewWindow -Wait
-            Remove-Item "$Temp\killerinf*"
         }
         catch {
             Write-Host ("  ERROR: Failed to extract files." ) -ForegroundColor "Red"
@@ -303,7 +299,6 @@ if ($MyInvocation.InvocationName -ne ".") {
                 "e", "$Temp\hwinfo.zip", "-o$Build\bin\x86\HWiNFO",
                 "-aoa", "-bso0", "-bse0", "-bsp0", "HWiNFO32.exe")
             Start-Process -FilePath $SevenZip -ArgumentList $ArgumentList -NoNewWindow -Wait
-            # Remove-Item "$Temp\hwinfo.zip"
             Move-Item "$Build\bin\amd64\HWiNFO\HWiNFO64.exe" "$Build\bin\amd64\HWiNFO\HWiNFO.exe" -Force
             Move-Item "$Build\bin\x86\HWiNFO\HWiNFO32.exe" "$Build\bin\x86\HWiNFO\HWiNFO.exe" -Force
         }
@@ -322,7 +317,6 @@ if ($MyInvocation.InvocationName -ne ".") {
                 "x", "$Temp\npp_x86.7z", "-o$Build\bin\x86\NotepadPlusPlus",
                 "-aoa", "-bso0", "-bse0", "-bsp0")
             Start-Process -FilePath $SevenZip -ArgumentList $ArgumentList -NoNewWindow -Wait
-            Remove-Item "$Temp\npp*"
             Move-Item "$Build\bin\amd64\NotepadPlusPlus\notepad++.exe" "$Build\bin\amd64\NotepadPlusPlus\notepadplusplus.exe" -Force
             Move-Item "$Build\bin\x86\NotepadPlusPlus\notepad++.exe" "$Build\bin\x86\NotepadPlusPlus\notepadplusplus.exe" -Force
         }
@@ -344,7 +338,6 @@ if ($MyInvocation.InvocationName -ne ".") {
                 "-aoa", "-bso0", "-bse0", "-bsp0",
                 "ntpwedit.exe", "*.txt")
             Start-Process -FilePath $SevenZip -ArgumentList $ArgumentList -NoNewWindow -Wait
-            Remove-Item "$Temp\ntpwed*"
         }
         catch {
             Write-Host ("  ERROR: Failed to extract files." ) -ForegroundColor "Red"
@@ -369,7 +362,6 @@ if ($MyInvocation.InvocationName -ne ".") {
             Start-Process -FilePath $SevenZip -ArgumentList $ArgumentList -NoNewWindow -Wait
             Move-Item "$Build\bin\x86\TestDisk\testdisk-7.1-WIP\*" "$Build\bin\x86\TestDisk" -Force
             Remove-Item "$Build\bin\x86\TestDisk\testdisk-7.1-WIP" -Recurse -Force
-            Remove-Item "$Temp\testdisk*"
         }
         catch {
             Write-Host ("  ERROR: Failed to extract files." ) -ForegroundColor "Red"
@@ -386,7 +378,6 @@ if ($MyInvocation.InvocationName -ne ".") {
                 "x", "$Temp\prime95_32.zip", "-o$Build\bin\x86\Prime95",
                 "-aoa", "-bso0", "-bse0", "-bsp0")
             Start-Process -FilePath $SevenZip -ArgumentList $ArgumentList -NoNewWindow -Wait
-            Remove-Item "$Temp\prime95*"
         }
         catch {
             Write-Host ("  ERROR: Failed to extract files." ) -ForegroundColor "Red"
@@ -402,7 +393,6 @@ if ($MyInvocation.InvocationName -ne ".") {
                 "x", "$Temp\produkey32.zip", "-o$Build\bin\x86\ProduKey",
                 "-aoa", "-bso0", "-bse0", "-bsp0")
             Start-Process -FilePath $SevenZip -ArgumentList $ArgumentList -NoNewWindow -Wait
-            Remove-Item "$Temp\produkey*"
         }
         catch {
             Write-Host ("  ERROR: Failed to extract files." ) -ForegroundColor "Red"
@@ -441,8 +431,6 @@ if ($MyInvocation.InvocationName -ne ".") {
         catch {
             Write-Host ("  ERROR: Failed to extract files." ) -ForegroundColor "Red"
         }
-        Remove-Item "$Temp\python*"
-        Remove-Item "$Temp\*.whl"
     
         # Q-Dir
         Write-Host "Extracting: Q-Dir"
@@ -456,7 +444,24 @@ if ($MyInvocation.InvocationName -ne ".") {
                 "x", "$Temp\qdir32.zip", "-o$Build\bin\x86",
                 "-aoa", "-bso0", "-bse0", "-bsp0")
             Start-Process -FilePath $SevenZip -ArgumentList $ArgumentList -NoNewWindow -Wait
-            Remove-Item "$Temp\qdir*"
+        }
+        catch {
+            Write-Host ("  ERROR: Failed to extract files." ) -ForegroundColor "Red"
+        }
+        
+        # VirtIO Drivers
+        Write-Host "Extracting: VirtIO Drivers"
+        try {
+            $ArgumentList = @(
+                "e", "$Temp\virtio-win.iso", "-o$Build\Drivers\amd64\VirtIO",
+                "-aoa", "-bso0", "-bse0", "-bsp0",
+                "*\w10\amd64\*")
+            Start-Process -FilePath $SevenZip -ArgumentList $ArgumentList -NoNewWindow -Wait
+            $ArgumentList = @(
+                "e", "$Temp\virtio-win.iso", "-o$Build\Drivers\x86\VirtIO",
+                "-aoa", "-bso0", "-bse0", "-bsp0",
+                "*\w10\x86\*")
+            Start-Process -FilePath $SevenZip -ArgumentList $ArgumentList -NoNewWindow -Wait
         }
         catch {
             Write-Host ("  ERROR: Failed to extract files." ) -ForegroundColor "Red"
@@ -472,10 +477,14 @@ if ($MyInvocation.InvocationName -ne ".") {
                 "x", "$Temp\wimlib32.zip", "-o$Build\bin\x86\wimlib",
                 "-aoa", "-bso0", "-bse0", "-bsp0")
             Start-Process -FilePath $SevenZip -ArgumentList $ArgumentList -NoNewWindow -Wait
-            Remove-Item "$Temp\wimlib*"
         }
         catch {
             Write-Host ("  ERROR: Failed to extract files." ) -ForegroundColor "Red"
+        }
+        
+        ## Cleanup ##
+        if (Ask-User "Delete temp files?") {
+            Remove-Item "$Temp" -Recurse
         }
     }
     
