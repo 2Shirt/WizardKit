@@ -234,6 +234,8 @@ def human_readable_size(size, decimals=0):
         size = int(size)
     except ValueError:
         size = convert_to_bytes(size)
+    except TypeError:
+        size = -1
 
     # Verify we have a valid size
     if size < 0:
