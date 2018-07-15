@@ -99,7 +99,32 @@ def menu_clone(source_path, dest_path):
             source_details['pkname'])):
             source_dev_path = source_details['pkname']
             source_details = get_device_details(source_dev_path)
+        print_standard(' ')
 
+    # Select destination if not preselected
+    if not dest_path:
+        dest_path = select_device(
+            'Please select a destination device',
+            skip_device=source_details)
+
+    # Check destination
+    dest_path = os.path.realpath(dest_path)
+    if pathlib.Path(dest_path).is_block_device():
+        dest_dev_path = dest_path
+    else:
+        print_error('Invalid destination "{}".'.format(dest_path))
+        abort()
+    dest_details = get_device_details(dest_dev_path)
+
+    # Check destination type
+    if dest_details['pkname']:
+        print_warning('Destination "{}" is a child device.'.format(dest_dev_path))
+        if ask('Use parent device "{}" instead?'.format(
+            dest_details['pkname'])):
+            dest_dev_path = dest_details['pkname']
+            dest_details = get_device_details(dest_dev_path)
+        print_standard(' ')
+    
     # Show selection details
     print_success('Source device')
     if source_is_image:
@@ -107,6 +132,10 @@ def menu_clone(source_path, dest_path):
         print_standard('                  (via loopback device: {})'.format(
             source_dev_path))
     show_device_details(source_dev_path)
+    print_standard(' ')
+    
+    print_success('Destination device')
+    show_device_details(dest_dev_path)
     print_standard(' ')
 
 def menu_ddrescue(*args):
@@ -142,7 +171,7 @@ def menu_image(source_path, dest_path):
     print_success('GNU ddrescue: Imaging Menu')
     pass
 
-def select_device(title='Which device?'):
+def select_device(title='Which device?', skip_device={}):
     """Select block device via a menu, returns dev_path as str."""
     try:
         cmd = (
@@ -160,6 +189,13 @@ def select_device(title='Which device?'):
     # Build menu
     dev_options = []
     for dev in json_data['blockdevices']:
+        # Skip if dev in skip_device
+        dev_names = [dev['name'], dev['pkname']]
+        dev_names = [n for n in dev_names if n]
+        if skip_device and skip_device.get('name', None) in dev_names:
+            continue
+
+        # Append non-matching devices
         dev_options.append({
             'Name': '{name:12} {tran:5} {size:6} {model} {serial}'.format(
                 name = dev['name'],
@@ -169,6 +205,11 @@ def select_device(title='Which device?'):
                 serial = dev['serial'] if dev['serial'] else ''),
             'Path': dev['name']})
     dev_options = sorted(dev_options, key=itemgetter('Name'))
+    if not dev_options:
+        print_error('No devices available.')
+        abort()
+
+    # Show Menu
     actions = [{'Name': 'Quit', 'Letter': 'Q'}]
     selection = menu_select(
         title = title,
