@@ -588,19 +588,21 @@ def scan_disks():
     TESTS['NVMe/SMART']['Devices'] = devs
     TESTS['badblocks']['Devices'] = devs
     TESTS['iobenchmark']['Devices'] = devs
+    return devs
 
-def show_disk_details(dev):
+def show_disk_details(dev, only_attributes=False):
     """Display disk details."""
     dev_name = dev['lsblk']['name']
-    # Device description
-    print_info('Device: /dev/{}'.format(dev['lsblk']['name']))
-    print_standard(' {:>4} ({}) {} {}'.format(
-        str(dev['lsblk'].get('size', '???b')).strip(),
-        str(dev['lsblk'].get('tran', '???')).strip().upper().replace(
-            'NVME', 'NVMe'),
-        str(dev['lsblk'].get('model', 'Unknown Model')).strip(),
-        str(dev['lsblk'].get('serial', 'Unknown Serial')).strip(),
-        ))
+    if not only_attributes:
+      # Device description
+      print_info('Device: /dev/{}'.format(dev['lsblk']['name']))
+      print_standard(' {:>4} ({}) {} {}'.format(
+          str(dev['lsblk'].get('size', '???b')).strip(),
+          str(dev['lsblk'].get('tran', '???')).strip().upper().replace(
+              'NVME', 'NVMe'),
+          str(dev['lsblk'].get('model', 'Unknown Model')).strip(),
+          str(dev['lsblk'].get('serial', 'Unknown Serial')).strip(),
+          ))
 
     # Warnings
     if dev.get('NVMe Disk', False):
