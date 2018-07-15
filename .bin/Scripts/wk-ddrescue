@@ -1,0 +1,32 @@
+#!/bin/python3
+#
+## Wizard Kit: TUI for ddrescue cloning and imaging
+
+import os
+import sys
+
+# Init
+os.chdir(os.path.dirname(os.path.realpath(__file__)))
+sys.path.append(os.getcwd())
+from functions.ddrescue import *
+from functions.hw_diags import *
+init_global_vars()
+
+if __name__ == '__main__':
+    try:
+        # Prep
+        clear_screen()
+
+        # Show menu
+        menu_ddrescue(*sys.argv)
+        
+        # Done
+        #print_standard('\nDone.')
+        #pause("Press Enter to exit...")
+        exit_script()
+    except SystemExit:
+        pass
+    except:
+        major_exception()
+
+# vim: sts=4 sw=4 ts=4
