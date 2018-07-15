@@ -5,6 +5,7 @@ import pathlib
 import re
 
 from functions.common import *
+from operator import itemgetter
 
 # STATIC VARIABLES
 USAGE="""    {script_name} clone [source [destination]]
@@ -62,6 +63,7 @@ def setup_loopback_device(source_path):
     try:
         out = run_program(cmd, check=True)
         dev_path = out.stdout.decode().strip()
+        sleep(1)
     except CalledProcessError:
         print_error('Failed to setup loopback device for source.')
         abort()
@@ -76,9 +78,7 @@ def menu_clone(source_path, dest_path):
 
     # Select source if not preselected
     if not source_path:
-        #TODO menu_select drive
-        print_warning('Select drive not implemented yet.')
-        source_path = ''
+        source_path = select_device('Please select a source device')
 
     # Check source
     source_path = os.path.realpath(source_path)
@@ -101,11 +101,13 @@ def menu_clone(source_path, dest_path):
             source_details = get_device_details(source_dev_path)
 
     # Show selection details
+    print_success('Source device')
     if source_is_image:
-        print_success('Using image file: {}'.format(source_path))
-        print_success('                  (via loopback device: {})'.format(
+        print_standard('Using image file: {}'.format(source_path))
+        print_standard('                  (via loopback device: {})'.format(
             source_dev_path))
     show_device_details(source_dev_path)
+    print_standard(' ')
 
 def menu_ddrescue(*args):
     """Main ddrescue loop/menu."""
@@ -139,6 +141,44 @@ def menu_image(source_path, dest_path):
     """ddrescue imaging menu."""
     print_success('GNU ddrescue: Imaging Menu')
     pass
+
+def select_device(title='Which device?'):
+    """Select block device via a menu, returns dev_path as str."""
+    try:
+        cmd = (
+            'lsblk',
+            '--json',
+            '--nodeps',
+            '--output-all',
+            '--paths')
+        result = run_program(cmd)
+        json_data = json.loads(result.stdout.decode())
+    except CalledProcessError:
+        print_error('Failed to get device details for {}'.format(dev_path))
+        abort()
+
+    # Build menu
+    dev_options = []
+    for dev in json_data['blockdevices']:
+        dev_options.append({
+            'Name': '{name:12} {tran:5} {size:6} {model} {serial}'.format(
+                name = dev['name'],
+                tran = dev['tran'] if dev['tran'] else '',
+                size = dev['size'] if dev['size'] else '',
+                model = dev['model'] if dev['model'] else '',
+                serial = dev['serial'] if dev['serial'] else ''),
+            'Path': dev['name']})
+    dev_options = sorted(dev_options, key=itemgetter('Name'))
+    actions = [{'Name': 'Quit', 'Letter': 'Q'}]
+    selection = menu_select(
+        title = title,
+        main_entries = dev_options,
+        action_entries = actions)
+
+    if selection.isnumeric():
+        return dev_options[int(selection)-1]['Path']
+    elif selection == 'Q':
+        abort()
 
 def show_usage(script_name):
     print_info('Usage:')
