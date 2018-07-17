@@ -157,7 +157,7 @@ def menu_image(source_path, dest_path):
     source['Pass 1'] = 'Pending'
     source['Pass 2'] = 'Pending'
     source['Pass 3'] = 'Pending'
-    dest = select_path(dest_path, skip_device=source['Details'])
+    dest = select_dest_path(dest_path, skip_device=source['Details'])
     
     # Show selection details
     show_selection_details(source, dest)
@@ -234,14 +234,19 @@ def menu_select_device(title='Which device?', skip_device={}):
     elif selection == 'Q':
         abort_ddrescue_tui()
 
-def select_path(provided_path=None, skip_device={}):
-    selected_path = {}
+def menu_select_path(skip_device={}):
+    """Select path via menu, returns path as str."""
     pwd = os.path.realpath(global_vars['Env']['PWD'])
+    s_path = None
+
+    # Build Menu
     path_options = [
         {'Name': 'Current directory: {}'.format(pwd), 'Path': pwd},
         {'Name': 'Local device', 'Path': None},
         {'Name': 'Enter manually', 'Path': None}]
     actions = [{'Name': 'Quit', 'Letter': 'Q'}]
+
+    # Show Menu
     selection = menu_select(
         title = 'Please make a selection',
         main_entries = path_options,
@@ -253,7 +258,7 @@ def select_path(provided_path=None, skip_device={}):
         index = int(selection) - 1
         if path_options[index]['Path']:
             # Current directory
-            selected_path['Path'] = pwd
+            s_path = pwd
 
         elif path_options[index]['Name'] == 'Local device':
             # Local device
@@ -284,32 +289,58 @@ def select_path(provided_path=None, skip_device={}):
                 main_entries = vol_options,
                 action_entries = actions)
             if selection.isnumeric():
-                selected_path['Path'] = vol_options[int(selection)-1]['Path']
+                s_path = vol_options[int(selection)-1]['Path']
             elif selection == 'Q':
                 abort_ddrescue_tui()
 
         elif path_options[index]['Name'] == 'Enter manually':
             # Manual entry
-            while not selected_path:
+            while not s_path:
                 m_path = input('Please enter path: ').strip()
                 if m_path and pathlib.Path(m_path).is_dir():
-                    selected_path['Path'] = os.path.realpath(m_path)
+                    s_path = os.path.realpath(m_path)
                 elif m_path and pathlib.Path(m_path).is_file():
                     print_error('File "{}" exists'.format(m_path))
                 else:
                     print_error('Invalid path "{}"'.format(m_path))
+    return s_path
 
+def select_dest_path(provided_path=None, skip_device={}):
+    dest = {}
+
+    # Set path
+    if provided_path:
+        dest['Path'] = provided_path
+    else:
+        dest['Path'] = menu_select_path(skip_device=skip_device)
+    dest['Path'] = os.path.realpath(dest['Path'])
+
+    # Check path
+    if not pathlib.Path(dest['Path']).is_dir():
+        print_error('Invalid path "{}"'.format(dest['Path']))
+        abort_ddrescue_tui()
+
+    # Create ticket folder
     if ask('Create ticket folder?'):
         ticket_folder = get_simple_string('Please enter folder name')
-        selected_path['Path'] = os.path.join(
-            selected_path['Path'], ticket_folder)
+        dest['Path'] = os.path.join(
+            dest['Path'], ticket_folder)
         try:
-            os.makedirs(selected_path['Path'], exist_ok=True)
+            os.makedirs(dest['Path'], exist_ok=True)
         except OSError:
             print_error('Failed to create folder "{}"'.format(
-                selected_path['Path']))
+                dest['Path']))
             abort_ddrescue_tui()
-    return selected_path
+
+    # Set display name
+    result = run_program(['tput', 'cols'])
+    width = int((int(result.stdout.decode().strip()) - 21) / 2) - 2
+    if len(dest['Path']) > width:
+        dest['Display Name'] = '...{}'.format(dest['Path'][-(width-3):])
+    else:
+        dest['Display Name'] = dest['Path']
+
+    return dest
 
 def select_device(description='device', provided_path=None,
     skip_device={}, allow_image_file=True):
@@ -332,7 +363,7 @@ def select_device(description='device', provided_path=None,
         dev['Dev Path'] = setup_loopback_device(dev['Path'])
         dev['Is Image'] = True
     else:
-        print_error('Invalid {} "{}".'.format(description, dev['Path']))
+        print_error('Invalid {} "{}"'.format(description, dev['Path']))
         abort_ddrescue_tui()
 
     # Get device details
@@ -359,6 +390,12 @@ def select_device(description='device', provided_path=None,
     else:
         dev['Display Name'] = '{name} {size} {model}'.format(
             **dev['Details'])
+    result = run_program(['tput', 'cols'])
+    width = int((int(result.stdout.decode().strip()) - 21) / 2) - 2
+    if len(dev['Display Name']) > width:
+        dev['Display Name'] = '{}...'.format(dev['Display Name'][:(width-3)])
+    else:
+        dev['Display Name'] = dev['Display Name']
 
     return dev
 
