@@ -106,20 +106,8 @@ def menu_clone(source_path, dest_path):
         skip_device = source['Details'], allow_image_file = False)
     
     # Show selection details
-    clear_screen()
-    print_success('Source device')
-    if source['Is Image']:
-        print_standard('Using image file: {}'.format(source['Path']))
-        print_standard('                  (via loopback device: {})'.format(
-            source['Dev Path']))
-    show_device_details(source['Dev Path'])
-    print_standard(' ')
+    show_selection_details(source, dest)
     
-    print_success('Destination device ', end='')
-    print_error('(ALL DATA WILL BE DELETED)', timestamp=False)
-    show_device_details(dest['Dev Path'])
-    print_standard(' ')
-
     # Confirm
     if not ask('Proceed with clone?'):
         abort_ddrescue_tui()
@@ -322,6 +310,29 @@ def show_safety_check():
                   'to {CLEAR}{RED}DATA LOSS.'.format(**COLORS))
     if not ask('Asking again to confirm, is this correct?'):
         abort_ddrescue_tui()
+
+def show_selection_details(source, dest):
+    clear_screen()
+    
+    # Source
+    print_success('Source device')
+    if source['Is Image']:
+        print_standard('Using image file: {}'.format(source['Path']))
+        print_standard('                  (via loopback device: {})'.format(
+            source['Dev Path']))
+    show_device_details(source['Dev Path'])
+    print_standard(' ')
+    
+    # Destination
+    if source['Type'] == 'Clone':
+        print_success('Destination device ', end='')
+        print_error('(ALL DATA WILL BE DELETED)', timestamp=False)
+        show_device_details(dest['Dev Path'])
+    else:
+        dest['Dest Path'] = '/media/SHOP/Cust Name/'
+        print_success('Destination path')
+        print_standard(dest['Dest Path'])
+    print_standard(' ')
 
 def show_usage(script_name):
     print_info('Usage:')
