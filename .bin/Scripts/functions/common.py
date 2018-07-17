@@ -214,11 +214,11 @@ def get_ticket_number():
     return ticket_number
 
 def get_simple_string(prompt='Enter string'):
-    """Get string from user (only alphanumeric/space chars) and return as str."""
+    """Get string from user (minimal allowed character set) and return as str."""
     simple_string = None
     while simple_string is None:
         _input = input('{}: '.format(prompt))
-        if re.match(r'^(\w|-| )+$', _input, re.ASCII):
+        if re.match(r'^(\w|-|_| )+$', _input, re.ASCII):
             simple_string = _input.strip()
     return simple_string
 
