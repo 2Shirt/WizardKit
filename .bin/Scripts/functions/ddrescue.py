@@ -166,15 +166,8 @@ def menu_image(source_path, dest_path):
     if not ask('Proceed with clone?'):
         abort_ddrescue_tui()
 
-    # TODO Replace with real child dev selection menu
-    if 'children' in source['Details']:
-        source['Children']  = []
-        for c in source['Details']['children']:
-            source['Children'].append({
-                'Dev Path': c['name'],
-                'Pass 1': 'Pending',
-                'Pass 2': 'Pending',
-                'Pass 3': 'Pending'})
+    # Select child device(s)
+    source['Children'] = menu_select_children(source)
     
     # Main menu
     build_outer_panes(source, dest)
@@ -191,6 +184,68 @@ def menu_main():
     print_warning('#TODO')
     print_standard(' ')
     pause('Press Enter to exit...')
+
+def menu_select_children(source):
+    """Select child device(s) or whole disk, returns list."""
+    dev_options = [{
+        'Base Name': '{:<14}(Whole device)'.format(source['Dev Path']),
+        'Path': source['Dev Path'],
+        'Selected': False}]
+    for child in source['Details'].get('children', []):
+        dev_options.append({
+            'Base Name': '{:<14}({:>6} {})'.format(
+                child['name'],
+                child['size'],
+                child['fstype'] if child['fstype'] else 'Unknown'),
+            'Path': child['name'],
+            'Selected': False})
+    actions = [
+        {'Name': 'Proceed', 'Letter': 'P'},
+        {'Name': 'Quit', 'Letter': 'Q'}]
+    
+    # Skip Menu if there's no children
+    if len(dev_options) == 1:
+        return []
+
+    # Show Menu
+    while True:
+        # Update entries
+        for dev in dev_options:
+            dev['Name'] = '{} {}'.format(
+                '*' if dev['Selected'] else ' ',
+                dev['Base Name'])
+
+        selection = menu_select(
+            title = 'Please select part(s) to image',
+            main_entries = dev_options,
+            action_entries = actions)
+
+        if selection.isnumeric():
+            # Toggle selection
+            index = int(selection) - 1
+            dev_options[index]['Selected'] = not dev_options[index]['Selected']
+
+            # Deselect whole device if child selected (this round)
+            if index > 0:
+                dev_options[0]['Selected'] = False
+
+            # Deselect all children if whole device selected
+            if dev_options[0]['Selected']:
+                for dev in dev_options[1:]:
+                    dev['Selected'] = False
+        elif selection == 'P':
+            break
+        elif selection == 'Q':
+            abort_ddrescue_tui()
+
+    # Check selection
+    selected_children = [{
+        'Dev Path': d['Path'],
+        'Pass 1': 'Pending',
+        'Pass 2': 'Pending',
+        'Pass 3': 'Pending'} for d in dev_options
+        if d['Selected'] and 'Whole device' not in d['Base Name']]
+    return selected_children
 
 def menu_select_device(title='Which device?', skip_device={}):
     """Select block device via a menu, returns dev_path as str."""
@@ -522,7 +577,8 @@ def update_progress(source):
                 **COLORS))
     else:
         # Image mode
-        if 'Children' in source:
+        if source['Children']:
+            # Just parts
             for child in source['Children']:
                 output.append('{BLUE}{dev}{CLEAR}'.format(
                     dev = child['Dev Path'],
@@ -544,7 +600,7 @@ def update_progress(source):
                         **COLORS))
                 output.append(' ')
         else:
-            # Whole disk
+            # Whole device
             output.append('{BLUE}{dev}{CLEAR} {YELLOW}(Whole){CLEAR}'.format(
                 dev = source['Dev Path'],
                 **COLORS))
