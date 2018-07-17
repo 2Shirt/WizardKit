@@ -14,26 +14,6 @@ USAGE="""    {script_name} clone [source [destination]]
 """
 
 # Functions
-def show_device_details(dev_path):
-    """Display device details on screen."""
-    cmd = (
-        'lsblk', '--nodeps',
-        '--output', 'NAME,TRAN,TYPE,SIZE,VENDOR,MODEL,SERIAL',
-        dev_path)
-    result = run_program(cmd)
-    output = result.stdout.decode().splitlines()
-    print_info(output.pop(0))
-    for line in output:
-        print_standard(line)
-
-    # Children info
-    cmd = ('lsblk', '--output', 'NAME,SIZE,FSTYPE,LABEL,MOUNTPOINT', dev_path)
-    result = run_program(cmd)
-    output = result.stdout.decode().splitlines()
-    print_info(output.pop(0))
-    for line in output:
-        print_standard(line)
-
 def get_device_details(dev_path):
     """Get device details via lsblk, returns JSON dict."""
     try:
@@ -51,24 +31,6 @@ def get_device_details(dev_path):
     json_data = json.loads(result.stdout.decode())
     # Just return the first device (there should only be one)
     return json_data['blockdevices'][0]
-
-def setup_loopback_device(source_path):
-    """Setup a loopback device for source_path, returns dev_path as str."""
-    cmd = (
-        'losetup',
-        '--find',
-        '--partscan',
-        '--show',
-        source_path)
-    try:
-        out = run_program(cmd, check=True)
-        dev_path = out.stdout.decode().strip()
-        sleep(1)
-    except CalledProcessError:
-        print_error('Failed to setup loopback device for source.')
-        abort()
-    else:
-        return dev_path
 
 def menu_clone(source_path, dest_path):
     """ddrescue cloning menu."""
@@ -137,48 +99,6 @@ def menu_image(source_path, dest_path):
     print_success('GNU ddrescue: Imaging Menu')
     pass
 
-def select_device(description='device', provided_path=None,
-    skip_device={}, allow_image_file=True):
-    """Select device via provided path or menu, return dev as dict."""
-    dev = {'Is Image': False}
-    
-    # Set path
-    if provided_path:
-        dev['Path'] = provided_path
-    else:
-        dev['Path'] = menu_select_device(
-            title='Please select a {}'.format(description),
-            skip_device=skip_device)
-    dev['Path'] = os.path.realpath(dev['Path'])
-    
-    # Check path
-    if pathlib.Path(dev['Path']).is_block_device():
-        dev['Dev Path'] = dev['Path']
-    elif allow_image_file and pathlib.Path(dev['Path']).is_file():
-        dev['Dev Path'] = setup_loopback_device(dev['Path'])
-        dev['Is Image'] = True
-    else:
-        print_error('Invalid {} "{}".'.format(description, dev['Path']))
-        abort()
-
-    # Get device details
-    dev['Details'] = get_device_details(dev['Dev Path'])
-    
-    # Check for parent device(s)
-    while dev['Details']['pkname']:
-        print_warning('{} "{}" is a child device.'.format(
-            description.title(), dev['Dev Path']))
-        if ask('Use parent device "{}" instead?'.format(
-            dev['Details']['pkname'])):
-            # Update dev with parent info
-            dev['Dev Path'] = dev['Details']['pkname']
-            dev['Details'] = get_device_details(dev['Dev Path'])
-        else:
-            # Leave alone
-            break
-
-    return dev
-
 def menu_select_device(title='Which device?', skip_device={}):
     """Select block device via a menu, returns dev_path as str."""
     skip_names = [
@@ -229,6 +149,86 @@ def menu_select_device(title='Which device?', skip_device={}):
         return dev_options[int(selection)-1]['Path']
     elif selection == 'Q':
         abort()
+
+def select_device(description='device', provided_path=None,
+    skip_device={}, allow_image_file=True):
+    """Select device via provided path or menu, return dev as dict."""
+    dev = {'Is Image': False}
+    
+    # Set path
+    if provided_path:
+        dev['Path'] = provided_path
+    else:
+        dev['Path'] = menu_select_device(
+            title='Please select a {}'.format(description),
+            skip_device=skip_device)
+    dev['Path'] = os.path.realpath(dev['Path'])
+    
+    # Check path
+    if pathlib.Path(dev['Path']).is_block_device():
+        dev['Dev Path'] = dev['Path']
+    elif allow_image_file and pathlib.Path(dev['Path']).is_file():
+        dev['Dev Path'] = setup_loopback_device(dev['Path'])
+        dev['Is Image'] = True
+    else:
+        print_error('Invalid {} "{}".'.format(description, dev['Path']))
+        abort()
+
+    # Get device details
+    dev['Details'] = get_device_details(dev['Dev Path'])
+    
+    # Check for parent device(s)
+    while dev['Details']['pkname']:
+        print_warning('{} "{}" is a child device.'.format(
+            description.title(), dev['Dev Path']))
+        if ask('Use parent device "{}" instead?'.format(
+            dev['Details']['pkname'])):
+            # Update dev with parent info
+            dev['Dev Path'] = dev['Details']['pkname']
+            dev['Details'] = get_device_details(dev['Dev Path'])
+        else:
+            # Leave alone
+            break
+
+    return dev
+
+def setup_loopback_device(source_path):
+    """Setup a loopback device for source_path, returns dev_path as str."""
+    cmd = (
+        'losetup',
+        '--find',
+        '--partscan',
+        '--show',
+        source_path)
+    try:
+        out = run_program(cmd, check=True)
+        dev_path = out.stdout.decode().strip()
+        sleep(1)
+    except CalledProcessError:
+        print_error('Failed to setup loopback device for source.')
+        abort()
+    else:
+        return dev_path
+
+def show_device_details(dev_path):
+    """Display device details on screen."""
+    cmd = (
+        'lsblk', '--nodeps',
+        '--output', 'NAME,TRAN,TYPE,SIZE,VENDOR,MODEL,SERIAL',
+        dev_path)
+    result = run_program(cmd)
+    output = result.stdout.decode().splitlines()
+    print_info(output.pop(0))
+    for line in output:
+        print_standard(line)
+
+    # Children info
+    cmd = ('lsblk', '--output', 'NAME,SIZE,FSTYPE,LABEL,MOUNTPOINT', dev_path)
+    result = run_program(cmd)
+    output = result.stdout.decode().splitlines()
+    print_info(output.pop(0))
+    for line in output:
+        print_standard(line)
 
 def show_usage(script_name):
     print_info('Usage:')
