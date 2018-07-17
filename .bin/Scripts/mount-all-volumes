@@ -18,7 +18,7 @@ if __name__ == '__main__':
         print_standard('{}: Volume mount tool'.format(KIT_NAME_FULL))
 
         # Mount volumes
-        report = mount_all_volumes()
+        report = mount_volumes(all_devices=True)
 
         # Print report
         print_info('\nResults')
