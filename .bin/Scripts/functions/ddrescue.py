@@ -165,7 +165,16 @@ def menu_image(source_path, dest_path):
     # Confirm
     if not ask('Proceed with clone?'):
         abort_ddrescue_tui()
-    show_safety_check()
+
+    # TODO Replace with real child dev selection menu
+    if 'children' in source['Details']:
+        source['Children']  = []
+        for c in source['Details']['children']:
+            source['Children'].append({
+                'Dev Path': c['name'],
+                'Pass 1': 'Pending',
+                'Pass 2': 'Pending',
+                'Pass 3': 'Pending'})
     
     # Main menu
     build_outer_panes(source, dest)
@@ -511,8 +520,48 @@ def update_progress(source):
                 s_display = s_display,
                 **COLORS))
     else:
-        #TODO
-        pass
+        # Image mode
+        if 'Children' in source:
+            for child in source['Children']:
+                output.append('{BLUE}{dev}{CLEAR}'.format(
+                    dev = child['Dev Path'],
+                    **COLORS))
+                for x in (1, 2, 3):
+                    p_num = 'Pass {}'.format(x)
+                    s_display = child[p_num]
+                    try:
+                        s_display = float(s_display)
+                    except ValueError:
+                        # Ignore and leave s_display alone
+                        pass
+                    else:
+                        s_display = '{:0.2f} %'.format(s_display)
+                    output.append('{p_num}{s_color}{s_display:>15}{CLEAR}'.format(
+                        p_num = p_num,
+                        s_color = get_status_color(child[p_num]),
+                        s_display = s_display,
+                        **COLORS))
+                output.append(' ')
+        else:
+            # Whole disk
+            output.append('{BLUE}{dev}{CLEAR} {YELLOW}(Whole){CLEAR}'.format(
+                dev = source['Dev Path'],
+                **COLORS))
+            for x in (1, 2, 3):
+                p_num = 'Pass {}'.format(x)
+                s_display = source[p_num]
+                try:
+                    s_display = float(s_display)
+                except ValueError:
+                    # Ignore and leave s_display alone
+                    pass
+                else:
+                    s_display = '{:0.2f} %'.format(s_display)
+                output.append('{p_num}{s_color}{s_display:>15}{CLEAR}'.format(
+                    p_num = p_num,
+                    s_color = get_status_color(source[p_num]),
+                    s_display = s_display,
+                    **COLORS))
 
     # Add line-endings
     output = ['{}\n'.format(line) for line in output]
