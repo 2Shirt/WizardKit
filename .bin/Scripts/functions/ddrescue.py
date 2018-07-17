@@ -37,6 +37,28 @@ def get_device_details(dev_path):
     # Just return the first device (there should only be one)
     return json_data['blockdevices'][0]
 
+def get_status_color(s, t_success=99, t_warn=90):
+    """Get color based on status, returns str."""
+    color = COLORS['CLEAR']
+    p_recovered = -1
+    try:
+        p_recovered = float(s)
+    except ValueError:
+        # Status is either in lists below or will default to red
+        pass
+    
+    if s in ('Pending',):
+        color = COLORS['CLEAR']
+    elif s in ('Working',):
+        color = COLORS['YELLOW']
+    elif p_recovered >= t_success:
+        color = COLORS['GREEN']
+    elif p_recovered >= t_warn:
+        color = COLORS['YELLOW']
+    else:
+        color = COLORS['RED']
+    return color
+
 def menu_clone(source_path, dest_path):
     """ddrescue cloning menu."""
     source_is_image = False
@@ -70,16 +92,8 @@ def menu_clone(source_path, dest_path):
     # Confirm
     if not ask('Proceed with clone?'):
         abort_ddrescue_tui()
+    show_safety_check()
     
-    # Safety check
-    print_standard('\nSAFETY CHECK')
-    print_warning('All data will be DELETED from the '
-                  'destination device and partition(s) listed above.')
-    print_warning('This is irreversible and will lead '
-                  'to {CLEAR}{RED}DATA LOSS.'.format(**COLORS))
-    if not ask('Asking again to confirm, is this correct?'):
-        abort_ddrescue_tui()
-
     # Build outer panes
     clear_screen()
     ## Top panes
@@ -294,6 +308,16 @@ def show_device_details(dev_path):
     for line in output:
         print_standard(line)
 
+def show_safety_check():
+    """Display safety check message and get confirmation from user."""
+    print_standard('\nSAFETY CHECK')
+    print_warning('All data will be DELETED from the '
+                  'destination device and partition(s) listed above.')
+    print_warning('This is irreversible and will lead '
+                  'to {CLEAR}{RED}DATA LOSS.'.format(**COLORS))
+    if not ask('Asking again to confirm, is this correct?'):
+        abort_ddrescue_tui()
+
 def show_usage(script_name):
     print_info('Usage:')
     print_standard(USAGE.format(script_name=script_name))
@@ -303,28 +327,6 @@ def tmux_splitw(*args):
     cmd = ['tmux', 'split-window', *args]
     result = run_program(cmd)
     return result.stdout.decode().strip()
-
-def get_status_color(s, t_success=99, t_warn=90):
-    """Get color based on status, returns str."""
-    color = COLORS['CLEAR']
-    p_recovered = -1
-    try:
-        p_recovered = float(s)
-    except ValueError:
-        # Status is either in lists below or will default to red
-        pass
-    
-    if s in ('Pending',):
-        color = COLORS['CLEAR']
-    elif s in ('Working',):
-        color = COLORS['YELLOW']
-    elif p_recovered >= t_success:
-        color = COLORS['GREEN']
-    elif p_recovered >= t_warn:
-        color = COLORS['YELLOW']
-    else:
-        color = COLORS['RED']
-    return color
 
 def update_progress(source):
     """Update progress file."""
