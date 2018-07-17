@@ -393,16 +393,17 @@ def select_device(description='device', provided_path=None,
 
     # Set display name
     if dev['Is Image']:
-        dev['Display Name'] = '{name} {size} ({image_name})'.format(
-            image_name = dev['Path'][dev['Path'].rfind('/')+1:],
-            **dev['Details'])
+        dev['Display Name'] = dev['Path']
     else:
         dev['Display Name'] = '{name} {size} {model}'.format(
             **dev['Details'])
     result = run_program(['tput', 'cols'])
     width = int((int(result.stdout.decode().strip()) - 21) / 2) - 2
     if len(dev['Display Name']) > width:
-        dev['Display Name'] = '{}...'.format(dev['Display Name'][:(width-3)])
+        if dev['Is Image']:
+            dev['Display Name'] = '...{}'.format(dev['Display Name'][-(width-3):])
+        else:
+            dev['Display Name'] = '{}...'.format(dev['Display Name'][:(width-3)])
     else:
         dev['Display Name'] = dev['Display Name']
 
@@ -502,7 +503,7 @@ def update_progress(source):
     # Main device
     if source['Type'] == 'Clone':
         output.append('{BLUE}{dev}{CLEAR}'.format(
-            dev = source['Dev Path'],
+            dev = 'Image File' if source['Is Image'] else source['Dev Path'],
             **COLORS))
         for x in (1, 2, 3):
             p_num = 'Pass {}'.format(x)
