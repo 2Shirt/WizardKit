@@ -75,68 +75,34 @@ def menu_clone(source_path, dest_path):
     source_is_image = False
     source_dev_path = None
     print_success('GNU ddrescue: Cloning Menu')
-
-    # Select source if not preselected
-    if not source_path:
-        source_path = select_device('Please select a source device')
-
-    # Check source
-    source_path = os.path.realpath(source_path)
-    if pathlib.Path(source_path).is_block_device():
-        source_dev_path = source_path
-    elif pathlib.Path(source_path).is_file():
-        source_dev_path = setup_loopback_device(source_path)
-        source_is_image = True
-    else:
-        print_error('Invalid source "{}".'.format(source_path))
-        abort()
-    source_details = get_device_details(source_dev_path)
-
-    # Check source type
-    if source_details['pkname']:
-        print_warning('Source "{}" is a child device.'.format(source_dev_path))
-        if ask('Use parent device "{}" instead?'.format(
-            source_details['pkname'])):
-            source_dev_path = source_details['pkname']
-            source_details = get_device_details(source_dev_path)
-        print_standard(' ')
-
-    # Select destination if not preselected
-    if not dest_path:
-        dest_path = select_device(
-            'Please select a destination device',
-            skip_device=source_details)
-
-    # Check destination
-    dest_path = os.path.realpath(dest_path)
-    if pathlib.Path(dest_path).is_block_device():
-        dest_dev_path = dest_path
-    else:
-        print_error('Invalid destination "{}".'.format(dest_path))
-        abort()
-    dest_details = get_device_details(dest_dev_path)
-
-    # Check destination type
-    if dest_details['pkname']:
-        print_warning('Destination "{}" is a child device.'.format(dest_dev_path))
-        if ask('Use parent device "{}" instead?'.format(
-            dest_details['pkname'])):
-            dest_dev_path = dest_details['pkname']
-            dest_details = get_device_details(dest_dev_path)
-        print_standard(' ')
+    
+    # Set devices
+    source = select_device('source', source_path)
+    dest = select_device('destination', dest_path,
+        skip_device = source['Details'], allow_image_file = False)
     
     # Show selection details
+    clear_screen()
     print_success('Source device')
-    if source_is_image:
-        print_standard('Using image file: {}'.format(source_path))
+    if source['Is Image']:
+        print_standard('Using image file: {}'.format(source['Path']))
         print_standard('                  (via loopback device: {})'.format(
-            source_dev_path))
-    show_device_details(source_dev_path)
+            source['Dev Path']))
+    show_device_details(source['Dev Path'])
     print_standard(' ')
     
-    print_success('Destination device')
-    show_device_details(dest_dev_path)
+    print_success('Destination device ', end='')
+    print_error('(ALL DATA WILL BE DELETED)', timestamp=False)
+    show_device_details(dest['Dev Path'])
     print_standard(' ')
+
+    # Confirm
+    if not ask('Proceed with clone?'):
+        abort()
+
+    # Build outer panes
+    clear_screen()
+    #TODO
 
 def menu_ddrescue(*args):
     """Main ddrescue loop/menu."""
@@ -171,8 +137,53 @@ def menu_image(source_path, dest_path):
     print_success('GNU ddrescue: Imaging Menu')
     pass
 
-def select_device(title='Which device?', skip_device={}):
+def select_device(description='device', provided_path=None,
+    skip_device={}, allow_image_file=True):
+    """Select device via provided path or menu, return dev as dict."""
+    dev = {'Is Image': False}
+    
+    # Set path
+    if provided_path:
+        dev['Path'] = provided_path
+    else:
+        dev['Path'] = menu_select_device(
+            title='Please select a {}'.format(description),
+            skip_device=skip_device)
+    dev['Path'] = os.path.realpath(dev['Path'])
+    
+    # Check path
+    if pathlib.Path(dev['Path']).is_block_device():
+        dev['Dev Path'] = dev['Path']
+    elif allow_image_file and pathlib.Path(dev['Path']).is_file():
+        dev['Dev Path'] = setup_loopback_device(dev['Path'])
+        dev['Is Image'] = True
+    else:
+        print_error('Invalid {} "{}".'.format(description, dev['Path']))
+        abort()
+
+    # Get device details
+    dev['Details'] = get_device_details(dev['Dev Path'])
+    
+    # Check for parent device(s)
+    while dev['Details']['pkname']:
+        print_warning('{} "{}" is a child device.'.format(
+            description.title(), dev['Dev Path']))
+        if ask('Use parent device "{}" instead?'.format(
+            dev['Details']['pkname'])):
+            # Update dev with parent info
+            dev['Dev Path'] = dev['Details']['pkname']
+            dev['Details'] = get_device_details(dev['Dev Path'])
+        else:
+            # Leave alone
+            break
+
+    return dev
+
+def menu_select_device(title='Which device?', skip_device={}):
     """Select block device via a menu, returns dev_path as str."""
+    skip_names = [
+        skip_device.get('name', None), skip_device.get('pkname', None)]
+    skip_names = [n for n in skip_names if n]
     try:
         cmd = (
             'lsblk',
@@ -189,10 +200,8 @@ def select_device(title='Which device?', skip_device={}):
     # Build menu
     dev_options = []
     for dev in json_data['blockdevices']:
-        # Skip if dev in skip_device
-        dev_names = [dev['name'], dev['pkname']]
-        dev_names = [n for n in dev_names if n]
-        if skip_device and skip_device.get('name', None) in dev_names:
+        # Skip if dev is in skip_names
+        if dev['name'] in skip_names or dev['pkname'] in skip_names:
             continue
 
         # Append non-matching devices
