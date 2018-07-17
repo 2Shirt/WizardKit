@@ -70,6 +70,15 @@ def menu_clone(source_path, dest_path):
     # Confirm
     if not ask('Proceed with clone?'):
         abort_ddrescue_tui()
+    
+    # Safety check
+    print_standard('\nSAFETY CHECK')
+    print_warning('All data will be DELETED from the '
+                  'destination device and partition(s) listed above.')
+    print_warning('This is irreversible and will lead '
+                  'to {CLEAR}{RED}DATA LOSS.'.format(**COLORS))
+    if not ask('Asking again to confirm, is this correct?'):
+        abort_ddrescue_tui()
 
     # Build outer panes
     clear_screen()
