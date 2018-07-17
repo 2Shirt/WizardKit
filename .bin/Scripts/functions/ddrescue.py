@@ -3,6 +3,7 @@
 import json
 import pathlib
 import re
+import time
 
 from functions.common import *
 from operator import itemgetter
@@ -64,7 +65,35 @@ def menu_clone(source_path, dest_path):
 
     # Build outer panes
     clear_screen()
-    #TODO
+    ## Top panes
+    source_pane = tmux_splitw(
+        '-bdvl', '2',
+        '-PF', '#D',
+        'echo-and-hold "{BLUE}Source{CLEAR}\n{text}"'.format(
+            text = source['Display Name'],
+            **COLORS))
+    tmux_splitw(
+        '-t', source_pane,
+        '-dhl', '21',
+        'echo-and-hold "{BLUE}Started{CLEAR}\n{text}"'.format(
+            text = time.strftime("%Y-%m-%d %H:%M %Z"),
+            **COLORS))
+    tmux_splitw(
+        '-t', source_pane,
+        '-dhp', '50',
+        'echo-and-hold "{BLUE}Destination{CLEAR}\n{text}"'.format(
+            text = dest['Display Name'],
+            **COLORS))
+    ## Side pane
+    tmux_splitw('-dhl', '21', 'echo-and-hold "Status #TODO"')
+    pause()
+    run_program(['tmux', 'kill-window'])
+
+def tmux_splitw(*args):
+    """Run tmux split-window command and return output as str."""
+    cmd = ['tmux', 'split-window', *args]
+    result = run_program(cmd)
+    return result.stdout.decode().strip()
 
 def menu_ddrescue(*args):
     """Main ddrescue loop/menu."""
@@ -189,6 +218,15 @@ def select_device(description='device', provided_path=None,
         else:
             # Leave alone
             break
+
+    # Set display name
+    if dev['Is Image']:
+        dev['Display Name'] = '{name} {size} ({image_name})'.format(
+            image_name = dev['Path'][dev['Path'].rfind('/')+1:],
+            **dev['Details'])
+    else:
+        dev['Display Name'] = '{name} {size} {model}'.format(
+            **dev['Details'])
 
     return dev
 
