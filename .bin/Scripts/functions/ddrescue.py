@@ -6,6 +6,7 @@ import re
 import time
 
 from functions.common import *
+from functions.data import *
 from operator import itemgetter
 
 # STATIC VARIABLES
@@ -92,9 +93,6 @@ def get_status_color(s, t_success=99, t_warn=90):
 
 def menu_clone(source_path, dest_path):
     """ddrescue cloning menu."""
-    source_is_image = False
-    source_dev_path = None
-    print_success('GNU ddrescue: Cloning Menu')
     
     # Set devices
     source = select_device('source', source_path)
@@ -152,7 +150,31 @@ def menu_ddrescue(*args):
 
 def menu_image(source_path, dest_path):
     """ddrescue imaging menu."""
-    print_success('GNU ddrescue: Imaging Menu')
+    
+    # Set devices
+    source = select_device('source', source_path, allow_image_file = False)
+    source['Type'] = 'Image'
+    source['Pass 1'] = 'Pending'
+    source['Pass 2'] = 'Pending'
+    source['Pass 3'] = 'Pending'
+    dest = select_path(dest_path, skip_device=source['Details'])
+    
+    # Show selection details
+    show_selection_details(source, dest)
+    
+    # Confirm
+    if not ask('Proceed with clone?'):
+        abort_ddrescue_tui()
+    show_safety_check()
+    
+    # Main menu
+    build_outer_panes(source, dest)
+    menu_main()
+
+    # Done
+    run_program(['losetup', '-D'])
+    run_program(['tmux', 'kill-window'])
+    exit_script()
 
 def menu_main():
     print_success('Main Menu')
@@ -211,6 +233,83 @@ def menu_select_device(title='Which device?', skip_device={}):
         return dev_options[int(selection)-1]['Path']
     elif selection == 'Q':
         abort_ddrescue_tui()
+
+def select_path(provided_path=None, skip_device={}):
+    selected_path = {}
+    pwd = os.path.realpath(global_vars['Env']['PWD'])
+    path_options = [
+        {'Name': 'Current directory: {}'.format(pwd), 'Path': pwd},
+        {'Name': 'Local device', 'Path': None},
+        {'Name': 'Enter manually', 'Path': None}]
+    actions = [{'Name': 'Quit', 'Letter': 'Q'}]
+    selection = menu_select(
+        title = 'Please make a selection',
+        main_entries = path_options,
+        action_entries = actions)
+
+    if selection == 'Q':
+        abort_ddrescue_tui()
+    elif selection.isnumeric():
+        index = int(selection) - 1
+        if path_options[index]['Path']:
+            # Current directory
+            selected_path['Path'] = pwd
+
+        elif path_options[index]['Name'] == 'Local device':
+            # Local device
+            local_device = select_device(
+                skip_device = skip_device,
+                allow_image_file = False)
+
+            # Mount device volume(s)
+            report = mount_volumes(
+                all_devices = False,
+                device_path = local_device['Dev Path'],
+                read_write = True)
+
+            # Select volume
+            vol_options = []
+            for k, v in sorted(report.items()):
+                disabled = v['show_data']['data'] == 'Failed to mount'
+                if disabled:
+                    name = '{name} (Failed to mount)'.format(**v)
+                else:
+                    name = '{name} (mounted on "{mount_point}")'.format(**v)
+                vol_options.append({
+                    'Name': name,
+                    'Path': v['mount_point'],
+                    'Disabled': disabled})
+            selection = menu_select(
+                title = 'Please select a volume',
+                main_entries = vol_options,
+                action_entries = actions)
+            if selection.isnumeric():
+                selected_path['Path'] = vol_options[int(selection)-1]['Path']
+            elif selection == 'Q':
+                abort_ddrescue_tui()
+
+        elif path_options[index]['Name'] == 'Enter manually':
+            # Manual entry
+            while not selected_path:
+                m_path = input('Please enter path: ').strip()
+                if m_path and pathlib.Path(m_path).is_dir():
+                    selected_path['Path'] = os.path.realpath(m_path)
+                elif m_path and pathlib.Path(m_path).is_file():
+                    print_error('File "{}" exists'.format(m_path))
+                else:
+                    print_error('Invalid path "{}"'.format(m_path))
+
+    if ask('Create ticket folder?'):
+        ticket_folder = get_simple_string('Please enter folder name')
+        selected_path['Path'] = os.path.join(
+            selected_path['Path'], ticket_folder)
+        try:
+            os.makedirs(selected_path['Path'], exist_ok=True)
+        except OSError:
+            print_error('Failed to create folder "{}"'.format(
+                selected_path['Path']))
+            abort_ddrescue_tui()
+    return selected_path
 
 def select_device(description='device', provided_path=None,
     skip_device={}, allow_image_file=True):
@@ -329,9 +428,8 @@ def show_selection_details(source, dest):
         print_error('(ALL DATA WILL BE DELETED)', timestamp=False)
         show_device_details(dest['Dev Path'])
     else:
-        dest['Dest Path'] = '/media/SHOP/Cust Name/'
         print_success('Destination path')
-        print_standard(dest['Dest Path'])
+        print_standard(dest['Path'])
     print_standard(' ')
 
 def show_usage(script_name):
