@@ -24,7 +24,7 @@ if [[ -f "${1:-}" ]]; then
         done
     else
         # losetup did not detect partitions, attempt whole image
-        udevil mount -o to "${LOOPDEV}" || true
+        udevil mount -o ro "${LOOPDEV}" || true
     fi
 else
     usage
