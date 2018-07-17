@@ -19,6 +19,37 @@ def abort_ddrescue_tui():
     run_program(['losetup', '-D'])
     abort()
 
+def build_outer_panes(source, dest):
+    """Build top and side panes."""
+    clear_screen()
+    
+    # Top panes
+    source_pane = tmux_splitw(
+        '-bdvl', '2',
+        '-PF', '#D',
+        'echo-and-hold "{BLUE}Source{CLEAR}\n{text}"'.format(
+            text = source['Display Name'],
+            **COLORS))
+    tmux_splitw(
+        '-t', source_pane,
+        '-dhl', '21',
+        'echo-and-hold "{BLUE}Started{CLEAR}\n{text}"'.format(
+            text = time.strftime("%Y-%m-%d %H:%M %Z"),
+            **COLORS))
+    tmux_splitw(
+        '-t', source_pane,
+        '-dhp', '50',
+        'echo-and-hold "{BLUE}Destination{CLEAR}\n{text}"'.format(
+            text = dest['Display Name'],
+            **COLORS))
+    
+    # Side pane
+    update_progress(source)
+    tmux_splitw('-dhl', '21',
+        'watch', '--color', '--no-title', '--interval', '1',
+        'cat', source['Progress Out'])
+    
+
 def get_device_details(dev_path):
     """Get device details via lsblk, returns JSON dict."""
     try:
@@ -94,34 +125,8 @@ def menu_clone(source_path, dest_path):
         abort_ddrescue_tui()
     show_safety_check()
     
-    # Build outer panes
-    clear_screen()
-    ## Top panes
-    source_pane = tmux_splitw(
-        '-bdvl', '2',
-        '-PF', '#D',
-        'echo-and-hold "{BLUE}Source{CLEAR}\n{text}"'.format(
-            text = source['Display Name'],
-            **COLORS))
-    tmux_splitw(
-        '-t', source_pane,
-        '-dhl', '21',
-        'echo-and-hold "{BLUE}Started{CLEAR}\n{text}"'.format(
-            text = time.strftime("%Y-%m-%d %H:%M %Z"),
-            **COLORS))
-    tmux_splitw(
-        '-t', source_pane,
-        '-dhp', '50',
-        'echo-and-hold "{BLUE}Destination{CLEAR}\n{text}"'.format(
-            text = dest['Display Name'],
-            **COLORS))
-    ## Side pane
-    update_progress(source)
-    tmux_splitw('-dhl', '21',
-        'watch', '--color', '--no-title', '--interval', '1',
-        'cat', source['Progress Out'])
-    
     # Main menu
+    build_outer_panes(source, dest)
     menu_main()
 
     # Done
