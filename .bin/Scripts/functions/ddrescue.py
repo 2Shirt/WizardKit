@@ -15,6 +15,10 @@ USAGE="""    {script_name} clone [source [destination]]
 """
 
 # Functions
+def abort_ddrescue_tui():
+    run_program(['losetup', '-D'])
+    abort()
+
 def get_device_details(dev_path):
     """Get device details via lsblk, returns JSON dict."""
     try:
@@ -27,7 +31,7 @@ def get_device_details(dev_path):
         result = run_program(cmd)
     except CalledProcessError:
         print_error('Failed to get device details for {}'.format(dev_path))
-        abort()
+        abort_ddrescue_tui()
 
     json_data = json.loads(result.stdout.decode())
     # Just return the first device (there should only be one)
@@ -41,6 +45,10 @@ def menu_clone(source_path, dest_path):
     
     # Set devices
     source = select_device('source', source_path)
+    source['Type'] = 'Clone'
+    source['Pass 1'] = 'Pending'
+    source['Pass 2'] = 'Pending'
+    source['Pass 3'] = 'Pending'
     dest = select_device('destination', dest_path,
         skip_device = source['Details'], allow_image_file = False)
     
@@ -61,7 +69,7 @@ def menu_clone(source_path, dest_path):
 
     # Confirm
     if not ask('Proceed with clone?'):
-        abort()
+        abort_ddrescue_tui()
 
     # Build outer panes
     clear_screen()
@@ -85,15 +93,18 @@ def menu_clone(source_path, dest_path):
             text = dest['Display Name'],
             **COLORS))
     ## Side pane
-    tmux_splitw('-dhl', '21', 'echo-and-hold "Status #TODO"')
-    pause()
-    run_program(['tmux', 'kill-window'])
+    update_progress(source)
+    tmux_splitw('-dhl', '21',
+        'watch', '--color', '--no-title', '--interval', '1',
+        'cat', source['Progress Out'])
+    
+    # Main menu
+    menu_main()
 
-def tmux_splitw(*args):
-    """Run tmux split-window command and return output as str."""
-    cmd = ['tmux', 'split-window', *args]
-    result = run_program(cmd)
-    return result.stdout.decode().strip()
+    # Done
+    run_program(['losetup', '-D'])
+    run_program(['tmux', 'kill-window'])
+    exit_script()
 
 def menu_ddrescue(*args):
     """Main ddrescue loop/menu."""
@@ -126,7 +137,13 @@ def menu_ddrescue(*args):
 def menu_image(source_path, dest_path):
     """ddrescue imaging menu."""
     print_success('GNU ddrescue: Imaging Menu')
-    pass
+
+def menu_main():
+    print_success('Main Menu')
+    print_standard(' ')
+    print_warning('#TODO')
+    print_standard(' ')
+    pause('Press Enter to exit...')
 
 def menu_select_device(title='Which device?', skip_device={}):
     """Select block device via a menu, returns dev_path as str."""
@@ -144,7 +161,7 @@ def menu_select_device(title='Which device?', skip_device={}):
         json_data = json.loads(result.stdout.decode())
     except CalledProcessError:
         print_error('Failed to get device details for {}'.format(dev_path))
-        abort()
+        abort_ddrescue_tui()
 
     # Build menu
     dev_options = []
@@ -165,7 +182,7 @@ def menu_select_device(title='Which device?', skip_device={}):
     dev_options = sorted(dev_options, key=itemgetter('Name'))
     if not dev_options:
         print_error('No devices available.')
-        abort()
+        abort_ddrescue_tui()
 
     # Show Menu
     actions = [{'Name': 'Quit', 'Letter': 'Q'}]
@@ -177,7 +194,7 @@ def menu_select_device(title='Which device?', skip_device={}):
     if selection.isnumeric():
         return dev_options[int(selection)-1]['Path']
     elif selection == 'Q':
-        abort()
+        abort_ddrescue_tui()
 
 def select_device(description='device', provided_path=None,
     skip_device={}, allow_image_file=True):
@@ -201,7 +218,7 @@ def select_device(description='device', provided_path=None,
         dev['Is Image'] = True
     else:
         print_error('Invalid {} "{}".'.format(description, dev['Path']))
-        abort()
+        abort_ddrescue_tui()
 
     # Get device details
     dev['Details'] = get_device_details(dev['Dev Path'])
@@ -244,7 +261,7 @@ def setup_loopback_device(source_path):
         sleep(1)
     except CalledProcessError:
         print_error('Failed to setup loopback device for source.')
-        abort()
+        abort_ddrescue_tui()
     else:
         return dev_path
 
@@ -271,6 +288,75 @@ def show_device_details(dev_path):
 def show_usage(script_name):
     print_info('Usage:')
     print_standard(USAGE.format(script_name=script_name))
+
+def tmux_splitw(*args):
+    """Run tmux split-window command and return output as str."""
+    cmd = ['tmux', 'split-window', *args]
+    result = run_program(cmd)
+    return result.stdout.decode().strip()
+
+def get_status_color(s, t_success=99, t_warn=90):
+    """Get color based on status, returns str."""
+    color = COLORS['CLEAR']
+    p_recovered = -1
+    try:
+        p_recovered = float(s)
+    except ValueError:
+        # Status is either in lists below or will default to red
+        pass
+    
+    if s in ('Pending',):
+        color = COLORS['CLEAR']
+    elif s in ('Working',):
+        color = COLORS['YELLOW']
+    elif p_recovered >= t_success:
+        color = COLORS['GREEN']
+    elif p_recovered >= t_warn:
+        color = COLORS['YELLOW']
+    else:
+        color = COLORS['RED']
+    return color
+
+def update_progress(source):
+    """Update progress file."""
+    if 'Progress Out' not in source:
+        source['Progress Out'] = '{}/progress.out'.format(global_vars['LogDir'])
+    output = []
+    if source['Type'] == 'Clone':
+        output.append('   {BLUE}Cloning Status{CLEAR}'.format(**COLORS))
+    else:
+        output.append('   {BLUE}Imaging Status{CLEAR}'.format(**COLORS))
+    output.append('─────────────────────')
+    
+    # Main device
+    if source['Type'] == 'Clone':
+        output.append('{BLUE}{dev}{CLEAR}'.format(
+            dev = source['Dev Path'],
+            **COLORS))
+        for x in (1, 2, 3):
+            p_num = 'Pass {}'.format(x)
+            s_display = source[p_num]
+            try:
+                s_display = float(s_display)
+            except ValueError:
+                # Ignore and leave s_display alone
+                pass
+            else:
+                s_display = '{:0.2f} %'.format(s_display)
+            output.append('{p_num}{s_color}{s_display:>15}{CLEAR}'.format(
+                p_num = p_num,
+                s_color = get_status_color(source[p_num]),
+                s_display = s_display,
+                **COLORS))
+    else:
+        #TODO
+        pass
+
+    # Add line-endings
+    output = ['{}\n'.format(line) for line in output]
+
+    with open(source['Progress Out'], 'w') as f:
+        f.writelines(output)
 
 if __name__ == '__main__':
     print("This file is not meant to be called directly.")
