@@ -10,7 +10,19 @@ from functions.data import *
 from operator import itemgetter
 
 # STATIC VARIABLES
-USAGE="""    {script_name} clone [source [destination]]
+DDRESCUE_SETTINGS = [
+    {'Flag': '--binary-prefixes', 'Enabled': True, 'Hidden': True},
+    {'Flag': '--data-preview', 'Enabled': True, 'Hidden': True},
+    {'Flag': '--idirect', 'Enabled': True},
+    {'Flag': '--max-read-rate', 'Enabled': False, 'Value': '128MiB'},
+    {'Flag': '--min-read-rate', 'Enabled': True, 'Value': '64KiB'},
+    {'Flag': '--odirect', 'Enabled': True},
+    {'Flag': '--reopen-on-error', 'Enabled': True},
+    {'Flag': '--retry-passes=', 'Enabled': True, 'Value': '0'},
+    {'Flag': '--timeout=', 'Enabled': True, 'Value': '5m'},
+    {'Flag': '-vvvv', 'Enabled': True, 'Hidden': True},
+    ]
+USAGE = """    {script_name} clone [source [destination]]
     {script_name} image [source [destination]]
     (e.g. {script_name} clone /dev/sda /dev/sdb)
 """
@@ -97,9 +109,9 @@ def menu_clone(source_path, dest_path):
     # Set devices
     source = select_device('source', source_path)
     source['Type'] = 'Clone'
-    source['Pass 1'] = 'Pending'
-    source['Pass 2'] = 'Pending'
-    source['Pass 3'] = 'Pending'
+    source['Pass 1'] = {'Status': 'Pending', 'Done': False}
+    source['Pass 2'] = {'Status': 'Pending', 'Done': False}
+    source['Pass 3'] = {'Status': 'Pending', 'Done': False}
     dest = select_device('destination', dest_path,
         skip_device = source['Details'], allow_image_file = False)
     
@@ -113,7 +125,7 @@ def menu_clone(source_path, dest_path):
     
     # Main menu
     build_outer_panes(source, dest)
-    menu_main()
+    menu_main(source)
 
     # Done
     run_program(['losetup', '-D'])
@@ -154,16 +166,16 @@ def menu_image(source_path, dest_path):
     # Set devices
     source = select_device('source', source_path, allow_image_file = False)
     source['Type'] = 'Image'
-    source['Pass 1'] = 'Pending'
-    source['Pass 2'] = 'Pending'
-    source['Pass 3'] = 'Pending'
+    source['Pass 1'] = {'Status': 'Pending', 'Done': False}
+    source['Pass 2'] = {'Status': 'Pending', 'Done': False}
+    source['Pass 3'] = {'Status': 'Pending', 'Done': False}
     dest = select_dest_path(dest_path, skip_device=source['Details'])
     
     # Show selection details
     show_selection_details(source, dest)
     
     # Confirm
-    if not ask('Proceed with clone?'):
+    if not ask('Proceed with imaging?'):
         abort_ddrescue_tui()
 
     # Select child device(s)
@@ -171,26 +183,116 @@ def menu_image(source_path, dest_path):
     
     # Main menu
     build_outer_panes(source, dest)
-    menu_main()
+    menu_main(source)
 
     # Done
     run_program(['losetup', '-D'])
     run_program(['tmux', 'kill-window'])
     exit_script()
 
-def menu_main():
-    print_success('Main Menu')
-    print_standard(' ')
-    print_warning('#TODO')
-    print_standard(' ')
-    pause('Press Enter to exit...')
+def menu_main(source):
+    """Main menu is used to set ddrescue settings."""
+    if 'Settings' not in source:
+        source['Settings'] = DDRESCUE_SETTINGS.copy()
+
+    # Build menu
+    main_options = [
+        {'Base Name': 'Retry', 'Enabled': False},
+        {'Base Name': 'Reverse direction', 'Enabled': False},
+        ]
+    actions  =[
+        {'Name': 'Start', 'Letter': 'S'},
+        {'Name': 'Change settings {YELLOW}(experts only){CLEAR}'.format(
+            **COLORS),
+            'Letter': 'C'},
+        {'Name': 'Quit', 'Letter': 'Q', 'CRLF': True},
+        ]
+
+    # Show menu
+    while True:
+        # Update entries
+        for opt in main_options:
+            opt['Name'] = '{} {}'.format(
+                '✓' if opt['Enabled'] else 'X',
+                opt['Base Name'])
+        
+        selection = menu_select(
+            title = '{GREEN}ddrescue TUI: Main Menu{CLEAR}'.format(**COLORS),
+            main_entries = main_options,
+            action_entries = actions)
+
+        if selection.isnumeric():
+            # Toggle selection
+            index = int(selection) - 1
+            main_options[index]['Enabled'] = not main_options[index]['Enabled']
+        elif selection == 'S':
+            # Set settings for pass
+            settings = []
+            # TODO move to new function and replace with real code
+            for s in source['Settings']:
+                if not s['Enabled']:
+                    continue
+                if s['Flag'][-1:] == '=':
+                    settings.append('{Flag}{Value}'.format(**s))
+                else:
+                    settings.append(s['Flag'])
+                    if 'Value' in s:
+                        settings.append(s['Value'])
+            for opt in main_options:
+                if 'Retry' in opt['Base Name'] and opt['Enabled']:
+                    settings.extend(['--retrim', '--try-again'])
+                if 'Reverse' in opt['Base Name'] and opt['Enabled']:
+                    settings.append('--reverse')
+                # Disable for next pass
+                opt['Enabled'] = False
+            print_success('GO!')
+            if source['Pass 3']['Done']:
+                # Go to results
+                print_success('Done?')
+            elif source['Pass 2']['Done']:
+                # In pass 3
+                print_error('Pass 3')
+                print_standard(str(settings))
+                source['Pass 3']['Done'] = True
+                source['Pass 3']['Status'] = '99.99'
+            elif source['Pass 1']['Done']:
+                # In pass 2
+                print_warning('Pass 2')
+                settings.append('--no-scrape')
+                print_standard(str(settings))
+                source['Pass 2']['Done'] = True
+                source['Pass 2']['Status'] = '98.1415'
+            else:
+                # In pass 1
+                print_info('Pass 1')
+                settings.extend(['--no-trim', '--no-scrape'])
+                print_standard(str(settings))
+                status = source['Pass 1']['Status']
+                if status == 'Pending':
+                    source['Pass 1']['Status'] = '78.6623'
+                elif float(status) < 80:
+                    source['Pass 1']['Status'] = '86.1102'
+                elif float(status) < 95:
+                    source['Pass 1']['Status'] = '97.77'
+                    source['Pass 1']['Done'] = True
+            update_progress(source)
+            pause()
+        elif selection == 'C':
+            # TODO Move to new function and replace with real code
+            print_warning(
+                'These settings can cause {RED}SERIOUS damage{YELLOW} to drives'.format(
+                **COLORS))
+            print_standard('Please read the manual before making any changes')
+            pause()
+        elif selection == 'Q':
+            break
 
 def menu_select_children(source):
     """Select child device(s) or whole disk, returns list."""
     dev_options = [{
         'Base Name': '{:<14}(Whole device)'.format(source['Dev Path']),
         'Path': source['Dev Path'],
-        'Selected': False}]
+        'Selected': True}]
     for child in source['Details'].get('children', []):
         dev_options.append({
             'Base Name': '{:<14}({:>6} {})'.format(
@@ -241,9 +343,9 @@ def menu_select_children(source):
     # Check selection
     selected_children = [{
         'Dev Path': d['Path'],
-        'Pass 1': 'Pending',
-        'Pass 2': 'Pending',
-        'Pass 3': 'Pending'} for d in dev_options
+        'Pass 1': {'Status': 'Pending', 'Done': False},
+        'Pass 2': {'Status': 'Pending', 'Done': False},
+        'Pass 3': {'Status': 'Pending', 'Done': False}} for d in dev_options
         if d['Selected'] and 'Whole device' not in d['Base Name']]
     return selected_children
 
@@ -562,7 +664,7 @@ def update_progress(source):
             **COLORS))
         for x in (1, 2, 3):
             p_num = 'Pass {}'.format(x)
-            s_display = source[p_num]
+            s_display = source[p_num]['Status']
             try:
                 s_display = float(s_display)
             except ValueError:
@@ -572,7 +674,7 @@ def update_progress(source):
                 s_display = '{:0.2f} %'.format(s_display)
             output.append('{p_num}{s_color}{s_display:>15}{CLEAR}'.format(
                 p_num = p_num,
-                s_color = get_status_color(source[p_num]),
+                s_color = get_status_color(source[p_num]['Status']),
                 s_display = s_display,
                 **COLORS))
     else:
@@ -585,7 +687,7 @@ def update_progress(source):
                     **COLORS))
                 for x in (1, 2, 3):
                     p_num = 'Pass {}'.format(x)
-                    s_display = child[p_num]
+                    s_display = child[p_num]['Status']
                     try:
                         s_display = float(s_display)
                     except ValueError:
@@ -595,7 +697,7 @@ def update_progress(source):
                         s_display = '{:0.2f} %'.format(s_display)
                     output.append('{p_num}{s_color}{s_display:>15}{CLEAR}'.format(
                         p_num = p_num,
-                        s_color = get_status_color(child[p_num]),
+                        s_color = get_status_color(child[p_num]['Status']),
                         s_display = s_display,
                         **COLORS))
                 output.append(' ')
@@ -606,7 +708,7 @@ def update_progress(source):
                 **COLORS))
             for x in (1, 2, 3):
                 p_num = 'Pass {}'.format(x)
-                s_display = source[p_num]
+                s_display = source[p_num]['Status']
                 try:
                     s_display = float(s_display)
                 except ValueError:
@@ -616,7 +718,7 @@ def update_progress(source):
                     s_display = '{:0.2f} %'.format(s_display)
                 output.append('{p_num}{s_color}{s_display:>15}{CLEAR}'.format(
                     p_num = p_num,
-                    s_color = get_status_color(source[p_num]),
+                    s_color = get_status_color(source[p_num]['Status']),
                     s_display = s_display,
                     **COLORS))
 
