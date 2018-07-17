@@ -10,18 +10,18 @@ from functions.data import *
 from operator import itemgetter
 
 # STATIC VARIABLES
-DDRESCUE_SETTINGS = [
-    {'Flag': '--binary-prefixes', 'Enabled': True, 'Hidden': True},
-    {'Flag': '--data-preview', 'Enabled': True, 'Hidden': True},
-    {'Flag': '--idirect', 'Enabled': True},
-    {'Flag': '--max-read-rate', 'Enabled': False, 'Value': '128MiB'},
-    {'Flag': '--min-read-rate', 'Enabled': True, 'Value': '64KiB'},
-    {'Flag': '--odirect', 'Enabled': True},
-    {'Flag': '--reopen-on-error', 'Enabled': True},
-    {'Flag': '--retry-passes=', 'Enabled': True, 'Value': '0'},
-    {'Flag': '--timeout=', 'Enabled': True, 'Value': '5m'},
-    {'Flag': '-vvvv', 'Enabled': True, 'Hidden': True},
-    ]
+DDRESCUE_SETTINGS = {
+    '--binary-prefixes': {'Enabled': True, 'Hidden': True},
+    '--data-preview': {'Enabled': True, 'Hidden': True},
+    '--idirect': {'Enabled': True},
+    '--odirect': {'Enabled': True},
+    '--max-read-rate': {'Enabled': False, 'Value': '128MiB'},
+    '--min-read-rate': {'Enabled': True, 'Value': '64KiB'},
+    '--reopen-on-error': {'Enabled': True},
+    '--retry-passes=': {'Enabled': True, 'Value': '0'},
+    '--timeout=': {'Enabled': True, 'Value': '5m'},
+    '-vvvv': {'Enabled': True, 'Hidden': True},
+    }
 USAGE = """    {script_name} clone [source [destination]]
     {script_name} image [source [destination]]
     (e.g. {script_name} clone /dev/sda /dev/sdb)
@@ -229,15 +229,15 @@ def menu_main(source):
             # Set settings for pass
             settings = []
             # TODO move to new function and replace with real code
-            for s in source['Settings']:
-                if not s['Enabled']:
+            for k, v in source['Settings'].items():
+                if not v['Enabled']:
                     continue
-                if s['Flag'][-1:] == '=':
-                    settings.append('{Flag}{Value}'.format(**s))
+                if k[-1:] == '=':
+                    settings.append('{}{}'.format(k, v['Value']))
                 else:
-                    settings.append(s['Flag'])
-                    if 'Value' in s:
-                        settings.append(s['Value'])
+                    settings.append(k)
+                    if 'Value' in v:
+                        settings.append(v['Value'])
             for opt in main_options:
                 if 'Retry' in opt['Base Name'] and opt['Enabled']:
                     settings.extend(['--retrim', '--try-again'])
@@ -278,12 +278,7 @@ def menu_main(source):
             update_progress(source)
             pause()
         elif selection == 'C':
-            # TODO Move to new function and replace with real code
-            print_warning(
-                'These settings can cause {RED}SERIOUS damage{YELLOW} to drives'.format(
-                **COLORS))
-            print_standard('Please read the manual before making any changes')
-            pause()
+            menu_settings(source)
         elif selection == 'Q':
             break
 
@@ -470,6 +465,56 @@ def menu_select_path(skip_device={}):
                 else:
                     print_error('Invalid path "{}"'.format(m_path))
     return s_path
+
+def menu_settings(source):
+    """Change advanced ddrescue settings."""
+    title = '{GREEN}ddrescue TUI: Expert Settings{CLEAR}\n\n'.format(**COLORS)
+    title += '{YELLOW}These settings can cause {CLEAR}'.format(**COLORS)
+    title += '{RED}MAJOR DAMAGE{CLEAR}{YELLOW} to drives{CLEAR}\n'.format(
+        **COLORS)
+    title += 'Please read the manual before making any changes'
+
+    # Build menu
+    settings = []
+    for k, v in sorted(source['Settings'].items()):
+        if not v.get('Hidden', False):
+            settings.append({'Base Name': k.replace('=', ''), 'Flag': k})
+    actions = [{'Name': 'Main Menu', 'Letter': 'M'}]
+
+    # Show menu
+    while True:
+        for s in settings:
+            s['Name'] = '{}{}{}'.format(
+                s['Base Name'],
+                ' = ' if 'Value' in source['Settings'][s['Flag']] else '',
+                source['Settings'][s['Flag']].get('Value', ''))
+            if not source['Settings'][s['Flag']]['Enabled']:
+                s['Name'] = '{YELLOW}{name} (Disabled){CLEAR}'.format(
+                    name = s['Name'],
+                    **COLORS)
+        selection = menu_select(
+            title = title,
+            main_entries = settings,
+            action_entries = actions)
+        if selection.isnumeric():
+            index = int(selection) - 1
+            flag = settings[index]['Flag']
+            enabled = source['Settings'][flag]['Enabled']
+            if 'Value' in source['Settings'][flag]:
+                answer = choice(
+                    choices = ['Toggle flag', 'Change value'],
+                    prompt = 'Please make a selection for "{}"'.format(flag))
+                if answer == 'Toggle flag':
+                    # Toggle
+                    source['Settings'][flag]['Enabled'] = not enabled
+                else:
+                    # Update value
+                    source['Settings'][flag]['Value'] = get_simple_string(
+                        prompt = 'Enter new value')
+            else:
+                source['Settings'][flag]['Enabled'] = not enabled
+        elif selection == 'M':
+            break
 
 def select_dest_path(provided_path=None, skip_device={}):
     dest = {}
