@@ -510,38 +510,28 @@ def run_ddrescue(source, settings):
     height_ddrescue = height - height_smart
     
     # Show SMART status
-    update_smart_report(source)
     smart_pane = tmux_splitw(
         '-bdvl', str(height_smart),
         '-PF', '#D',
-        'watch', '--color', '--no-title', '--interval', '5',
-        'cat', source['SMART Report'])
+        'watch', '--color', '--no-title', '--interval', '300',
+        'ddrescue-tui-smart-display', source['Dev Path'])
 
     # Start ddrescue
-    return_code = None
     try:
         clear_screen()
-        #ddrescue_proc = popen_program('ddrescue who.dd wat.dd why.map'.split())
-        ddrescue_proc = popen_program(['./__choose_exit'])
-        while True:
-            sleep(3)
-            with open(source['SMART Report'], 'a') as f:
-                f.write('heh.\n')
-            return_code = ddrescue_proc.poll()
-            if return_code:
-                # i.e. not None and not 0
-                print_error('Error(s) encountered, see message above.')
-                break
-            elif return_code is not None:
-                # Assuming normal exit
-                break
+        ddrescue_proc = popen_program(['./__choose_exit', *settings])
+        ddrescue_proc.wait()
     except KeyboardInterrupt:
         # Catch user abort
         pass
 
     # Was ddrescue aborted?
+    return_code = ddrescue_proc.poll()
     if return_code is None:
         print_warning('Aborted')
+    elif return_code:
+        # i.e. not None and not 0
+        print_error('Error(s) encountered, see message above.')
 
     # TODO
     update_progress(source)
@@ -838,23 +828,6 @@ def update_progress(source):
     output = ['{}\n'.format(line) for line in output]
 
     with open(source['Progress Out'], 'w') as f:
-        f.writelines(output)
-
-def update_smart_report(source):
-    """Update smart report file."""
-    if 'SMART Report' not in source:
-        source['SMART Report'] = '{}/smart_report.out'.format(
-            global_vars['LogDir'])
-    output = []
-
-    # TODO
-    output.append('SMART Report')
-    output.append('TODO')
-    
-    # Add line-endings
-    output = ['{}\n'.format(line) for line in output]
-
-    with open(source['SMART Report'], 'w') as f:
         f.writelines(output)
 
 if __name__ == '__main__':
