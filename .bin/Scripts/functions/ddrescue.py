@@ -106,18 +106,52 @@ def get_status_color(s, t_success=99, t_warn=90):
     return color
 
 def mark_pass_complete(source):
-    """Mark current pass complete and set next pass as current."""
+    """Mark current pass complete for device, and overall if applicable."""
     current_pass = source['Current Pass']
     current_pass_num = int(current_pass[-1:])
     next_pass_num = current_pass_num + 1
-    next_pass = 'Pass {}'.format(next_pass_num)
+    if 1 <= next_pass_num <= 3:
+        next_pass = 'Pass {}'.format(next_pass_num)
+    else:
+        next_pass = 'Done'
     
+    # Check children progress
+    pass_complete_for_all_devs = True
+    for child in source['Children']:
+        if child['Dev Path'] == source['Current Device']:
+            # This function was called for this device, mark complete
+            child[current_pass]['Done'] = True
+            # TODO remove test code
+            child[current_pass]['Status'] = str(12.5 * current_pass_num * 2.75)
+        if not child[current_pass]['Done']:
+            pass_complete_for_all_devs = False
+
     # Update source vars
-    source['Current Pass'] = next_pass
-    source[current_pass]['Done'] = True
+    if pass_complete_for_all_devs:
+        source['Current Pass'] = next_pass
+        source[current_pass]['Done'] = True
 
     # TODO Remove test code
     source[current_pass]['Status'] = str(11.078 * current_pass_num * 3)
+
+def mark_pass_incomplete(source):
+    """Mark current pass incomplete."""
+    current_pass = source['Current Pass']
+    source[current_pass]['Status'] = 'Incomplete'
+    for child in source['Children']:
+        if child['Dev Path'] == source['Current Device']:
+            # This function was called for this device, mark incomplete
+            child[current_pass]['Status'] = 'Incomplete'
+
+def mark_all_passes_pending(source):
+    """Mark all devs and passes as pending in preparation for retry."""
+    source['Current Pass'] = 'Pass 1'
+    for p_num in ['Pass 1', 'Pass 2', 'Pass 3']:
+        source[p_num]['Status'] = 'Pending'
+        source[p_num]['Done'] = False
+        for child in source['Children']:
+            child[p_num]['Status'] = 'Pending'
+            child[p_num]['Done'] = False
 
 def menu_clone(source_path, dest_path):
     """ddrescue cloning menu."""
@@ -210,6 +244,8 @@ def menu_image(source_path, dest_path):
 
 def menu_main(source):
     """Main menu is used to set ddrescue settings."""
+    title = '{GREEN}ddrescue TUI: Main Menu{CLEAR}\n\n'.format(**COLORS)
+    title += '{BLUE}Current pass: {CLEAR}'.format(**COLORS)
     if 'Settings' not in source:
         source['Settings'] = DDRESCUE_SETTINGS.copy()
 
@@ -228,6 +264,13 @@ def menu_main(source):
 
     # Show menu
     while True:
+        display_pass = '1 "Initial Read"'
+        if source['Current Pass'] == 'Pass 2':
+            display_pass = '2 "Trimming bad areas"'
+        elif source['Current Pass'] == 'Pass 3':
+            display_pass = '3 "Scraping bad areas"'
+        elif source['Current Pass'] == 'Done':
+            display_pass = 'Done'
         # Update entries
         for opt in main_options:
             opt['Name'] = '{} {}'.format(
@@ -235,7 +278,7 @@ def menu_main(source):
                 opt['Base Name'])
         
         selection = menu_select(
-            title = '{GREEN}ddrescue TUI: Main Menu{CLEAR}'.format(**COLORS),
+            title = title + display_pass,
             main_entries = main_options,
             action_entries = actions)
 
@@ -258,10 +301,7 @@ def menu_main(source):
             for opt in main_options:
                 if 'Retry' in opt['Base Name'] and opt['Enabled']:
                     settings.extend(['--retrim', '--try-again'])
-                    source['Current Pass'] = 'Pass 1'
-                    source['Pass 1']['Done'] = False
-                    source['Pass 2']['Done'] = False
-                    source['Pass 3']['Done'] = False
+                    mark_all_passes_pending(source)
                 if 'Reverse' in opt['Base Name'] and opt['Enabled']:
                     settings.append('--reverse')
                 # Disable for next pass
@@ -511,8 +551,8 @@ def menu_settings(source):
 def run_ddrescue(source, settings):
     """Run ddrescue pass."""
     current_pass = source['Current Pass']
-    source[current_pass]['Status'] = 'Working'
-    update_progress(source)
+
+    # Set pass options
     if current_pass == 'Pass 1':
         settings.extend(['--no-trim', '--no-scrape'])
     elif current_pass == 'Pass 2':
@@ -521,8 +561,20 @@ def run_ddrescue(source, settings):
     elif current_pass == 'Pass 3':
         # Allow trimming and scraping
         pass
+    elif current_pass == 'Done':
+        clear_screen()
+        print_warning('Recovery already completed?')
+        pause('Press Enter to return to main menu...')
+        return
     else:
         raise GenericError("This shouldn't happen?")
+    
+    # Set device(s) to clone/image
+    source[current_pass]['Status'] = 'Working'
+    devs = [source]
+    if source['Children']:
+        # Use only selected child devices
+        devs = source['Children']
     
     # Set heights
     ## NOTE: 12/33 is based on min heights for SMART/ddrescue panes (12+22+1sep)
@@ -537,33 +589,46 @@ def run_ddrescue(source, settings):
         '-PF', '#D',
         'watch', '--color', '--no-title', '--interval', '300',
         'ddrescue-tui-smart-display', source['Dev Path'])
+    
+    # Start pass for each selected device
+    for dev in devs:
+        if dev[current_pass]['Done']:
+            # Move to next device
+            continue
+        source['Current Device'] = dev['Dev Path']
+        dev[current_pass]['Status'] = 'Working'
+        update_progress(source)
+        
+        # Start ddrescue
+        try:
+            clear_screen()
+            print_info('Current dev: {}'.format(dev['Dev Path']))
+            ddrescue_proc = popen_program(['./__choose_exit', *settings])
+            ddrescue_proc.wait()
+        except KeyboardInterrupt:
+            # Catch user abort
+            pass
 
-    # Start ddrescue
-    try:
-        clear_screen()
-        ddrescue_proc = popen_program(['./__choose_exit', *settings])
-        ddrescue_proc.wait()
-    except KeyboardInterrupt:
-        # Catch user abort
-        pass
-
-    # Was ddrescue aborted?
-    return_code = ddrescue_proc.poll()
-    if return_code is None:
-        print_warning('Aborted')
-        source[current_pass]['Status'] = 'Incomplete'
-    elif return_code:
-        # i.e. not None and not 0
-        print_error('Error(s) encountered, see message above.')
-        source[current_pass]['Status'] = 'Incomplete'
-    else:
-        # Not None and not non-zero int, assuming 0
-        mark_pass_complete(source)
+        # Was ddrescue aborted?
+        return_code = ddrescue_proc.poll()
+        if return_code is None:
+            print_warning('Aborted')
+            mark_pass_incomplete(source)
+            break
+        elif return_code:
+            # i.e. not None and not 0
+            print_error('Error(s) encountered, see message above.')
+            mark_pass_incomplete(source)
+            break
+        else:
+            # Not None and not non-zero int, assuming 0
+            mark_pass_complete(source)
 
     # TODO
     update_progress(source)
     print_info('Return: {}'.format(return_code))
-    pause()
+    if str(return_code) != '0':
+        pause()
     run_program(['tmux', 'kill-pane', '-t', smart_pane])
     return
 
