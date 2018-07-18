@@ -105,6 +105,20 @@ def get_status_color(s, t_success=99, t_warn=90):
         color = COLORS['RED']
     return color
 
+def mark_pass_complete(source):
+    """Mark current pass complete and set next pass as current."""
+    current_pass = source['Current Pass']
+    current_pass_num = int(current_pass[-1:])
+    next_pass_num = current_pass_num + 1
+    next_pass = 'Pass {}'.format(next_pass_num)
+    
+    # Update source vars
+    source['Current Pass'] = next_pass
+    source[current_pass]['Done'] = True
+
+    # TODO Remove test code
+    source[current_pass]['Status'] = str(11.078 * current_pass_num * 3)
+
 def menu_clone(source_path, dest_path):
     """ddrescue cloning menu."""
     
@@ -201,7 +215,7 @@ def menu_main(source):
 
     # Build menu
     main_options = [
-        {'Base Name': 'Retry', 'Enabled': False},
+        {'Base Name': 'Retry (mark non-rescued sectors "non-tried")', 'Enabled': False},
         {'Base Name': 'Reverse direction', 'Enabled': False},
         ]
     actions  =[
@@ -244,6 +258,10 @@ def menu_main(source):
             for opt in main_options:
                 if 'Retry' in opt['Base Name'] and opt['Enabled']:
                     settings.extend(['--retrim', '--try-again'])
+                    source['Current Pass'] = 'Pass 1'
+                    source['Pass 1']['Done'] = False
+                    source['Pass 2']['Done'] = False
+                    source['Pass 3']['Done'] = False
                 if 'Reverse' in opt['Base Name'] and opt['Enabled']:
                     settings.append('--reverse')
                 # Disable for next pass
@@ -492,21 +510,25 @@ def menu_settings(source):
 
 def run_ddrescue(source, settings):
     """Run ddrescue pass."""
-    if source['Current Pass'] == 'Pass 1':
+    current_pass = source['Current Pass']
+    source[current_pass]['Status'] = 'Working'
+    update_progress(source)
+    if current_pass == 'Pass 1':
         settings.extend(['--no-trim', '--no-scrape'])
-    elif source['Current Pass'] == 'Pass 2':
+    elif current_pass == 'Pass 2':
+        # Allow trimming
         settings.append('--no-scrape')
-    elif source['Current Pass'] == 'Pass 3':
+    elif current_pass == 'Pass 3':
+        # Allow trimming and scraping
         pass
     else:
-        # Assuming Done
-        return
+        raise GenericError("This shouldn't happen?")
     
     # Set heights
-    ## NOTE: 10/32 is based on min heights for SMART/ddrescue panes (10 + 22)
+    ## NOTE: 12/33 is based on min heights for SMART/ddrescue panes (12+22+1sep)
     result = run_program(['tput', 'lines'])
     height = int(result.stdout.decode().strip())
-    height_smart = int(height * (12 / 34))
+    height_smart = int(height * (12 / 33))
     height_ddrescue = height - height_smart
     
     # Show SMART status
@@ -529,9 +551,14 @@ def run_ddrescue(source, settings):
     return_code = ddrescue_proc.poll()
     if return_code is None:
         print_warning('Aborted')
+        source[current_pass]['Status'] = 'Incomplete'
     elif return_code:
         # i.e. not None and not 0
         print_error('Error(s) encountered, see message above.')
+        source[current_pass]['Status'] = 'Incomplete'
+    else:
+        # Not None and not non-zero int, assuming 0
+        mark_pass_complete(source)
 
     # TODO
     update_progress(source)
