@@ -2,7 +2,9 @@
 
 import json
 import pathlib
+import psutil
 import re
+import signal
 import time
 
 from functions.common import *
@@ -108,10 +110,11 @@ def menu_clone(source_path, dest_path):
     
     # Set devices
     source = select_device('source', source_path)
-    source['Type'] = 'Clone'
+    source['Current Pass'] = 'Pass 1'
     source['Pass 1'] = {'Status': 'Pending', 'Done': False}
     source['Pass 2'] = {'Status': 'Pending', 'Done': False}
     source['Pass 3'] = {'Status': 'Pending', 'Done': False}
+    source['Type'] = 'Clone'
     dest = select_device('destination', dest_path,
         skip_device = source['Details'], allow_image_file = False)
     
@@ -165,10 +168,11 @@ def menu_image(source_path, dest_path):
     
     # Set devices
     source = select_device('source', source_path, allow_image_file = False)
-    source['Type'] = 'Image'
+    source['Current Pass'] = 'Pass 1'
     source['Pass 1'] = {'Status': 'Pending', 'Done': False}
     source['Pass 2'] = {'Status': 'Pending', 'Done': False}
     source['Pass 3'] = {'Status': 'Pending', 'Done': False}
+    source['Type'] = 'Image'
     dest = select_dest_path(dest_path, skip_device=source['Details'])
     
     # Show selection details
@@ -213,7 +217,7 @@ def menu_main(source):
         # Update entries
         for opt in main_options:
             opt['Name'] = '{} {}'.format(
-                '✓' if opt['Enabled'] else 'X',
+                '[✓]' if opt['Enabled'] else '[ ]',
                 opt['Base Name'])
         
         selection = menu_select(
@@ -228,7 +232,6 @@ def menu_main(source):
         elif selection == 'S':
             # Set settings for pass
             settings = []
-            # TODO move to new function and replace with real code
             for k, v in source['Settings'].items():
                 if not v['Enabled']:
                     continue
@@ -245,38 +248,9 @@ def menu_main(source):
                     settings.append('--reverse')
                 # Disable for next pass
                 opt['Enabled'] = False
-            print_success('GO!')
-            if source['Pass 3']['Done']:
-                # Go to results
-                print_success('Done?')
-            elif source['Pass 2']['Done']:
-                # In pass 3
-                print_error('Pass 3')
-                print_standard(str(settings))
-                source['Pass 3']['Done'] = True
-                source['Pass 3']['Status'] = '99.99'
-            elif source['Pass 1']['Done']:
-                # In pass 2
-                print_warning('Pass 2')
-                settings.append('--no-scrape')
-                print_standard(str(settings))
-                source['Pass 2']['Done'] = True
-                source['Pass 2']['Status'] = '98.1415'
-            else:
-                # In pass 1
-                print_info('Pass 1')
-                settings.extend(['--no-trim', '--no-scrape'])
-                print_standard(str(settings))
-                status = source['Pass 1']['Status']
-                if status == 'Pending':
-                    source['Pass 1']['Status'] = '78.6623'
-                elif float(status) < 80:
-                    source['Pass 1']['Status'] = '86.1102'
-                elif float(status) < 95:
-                    source['Pass 1']['Status'] = '97.77'
-                    source['Pass 1']['Done'] = True
-            update_progress(source)
-            pause()
+
+            # Run pass
+            run_ddrescue(source, settings)
         elif selection == 'C':
             menu_settings(source)
         elif selection == 'Q':
@@ -502,9 +476,9 @@ def menu_settings(source):
             enabled = source['Settings'][flag]['Enabled']
             if 'Value' in source['Settings'][flag]:
                 answer = choice(
-                    choices = ['Toggle flag', 'Change value'],
-                    prompt = 'Please make a selection for "{}"'.format(flag))
-                if answer == 'Toggle flag':
+                    choices = ['T', 'C'],
+                    prompt = 'Toggle or change value for "{}"'.format(flag))
+                if answer == 'T':
                     # Toggle
                     source['Settings'][flag]['Enabled'] = not enabled
                 else:
@@ -515,6 +489,99 @@ def menu_settings(source):
                 source['Settings'][flag]['Enabled'] = not enabled
         elif selection == 'M':
             break
+
+def run_ddrescue(source, settings):
+    """Run ddrescue pass."""
+    if source['Current Pass'] == 'Pass 1':
+        settings.extend(['--no-trim', '--no-scrape'])
+    elif source['Current Pass'] == 'Pass 2':
+        settings.append('--no-scrape')
+    elif source['Current Pass'] == 'Pass 3':
+        pass
+    else:
+        # Assuming Done
+        return
+    
+    # Set heights
+    ## NOTE: 10/32 is based on min heights for SMART/ddrescue panes (10 + 22)
+    result = run_program(['tput', 'lines'])
+    height = int(result.stdout.decode().strip())
+    height_smart = int(height * (12 / 34))
+    height_ddrescue = height - height_smart
+    
+    # Show SMART status
+    update_smart_report(source)
+    smart_pane = tmux_splitw(
+        '-bdvl', str(height_smart),
+        '-PF', '#D',
+        'watch', '--color', '--no-title', '--interval', '5',
+        'cat', source['SMART Report'])
+
+    # Start ddrescue
+    return_code = None
+    try:
+        clear_screen()
+        #ddrescue_proc = popen_program('ddrescue who.dd wat.dd why.map'.split())
+        ddrescue_proc = popen_program(['./__choose_exit'])
+        while True:
+            sleep(3)
+            with open(source['SMART Report'], 'a') as f:
+                f.write('heh.\n')
+            return_code = ddrescue_proc.poll()
+            if return_code:
+                # i.e. not None and not 0
+                print_error('Error(s) encountered, see message above.')
+                break
+            elif return_code is not None:
+                # Assuming normal exit
+                break
+    except KeyboardInterrupt:
+        # Catch user abort
+        pass
+
+    # Was ddrescue aborted?
+    if return_code is None:
+        print_warning('Aborted')
+
+    # TODO
+    update_progress(source)
+    print_info('Return: {}'.format(return_code))
+    pause()
+    run_program(['tmux', 'kill-pane', '-t', smart_pane])
+    return
+
+    ##TODO
+    #print_success('GO!')
+    #if source['Pass 3']['Done']:
+    #    # Go to results
+    #    print_success('Done?')
+    #elif source['Pass 2']['Done']:
+    #    # In pass 3
+    #    print_error('Pass 3')
+    #    print_standard(str(settings))
+    #    source['Pass 3']['Done'] = True
+    #    source['Pass 3']['Status'] = '99.99'
+    #elif source['Pass 1']['Done']:
+    #    # In pass 2
+    #    print_warning('Pass 2')
+    #    settings.append('--no-scrape')
+    #    print_standard(str(settings))
+    #    source['Pass 2']['Done'] = True
+    #    source['Pass 2']['Status'] = '98.1415'
+    #else:
+    #    # In pass 1
+    #    print_info('Pass 1')
+    #    settings.extend(['--no-trim', '--no-scrape'])
+    #    print_standard(str(settings))
+    #    status = source['Pass 1']['Status']
+    #    if status == 'Pending':
+    #        source['Pass 1']['Status'] = '78.6623'
+    #    elif float(status) < 80:
+    #        source['Pass 1']['Status'] = '86.1102'
+    #    elif float(status) < 95:
+    #        source['Pass 1']['Status'] = '97.77'
+    #        source['Pass 1']['Done'] = True
+    #update_progress(source)
 
 def select_dest_path(provided_path=None, skip_device={}):
     dest = {}
@@ -771,6 +838,23 @@ def update_progress(source):
     output = ['{}\n'.format(line) for line in output]
 
     with open(source['Progress Out'], 'w') as f:
+        f.writelines(output)
+
+def update_smart_report(source):
+    """Update smart report file."""
+    if 'SMART Report' not in source:
+        source['SMART Report'] = '{}/smart_report.out'.format(
+            global_vars['LogDir'])
+    output = []
+
+    # TODO
+    output.append('SMART Report')
+    output.append('TODO')
+    
+    # Add line-endings
+    output = ['{}\n'.format(line) for line in output]
+
+    with open(source['SMART Report'], 'w') as f:
         f.writelines(output)
 
 if __name__ == '__main__':
