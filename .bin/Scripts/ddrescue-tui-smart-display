@@ -22,7 +22,7 @@ if __name__ == '__main__':
         # Warn if SMART unavailable
         if dev_path not in devs:
             print_error('SMART data not available')
-            input('')
+            exit_script()
         
         # Initial screen
         dev = devs[dev_path]
