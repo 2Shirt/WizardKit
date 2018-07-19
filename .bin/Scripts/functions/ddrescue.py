@@ -269,7 +269,7 @@ def menu_clone(source_path, dest_path):
     
     # Main menu
     build_outer_panes(source, dest)
-    menu_main(source)
+    menu_main(source, dest)
 
     # Done
     run_program(['losetup', '-D'])
@@ -330,14 +330,14 @@ def menu_image(source_path, dest_path):
     
     # Main menu
     build_outer_panes(source, dest)
-    menu_main(source)
+    menu_main(source, dest)
 
     # Done
     run_program(['losetup', '-D'])
     run_program(['tmux', 'kill-window'])
     exit_script()
 
-def menu_main(source):
+def menu_main(source, dest):
     """Main menu is used to set ddrescue settings."""
     title = '{GREEN}ddrescue TUI: Main Menu{CLEAR}\n\n'.format(**COLORS)
     title += '{BLUE}Current pass: {CLEAR}'.format(**COLORS)
@@ -411,7 +411,7 @@ def menu_main(source):
             # Run ddrecue
             auto_run = True
             while auto_run:
-                run_ddrescue(source, settings)
+                run_ddrescue(source, dest, settings)
                 auto_run = False
                 if current_pass == 'Done':
                     # "Pass Done" i.e. all passes done
@@ -675,7 +675,7 @@ def menu_settings(source):
         elif selection == 'M':
             break
 
-def run_ddrescue(source, settings):
+def run_ddrescue(source, dest, settings):
     """Run ddrescue pass."""
     current_pass = source['Current Pass']
 
@@ -698,10 +698,10 @@ def run_ddrescue(source, settings):
     
     # Set device(s) to clone/image
     source[current_pass]['Status'] = 'Working'
-    devs = [source]
+    source_devs = [source]
     if source['Children']:
         # Use only selected child devices
-        devs = source['Children']
+        source_devs = source['Children']
     
     # Set heights
     ## NOTE: 12/33 is based on min heights for SMART/ddrescue panes (12+22+1sep)
@@ -718,20 +718,29 @@ def run_ddrescue(source, settings):
         'ddrescue-tui-smart-display', source['Dev Path'])
     
     # Start pass for each selected device
-    for dev in devs:
-        if dev[current_pass]['Done']:
+    for s_dev in source_devs:
+        if s_dev[current_pass]['Done']:
             # Move to next device
             continue
-        source['Current Device'] = dev['Dev Path']
-        dev[current_pass]['Status'] = 'Working'
+        source['Current Device'] = s_dev['Dev Path']
+        s_dev[current_pass]['Status'] = 'Working'
         update_progress(source)
         
+        # Set ddrescue cmd
+        if source['Type'] == 'Clone':
+            cmd = ['ddrescue', *settings, '--force',
+                s_dev['Dev Path'], dest['Dev Path'], s_dev['Dest Paths']['Map']]
+        else:
+            cmd = ['ddrescue', *settings,
+                s_dev['Dev Path'], s_dev['Dest Paths']['Image'],
+                s_dev['Dest Paths']['Map']]
+
         # Start ddrescue
         try:
             clear_screen()
-            print_info('Current dev: {}'.format(dev['Dev Path']))
-            ddrescue_proc = popen_program(['./__choose_exit', *settings])
-            #ddrescue_proc = popen_program(['./__exit_ok', *settings])
+            print_info('Current dev: {}'.format(s_dev['Dev Path']))
+            ddrescue_proc = popen_program(['./__choose_exit', *cmd])
+            #ddrescue_proc = popen_program(['./__exit_ok', *cmd])
             ddrescue_proc.wait()
         except KeyboardInterrupt:
             # Catch user abort
