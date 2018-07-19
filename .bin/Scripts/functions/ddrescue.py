@@ -524,9 +524,8 @@ def menu_select_device(title='Which device?', skip_device={}):
     # Build menu
     dev_options = []
     for dev in json_data['blockdevices']:
-        # Skip if dev is in skip_names
-        if dev['name'] in skip_names or dev['pkname'] in skip_names:
-            continue
+        # Disable dev if in skip_names
+        disable_dev = dev['name'] in skip_names or dev['pkname'] in skip_names
 
         # Append non-matching devices
         dev_options.append({
@@ -536,7 +535,8 @@ def menu_select_device(title='Which device?', skip_device={}):
                 size = dev['size'] if dev['size'] else '',
                 model = dev['model'] if dev['model'] else '',
                 serial = dev['serial'] if dev['serial'] else ''),
-            'Path': dev['name']})
+            'Path': dev['name'],
+            'Disabled': disable_dev})
     dev_options = sorted(dev_options, key=itemgetter('Name'))
     if not dev_options:
         print_error('No devices available.')
@@ -547,7 +547,8 @@ def menu_select_device(title='Which device?', skip_device={}):
     selection = menu_select(
         title = title,
         main_entries = dev_options,
-        action_entries = actions)
+        action_entries = actions,
+        disabled_label = 'SOURCE DEVICE')
 
     if selection.isnumeric():
         return dev_options[int(selection)-1]['Path']
@@ -741,6 +742,7 @@ def run_ddrescue(source, dest, settings):
             print_info('Current dev: {}'.format(s_dev['Dev Path']))
             ddrescue_proc = popen_program(['./__choose_exit', *cmd])
             #ddrescue_proc = popen_program(['./__exit_ok', *cmd])
+            #ddrescue_proc = popen_program(cmd)
             ddrescue_proc.wait()
         except KeyboardInterrupt:
             # Catch user abort
