@@ -960,6 +960,7 @@ def show_selection_details(source, dest):
 def show_usage(script_name):
     print_info('Usage:')
     print_standard(USAGE.format(script_name=script_name))
+    pause()
 
 def tmux_splitw(*args):
     """Run tmux split-window command and return output as str."""
