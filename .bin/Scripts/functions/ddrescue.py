@@ -750,7 +750,8 @@ def run_ddrescue(source, dest, settings):
 
         # Was ddrescue aborted?
         return_code = ddrescue_proc.poll()
-        if return_code is None:
+        if return_code is None or return_code is 130:
+            clear_screen()
             print_warning('Aborted')
             mark_pass_incomplete(source)
             break
