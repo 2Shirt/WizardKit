@@ -12,6 +12,8 @@ from functions.data import *
 from operator import itemgetter
 
 # STATIC VARIABLES
+AUTO_NEXT_PASS_1_THRESHOLD = 85
+AUTO_NEXT_PASS_2_THRESHOLD = 98
 DDRESCUE_SETTINGS = {
     '--binary-prefixes': {'Enabled': True, 'Hidden': True},
     '--data-preview': {'Enabled': True, 'Hidden': True},
@@ -122,7 +124,9 @@ def mark_pass_complete(source):
             # This function was called for this device, mark complete
             child[current_pass]['Done'] = True
             # TODO remove test code
-            child[current_pass]['Status'] = str(12.5 * current_pass_num * 2.75)
+            from random import randint
+            status = randint((current_pass_num-1)*10+85, 110) + randint(0, 99) / 100
+            child[current_pass]['Status'] = status
         if not child[current_pass]['Done']:
             pass_complete_for_all_devs = False
 
@@ -132,7 +136,18 @@ def mark_pass_complete(source):
         source[current_pass]['Done'] = True
 
     # TODO Remove test code
-    source[current_pass]['Status'] = str(11.078 * current_pass_num * 3)
+    if source['Children']:
+        status = 100
+        for child in source['Children']:
+            try:
+                status = min(status, child[current_pass]['Status'])
+            except TypeError:
+                # Force 0% to ensure we won't auto-continue to next pass
+                status = 0
+    else:
+        from random import randint
+        status = randint((current_pass_num-1)*10+75, 100) + randint(0, 99) / 100
+    source[current_pass]['Status'] = status
 
 def mark_pass_incomplete(source):
     """Mark current pass incomplete."""
@@ -251,7 +266,10 @@ def menu_main(source):
 
     # Build menu
     main_options = [
-        {'Base Name': 'Retry (mark non-rescued sectors "non-tried")', 'Enabled': False},
+        {'Base Name': 'Auto continue (if recovery % over threshold)',
+            'Enabled': True},
+        {'Base Name': 'Retry (mark non-rescued sectors "non-tried")',
+            'Enabled': False},
         {'Base Name': 'Reverse direction', 'Enabled': False},
         ]
     actions  =[
@@ -264,12 +282,13 @@ def menu_main(source):
 
     # Show menu
     while True:
+        current_pass = source['Current Pass']
         display_pass = '1 "Initial Read"'
-        if source['Current Pass'] == 'Pass 2':
+        if current_pass == 'Pass 2':
             display_pass = '2 "Trimming bad areas"'
-        elif source['Current Pass'] == 'Pass 3':
+        elif current_pass == 'Pass 3':
             display_pass = '3 "Scraping bad areas"'
-        elif source['Current Pass'] == 'Done':
+        elif current_pass == 'Done':
             display_pass = 'Done'
         # Update entries
         for opt in main_options:
@@ -302,13 +321,43 @@ def menu_main(source):
                 if 'Retry' in opt['Base Name'] and opt['Enabled']:
                     settings.extend(['--retrim', '--try-again'])
                     mark_all_passes_pending(source)
+                    current_pass = 'Pass 1'
                 if 'Reverse' in opt['Base Name'] and opt['Enabled']:
                     settings.append('--reverse')
                 # Disable for next pass
-                opt['Enabled'] = False
+                if 'Auto' not in opt['Base Name']:
+                    opt['Enabled'] = False
 
-            # Run pass
-            run_ddrescue(source, settings)
+            # Run ddrecue
+            auto_run = True
+            while auto_run:
+                run_ddrescue(source, settings)
+                auto_run = False
+                if current_pass == 'Done':
+                    # "Pass Done" i.e. all passes done
+                    break
+                if not main_options[0]['Enabled']:
+                    # Auto next pass
+                    break
+                if source[current_pass]['Done']:
+                    try:
+                        recovered = float(source[current_pass]['Status'])
+                    except ValueError:
+                        # Nope
+                        recovered = 'Nope'
+                        pass
+                    else:
+                        if current_pass == 'Pass 1' and recovered > 85:
+                            auto_run = True
+                        elif current_pass == 'Pass 2' and recovered > 98:
+                            auto_run = True
+                # Update current pass for next iteration
+                print_info('State:')
+                print_standard('  Pass #:    {}\n  Auto:      {}\n  Recovered: {}'.format(
+                    current_pass, auto_run, recovered))
+                pause()
+                current_pass = source['Current Pass']
+        
         elif selection == 'C':
             menu_settings(source)
         elif selection == 'Q':
