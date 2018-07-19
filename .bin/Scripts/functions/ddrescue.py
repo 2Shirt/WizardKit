@@ -73,7 +73,8 @@ def dest_safety_check(source, dest):
     """Verify the destination is appropriate for the source."""
     source_size = source['Details']['size']
     if dest['Is Dir']:
-        cmd = ['findmnt', '-D', '-J',
+        cmd = ['findmnt', '-J',
+            '-o', 'SOURCE,TARGET,FSTYPE,OPTIONS,SIZE,AVAIL,USED',
             '-T', dest['Path']]
         result = run_program(cmd)
         try:
@@ -86,6 +87,7 @@ def dest_safety_check(source, dest):
             dest_size = json_data['filesystems'][0]['avail']
             dest['Free Space'] = dest_size
             dest['Filesystem'] = json_data['filesystems'][0]['fstype']
+            dest['Mount options'] = json_data['filesystems'][0]['options']
     else:
         dest_size = dest['Details']['size']
 
@@ -114,18 +116,16 @@ def dest_safety_check(source, dest):
             s_size = human_readable_size(source_size)))
         abort_ddrescue_tui()
 
-    # Filesystem checks
+    # Imaging specific checks
     if source['Type'] == 'Image':
         # Filesystem Type
         if dest['Filesystem'] not in AUTHORIZED_DEST_FSTYPES:
             print_error(
                 'Destination filesystem "{}" is not a recommended type.'.format(
                 dest['Filesystem']))
-            if not ask('Proceed anyways? (strongly discouraged by author)'):
+            if not ask('Proceed anyways? (Strongly discouraged)'):
                 abort_ddrescue_tui()
         # Read-Write access
-        ## Note: only checks path permissions, not mount options
-        ##       if the FS is RO then ddrescue will fail later
         dest_ok = True
         dest_st_mode = os.stat(dest['Path']).st_mode
         dest_ok = dest_ok and dest_st_mode & stat.S_IRUSR
@@ -133,6 +133,12 @@ def dest_safety_check(source, dest):
         dest_ok = dest_ok and dest_st_mode & stat.S_IXUSR
         if not dest_ok:
             print_error('Destination is not writable, refusing to continue.')
+            abort_ddrescue_tui()
+        
+        # Mount options check
+        if 'rw' not in dest['Mount options'].split(','):
+            print_error(
+                'Destination is not mounted read-write, refusing to continue.')
             abort_ddrescue_tui()
 
 def get_device_details(dev_path):
