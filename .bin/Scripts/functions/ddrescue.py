@@ -123,6 +123,9 @@ def dest_safety_check(source, dest):
             print_error(
                 'Destination filesystem "{}" is not a recommended type.'.format(
                 dest['Filesystem']))
+            print_info('Authorized types are: {}'.format(
+                ' / '.join(AUTHORIZED_DEST_FSTYPES).upper()))
+            print_standard(' ')
             if not ask('Proceed anyways? (Strongly discouraged)'):
                 abort_ddrescue_tui()
         # Read-Write access
