@@ -35,8 +35,7 @@ USAGE = """    {script_name} clone [source [destination]]
 
 # Functions
 def abort_ddrescue_tui():
-    # TODO uncomment line below
-    # run_program(['losetup', '-D'])
+    run_program(['losetup', '-D'])
     abort()
 
 def build_outer_panes(source, dest):
@@ -731,8 +730,8 @@ def run_ddrescue(source, settings):
         try:
             clear_screen()
             print_info('Current dev: {}'.format(dev['Dev Path']))
-            #ddrescue_proc = popen_program(['./__choose_exit', *settings])
-            ddrescue_proc = popen_program(['./__exit_ok', *settings])
+            ddrescue_proc = popen_program(['./__choose_exit', *settings])
+            #ddrescue_proc = popen_program(['./__exit_ok', *settings])
             ddrescue_proc.wait()
         except KeyboardInterrupt:
             # Catch user abort
@@ -753,46 +752,12 @@ def run_ddrescue(source, settings):
             # Not None and not non-zero int, assuming 0
             mark_pass_complete(source)
 
-    # TODO
+    # Cleanup
     update_progress(source)
-    print_info('Return: {}'.format(return_code))
     if str(return_code) != '0':
-        pause()
+        # Pause on errors
+        pause('Press Enter to return to main menu... ')
     run_program(['tmux', 'kill-pane', '-t', smart_pane])
-    return
-
-    ##TODO
-    #print_success('GO!')
-    #if source['Pass 3']['Done']:
-    #    # Go to results
-    #    print_success('Done?')
-    #elif source['Pass 2']['Done']:
-    #    # In pass 3
-    #    print_error('Pass 3')
-    #    print_standard(str(settings))
-    #    source['Pass 3']['Done'] = True
-    #    source['Pass 3']['Status'] = '99.99'
-    #elif source['Pass 1']['Done']:
-    #    # In pass 2
-    #    print_warning('Pass 2')
-    #    settings.append('--no-scrape')
-    #    print_standard(str(settings))
-    #    source['Pass 2']['Done'] = True
-    #    source['Pass 2']['Status'] = '98.1415'
-    #else:
-    #    # In pass 1
-    #    print_info('Pass 1')
-    #    settings.extend(['--no-trim', '--no-scrape'])
-    #    print_standard(str(settings))
-    #    status = source['Pass 1']['Status']
-    #    if status == 'Pending':
-    #        source['Pass 1']['Status'] = '78.6623'
-    #    elif float(status) < 80:
-    #        source['Pass 1']['Status'] = '86.1102'
-    #    elif float(status) < 95:
-    #        source['Pass 1']['Status'] = '97.77'
-    #        source['Pass 1']['Done'] = True
-    #update_progress(source)
 
 def select_dest_path(provided_path=None, skip_device={}):
     dest = {'Is Dir': True, 'Is Image': False}
