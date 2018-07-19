@@ -261,6 +261,7 @@ def menu_clone(source_path, dest_path):
     
     # Show selection details
     show_selection_details(source, dest)
+    set_dest_image_paths(source, dest)
     
     # Confirm
     if not ask('Proceed with clone?'):
@@ -326,6 +327,7 @@ def menu_image(source_path, dest_path):
 
     # Select child device(s)
     source['Children'] = menu_select_children(source)
+    set_dest_image_paths(source, dest)
     
     # Main menu
     build_outer_panes(source, dest)
@@ -444,13 +446,14 @@ def menu_select_children(source):
         'Base Name': '{:<14}(Whole device)'.format(source['Dev Path']),
         'Path': source['Dev Path'],
         'Selected': True}]
-    for child in source['Details'].get('children', []):
+    for c_details in source['Details'].get('children', []):
         dev_options.append({
             'Base Name': '{:<14}({:>6} {})'.format(
-                child['name'],
-                child['size'],
-                child['fstype'] if child['fstype'] else 'Unknown'),
-            'Path': child['name'],
+                c_details['name'],
+                c_details['size'],
+                c_details['fstype'] if c_details['fstype'] else 'Unknown'),
+            'Details': c_details,
+            'Path': c_details['name'],
             'Selected': False})
     actions = [
         {'Name': 'Proceed', 'Letter': 'P'},
@@ -493,6 +496,7 @@ def menu_select_children(source):
 
     # Check selection
     selected_children = [{
+        'Details': d['Details'],
         'Dev Path': d['Path'],
         'Pass 1': {'Status': 'Pending', 'Done': False},
         'Pass 2': {'Status': 'Pending', 'Done': False},
@@ -886,6 +890,38 @@ def select_device(description='device', provided_path=None,
         dev['Display Name'] = dev['Display Name']
 
     return dev
+
+def set_dest_image_paths(source, dest):
+    """Set destination image path for source and any child devices."""
+    if source['Type'] == 'Clone':
+        base = '{pwd}/Clone_{Date-Time}'.format(
+            pwd = os.path.realpath(global_vars['Env']['PWD']),
+            **global_vars)
+    else:
+        base = '{Path}/{size}_{model}'.format(
+            size = source['Details']['size'],
+            model = source['Details'].get('model', 'Unknown'),
+            **dest)
+    source['Dest Paths'] = {
+        'Image': '{}.dd'.format(base),
+        'Map': '{}.map'.format(base)}
+
+    # Child devices
+    for child in source['Children']:
+        p_label = ''
+        if child['Details']['label']:
+            p_label = '_{}'.format(child['Details']['label'])
+        base = '{Path}/{size}_{model}_{p_num}_{p_size}{p_label}'.format(
+            size = source['Details']['size'],
+            model = source['Details'].get('model', 'Unknown'),
+            p_num = child['Details']['name'].replace(
+                child['Details']['pkname'], ''),
+            p_size = child['Details']['size'],
+            p_label = p_label,
+            **dest)
+        child['Dest Paths'] = {
+            'Image': '{}.dd'.format(base),
+            'Map': '{}.map'.format(base)}
 
 def setup_loopback_device(source_path):
     """Setup a loopback device for source_path, returns dev_path as str."""
