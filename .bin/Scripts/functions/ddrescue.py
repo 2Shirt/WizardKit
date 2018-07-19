@@ -868,12 +868,45 @@ def select_device(description='device', provided_path=None,
 
     return dev
 
+def check_dest_paths(source):
+    """Check for image and/or map file and alert user about details."""
+    dd_image_exists = os.path.exists(source['Dest Paths']['Image'])
+    map_exists = os.path.exists(source['Dest Paths']['Map'])
+    if 'Clone' in source['Dest Paths']['Map']:
+        if map_exists:
+            # We're cloning and a matching map file was detected
+            if ask('Matching map file detected, resume recovery?'):
+                print_success('TODO: ...')
+                exit_script()
+            else:
+                abort_ddrescue_tui()
+    else:
+        # We're imaging
+        if dd_image_exists and not map_exists:
+            # Refuce to resume without map file
+            print_error('Destination image "{}" exists but map missing.'.format(
+                source['Dest Paths']['Image']))
+            abort_ddrescue_tui()
+        elif not dd_image_exists and map_exists:
+            # Can't resume without dd_image
+            print_error('Destination image missing but map "{}" exists.'.format(
+                source['Dest Paths']['Map']))
+            abort_ddrescue_tui()
+        elif dd_image_exists and map_exists:
+            # Matching dd_image and map file were detected
+            if ask('Matching image and map file detected, resume recovery?'):
+                print_success('TODO: ...')
+                exit_script()
+            else:
+                abort_ddrescue_tui()
+
 def set_dest_image_paths(source, dest):
     """Set destination image path for source and any child devices."""
     if source['Type'] == 'Clone':
-        base = '{pwd}/Clone_{Date-Time}'.format(
+        base = '{pwd}/Clone_{size}_{model}'.format(
             pwd = os.path.realpath(global_vars['Env']['PWD']),
-            **global_vars)
+            size = source['Details']['size'],
+            model = source['Details'].get('model', 'Unknown'))
     else:
         base = '{Path}/{size}_{model}'.format(
             size = source['Details']['size'],
