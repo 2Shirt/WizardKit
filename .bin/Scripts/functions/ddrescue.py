@@ -261,6 +261,7 @@ def menu_clone(source_path, dest_path):
     # Show selection details
     show_selection_details(source, dest)
     set_dest_image_paths(source, dest)
+    check_dest_paths(source)
     
     # Confirm
     if not ask('Proceed with clone?'):
@@ -316,6 +317,11 @@ def menu_image(source_path, dest_path):
     source['Type'] = 'Image'
     dest = select_dest_path(dest_path, skip_device=source['Details'])
     dest_safety_check(source, dest)
+
+    # Select child device(s)
+    source['Children'] = menu_select_children(source)
+    set_dest_image_paths(source, dest)
+    check_dest_paths(source)
     
     # Show selection details
     show_selection_details(source, dest)
@@ -323,10 +329,6 @@ def menu_image(source_path, dest_path):
     # Confirm
     if not ask('Proceed with imaging?'):
         abort_ddrescue_tui()
-
-    # Select child device(s)
-    source['Children'] = menu_select_children(source)
-    set_dest_image_paths(source, dest)
     
     # Main menu
     build_outer_panes(source, dest)
@@ -875,10 +877,7 @@ def check_dest_paths(source):
     if 'Clone' in source['Dest Paths']['Map']:
         if map_exists:
             # We're cloning and a matching map file was detected
-            if ask('Matching map file detected, resume recovery?'):
-                print_success('TODO: ...')
-                exit_script()
-            else:
+            if not ask('Matching map file detected, resume recovery?'):
                 abort_ddrescue_tui()
     else:
         # We're imaging
