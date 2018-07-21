@@ -880,24 +880,36 @@ def check_dest_paths(source):
             if not ask('Matching map file detected, resume recovery?'):
                 abort_ddrescue_tui()
     else:
-        # We're imaging
-        if dd_image_exists and not map_exists:
-            # Refuce to resume without map file
-            print_error('Destination image "{}" exists but map missing.'.format(
-                source['Dest Paths']['Image']))
+        abort_imaging = False
+        resume_files_exist = False
+        source_devs = [source]
+        if source['Children']:
+            source_devs = source['Children']
+        for dev in source_devs:
+            # We're imaging
+            dd_image_exists = os.path.exists(dev['Dest Paths']['Image'])
+            map_exists = os.path.exists(dev['Dest Paths']['Map'])
+            if dd_image_exists and not map_exists:
+                # Refuce to resume without map file
+                i = dev['Dest Paths']['Image']
+                i = i[i.rfind('/')+1:]
+                print_error(
+                    'Detected image "{}" but not the matching map'.format(i))
+                abort_imaging = True
+            elif not dd_image_exists and map_exists:
+                # Can't resume without dd_image
+                m = dev['Dest Paths']['Map']
+                m = m[m.rfind('/')+1:]
+                print_error(
+                    'Detected map "{}" but not the matching image'.format(m))
+                abort_imaging = True
+            elif dd_image_exists and map_exists:
+                # Matching dd_image and map file were detected
+                resume_files_exist = True
+        p = 'Matching image and map file{} detected, resume recovery?'.format(
+            's' if len(source_devs) > 1 else '')
+        if abort_imaging or (resume_files_exist and not ask(p)):
             abort_ddrescue_tui()
-        elif not dd_image_exists and map_exists:
-            # Can't resume without dd_image
-            print_error('Destination image missing but map "{}" exists.'.format(
-                source['Dest Paths']['Map']))
-            abort_ddrescue_tui()
-        elif dd_image_exists and map_exists:
-            # Matching dd_image and map file were detected
-            if ask('Matching image and map file detected, resume recovery?'):
-                print_success('TODO: ...')
-                exit_script()
-            else:
-                abort_ddrescue_tui()
 
 def set_dest_image_paths(source, dest):
     """Set destination image path for source and any child devices."""
