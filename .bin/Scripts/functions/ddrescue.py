@@ -13,7 +13,7 @@ from functions.data import *
 from operator import itemgetter
 
 # STATIC VARIABLES
-AUTHORIZED_DEST_FSTYPES = ['ext3', 'ext4', 'xfs']
+RECOMMENDED_FSTYPES = ['ext3', 'ext4', 'xfs']
 AUTO_NEXT_PASS_1_THRESHOLD = 85
 AUTO_NEXT_PASS_2_THRESHOLD = 98
 DDRESCUE_SETTINGS = {
@@ -36,40 +36,44 @@ USAGE = """    {script_name} clone [source [destination]]
     (e.g. {script_name} clone /dev/sda /dev/sdb)
 """
 
+
 # Functions
 def abort_ddrescue_tui():
     run_program(['losetup', '-D'])
     abort()
 
+
 def build_outer_panes(source, dest):
     """Build top and side panes."""
     clear_screen()
-    
+
     # Top panes
     source_pane = tmux_splitw(
         '-bdvl', '2',
         '-PF', '#D',
         'echo-and-hold "{BLUE}Source{CLEAR}\n{text}"'.format(
-            text = source['Display Name'],
+            text=source['Display Name'],
             **COLORS))
     tmux_splitw(
         '-t', source_pane,
         '-dhl', '21',
         'echo-and-hold "{BLUE}Started{CLEAR}\n{text}"'.format(
-            text = time.strftime("%Y-%m-%d %H:%M %Z"),
+            text=time.strftime("%Y-%m-%d %H:%M %Z"),
             **COLORS))
     tmux_splitw(
         '-t', source_pane,
         '-dhp', '50',
         'echo-and-hold "{BLUE}Destination{CLEAR}\n{text}"'.format(
-            text = dest['Display Name'],
+            text=dest['Display Name'],
             **COLORS))
-    
+
     # Side pane
     update_progress(source)
-    tmux_splitw('-dhl', '21',
+    tmux_splitw(
+        '-dhl', '21',
         'watch', '--color', '--no-title', '--interval', '1',
         'cat', source['Progress Out'])
+
 
 def check_dest_paths(source):
     """Check for image and/or map file and alert user about details."""
@@ -112,11 +116,13 @@ def check_dest_paths(source):
         if abort_imaging or (resume_files_exist and not ask(p)):
             abort_ddrescue_tui()
 
+
 def dest_safety_check(source, dest):
     """Verify the destination is appropriate for the source."""
     source_size = source['Details']['size']
     if dest['Is Dir']:
-        cmd = ['findmnt', '-J',
+        cmd = [
+            'findmnt', '-J',
             '-o', 'SOURCE,TARGET,FSTYPE,OPTIONS,SIZE,AVAIL,USED',
             '-T', dest['Path']]
         result = run_program(cmd)
@@ -141,27 +147,29 @@ def dest_safety_check(source, dest):
         # Imaging: ensure 120% of source size is available
         print_error(
             'Not enough free space on destination, refusing to continue.')
-        print_standard('  Dest {d_size} < Required {s_size}'.format(
-            d_size = human_readable_size(dest_size),
-            s_size = human_readable_size(source_size * 1.2)))
+        print_standard(
+            '  Dest {d_size} < Required {s_size}'.format(
+                d_size=human_readable_size(dest_size),
+                s_size=human_readable_size(source_size * 1.2)))
         abort_ddrescue_tui()
     elif source['Type'] == 'Clone' and source_size > dest_size:
         # Cloning: ensure dest >= size
         print_error('Destination is too small, refusing to continue.')
-        print_standard('  Dest {d_size} < Source {s_size}'.format(
-            d_size = human_readable_size(dest_size),
-            s_size = human_readable_size(source_size)))
+        print_standard(
+            '  Dest {d_size} < Source {s_size}'.format(
+                d_size=human_readable_size(dest_size),
+                s_size=human_readable_size(source_size)))
         abort_ddrescue_tui()
 
     # Imaging specific checks
     if source['Type'] == 'Image':
         # Filesystem Type
-        if dest['Filesystem'] not in AUTHORIZED_DEST_FSTYPES:
+        if dest['Filesystem'] not in RECOMMENDED_FSTYPES:
             print_error(
-                'Destination filesystem "{}" is not a recommended type.'.format(
-                dest['Filesystem']))
-            print_info('Authorized types are: {}'.format(
-                ' / '.join(AUTHORIZED_DEST_FSTYPES).upper()))
+                'Destination filesystem "{}" is not recommended.'.format(
+                    dest['Filesystem']))
+            print_info('Recommended types are: {}'.format(
+                ' / '.join(RECOMMENDED_FSTYPES).upper()))
             print_standard(' ')
             if not ask('Proceed anyways? (Strongly discouraged)'):
                 abort_ddrescue_tui()
@@ -174,12 +182,13 @@ def dest_safety_check(source, dest):
         if not dest_ok:
             print_error('Destination is not writable, refusing to continue.')
             abort_ddrescue_tui()
-        
+
         # Mount options check
         if 'rw' not in dest['Mount options'].split(','):
             print_error(
                 'Destination is not mounted read-write, refusing to continue.')
             abort_ddrescue_tui()
+
 
 def get_device_details(dev_path):
     """Get device details via lsblk, returns JSON dict."""
@@ -199,10 +208,12 @@ def get_device_details(dev_path):
     # Just return the first device (there should only be one)
     return json_data['blockdevices'][0]
 
+
 def get_device_size_in_bytes(s):
     """Convert size string from lsblk string to bytes, returns int."""
     s = re.sub(r'(\d+\.?\d*)\s*([KMGTB])B?', r'\1 \2B', s, re.IGNORECASE)
     return convert_to_bytes(s)
+
 
 def get_recovery_scope_size(source):
     """Calculate total size of selected dev(s)."""
@@ -216,6 +227,7 @@ def get_recovery_scope_size(source):
         source['Size'] = get_device_size_in_bytes(source['Details']['size'])
         source['Total Size'] = source['Size']
 
+
 def get_status_color(s, t_success=99, t_warn=90):
     """Get color based on status, returns str."""
     color = COLORS['CLEAR']
@@ -225,7 +237,7 @@ def get_status_color(s, t_success=99, t_warn=90):
     except ValueError:
         # Status is either in lists below or will default to red
         pass
-    
+
     if s in ('Pending',):
         color = COLORS['CLEAR']
     elif s in ('Skipped', 'Unknown', 'Working'):
@@ -238,6 +250,7 @@ def get_status_color(s, t_success=99, t_warn=90):
         color = COLORS['RED']
     return color
 
+
 def mark_all_passes_pending(source):
     """Mark all devs and passes as pending in preparation for retry."""
     source['Current Pass'] = 'Pass 1'
@@ -248,9 +261,10 @@ def mark_all_passes_pending(source):
             child[p_num]['Status'] = 'Pending'
             child[p_num]['Done'] = False
 
+
 def menu_clone(source_path, dest_path):
     """ddrescue cloning menu."""
-    
+
     # Set devices
     source = select_device('source', source_path)
     source['Current Pass'] = 'Pass 1'
@@ -260,21 +274,22 @@ def menu_clone(source_path, dest_path):
     source['Recovered Size'] = 0,
     source['Total Size'] = 0,
     source['Type'] = 'Clone'
-    dest = select_device('destination', dest_path,
-        skip_device = source['Details'], allow_image_file = False)
+    dest = select_device(
+        'destination', dest_path,
+        skip_device=source['Details'], allow_image_file=False)
     dest_safety_check(source, dest)
-    
+
     # Show selection details
     show_selection_details(source, dest)
     set_dest_image_paths(source, dest)
     check_dest_paths(source)
     get_recovery_scope_size(source)
-    
+
     # Confirm
     if not ask('Proceed with clone?'):
         abort_ddrescue_tui()
     show_safety_check()
-    
+
     # Main menu
     build_outer_panes(source, dest)
     menu_main(source, dest)
@@ -283,6 +298,7 @@ def menu_clone(source_path, dest_path):
     run_program(['losetup', '-D'])
     run_program(['tmux', 'kill-window'])
     exit_script()
+
 
 def menu_ddrescue(*args):
     """Main ddrescue loop/menu."""
@@ -312,11 +328,12 @@ def menu_ddrescue(*args):
         show_usage(script_name)
         exit_script()
 
+
 def menu_image(source_path, dest_path):
     """ddrescue imaging menu."""
-    
+
     # Set devices
-    source = select_device('source', source_path, allow_image_file = False)
+    source = select_device('source', source_path, allow_image_file=False)
     source['Current Pass'] = 'Pass 1'
     source['Pass 1'] = {'Status': 'Pending', 'Done': False}
     source['Pass 2'] = {'Status': 'Pending', 'Done': False}
@@ -332,14 +349,14 @@ def menu_image(source_path, dest_path):
     set_dest_image_paths(source, dest)
     check_dest_paths(source)
     get_recovery_scope_size(source)
-    
+
     # Show selection details
     show_selection_details(source, dest)
-    
+
     # Confirm
     if not ask('Proceed with imaging?'):
         abort_ddrescue_tui()
-    
+
     # Main menu
     build_outer_panes(source, dest)
     menu_main(source, dest)
@@ -348,6 +365,7 @@ def menu_image(source_path, dest_path):
     run_program(['losetup', '-D'])
     run_program(['tmux', 'kill-window'])
     exit_script()
+
 
 def menu_main(source, dest):
     """Main menu is used to set ddrescue settings."""
@@ -364,7 +382,7 @@ def menu_main(source, dest):
             'Enabled': False},
         {'Base Name': 'Reverse direction', 'Enabled': False},
         ]
-    actions  =[
+    actions = [
         {'Name': 'Start', 'Letter': 'S'},
         {'Name': 'Change settings {YELLOW}(experts only){CLEAR}'.format(
             **COLORS),
@@ -387,11 +405,11 @@ def menu_main(source, dest):
             opt['Name'] = '{} {}'.format(
                 '[✓]' if opt['Enabled'] else '[ ]',
                 opt['Base Name'])
-        
+
         selection = menu_select(
-            title = title + display_pass,
-            main_entries = main_options,
-            action_entries = actions)
+            title=title+display_pass,
+            main_entries=main_options,
+            action_entries=actions)
 
         if selection.isnumeric():
             # Toggle selection
@@ -435,19 +453,20 @@ def menu_main(source, dest):
                     break
                 if source[current_pass]['Done']:
                     min_status = source[current_pass]['Min Status']
-                    if (current_pass == 'Pass 1'
-                        and min_status < AUTO_NEXT_PASS_1_THRESHOLD):
+                    if (current_pass == 'Pass 1' and
+                            min_status < AUTO_NEXT_PASS_1_THRESHOLD):
                         auto_run = False
-                    elif (current_pass == 'Pass 2'
-                        and min_status < AUTO_NEXT_PASS_2_THRESHOLD):
+                    elif (current_pass == 'Pass 2' and
+                            min_status < AUTO_NEXT_PASS_2_THRESHOLD):
                         auto_run = False
                 # Update current pass for next iteration
                 current_pass = source['Current Pass']
-        
+
         elif selection == 'C':
             menu_settings(source)
         elif selection == 'Q':
             break
+
 
 def menu_select_children(source):
     """Select child device(s) or whole disk, returns list."""
@@ -467,7 +486,7 @@ def menu_select_children(source):
     actions = [
         {'Name': 'Proceed', 'Letter': 'P'},
         {'Name': 'Quit', 'Letter': 'Q'}]
-    
+
     # Skip Menu if there's no children
     if len(dev_options) == 1:
         return []
@@ -481,9 +500,9 @@ def menu_select_children(source):
                 dev['Base Name'])
 
         selection = menu_select(
-            title = 'Please select part(s) to image',
-            main_entries = dev_options,
-            action_entries = actions)
+            title='Please select part(s) to image',
+            main_entries=dev_options,
+            action_entries=actions)
 
         if selection.isnumeric():
             # Toggle selection
@@ -513,6 +532,7 @@ def menu_select_children(source):
         if d['Selected'] and 'Whole device' not in d['Base Name']]
     return selected_children
 
+
 def menu_select_device(title='Which device?', skip_device={}):
     """Select block device via a menu, returns dev_path as str."""
     skip_names = [
@@ -540,11 +560,11 @@ def menu_select_device(title='Which device?', skip_device={}):
         # Append non-matching devices
         dev_options.append({
             'Name': '{name:12} {tran:5} {size:6} {model} {serial}'.format(
-                name = dev['name'],
-                tran = dev['tran'] if dev['tran'] else '',
-                size = dev['size'] if dev['size'] else '',
-                model = dev['model'] if dev['model'] else '',
-                serial = dev['serial'] if dev['serial'] else ''),
+                name=dev['name'],
+                tran=dev['tran'] if dev['tran'] else '',
+                size=dev['size'] if dev['size'] else '',
+                model=dev['model'] if dev['model'] else '',
+                serial=dev['serial'] if dev['serial'] else ''),
             'Path': dev['name'],
             'Disabled': disable_dev})
     dev_options = sorted(dev_options, key=itemgetter('Name'))
@@ -555,15 +575,16 @@ def menu_select_device(title='Which device?', skip_device={}):
     # Show Menu
     actions = [{'Name': 'Quit', 'Letter': 'Q'}]
     selection = menu_select(
-        title = title,
-        main_entries = dev_options,
-        action_entries = actions,
-        disabled_label = 'SOURCE DEVICE')
+        title=title,
+        main_entries=dev_options,
+        action_entries=actions,
+        disabled_label='SOURCE DEVICE')
 
     if selection.isnumeric():
         return dev_options[int(selection)-1]['Path']
     elif selection == 'Q':
         abort_ddrescue_tui()
+
 
 def menu_select_path(skip_device={}):
     """Select path via menu, returns path as str."""
@@ -579,9 +600,9 @@ def menu_select_path(skip_device={}):
 
     # Show Menu
     selection = menu_select(
-        title = 'Please make a selection',
-        main_entries = path_options,
-        action_entries = actions)
+        title='Please make a selection',
+        main_entries=path_options,
+        action_entries=actions)
 
     if selection == 'Q':
         abort_ddrescue_tui()
@@ -594,14 +615,14 @@ def menu_select_path(skip_device={}):
         elif path_options[index]['Name'] == 'Local device':
             # Local device
             local_device = select_device(
-                skip_device = skip_device,
-                allow_image_file = False)
+                skip_device=skip_device,
+                allow_image_file=False)
 
             # Mount device volume(s)
             report = mount_volumes(
-                all_devices = False,
-                device_path = local_device['Dev Path'],
-                read_write = True)
+                all_devices=False,
+                device_path=local_device['Dev Path'],
+                read_write=True)
 
             # Select volume
             vol_options = []
@@ -616,9 +637,9 @@ def menu_select_path(skip_device={}):
                     'Path': v['mount_point'],
                     'Disabled': disabled})
             selection = menu_select(
-                title = 'Please select a volume',
-                main_entries = vol_options,
-                action_entries = actions)
+                title='Please select a volume',
+                main_entries=vol_options,
+                action_entries=actions)
             if selection.isnumeric():
                 s_path = vol_options[int(selection)-1]['Path']
             elif selection == 'Q':
@@ -635,6 +656,7 @@ def menu_select_path(skip_device={}):
                 else:
                     print_error('Invalid path "{}"'.format(m_path))
     return s_path
+
 
 def menu_settings(source):
     """Change advanced ddrescue settings."""
@@ -660,31 +682,32 @@ def menu_settings(source):
                 source['Settings'][s['Flag']].get('Value', ''))
             if not source['Settings'][s['Flag']]['Enabled']:
                 s['Name'] = '{YELLOW}{name} (Disabled){CLEAR}'.format(
-                    name = s['Name'],
+                    name=s['Name'],
                     **COLORS)
         selection = menu_select(
-            title = title,
-            main_entries = settings,
-            action_entries = actions)
+            title=title,
+            main_entries=settings,
+            action_entries=actions)
         if selection.isnumeric():
             index = int(selection) - 1
             flag = settings[index]['Flag']
             enabled = source['Settings'][flag]['Enabled']
             if 'Value' in source['Settings'][flag]:
                 answer = choice(
-                    choices = ['T', 'C'],
-                    prompt = 'Toggle or change value for "{}"'.format(flag))
+                    choices=['T', 'C'],
+                    prompt='Toggle or change value for "{}"'.format(flag))
                 if answer == 'T':
                     # Toggle
                     source['Settings'][flag]['Enabled'] = not enabled
                 else:
                     # Update value
                     source['Settings'][flag]['Value'] = get_simple_string(
-                        prompt = 'Enter new value')
+                        prompt='Enter new value')
             else:
                 source['Settings'][flag]['Enabled'] = not enabled
         elif selection == 'M':
             break
+
 
 def read_map_file(map_path):
     """Read map file with ddrescuelog and return data as dict."""
@@ -694,7 +717,7 @@ def read_map_file(map_path):
     except subprocess.CalledProcessError:
         print_error('Failed to read map data')
         abort_ddrescue_tui()
-    
+
     # Parse output
     for line in result.stdout.decode().splitlines():
         m = REGEX_MAP_DATA.match(line.strip())
@@ -718,6 +741,7 @@ def read_map_file(map_path):
 
     return map_data
 
+
 def run_ddrescue(source, dest, settings):
     """Run ddrescue pass."""
     current_pass = source['Current Pass']
@@ -739,28 +763,28 @@ def run_ddrescue(source, dest, settings):
         return
     else:
         raise GenericError("This shouldn't happen?")
-    
+
     # Set device(s) to clone/image
     source[current_pass]['Status'] = 'Working'
     source_devs = [source]
     if source['Children']:
         # Use only selected child devices
         source_devs = source['Children']
-    
+
     # Set heights
-    ## NOTE: 12/33 is based on min heights for SMART/ddrescue panes (12+22+1sep)
+    # NOTE: 12/33 is based on min heights for SMART/ddrescue panes (12+22+1sep)
     result = run_program(['tput', 'lines'])
     height = int(result.stdout.decode().strip())
     height_smart = int(height * (12 / 33))
     height_ddrescue = height - height_smart
-    
+
     # Show SMART status
     smart_pane = tmux_splitw(
         '-bdvl', str(height_smart),
         '-PF', '#D',
         'watch', '--color', '--no-title', '--interval', '300',
         'ddrescue-tui-smart-display', source['Dev Path'])
-    
+
     # Start pass for each selected device
     for s_dev in source_devs:
         if s_dev[current_pass]['Done']:
@@ -769,23 +793,24 @@ def run_ddrescue(source, dest, settings):
         source['Current Device'] = s_dev['Dev Path']
         s_dev[current_pass]['Status'] = 'Working'
         update_progress(source)
-        
+
         # Set ddrescue cmd
         if source['Type'] == 'Clone':
-            cmd = ['ddrescue', *settings, '--force',
-                s_dev['Dev Path'], dest['Dev Path'], s_dev['Dest Paths']['Map']]
+            cmd = [
+                'ddrescue', *settings, '--force', s_dev['Dev Path'],
+                dest['Dev Path'], s_dev['Dest Paths']['Map']]
         else:
-            cmd = ['ddrescue', *settings,
-                s_dev['Dev Path'], s_dev['Dest Paths']['Image'],
-                s_dev['Dest Paths']['Map']]
+            cmd = [
+                'ddrescue', *settings, s_dev['Dev Path'],
+                s_dev['Dest Paths']['Image'], s_dev['Dest Paths']['Map']]
 
         # Start ddrescue
         try:
             clear_screen()
             print_info('Current dev: {}'.format(s_dev['Dev Path']))
             ddrescue_proc = popen_program(['./__choose_exit', *cmd])
-            #ddrescue_proc = popen_program(['./__exit_ok', *cmd])
-            #ddrescue_proc = popen_program(cmd)
+            # ddrescue_proc = popen_program(['./__exit_ok', *cmd])
+            # ddrescue_proc = popen_program(cmd)
             while True:
                 try:
                     ddrescue_proc.wait(timeout=30)
@@ -813,6 +838,7 @@ def run_ddrescue(source, dest, settings):
         # Pause on errors
         pause('Press Enter to return to main menu... ')
     run_program(['tmux', 'kill-pane', '-t', smart_pane])
+
 
 def select_dest_path(provided_path=None, skip_device={}):
     dest = {'Is Dir': True, 'Is Image': False}
@@ -851,11 +877,12 @@ def select_dest_path(provided_path=None, skip_device={}):
 
     return dest
 
+
 def select_device(description='device', provided_path=None,
-    skip_device={}, allow_image_file=True):
+                  skip_device={}, allow_image_file=True):
     """Select device via provided path or menu, return dev as dict."""
     dev = {'Is Dir': False, 'Is Image': False}
-    
+
     # Set path
     if provided_path:
         dev['Path'] = provided_path
@@ -864,7 +891,7 @@ def select_device(description='device', provided_path=None,
             title='Please select a {}'.format(description),
             skip_device=skip_device)
     dev['Path'] = os.path.realpath(dev['Path'])
-    
+
     # Check path
     if pathlib.Path(dev['Path']).is_block_device():
         dev['Dev Path'] = dev['Path']
@@ -879,13 +906,13 @@ def select_device(description='device', provided_path=None,
     dev['Details'] = get_device_details(dev['Dev Path'])
     if 'Children' not in dev:
         dev['Children'] = []
-    
+
     # Check for parent device(s)
     while dev['Details']['pkname']:
         print_warning('{} "{}" is a child device.'.format(
             description.title(), dev['Dev Path']))
         if ask('Use parent device "{}" instead?'.format(
-            dev['Details']['pkname'])):
+                dev['Details']['pkname'])):
             # Update dev with parent info
             dev['Dev Path'] = dev['Details']['pkname']
             dev['Details'] = get_device_details(dev['Dev Path'])
@@ -903,25 +930,28 @@ def select_device(description='device', provided_path=None,
     width = int((int(result.stdout.decode().strip()) - 21) / 2) - 2
     if len(dev['Display Name']) > width:
         if dev['Is Image']:
-            dev['Display Name'] = '...{}'.format(dev['Display Name'][-(width-3):])
+            dev['Display Name'] = '...{}'.format(
+                dev['Display Name'][-(width-3):])
         else:
-            dev['Display Name'] = '{}...'.format(dev['Display Name'][:(width-3)])
+            dev['Display Name'] = '{}...'.format(
+                dev['Display Name'][:(width-3)])
     else:
         dev['Display Name'] = dev['Display Name']
 
     return dev
 
+
 def set_dest_image_paths(source, dest):
     """Set destination image path for source and any child devices."""
     if source['Type'] == 'Clone':
         base = '{pwd}/Clone_{size}_{model}'.format(
-            pwd = os.path.realpath(global_vars['Env']['PWD']),
-            size = source['Details']['size'],
-            model = source['Details'].get('model', 'Unknown'))
+            pwd=os.path.realpath(global_vars['Env']['PWD']),
+            size=source['Details']['size'],
+            model=source['Details'].get('model', 'Unknown'))
     else:
         base = '{Path}/{size}_{model}'.format(
-            size = source['Details']['size'],
-            model = source['Details'].get('model', 'Unknown'),
+            size=source['Details']['size'],
+            model=source['Details'].get('model', 'Unknown'),
             **dest)
     source['Dest Paths'] = {
         'Image': '{}.dd'.format(base),
@@ -933,16 +963,17 @@ def set_dest_image_paths(source, dest):
         if child['Details']['label']:
             p_label = '_{}'.format(child['Details']['label'])
         base = '{Path}/{size}_{model}_{p_num}_{p_size}{p_label}'.format(
-            size = source['Details']['size'],
-            model = source['Details'].get('model', 'Unknown'),
-            p_num = child['Details']['name'].replace(
+            size=source['Details']['size'],
+            model=source['Details'].get('model', 'Unknown'),
+            p_num=child['Details']['name'].replace(
                 child['Details']['pkname'], ''),
-            p_size = child['Details']['size'],
-            p_label = p_label,
+            p_size=child['Details']['size'],
+            p_label=p_label,
             **dest)
         child['Dest Paths'] = {
             'Image': '{}.dd'.format(base),
             'Map': '{}.map'.format(base)}
+
 
 def setup_loopback_device(source_path):
     """Setup a loopback device for source_path, returns dev_path as str."""
@@ -961,6 +992,7 @@ def setup_loopback_device(source_path):
         abort_ddrescue_tui()
     else:
         return dev_path
+
 
 def show_device_details(dev_path):
     """Display device details on screen."""
@@ -982,6 +1014,7 @@ def show_device_details(dev_path):
     for line in output:
         print_standard(line)
 
+
 def show_safety_check():
     """Display safety check message and get confirmation from user."""
     print_standard('\nSAFETY CHECK')
@@ -992,9 +1025,10 @@ def show_safety_check():
     if not ask('Asking again to confirm, is this correct?'):
         abort_ddrescue_tui()
 
+
 def show_selection_details(source, dest):
     clear_screen()
-    
+
     # Source
     print_success('Source device')
     if source['Is Image']:
@@ -1003,7 +1037,7 @@ def show_selection_details(source, dest):
             source['Dev Path']))
     show_device_details(source['Dev Path'])
     print_standard(' ')
-    
+
     # Destination
     if source['Type'] == 'Clone':
         print_success('Destination device ', end='')
@@ -1017,16 +1051,19 @@ def show_selection_details(source, dest):
             dest['Free Space'], dest['Filesystem']))
     print_standard(' ')
 
+
 def show_usage(script_name):
     print_info('Usage:')
     print_standard(USAGE.format(script_name=script_name))
     pause()
+
 
 def tmux_splitw(*args):
     """Run tmux split-window command and return output as str."""
     cmd = ['tmux', 'split-window', *args]
     result = run_program(cmd)
     return result.stdout.decode().strip()
+
 
 def update_progress(source, end_run=False):
     """Update progress file."""
@@ -1047,9 +1084,10 @@ def update_progress(source, end_run=False):
         next_pass = 'Pass {}'.format(next_pass_num)
     else:
         next_pass = 'Done'
-    
+
     if 'Progress Out' not in source:
-        source['Progress Out'] = '{}/progress.out'.format(global_vars['LogDir'])
+        source['Progress Out'] = '{}/progress.out'.format(
+            global_vars['LogDir'])
     output = []
     if source['Type'] == 'Clone':
         output.append('   {BLUE}Cloning Status{CLEAR}'.format(**COLORS))
@@ -1067,7 +1105,7 @@ def update_progress(source, end_run=False):
                 child[current_pass]['Done'] = map_data['pass completed']
                 child[current_pass]['Status'] = map_data['rescued']
                 child['Recovered Size'] = r_size
-            
+
             # All child devices
             pass_complete_for_all_devs &= child[current_pass]['Done']
             total_recovery &= map_data['full recovery']
@@ -1083,7 +1121,7 @@ def update_progress(source, end_run=False):
             # Map missing, assuming this pass hasn't run for this dev yet
             pass_complete_for_all_devs = False
             total_recovery = False
-    
+
     # Update source progress
     if len(source['Children']) > 0:
         # Imaging parts, skip updating source progress
@@ -1107,7 +1145,7 @@ def update_progress(source, end_run=False):
         # Cloning/Imaging whole device and map missing
         pass_complete_for_all_devs = False
         total_recovery = False
-    
+
     # End of pass updates
     if end_run:
         if total_recovery:
@@ -1124,11 +1162,11 @@ def update_progress(source, end_run=False):
             # Ready for next pass?
             source['Current Pass'] = next_pass
             source[current_pass]['Done'] = True
-    
+
     # Main device
     if source['Type'] == 'Clone':
         output.append('{BLUE}{dev}{CLEAR}'.format(
-            dev = 'Image File' if source['Is Image'] else source['Dev Path'],
+            dev='Image File' if source['Is Image'] else source['Dev Path'],
             **COLORS))
         for x in (1, 2, 3):
             p_num = 'Pass {}'.format(x)
@@ -1141,9 +1179,9 @@ def update_progress(source, end_run=False):
             else:
                 s_display = '{:0.2f} %'.format(s_display)
             output.append('{p_num}{s_color}{s_display:>15}{CLEAR}'.format(
-                p_num = p_num,
-                s_color = get_status_color(source[p_num]['Status']),
-                s_display = s_display,
+                p_num=p_num,
+                s_color=get_status_color(source[p_num]['Status']),
+                s_display=s_display,
                 **COLORS))
     else:
         # Image mode
@@ -1151,7 +1189,7 @@ def update_progress(source, end_run=False):
             # Just parts
             for child in source['Children']:
                 output.append('{BLUE}{dev}{CLEAR}'.format(
-                    dev = child['Dev Path'],
+                    dev=child['Dev Path'],
                     **COLORS))
                 for x in (1, 2, 3):
                     p_num = 'Pass {}'.format(x)
@@ -1163,16 +1201,17 @@ def update_progress(source, end_run=False):
                         pass
                     else:
                         s_display = '{:0.2f} %'.format(s_display)
-                    output.append('{p_num}{s_color}{s_display:>15}{CLEAR}'.format(
-                        p_num = p_num,
-                        s_color = get_status_color(child[p_num]['Status']),
-                        s_display = s_display,
-                        **COLORS))
+                    output.append(
+                        '{p_num}{s_color}{s_display:>15}{CLEAR}'.format(
+                            p_num=p_num,
+                            s_color=get_status_color(child[p_num]['Status']),
+                            s_display=s_display,
+                            **COLORS))
                 output.append(' ')
         else:
             # Whole device
             output.append('{BLUE}{dev}{CLEAR} {YELLOW}(Whole){CLEAR}'.format(
-                dev = source['Dev Path'],
+                dev=source['Dev Path'],
                 **COLORS))
             for x in (1, 2, 3):
                 p_num = 'Pass {}'.format(x)
@@ -1184,17 +1223,19 @@ def update_progress(source, end_run=False):
                     pass
                 else:
                     s_display = '{:0.2f} %'.format(s_display)
-                output.append('{p_num}{s_color}{s_display:>15}{CLEAR}'.format(
-                    p_num = p_num,
-                    s_color = get_status_color(source[p_num]['Status']),
-                    s_display = s_display,
-                    **COLORS))
+                output.append(
+                    '{p_num}{s_color}{s_display:>15}{CLEAR}'.format(
+                        p_num=p_num,
+                        s_color=get_status_color(source[p_num]['Status']),
+                        s_display=s_display,
+                        **COLORS))
 
     # Add line-endings
     output = ['{}\n'.format(line) for line in output]
 
     with open(source['Progress Out'], 'w') as f:
         f.writelines(output)
+
 
 if __name__ == '__main__':
     print("This file is not meant to be called directly.")
