@@ -68,6 +68,47 @@ def build_outer_panes(source, dest):
         'watch', '--color', '--no-title', '--interval', '1',
         'cat', source['Progress Out'])
 
+def check_dest_paths(source):
+    """Check for image and/or map file and alert user about details."""
+    dd_image_exists = os.path.exists(source['Dest Paths']['Image'])
+    map_exists = os.path.exists(source['Dest Paths']['Map'])
+    if 'Clone' in source['Dest Paths']['Map']:
+        if map_exists:
+            # We're cloning and a matching map file was detected
+            if not ask('Matching map file detected, resume recovery?'):
+                abort_ddrescue_tui()
+    else:
+        abort_imaging = False
+        resume_files_exist = False
+        source_devs = [source]
+        if source['Children']:
+            source_devs = source['Children']
+        for dev in source_devs:
+            # We're imaging
+            dd_image_exists = os.path.exists(dev['Dest Paths']['Image'])
+            map_exists = os.path.exists(dev['Dest Paths']['Map'])
+            if dd_image_exists and not map_exists:
+                # Refuce to resume without map file
+                i = dev['Dest Paths']['Image']
+                i = i[i.rfind('/')+1:]
+                print_error(
+                    'Detected image "{}" but not the matching map'.format(i))
+                abort_imaging = True
+            elif not dd_image_exists and map_exists:
+                # Can't resume without dd_image
+                m = dev['Dest Paths']['Map']
+                m = m[m.rfind('/')+1:]
+                print_error(
+                    'Detected map "{}" but not the matching image'.format(m))
+                abort_imaging = True
+            elif dd_image_exists and map_exists:
+                # Matching dd_image and map file were detected
+                resume_files_exist = True
+        p = 'Matching image and map file{} detected, resume recovery?'.format(
+            's' if len(source_devs) > 1 else '')
+        if abort_imaging or (resume_files_exist and not ask(p)):
+            abort_ddrescue_tui()
+
 def dest_safety_check(source, dest):
     """Verify the destination is appropriate for the source."""
     source_size = source['Details']['size']
@@ -869,47 +910,6 @@ def select_device(description='device', provided_path=None,
         dev['Display Name'] = dev['Display Name']
 
     return dev
-
-def check_dest_paths(source):
-    """Check for image and/or map file and alert user about details."""
-    dd_image_exists = os.path.exists(source['Dest Paths']['Image'])
-    map_exists = os.path.exists(source['Dest Paths']['Map'])
-    if 'Clone' in source['Dest Paths']['Map']:
-        if map_exists:
-            # We're cloning and a matching map file was detected
-            if not ask('Matching map file detected, resume recovery?'):
-                abort_ddrescue_tui()
-    else:
-        abort_imaging = False
-        resume_files_exist = False
-        source_devs = [source]
-        if source['Children']:
-            source_devs = source['Children']
-        for dev in source_devs:
-            # We're imaging
-            dd_image_exists = os.path.exists(dev['Dest Paths']['Image'])
-            map_exists = os.path.exists(dev['Dest Paths']['Map'])
-            if dd_image_exists and not map_exists:
-                # Refuce to resume without map file
-                i = dev['Dest Paths']['Image']
-                i = i[i.rfind('/')+1:]
-                print_error(
-                    'Detected image "{}" but not the matching map'.format(i))
-                abort_imaging = True
-            elif not dd_image_exists and map_exists:
-                # Can't resume without dd_image
-                m = dev['Dest Paths']['Map']
-                m = m[m.rfind('/')+1:]
-                print_error(
-                    'Detected map "{}" but not the matching image'.format(m))
-                abort_imaging = True
-            elif dd_image_exists and map_exists:
-                # Matching dd_image and map file were detected
-                resume_files_exist = True
-        p = 'Matching image and map file{} detected, resume recovery?'.format(
-            's' if len(source_devs) > 1 else '')
-        if abort_imaging or (resume_files_exist and not ask(p)):
-            abort_ddrescue_tui()
 
 def set_dest_image_paths(source, dest):
     """Set destination image path for source and any child devices."""
