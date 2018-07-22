@@ -25,9 +25,12 @@ DDRESCUE_SETTINGS = {
     '--min-read-rate': {'Enabled': True, 'Value': '64KiB'},
     '--reopen-on-error': {'Enabled': True},
     '--retry-passes=': {'Enabled': True, 'Value': '0'},
+    '--test-mode=': {'Enabled': True, 'Value': 'some.map'},
     '--timeout=': {'Enabled': True, 'Value': '5m'},
     '-vvvv': {'Enabled': True, 'Hidden': True},
     }
+REGEX_MAP_DATA = re.compile(r'^\s*(?P<key>\S+):.*\(\s*(?P<value>\d+\.?\d*)%.*')
+REGEX_MAP_STATUS = re.compile(r'.*current status:\s+(?P<status>.*)')
 USAGE = """    {script_name} clone [source [destination]]
     {script_name} image [source [destination]]
     (e.g. {script_name} clone /dev/sda /dev/sdb)
@@ -131,15 +134,9 @@ def dest_safety_check(source, dest):
     else:
         dest_size = dest['Details']['size']
 
-    # Fix strings before converting to bytes
-    source_size = re.sub(
-        r'(\d+\.?\d*)\s*([KMGTB])B?', r'\1 \2B', source_size.upper())
-    dest_size = re.sub(
-        r'(\d+\.?\d*)\s*([KMGTB])B?', r'\1 \2B', dest_size.upper())
-
     # Convert to bytes and compare size
-    source_size = convert_to_bytes(source_size)
-    dest_size = convert_to_bytes(dest_size)
+    source_size = get_device_size_in_bytes(source_size)
+    dest_size = get_device_size_in_bytes(dest_size)
     if source['Type'] == 'Image' and dest_size < (source_size * 1.2):
         # Imaging: ensure 120% of source size is available
         print_error(
@@ -202,6 +199,23 @@ def get_device_details(dev_path):
     # Just return the first device (there should only be one)
     return json_data['blockdevices'][0]
 
+def get_device_size_in_bytes(s):
+    """Convert size string from lsblk string to bytes, returns int."""
+    s = re.sub(r'(\d+\.?\d*)\s*([KMGTB])B?', r'\1 \2B', s, re.IGNORECASE)
+    return convert_to_bytes(s)
+
+def get_recovery_scope_size(source):
+    """Calculate total size of selected dev(s)."""
+    source['Total Size'] = 0
+    if source['Children']:
+        for child in source['Children']:
+            child['Size'] = get_device_size_in_bytes(child['Details']['size'])
+            source['Total Size'] += child['Size']
+    else:
+        # Whole dev
+        source['Size'] = get_device_size_in_bytes(source['Details']['size'])
+        source['Total Size'] = source['Size']
+
 def get_status_color(s, t_success=99, t_warn=90):
     """Get color based on status, returns str."""
     color = COLORS['CLEAR']
@@ -214,7 +228,7 @@ def get_status_color(s, t_success=99, t_warn=90):
     
     if s in ('Pending',):
         color = COLORS['CLEAR']
-    elif s in ('Working',):
+    elif s in ('Skipped', 'Unknown', 'Working'):
         color = COLORS['YELLOW']
     elif p_recovered >= t_success:
         color = COLORS['GREEN']
@@ -223,57 +237,6 @@ def get_status_color(s, t_success=99, t_warn=90):
     else:
         color = COLORS['RED']
     return color
-
-def mark_pass_complete(source):
-    """Mark current pass complete for device, and overall if applicable."""
-    current_pass = source['Current Pass']
-    current_pass_num = int(current_pass[-1:])
-    next_pass_num = current_pass_num + 1
-    if 1 <= next_pass_num <= 3:
-        next_pass = 'Pass {}'.format(next_pass_num)
-    else:
-        next_pass = 'Done'
-    
-    # Check children progress
-    pass_complete_for_all_devs = True
-    for child in source['Children']:
-        if child['Dev Path'] == source['Current Device']:
-            # This function was called for this device, mark complete
-            child[current_pass]['Done'] = True
-            # TODO remove test code
-            from random import randint
-            status = randint((current_pass_num-1)*10+85, 110) + randint(0, 99) / 100
-            child[current_pass]['Status'] = status
-        if not child[current_pass]['Done']:
-            pass_complete_for_all_devs = False
-
-    # Update source vars
-    if pass_complete_for_all_devs:
-        source['Current Pass'] = next_pass
-        source[current_pass]['Done'] = True
-
-    # TODO Remove test code
-    if source['Children']:
-        status = 100
-        for child in source['Children']:
-            try:
-                status = min(status, child[current_pass]['Status'])
-            except TypeError:
-                # Force 0% to ensure we won't auto-continue to next pass
-                status = 0
-    else:
-        from random import randint
-        status = randint((current_pass_num-1)*10+75, 100) + randint(0, 99) / 100
-    source[current_pass]['Status'] = status
-
-def mark_pass_incomplete(source):
-    """Mark current pass incomplete."""
-    current_pass = source['Current Pass']
-    source[current_pass]['Status'] = 'Incomplete'
-    for child in source['Children']:
-        if child['Dev Path'] == source['Current Device']:
-            # This function was called for this device, mark incomplete
-            child[current_pass]['Status'] = 'Incomplete'
 
 def mark_all_passes_pending(source):
     """Mark all devs and passes as pending in preparation for retry."""
@@ -294,6 +257,8 @@ def menu_clone(source_path, dest_path):
     source['Pass 1'] = {'Status': 'Pending', 'Done': False}
     source['Pass 2'] = {'Status': 'Pending', 'Done': False}
     source['Pass 3'] = {'Status': 'Pending', 'Done': False}
+    source['Recovered Size'] = 0,
+    source['Total Size'] = 0,
     source['Type'] = 'Clone'
     dest = select_device('destination', dest_path,
         skip_device = source['Details'], allow_image_file = False)
@@ -303,6 +268,7 @@ def menu_clone(source_path, dest_path):
     show_selection_details(source, dest)
     set_dest_image_paths(source, dest)
     check_dest_paths(source)
+    get_recovery_scope_size(source)
     
     # Confirm
     if not ask('Proceed with clone?'):
@@ -355,6 +321,8 @@ def menu_image(source_path, dest_path):
     source['Pass 1'] = {'Status': 'Pending', 'Done': False}
     source['Pass 2'] = {'Status': 'Pending', 'Done': False}
     source['Pass 3'] = {'Status': 'Pending', 'Done': False}
+    source['Recovered Size'] = 0,
+    source['Total Size'] = 0,
     source['Type'] = 'Image'
     dest = select_dest_path(dest_path, skip_device=source['Details'])
     dest_safety_check(source, dest)
@@ -363,6 +331,7 @@ def menu_image(source_path, dest_path):
     source['Children'] = menu_select_children(source)
     set_dest_image_paths(source, dest)
     check_dest_paths(source)
+    get_recovery_scope_size(source)
     
     # Show selection details
     show_selection_details(source, dest)
@@ -441,6 +410,8 @@ def menu_main(source, dest):
                     if 'Value' in v:
                         settings.append(v['Value'])
             for opt in main_options:
+                if 'Auto' in opt['Base Name']:
+                    auto_run = opt['Enabled']
                 if 'Retry' in opt['Base Name'] and opt['Enabled']:
                     settings.extend(['--retrim', '--try-again'])
                     mark_all_passes_pending(source)
@@ -452,10 +423,10 @@ def menu_main(source, dest):
                     opt['Enabled'] = False
 
             # Run ddrecue
-            auto_run = True
-            while auto_run:
+            first_run = True
+            while auto_run or first_run:
+                first_run = False
                 run_ddrescue(source, dest, settings)
-                auto_run = False
                 if current_pass == 'Done':
                     # "Pass Done" i.e. all passes done
                     break
@@ -463,17 +434,13 @@ def menu_main(source, dest):
                     # Auto next pass
                     break
                 if source[current_pass]['Done']:
-                    try:
-                        recovered = float(source[current_pass]['Status'])
-                    except ValueError:
-                        # Nope
-                        recovered = 'Nope'
-                        pass
-                    else:
-                        if current_pass == 'Pass 1' and recovered > 85:
-                            auto_run = True
-                        elif current_pass == 'Pass 2' and recovered > 98:
-                            auto_run = True
+                    min_status = source[current_pass]['Min Status']
+                    if (current_pass == 'Pass 1'
+                        and min_status < AUTO_NEXT_PASS_1_THRESHOLD):
+                        auto_run = False
+                    elif (current_pass == 'Pass 2'
+                        and min_status < AUTO_NEXT_PASS_2_THRESHOLD):
+                        auto_run = False
                 # Update current pass for next iteration
                 current_pass = source['Current Pass']
         
@@ -719,9 +686,42 @@ def menu_settings(source):
         elif selection == 'M':
             break
 
+def read_map_file(map_path):
+    """Read map file with ddrescuelog and return data as dict."""
+    map_data = {}
+    try:
+        result = run_program(['ddrescuelog', '-t', map_path])
+    except subprocess.CalledProcessError:
+        print_error('Failed to read map data')
+        abort_ddrescue_tui()
+    
+    # Parse output
+    for line in result.stdout.decode().splitlines():
+        m = REGEX_MAP_DATA.match(line.strip())
+        if m:
+            try:
+                map_data[m.group('key')] = float(m.group('value'))
+            except ValueError:
+                print_error('Failed to read map data')
+                abort_ddrescue_tui()
+        m = REGEX_MAP_STATUS.match(line.strip())
+        if m:
+            map_data['pass completed'] = bool(m.group('status') == 'finished')
+
+    # Check if 100% done
+    try:
+        run_program(['ddrescuelog', '-D', map_path])
+    except subprocess.CalledProcessError:
+        map_data['full recovery'] = False
+    else:
+        map_data['full recovery'] = True
+
+    return map_data
+
 def run_ddrescue(source, dest, settings):
     """Run ddrescue pass."""
     current_pass = source['Current Pass']
+    return_code = None
 
     # Set pass options
     if current_pass == 'Pass 1':
@@ -786,7 +786,12 @@ def run_ddrescue(source, dest, settings):
             ddrescue_proc = popen_program(['./__choose_exit', *cmd])
             #ddrescue_proc = popen_program(['./__exit_ok', *cmd])
             #ddrescue_proc = popen_program(cmd)
-            ddrescue_proc.wait()
+            while True:
+                try:
+                    ddrescue_proc.wait(timeout=30)
+                    break
+                except subprocess.TimeoutExpired:
+                    update_progress(source)
         except KeyboardInterrupt:
             # Catch user abort
             pass
@@ -796,19 +801,14 @@ def run_ddrescue(source, dest, settings):
         if return_code is None or return_code is 130:
             clear_screen()
             print_warning('Aborted')
-            mark_pass_incomplete(source)
             break
         elif return_code:
             # i.e. not None and not 0
             print_error('Error(s) encountered, see message above.')
-            mark_pass_incomplete(source)
             break
-        else:
-            # Not None and not non-zero int, assuming 0
-            mark_pass_complete(source)
 
     # Cleanup
-    update_progress(source)
+    update_progress(source, end_run=True)
     if str(return_code) != '0':
         # Pause on errors
         pause('Press Enter to return to main menu... ')
@@ -878,7 +878,7 @@ def select_device(description='device', provided_path=None,
     # Get device details
     dev['Details'] = get_device_details(dev['Dev Path'])
     if 'Children' not in dev:
-        dev['Children'] = {}
+        dev['Children'] = []
     
     # Check for parent device(s)
     while dev['Details']['pkname']:
@@ -1028,8 +1028,26 @@ def tmux_splitw(*args):
     result = run_program(cmd)
     return result.stdout.decode().strip()
 
-def update_progress(source):
+def update_progress(source, end_run=False):
     """Update progress file."""
+    current_pass = source['Current Pass']
+    pass_complete_for_all_devs = True
+    total_recovery = True
+    source['Recovered Size'] = 0
+    if current_pass != 'Done':
+        source[current_pass]['Min Status'] = 100
+    try:
+        current_pass_num = int(current_pass[-1:])
+        next_pass_num = current_pass_num + 1
+    except ValueError:
+        # Either Done or undefined?
+        current_pass_num = -1
+        next_pass_num = -1
+    if 1 <= next_pass_num <= 3:
+        next_pass = 'Pass {}'.format(next_pass_num)
+    else:
+        next_pass = 'Done'
+    
     if 'Progress Out' not in source:
         source['Progress Out'] = '{}/progress.out'.format(global_vars['LogDir'])
     output = []
@@ -1038,6 +1056,74 @@ def update_progress(source):
     else:
         output.append('   {BLUE}Imaging Status{CLEAR}'.format(**COLORS))
     output.append('─────────────────────')
+
+    # Update children progress
+    for child in source['Children']:
+        if os.path.exists(child['Dest Paths']['Map']):
+            map_data = read_map_file(child['Dest Paths']['Map'])
+            if child['Dev Path'] == source.get('Current Device', ''):
+                # Current child device
+                r_size = map_data['rescued']/100 * child['Size']
+                child[current_pass]['Done'] = map_data['pass completed']
+                child[current_pass]['Status'] = map_data['rescued']
+                child['Recovered Size'] = r_size
+            
+            # All child devices
+            pass_complete_for_all_devs &= child[current_pass]['Done']
+            total_recovery &= map_data['full recovery']
+            try:
+                source['Recovered Size'] += child.get('Recovered Size', 0)
+                source[current_pass]['Min Status'] = min(
+                    source[current_pass]['Min Status'],
+                    child[current_pass]['Status'])
+            except TypeError:
+                # Force 0% to disable auto-continue
+                source[current_pass]['Min Status'] = 0
+        else:
+            # Map missing, assuming this pass hasn't run for this dev yet
+            pass_complete_for_all_devs = False
+            total_recovery = False
+    
+    # Update source progress
+    if len(source['Children']) > 0:
+        # Imaging parts, skip updating source progress
+        pass
+    elif os.path.exists(source['Dest Paths']['Map']):
+        # Cloning/Imaging whole device
+        map_data = read_map_file(source['Dest Paths']['Map'])
+        source[current_pass]['Done'] = map_data['pass completed']
+        source[current_pass]['Status'] = map_data['rescued']
+        source['Recovered Size'] = map_data['rescued']/100 * source['Size']
+        try:
+            source[current_pass]['Min Status'] = min(
+                source[current_pass]['Min Status'],
+                source[current_pass]['Status'])
+        except TypeError:
+            # Force 0% to disable auto-continue
+            source[current_pass]['Min Status'] = 0
+        pass_complete_for_all_devs &= source[current_pass]['Done']
+        total_recovery &= map_data['full recovery']
+    else:
+        # Cloning/Imaging whole device and map missing
+        pass_complete_for_all_devs = False
+        total_recovery = False
+    
+    # End of pass updates
+    if end_run:
+        if total_recovery:
+            # Sweet!
+            source['Current Pass'] = 'Done'
+            source['Recovered Size'] = source['Total Size']
+            for p_num in ['Pass 1', 'Pass 2', 'Pass 3']:
+                if source[p_num]['Status'] == 'Pending':
+                    source[p_num]['Status'] = 'Skipped'
+                for child in source['Children']:
+                    if child[p_num]['Status'] == 'Pending':
+                        child[p_num]['Status'] = 'Skipped'
+        elif pass_complete_for_all_devs:
+            # Ready for next pass?
+            source['Current Pass'] = next_pass
+            source[current_pass]['Done'] = True
     
     # Main device
     if source['Type'] == 'Clone':
