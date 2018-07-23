@@ -14,23 +14,25 @@ from operator import itemgetter
 
 # STATIC VARIABLES
 RECOMMENDED_FSTYPES = ['ext3', 'ext4', 'xfs']
-AUTO_NEXT_PASS_1_THRESHOLD = 85
+AUTO_NEXT_PASS_1_THRESHOLD = 90
 AUTO_NEXT_PASS_2_THRESHOLD = 98
 DDRESCUE_SETTINGS = {
     '--binary-prefixes': {'Enabled': True, 'Hidden': True},
     '--data-preview': {'Enabled': True, 'Hidden': True},
     '--idirect': {'Enabled': True},
     '--odirect': {'Enabled': True},
-    '--max-read-rate': {'Enabled': False, 'Value': '128MiB'},
+    '--max-read-rate': {'Enabled': False, 'Value': '4MiB'},
     '--min-read-rate': {'Enabled': True, 'Value': '64KiB'},
     '--reopen-on-error': {'Enabled': True},
     '--retry-passes=': {'Enabled': True, 'Value': '0'},
-    '--test-mode=': {'Enabled': True, 'Value': 'some.map'},
+    '--test-mode=': {'Enabled': False, 'Value': 'some.map'},
     '--timeout=': {'Enabled': True, 'Value': '5m'},
     '-vvvv': {'Enabled': True, 'Hidden': True},
     }
 REGEX_MAP_DATA = re.compile(r'^\s*(?P<key>\S+):.*\(\s*(?P<value>\d+\.?\d*)%.*')
 REGEX_MAP_STATUS = re.compile(r'.*current status:\s+(?P<status>.*)')
+STATUS_COLOR_CLEAR = ('Pending',)
+STATUS_COLOR_YELLOW = ('Skipped', 'Unknown', 'Working')
 USAGE = """    {script_name} clone [source [destination]]
     {script_name} image [source [destination]]
     (e.g. {script_name} clone /dev/sda /dev/sdb)
@@ -238,9 +240,9 @@ def get_status_color(s, t_success=99, t_warn=90):
         # Status is either in lists below or will default to red
         pass
 
-    if s in ('Pending',):
+    if s in STATUS_COLOR_CLEAR:
         color = COLORS['CLEAR']
-    elif s in ('Skipped', 'Unknown', 'Working'):
+    elif s in STATUS_COLOR_YELLOW:
         color = COLORS['YELLOW']
     elif p_recovered >= t_success:
         color = COLORS['GREEN']
@@ -445,6 +447,7 @@ def menu_main(source, dest):
             while auto_run or first_run:
                 first_run = False
                 run_ddrescue(source, dest, settings)
+                update_progress(source, end_run=True)
                 if current_pass == 'Done':
                     # "Pass Done" i.e. all passes done
                     break
@@ -459,6 +462,8 @@ def menu_main(source, dest):
                     elif (current_pass == 'Pass 2' and
                             min_status < AUTO_NEXT_PASS_2_THRESHOLD):
                         auto_run = False
+                else:
+                    auto_run = False
                 # Update current pass for next iteration
                 current_pass = source['Current Pass']
 
@@ -493,11 +498,14 @@ def menu_select_children(source):
 
     # Show Menu
     while True:
+        one_or_more_devs_selected = False
         # Update entries
         for dev in dev_options:
-            dev['Name'] = '{} {}'.format(
-                '*' if dev['Selected'] else ' ',
-                dev['Base Name'])
+            if dev['Selected']:
+                one_or_more_devs_selected = True
+                dev['Name'] = '* {}'.format(dev['Base Name'])
+            else:
+                dev['Name'] = '  {}'.format(dev['Base Name'])
 
         selection = menu_select(
             title='Please select part(s) to image',
@@ -517,7 +525,7 @@ def menu_select_children(source):
             if dev_options[0]['Selected']:
                 for dev in dev_options[1:]:
                     dev['Selected'] = False
-        elif selection == 'P':
+        elif selection == 'P' and one_or_more_devs_selected:
             break
         elif selection == 'Q':
             abort_ddrescue_tui()
@@ -747,22 +755,11 @@ def run_ddrescue(source, dest, settings):
     current_pass = source['Current Pass']
     return_code = None
 
-    # Set pass options
-    if current_pass == 'Pass 1':
-        settings.extend(['--no-trim', '--no-scrape'])
-    elif current_pass == 'Pass 2':
-        # Allow trimming
-        settings.append('--no-scrape')
-    elif current_pass == 'Pass 3':
-        # Allow trimming and scraping
-        pass
-    elif current_pass == 'Done':
+    if current_pass == 'Done':
         clear_screen()
         print_warning('Recovery already completed?')
         pause('Press Enter to return to main menu...')
         return
-    else:
-        raise GenericError("This shouldn't happen?")
 
     # Set device(s) to clone/image
     source[current_pass]['Status'] = 'Working'
@@ -803,6 +800,14 @@ def run_ddrescue(source, dest, settings):
             cmd = [
                 'ddrescue', *settings, s_dev['Dev Path'],
                 s_dev['Dest Paths']['Image'], s_dev['Dest Paths']['Map']]
+        if current_pass == 'Pass 1':
+            cmd.extend(['--no-trim', '--no-scrape'])
+        elif current_pass == 'Pass 2':
+            # Allow trimming
+            cmd.append('--no-scrape')
+        elif current_pass == 'Pass 3':
+            # Allow trimming and scraping
+            pass
 
         # Start ddrescue
         try:
@@ -813,7 +818,9 @@ def run_ddrescue(source, dest, settings):
             # ddrescue_proc = popen_program(cmd)
             while True:
                 try:
-                    ddrescue_proc.wait(timeout=30)
+                    ddrescue_proc.wait(timeout=10)
+                    sleep(2)
+                    update_progress(source)
                     break
                 except subprocess.TimeoutExpired:
                     update_progress(source)
@@ -832,8 +839,7 @@ def run_ddrescue(source, dest, settings):
             print_error('Error(s) encountered, see message above.')
             break
 
-    # Cleanup
-    update_progress(source, end_run=True)
+    # Done
     if str(return_code) != '0':
         # Pause on errors
         pause('Press Enter to return to main menu... ')
@@ -1066,7 +1072,7 @@ def tmux_splitw(*args):
 
 
 def update_progress(source, end_run=False):
-    """Update progress file."""
+    """Update progress for source dev(s) and update status pane file."""
     current_pass = source['Current Pass']
     pass_complete_for_all_devs = True
     total_recovery = True
@@ -1084,16 +1090,6 @@ def update_progress(source, end_run=False):
         next_pass = 'Pass {}'.format(next_pass_num)
     else:
         next_pass = 'Done'
-
-    if 'Progress Out' not in source:
-        source['Progress Out'] = '{}/progress.out'.format(
-            global_vars['LogDir'])
-    output = []
-    if source['Type'] == 'Clone':
-        output.append('   {BLUE}Cloning Status{CLEAR}'.format(**COLORS))
-    else:
-        output.append('   {BLUE}Imaging Status{CLEAR}'.format(**COLORS))
-    output.append('─────────────────────')
 
     # Update children progress
     for child in source['Children']:
@@ -1129,17 +1125,18 @@ def update_progress(source, end_run=False):
     elif os.path.exists(source['Dest Paths']['Map']):
         # Cloning/Imaging whole device
         map_data = read_map_file(source['Dest Paths']['Map'])
-        source[current_pass]['Done'] = map_data['pass completed']
-        source[current_pass]['Status'] = map_data['rescued']
+        if current_pass != 'Done':
+            source[current_pass]['Done'] = map_data['pass completed']
+            source[current_pass]['Status'] = map_data['rescued']
+            try:
+                source[current_pass]['Min Status'] = min(
+                    source[current_pass]['Min Status'],
+                    source[current_pass]['Status'])
+            except TypeError:
+                # Force 0% to disable auto-continue
+                source[current_pass]['Min Status'] = 0
+            pass_complete_for_all_devs &= source[current_pass]['Done']
         source['Recovered Size'] = map_data['rescued']/100 * source['Size']
-        try:
-            source[current_pass]['Min Status'] = min(
-                source[current_pass]['Min Status'],
-                source[current_pass]['Status'])
-        except TypeError:
-            # Force 0% to disable auto-continue
-            source[current_pass]['Min Status'] = 0
-        pass_complete_for_all_devs &= source[current_pass]['Done']
         total_recovery &= map_data['full recovery']
     else:
         # Cloning/Imaging whole device and map missing
@@ -1161,7 +1158,30 @@ def update_progress(source, end_run=False):
         elif pass_complete_for_all_devs:
             # Ready for next pass?
             source['Current Pass'] = next_pass
-            source[current_pass]['Done'] = True
+            if current_pass != 'Done':
+                source[current_pass]['Done'] = True
+
+    # Start building output lines
+    if 'Progress Out' not in source:
+        source['Progress Out'] = '{}/progress.out'.format(
+            global_vars['LogDir'])
+    output = []
+    if source['Type'] == 'Clone':
+        output.append('   {BLUE}Cloning Status{CLEAR}'.format(**COLORS))
+    else:
+        output.append('   {BLUE}Imaging Status{CLEAR}'.format(**COLORS))
+    output.append('─────────────────────')
+
+    # Overall progress
+    recovered_p = (source['Recovered Size'] / source['Total Size']) * 100
+    recovered_s = human_readable_size(source['Recovered Size'])
+    output.append('{BLUE}Overall Progress{CLEAR}'.format(**COLORS))
+    output.append('Recovered:{s_color}{recovered_p:>9.2f} %{CLEAR}'.format(
+        s_color=get_status_color(recovered_p),
+        recovered_p=recovered_p,
+        **COLORS))
+    output.append('{:>21}'.format(recovered_s))
+    output.append('─────────────────────')
 
     # Main device
     if source['Type'] == 'Clone':
@@ -1207,6 +1227,9 @@ def update_progress(source, end_run=False):
                             s_color=get_status_color(child[p_num]['Status']),
                             s_display=s_display,
                             **COLORS))
+                p = (child.get('Recovered Size', 0) / child['Size']) * 100
+                output.append('Recovered:{s_color}{p:>9.2f} %{CLEAR}'.format(
+                        s_color=get_status_color(p), p=p, **COLORS))
                 output.append(' ')
         else:
             # Whole device
