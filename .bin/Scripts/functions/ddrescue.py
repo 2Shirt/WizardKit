@@ -21,11 +21,11 @@ DDRESCUE_SETTINGS = {
     '--data-preview': {'Enabled': True, 'Hidden': True},
     '--idirect': {'Enabled': True},
     '--odirect': {'Enabled': True},
-    '--max-read-rate': {'Enabled': False, 'Value': '4MiB'},
+    '--max-read-rate': {'Enabled': False, 'Value': '32MiB'},
     '--min-read-rate': {'Enabled': True, 'Value': '64KiB'},
     '--reopen-on-error': {'Enabled': True},
     '--retry-passes=': {'Enabled': True, 'Value': '0'},
-    '--test-mode=': {'Enabled': False, 'Value': 'some.map'},
+    '--test-mode=': {'Enabled': False, 'Value': 'test.map'},
     '--timeout=': {'Enabled': True, 'Value': '5m'},
     '-vvvv': {'Enabled': True, 'Hidden': True},
     }
@@ -256,6 +256,7 @@ def get_status_color(s, t_success=99, t_warn=90):
 def mark_all_passes_pending(source):
     """Mark all devs and passes as pending in preparation for retry."""
     source['Current Pass'] = 'Pass 1'
+    source['Started Recovery'] = False
     for p_num in ['Pass 1', 'Pass 2', 'Pass 3']:
         source[p_num]['Status'] = 'Pending'
         source[p_num]['Done'] = False
@@ -273,8 +274,9 @@ def menu_clone(source_path, dest_path):
     source['Pass 1'] = {'Status': 'Pending', 'Done': False}
     source['Pass 2'] = {'Status': 'Pending', 'Done': False}
     source['Pass 3'] = {'Status': 'Pending', 'Done': False}
-    source['Recovered Size'] = 0,
-    source['Total Size'] = 0,
+    source['Recovered Size'] = 0
+    source['Started Recovery'] = False
+    source['Total Size'] = 0
     source['Type'] = 'Clone'
     dest = select_device(
         'destination', dest_path,
@@ -283,9 +285,12 @@ def menu_clone(source_path, dest_path):
 
     # Show selection details
     show_selection_details(source, dest)
+
+    # Set status details
     set_dest_image_paths(source, dest)
-    check_dest_paths(source)
     get_recovery_scope_size(source)
+    check_dest_paths(source)
+    resume_from_map(source)
 
     # Confirm
     if not ask('Proceed with clone?'):
@@ -340,8 +345,9 @@ def menu_image(source_path, dest_path):
     source['Pass 1'] = {'Status': 'Pending', 'Done': False}
     source['Pass 2'] = {'Status': 'Pending', 'Done': False}
     source['Pass 3'] = {'Status': 'Pending', 'Done': False}
-    source['Recovered Size'] = 0,
-    source['Total Size'] = 0,
+    source['Recovered Size'] = 0
+    source['Started Recovery'] = False
+    source['Total Size'] = 0
     source['Type'] = 'Image'
     dest = select_dest_path(dest_path, skip_device=source['Details'])
     dest_safety_check(source, dest)
@@ -349,8 +355,9 @@ def menu_image(source_path, dest_path):
     # Select child device(s)
     source['Children'] = menu_select_children(source)
     set_dest_image_paths(source, dest)
-    check_dest_paths(source)
     get_recovery_scope_size(source)
+    check_dest_paths(source)
+    resume_from_map(source)
 
     # Show selection details
     show_selection_details(source, dest)
@@ -750,6 +757,84 @@ def read_map_file(map_path):
     return map_data
 
 
+def resume_from_map(source):
+    """Read map file(s) and set current progress to resume previous session."""
+    map_data_read = False
+    non_tried = 0
+    non_trimmed = 0
+    non_scraped = 0
+
+    # Read map data
+    if source['Type'] != 'Clone' and source['Children']:
+        # Imaging child device(s)
+        for child in source['Children']:
+            if os.path.exists(child['Dest Paths']['Map']):
+                map_data = read_map_file(child['Dest Paths']['Map'])
+                map_data_read = True
+                non_tried += map_data['non-tried']
+                non_trimmed += map_data['non-trimmed']
+                non_scraped += map_data['non-scraped']
+                child['Recovered Size'] = map_data['rescued']/100*child['Size']
+
+                # Get (dev) current pass
+                dev_current_pass = 1
+                if map_data['non-tried'] == 0:
+                    if map_data['non-trimmed'] > 0:
+                        dev_current_pass = 2
+                    elif map_data['non-scraped'] > 0:
+                        dev_current_pass = 3
+                    elif map_data['rescued'] == 100:
+                        dev_current_pass = 4
+
+                # Mark passes as skipped
+                for x in range(1, dev_current_pass):
+                    p_num = 'Pass {}'.format(x)
+                    child[p_num]['Done'] = True
+                    child[p_num]['Status'] = 'Skipped'
+
+            elif map_data_read:
+                # No map but we've already read at least one map, force pass 1
+                non_tried = 1
+    elif os.path.exists(source['Dest Paths']['Map']):
+        # Cloning or Imaging whole device
+        map_data = read_map_file(source['Dest Paths']['Map'])
+        map_data_read = True
+        non_tried += map_data['non-tried']
+        non_trimmed += map_data['non-trimmed']
+        non_scraped += map_data['non-scraped']
+
+    # Bail
+    if not map_data_read:
+        # No map data found, assuming fresh start
+        return
+
+    # Set current pass
+    if non_tried > 0:
+        current_pass = 'Pass 1'
+    elif non_trimmed > 0:
+        current_pass = 'Pass 2'
+        source['Pass 1']['Done'] = True
+        source['Pass 1']['Status'] = 'Skipped'
+    elif non_scraped > 0:
+        current_pass = 'Pass 3'
+        source['Pass 1']['Done'] = True
+        source['Pass 1']['Status'] = 'Skipped'
+        source['Pass 2']['Done'] = True
+        source['Pass 2']['Status'] = 'Skipped'
+    else:
+        source['Current Pass'] = 'Done'
+        update_progress(source, end_run=True)
+        return
+    source['Current Pass'] = current_pass
+
+    # Update current pass
+    if not source['Children']:
+        if os.path.exists(source['Dest Paths']['Map']):
+            map_data = read_map_file(source['Dest Paths']['Map'])
+            source[current_pass]['Done'] = map_data['pass completed']
+            source['Recovered Size'] = map_data['rescued']/100*source['Size']
+
+
 def run_ddrescue(source, dest, settings):
     """Run ddrescue pass."""
     current_pass = source['Current Pass']
@@ -763,6 +848,7 @@ def run_ddrescue(source, dest, settings):
 
     # Set device(s) to clone/image
     source[current_pass]['Status'] = 'Working'
+    source['Started Recovery'] = True
     source_devs = [source]
     if source['Children']:
         # Use only selected child devices
@@ -1093,13 +1179,16 @@ def update_progress(source, end_run=False):
 
     # Update children progress
     for child in source['Children']:
+        if current_pass == 'Done':
+            continue
         if os.path.exists(child['Dest Paths']['Map']):
             map_data = read_map_file(child['Dest Paths']['Map'])
             if child['Dev Path'] == source.get('Current Device', ''):
                 # Current child device
                 r_size = map_data['rescued']/100 * child['Size']
                 child[current_pass]['Done'] = map_data['pass completed']
-                child[current_pass]['Status'] = map_data['rescued']
+                if source['Started Recovery']:
+                    child[current_pass]['Status'] = map_data['rescued']
                 child['Recovered Size'] = r_size
 
             # All child devices
@@ -1127,7 +1216,8 @@ def update_progress(source, end_run=False):
         map_data = read_map_file(source['Dest Paths']['Map'])
         if current_pass != 'Done':
             source[current_pass]['Done'] = map_data['pass completed']
-            source[current_pass]['Status'] = map_data['rescued']
+            if source['Started Recovery']:
+                source[current_pass]['Status'] = map_data['rescued']
             try:
                 source[current_pass]['Min Status'] = min(
                     source[current_pass]['Min Status'],
