@@ -217,7 +217,7 @@ def get_simple_string(prompt='Enter string'):
     simple_string = None
     while simple_string is None:
         _input = input('{}: '.format(prompt))
-        if re.match(r'^(\w|-|_| )+$', _input, re.ASCII):
+        if re.match(r"^(\w|-| |\.|')+$", _input, re.ASCII):
             simple_string = _input.strip()
     return simple_string
 
