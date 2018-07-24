@@ -39,33 +39,75 @@ USAGE = """    {script_name} clone [source [destination]]
 # Clases
 class BlockPair():
     """Object to track data and methods together for source and dest."""
-    def __init__(self, source_path, dest_path, map_path, total_size):
+    def __init__(self, source_path, dest_path, map_path, mode, total_size):
         self.source_path = source_path
         self.dest_path = dest_path
         self.map_path = map_path
+        self.mode = mode
         self.pass_done = [False, False, False]
         self.rescued = 0
         self.total_size = total_size
         self.status = ['Pending', 'Pending', 'Pending']
+        if os.path.exists(self.map_path):
+            self.load_map_data()
 
-    def finish_pass(pass_num):
+    def finish_pass(self, pass_num):
         """Mark pass as done and check if 100% recovered."""
         if map_data['full recovery']:
             self.pass_done = [True, True, True]
-            self.recovered = self.total_size
+            self.rescued = self.total_size
             self.status[pass_num] = get_formatted_status(100)
+            # Mark future passes as Skipped
+            pass_num += 1
+            while pass_num <= 2
+                self.status[pass_num] = 'Skipped'
+                pass_num += 1
         else:
             self.pass_done[pass_num] = True
 
-    def get_pass_done(pass_num):
+    def get_pass_done(self, pass_num):
         """Return pass number's done state."""
         return self.pass_done[pass_num]
 
-    def get_rescued():
+    def get_rescued(self):
         """Return rescued size."""
         return self.rescued
 
-    def update_progress(pass_num):
+    def load_map_data(self):
+        """Load data from map file and set progress."""
+        map_data = read_map_file(self.map_path)
+        self.rescued = map_data['rescued'] * self.total_size
+        if map_data['full recovery']:
+            self.pass_done = [True, True, True]
+            self.rescued = self.total_size
+            self.status = ['Skipped', 'Skipped', 'Skipped']
+        elif map_data['non-tried'] > 0:
+            # Initial pass incomplete
+            pass
+        elif map_data['non-trimmed'] > 0:
+            self.pass_done[0] = True
+            self.status[0] = 'Skipped'
+        elif map_data['non-scraped'] > 0:
+            self.pass_done = [True, True, False]
+            self.status = ['Skipped', 'Skipped', 'Pending']
+
+    def self_check(self):
+        """Self check to abort on bad dest/map combinations."""
+        dest_exists = os.path.exists(self.dest_path)
+        map_exists = os.path.exists(self.map_path)
+        if self.mode == 'image':
+            if dest_exists and not map_exists:
+                raise GenericError(
+                    'Detected image "{}" but not the matching map'.format(
+                        self.dest_path))
+            elif not dest_exists and map_exists:
+                raise GenericError(
+                    'Detected map "{}" but not the matching image'.format(
+                        self.map_path))
+        elif not dest_exists:
+            raise Genericerror('Destination device missing')
+
+    def update_progress(self, pass_num):
         """Update progress using map file."""
         if os.path.exists(self.map_path):
             map_data = read_map_file(self.map_path)
@@ -83,16 +125,27 @@ class RecoveryState():
         self.finished = False
         self.mode = mode.lower()
         self.rescued = 0
+        self.resumed = False
         self.started = False
         self.total_size = 0
         if mode not in ('clone', 'image'):
             raise GenericError('Unsupported mode')
 
-    def add_block_pair(obj):
+    def add_block_pair(self, obj):
         """Append BlockPair object to internal list."""
+        obj.set_mode(self.mode)
         self.block_pairs.append(obj)
 
-    def set_pass_num():
+    def self_checks(self):
+        """Run self-checks for each BlockPair object."""
+        for bp in self.block_pairs:
+            try:
+                bp.self_check()
+            except GenericError as err:
+                print_error(err)
+                abort_ddrescue_tui()
+
+    def set_pass_num(self):
         """Set current pass based on all block-pair's progress."""
         self.current_pass = 0
         for pass_num in (2, 1, 0):
@@ -109,7 +162,7 @@ class RecoveryState():
                     self.finished = True
                 break
 
-    def update_progress():
+    def update_progress(self):
         """Update overall progress using block_pairs."""
         self.rescued = 0
         for bp in self.block_pairs:
