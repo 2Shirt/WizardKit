@@ -13,7 +13,6 @@ from functions.data import *
 from operator import itemgetter
 
 # STATIC VARIABLES
-RECOMMENDED_FSTYPES = ['ext3', 'ext4', 'xfs']
 AUTO_NEXT_PASS_1_THRESHOLD = 90
 AUTO_NEXT_PASS_2_THRESHOLD = 98
 DDRESCUE_SETTINGS = {
@@ -29,14 +28,96 @@ DDRESCUE_SETTINGS = {
     '--timeout=': {'Enabled': True, 'Value': '5m'},
     '-vvvv': {'Enabled': True, 'Hidden': True},
     }
-REGEX_MAP_DATA = re.compile(r'^\s*(?P<key>\S+):.*\(\s*(?P<value>\d+\.?\d*)%.*')
-REGEX_MAP_STATUS = re.compile(r'.*current status:\s+(?P<status>.*)')
-STATUS_COLOR_CLEAR = ('Pending',)
-STATUS_COLOR_YELLOW = ('Skipped', 'Unknown', 'Working')
+RECOMMENDED_FSTYPES = ['ext3', 'ext4', 'xfs']
+SIDE_PANE_WIDTH = 21
 USAGE = """    {script_name} clone [source [destination]]
     {script_name} image [source [destination]]
     (e.g. {script_name} clone /dev/sda /dev/sdb)
 """
+
+
+# Clases
+class BlockPair():
+    """Object to track data and methods together for source and dest."""
+    def __init__(self, source_path, dest_path, map_path, total_size):
+        self.source_path = source_path
+        self.dest_path = dest_path
+        self.map_path = map_path
+        self.pass_done = [False, False, False]
+        self.rescued = 0
+        self.total_size = total_size
+        self.status = ['Pending', 'Pending', 'Pending']
+
+    def finish_pass(pass_num):
+        """Mark pass as done and check if 100% recovered."""
+        if map_data['full recovery']:
+            self.pass_done = [True, True, True]
+            self.recovered = self.total_size
+            self.status[pass_num] = get_formatted_status(100)
+        else:
+            self.pass_done[pass_num] = True
+
+    def get_pass_done(pass_num):
+        """Return pass number's done state."""
+        return self.pass_done[pass_num]
+
+    def get_rescued():
+        """Return rescued size."""
+        return self.rescued
+
+    def update_progress(pass_num):
+        """Update progress using map file."""
+        if os.path.exists(self.map_path):
+            map_data = read_map_file(self.map_path)
+            self.rescued = map_data['rescued'] * self.total_size
+            self.status[pass_num] = get_formatted_status(
+                label='Pass {}'.format(pass_num),
+                data=(self.rescued/self.total_size)*100)
+
+
+class RecoveryState():
+    """Object to track BlockPair objects and overall state."""
+    def __init__(self, mode):
+        self.block_pairs = []
+        self.current_pass = 0
+        self.finished = False
+        self.mode = mode.lower()
+        self.rescued = 0
+        self.started = False
+        self.total_size = 0
+        if mode not in ('clone', 'image'):
+            raise GenericError('Unsupported mode')
+
+    def add_block_pair(obj):
+        """Append BlockPair object to internal list."""
+        self.block_pairs.append(obj)
+
+    def set_pass_num():
+        """Set current pass based on all block-pair's progress."""
+        self.current_pass = 0
+        for pass_num in (2, 1, 0):
+            # Iterate backwards through passes
+            pass_done = True
+            for bp in self.block_pairs:
+                pass_done &= bp.get_pass_done(pass_num)
+            if pass_done:
+                # All block-pairs reported being done
+                # Set to next pass, unless we're on the last pass (2)
+                self.current_pass = min(2, pass_num + 1)
+                if pass_num == 2:
+                    # Also mark overall recovery as finished if on last pass
+                    self.finished = True
+                break
+
+    def update_progress():
+        """Update overall progress using block_pairs."""
+        self.rescued = 0
+        for bp in self.block_pairs:
+            self.rescued += bp.get_rescued()
+        self.status_percent = get_formatted_status(
+            label='Recovered:', data=(self.rescued/self.total_size)*100)
+        self.status_amount = get_formatted_status(
+            label='', data=human_readable_size(self.rescued))
 
 
 # Functions
@@ -58,7 +139,7 @@ def build_outer_panes(source, dest):
             **COLORS))
     tmux_splitw(
         '-t', source_pane,
-        '-dhl', '21',
+        '-dhl', '{}'.format(SIDE_PANE_WIDTH),
         'echo-and-hold "{BLUE}Started{CLEAR}\n{text}"'.format(
             text=time.strftime("%Y-%m-%d %H:%M %Z"),
             **COLORS))
@@ -72,7 +153,7 @@ def build_outer_panes(source, dest):
     # Side pane
     update_progress(source)
     tmux_splitw(
-        '-dhl', '21',
+        '-dhl', '{}'.format(SIDE_PANE_WIDTH),
         'watch', '--color', '--no-title', '--interval', '1',
         'cat', source['Progress Out'])
 
@@ -217,8 +298,13 @@ def get_device_size_in_bytes(s):
     return convert_to_bytes(s)
 
 
+def get_formatted_status(label, data):
+    """TODO"""
+    # TODO
+    pass
 def get_recovery_scope_size(source):
     """Calculate total size of selected dev(s)."""
+    # TODO function deprecated
     source['Total Size'] = 0
     if source['Children']:
         for child in source['Children']:
@@ -240,9 +326,9 @@ def get_status_color(s, t_success=99, t_warn=90):
         # Status is either in lists below or will default to red
         pass
 
-    if s in STATUS_COLOR_CLEAR:
+    if s in ('Pending',):
         color = COLORS['CLEAR']
-    elif s in STATUS_COLOR_YELLOW:
+    elif s in ('Skipped', 'Unknown', 'Working'):
         color = COLORS['YELLOW']
     elif p_recovered >= t_success:
         color = COLORS['GREEN']
@@ -727,22 +813,19 @@ def menu_settings(source):
 def read_map_file(map_path):
     """Read map file with ddrescuelog and return data as dict."""
     map_data = {}
-    try:
-        result = run_program(['ddrescuelog', '-t', map_path])
-    except subprocess.CalledProcessError:
-        print_error('Failed to read map data')
-        abort_ddrescue_tui()
+    result = run_program(['ddrescuelog', '-t', map_path])
 
     # Parse output
     for line in result.stdout.decode().splitlines():
-        m = REGEX_MAP_DATA.match(line.strip())
+        m = re.match(
+            r'^\s*(?P<key>\S+):.*\(\s*(?P<value>\d+\.?\d*)%.*', line.strip())
         if m:
             try:
                 map_data[m.group('key')] = float(m.group('value'))
             except ValueError:
                 print_error('Failed to read map data')
                 abort_ddrescue_tui()
-        m = REGEX_MAP_STATUS.match(line.strip())
+        m = re.match(r'.*current status:\s+(?P<status>.*)', line.strip())
         if m:
             map_data['pass completed'] = bool(m.group('status') == 'finished')
 
@@ -759,6 +842,7 @@ def read_map_file(map_path):
 
 def resume_from_map(source):
     """Read map file(s) and set current progress to resume previous session."""
+    # TODO function deprecated
     map_data_read = False
     non_tried = 0
     non_trimmed = 0
@@ -961,7 +1045,8 @@ def select_dest_path(provided_path=None, skip_device={}):
 
     # Set display name
     result = run_program(['tput', 'cols'])
-    width = int((int(result.stdout.decode().strip()) - 21) / 2) - 2
+    width = int(
+        (int(result.stdout.decode().strip()) - SIDE_PANE_WIDTH) / 2) - 2
     if len(dest['Path']) > width:
         dest['Display Name'] = '...{}'.format(dest['Path'][-(width-3):])
     else:
@@ -1019,7 +1104,8 @@ def select_device(description='device', provided_path=None,
         dev['Display Name'] = '{name} {size} {model}'.format(
             **dev['Details'])
     result = run_program(['tput', 'cols'])
-    width = int((int(result.stdout.decode().strip()) - 21) / 2) - 2
+    width = int(
+        (int(result.stdout.decode().strip()) - SIDE_PANE_WIDTH) / 2) - 2
     if len(dev['Display Name']) > width:
         if dev['Is Image']:
             dev['Display Name'] = '...{}'.format(
@@ -1035,6 +1121,7 @@ def select_device(description='device', provided_path=None,
 
 def set_dest_image_paths(source, dest):
     """Set destination image path for source and any child devices."""
+    # TODO function deprecated
     if source['Type'] == 'Clone':
         base = '{pwd}/Clone_{size}_{model}'.format(
             pwd=os.path.realpath(global_vars['Env']['PWD']),
@@ -1270,7 +1357,8 @@ def update_progress(source, end_run=False):
         s_color=get_status_color(recovered_p),
         recovered_p=recovered_p,
         **COLORS))
-    output.append('{:>21}'.format(recovered_s))
+    output.append('{recovered_s:>{width}}'.format(
+        recovered_s=recovered_s, width=SIDE_PANE_WIDTH))
     output.append('─────────────────────')
 
     # Main device
