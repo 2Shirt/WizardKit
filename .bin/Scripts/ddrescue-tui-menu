@@ -16,9 +16,29 @@ if __name__ == '__main__':
     try:
         # Prep
         clear_screen()
+        args = list(sys.argv)
+        run_mode = ''
+        source_path = None
+        dest_path = None
 
-        # Show menu
-        menu_ddrescue(*sys.argv)
+        # Parse args
+        try:
+            script_name = os.path.basename(args.pop(0))
+            run_mode = str(args.pop(0)).lower()
+            source_path = args.pop(0)
+            dest_path = args.pop(0)
+        except IndexError:
+            # We'll set the missing paths later
+            pass
+
+        # Show usage?
+        if run_mode in ('clone', 'image'):
+            menu_ddrescue(source_path, dest_path, run_mode)
+        else:
+            if not re.search(r'(^$|help|-h|\?)', run_mode, re.IGNORECASE):
+                print_error('Invalid mode.')
+            show_usage(script_name)
+        exit_script()
         
         # Done
         print_standard('\nDone.')

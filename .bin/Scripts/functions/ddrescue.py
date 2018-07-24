@@ -59,7 +59,7 @@ class BlockPair():
             self.status[pass_num] = get_formatted_status(100)
             # Mark future passes as Skipped
             pass_num += 1
-            while pass_num <= 2
+            while pass_num <= 2:
                 self.status[pass_num] = 'Skipped'
                 pass_num += 1
         else:
@@ -446,34 +446,10 @@ def menu_clone(source_path, dest_path):
     exit_script()
 
 
-def menu_ddrescue(*args):
-    """Main ddrescue loop/menu."""
-    args = list(args)
-    script_name = os.path.basename(args.pop(0))
-    run_mode = ''
-    source_path = None
-    dest_path = None
-
-    # Parse args
-    try:
-        run_mode = args.pop(0)
-        source_path = args.pop(0)
-        dest_path = args.pop(0)
-    except IndexError:
-        # We'll set the missing paths later
-        pass
-
-    # Show proper menu or exit
-    if run_mode == 'clone':
-        menu_clone(source_path, dest_path)
-    elif run_mode == 'image':
-        menu_image(source_path, dest_path)
-    else:
-        if not re.search(r'(^$|help|-h|\?)', run_mode, re.IGNORECASE):
-            print_error('Invalid mode.')
-        show_usage(script_name)
-        exit_script()
-
+def menu_ddrescue(source_path, dest_path, run_mode):
+    """Main ddrescue menu."""
+    # TODO Merge menu_clone and menu_image here
+    pass
 
 def menu_image(source_path, dest_path):
     """ddrescue imaging menu."""
