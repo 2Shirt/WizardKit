@@ -39,15 +39,29 @@ USAGE = """    {script_name} clone [source [destination]]
 # Clases
 class BlockPair():
     """Object to track data and methods together for source and dest."""
-    def __init__(self, source_path, dest_path, map_path, mode, total_size):
-        self.source_path = source_path
-        self.dest_path = dest_path
-        self.map_path = map_path
+    def __init__(self, source, dest, mode):
+        self.source_path = source.path
         self.mode = mode
+        self.name = source.name
         self.pass_done = [False, False, False]
         self.rescued = 0
-        self.total_size = total_size
         self.status = ['Pending', 'Pending', 'Pending']
+        self.total_size = source.size
+        # Set dest paths
+        if self.mode == 'clone':
+            # Cloning
+            self.dest_path = dest.path
+            self.map_path = '{pwd}/Clone_{prefix}.map'.format(
+                pwd=os.path.realpath(global_vars['Env']['PWD']),
+                prefix=source.prefix)
+        else:
+            # Imaging
+            self.dest_path = '{path}/{prefix}.dd'.format(
+                path=dest.path,
+                prefix=source.prefix)
+            self.map_path = '{path}/{prefix}.map'.format(
+                path=dest.path,
+                prefix=source.prefix)
         if os.path.exists(self.map_path):
             self.load_map_data()
 
@@ -68,10 +82,6 @@ class BlockPair():
     def get_pass_done(self, pass_num):
         """Return pass number's done state."""
         return self.pass_done[pass_num]
-
-    def get_rescued(self):
-        """Return rescued size."""
-        return self.rescued
 
     def load_map_data(self):
         """Load data from map file and set progress."""
@@ -105,7 +115,7 @@ class BlockPair():
                     'Detected map "{}" but not the matching image'.format(
                         self.map_path))
         elif not dest_exists:
-            raise Genericerror('Destination device missing')
+            raise GenericError('Destination device missing')
 
     def update_progress(self, pass_num):
         """Update progress using map file."""
@@ -131,10 +141,48 @@ class RecoveryState():
         if mode not in ('clone', 'image'):
             raise GenericError('Unsupported mode')
 
-    def add_block_pair(self, obj):
-        """Append BlockPair object to internal list."""
-        obj.set_mode(self.mode)
-        self.block_pairs.append(obj)
+    def add_block_pair(self, source, dest):
+        """Run safety checks and append new BlockPair to internal list."""
+        if self.mode == 'clone':
+            # Cloning safety checks
+            if source.is_dir():
+                raise GenericAbort('Invalid source "{}"'.format(
+                    source.path))
+            elif not dest.is_dev():
+                raise GenericAbort('Invalid destination "{}"'.format(
+                    dest.path))
+            elif source.size > dest.size:
+                raise GenericAbort(
+                    'Destination is too small, refusing to continue.')
+        else:
+            # Imaging safety checks
+            if not source.is_dev():
+                raise GenericAbort('Invalid source "{}"'.format(
+                    source.path))
+            elif not dest.is_dir():
+                raise GenericAbort('Invalid destination "{}"'.format(
+                    dest.path))
+            elif (source.size * 1.2) > dest.size:
+                raise GenericAbort(
+                    'Destination is too small, refusing to continue.')
+            elif dest.fstype.lower() not in RECOMMENDED_FSTYPES:
+                print_error(
+                    'Destination filesystem "{}" is not recommended.'.format(
+                        dest.fstype.upper()))
+                print_info('Recommended types are: {}'.format(
+                    ' / '.join(RECOMMENDED_FSTYPES).upper()))
+                print_standard(' ')
+                if not ask('Proceed anyways? (Strongly discouraged)'):
+                    raise GenericAbort('Aborted.')
+            elif not is_writable_dir(dest):
+                raise GenericAbort(
+                    'Destination is not writable, refusing to continue.')
+            elif not is_writable_filesystem(dest):
+                raise GenericAbort(
+                    'Destination is mounted read-only, refusing to continue.')
+        
+        # Safety checks passed
+        self.block_pairs.append(BlockPair(source, dest))
 
     def self_checks(self):
         """Run self-checks for each BlockPair object."""
@@ -143,7 +191,7 @@ class RecoveryState():
                 bp.self_check()
             except GenericError as err:
                 print_error(err)
-                abort_ddrescue_tui()
+                raise GenericAbort('Aborted.')
 
     def set_pass_num(self):
         """Set current pass based on all block-pair's progress."""
@@ -165,8 +213,10 @@ class RecoveryState():
     def update_progress(self):
         """Update overall progress using block_pairs."""
         self.rescued = 0
+        self.total_size = 0
         for bp in self.block_pairs:
-            self.rescued += bp.get_rescued()
+            self.rescued += bp.rescued
+            self.total_size += bp.size
         self.status_percent = get_formatted_status(
             label='Recovered:', data=(self.rescued/self.total_size)*100)
         self.status_amount = get_formatted_status(
@@ -176,24 +226,24 @@ class RecoveryState():
 class BaseObj():
     """Base object used by DevObj, DirObj, and ImageObj."""
     def __init__(self, path):
-        self.type = 'Base'
+        self.type = 'base'
         self.path = os.path.realpath(path)
         self.set_details()
 
-    def is_dev():
-        return self.type == 'Dev'
+    def is_dev(self):
+        return self.type == 'dev'
 
-    def is_dir():
-        return self.type == 'Dir'
+    def is_dir(self):
+        return self.type == 'dir'
 
-    def is_image():
-        return self.type == 'Image'
+    def is_image(self):
+        return self.type == 'image'
 
-    def self_check():
+    def self_check(self):
         pass
 
     def set_details(self):
-        pass
+        self.details = {}
 
 
 class DevObj(BaseObj):
@@ -205,11 +255,32 @@ class DevObj(BaseObj):
 
     def set_details(self):
         """Set details via lsblk."""
-        self.type = 'Dev'
+        self.type = 'dev'
         self.details = get_device_details(self.path)
         self.name = self.details.get('name', 'UNKNOWN')
+        self.model = self.details.get('model', 'UNKNOWN')
+        self.model_size = self.details.get('size', 'UNKNOWN')
         self.size = get_size_in_bytes(self.details.get('size', 'UNKNOWN'))
         self.report = get_device_report(self.path)
+        self.parent = self.details.get('pkname', '')
+        self.label = self.details.get('label', '')
+        if not self.label:
+            # Force empty string in case it's set to None
+            self.label = ''
+        self.update_filename_prefix()
+
+    def update_filename_prefix(self):
+        """Set filename prefix based on details."""
+        self.prefix = '{m_size}_{model}'.format(
+            m_size=self.model_size,
+            model=self.model)
+        if self.parent:
+            # Add child device details
+            self.prefix += '_{c_num}_{c_size}{sep}{c_label}'.format(
+                c_num=self.name.replace(self.parent, ''),
+                c_size=self.details.get('size', 'UNKNOWN'),
+                sep='_' if self.label else '',
+                c_label=self.label)
 
 
 class DirObj(BaseObj):
@@ -220,8 +291,9 @@ class DirObj(BaseObj):
 
     def set_details(self):
         """Set details via findmnt."""
-        self.type = 'Dir'
+        self.type = 'dir'
         self.details = get_dir_details(self.path)
+        self.fstype = self.details.get('fstype', 'UNKNOWN')
         self.name = self.path
         self.size = get_size_in_bytes(self.details.get('avail', 'UNKNOWN'))
         self.report = get_dir_report(self.path)
@@ -234,14 +306,16 @@ class ImageObj(BaseObj):
             raise GenericError('TODO')
 
     def set_details(self):
-        """Setup loopback device and set details via lsblk."""
-        self.type = 'Image'
+        """Setup loopback device, set details via lsblk, then detach device."""
+        self.type = 'image'
         self.loop_dev = setup_loopback_device(self.path)
-        self.details = get_image_details(self.loopdev)
+        self.details = get_device_details(self.loopdev)
+        self.details['model'] = 'ImageFile'
         self.name = self.path[self.path.rfind('/')+1:]
         self.size = get_size_in_bytes(self.details.get('size', 'UNKNOWN'))
-        self.report = get_image_report(self.loop_dev)
+        self.report = get_device_report(self.loop_dev)
         self.report = self.report.replace(self.loop_dev, '{Img}')
+        run_program(['losetup', '--detach', loop_path], check=False)
 
 
 # Functions
@@ -284,9 +358,9 @@ def build_outer_panes(source, dest):
 
 def check_dest_paths(source):
     """Check for image and/or map file and alert user about details."""
-    dd_image_exists = os.path.exists(source['Dest Paths']['Image'])
+    dd_image_exists = os.path.exists(source['Dest Paths']['image'])
     map_exists = os.path.exists(source['Dest Paths']['Map'])
-    if 'Clone' in source['Dest Paths']['Map']:
+    if 'clone' in source['Dest Paths']['Map']:
         if map_exists:
             # We're cloning and a matching map file was detected
             if not ask('Matching map file detected, resume recovery?'):
@@ -299,11 +373,11 @@ def check_dest_paths(source):
             source_devs = source['Children']
         for dev in source_devs:
             # We're imaging
-            dd_image_exists = os.path.exists(dev['Dest Paths']['Image'])
+            dd_image_exists = os.path.exists(dev['Dest Paths']['image'])
             map_exists = os.path.exists(dev['Dest Paths']['Map'])
             if dd_image_exists and not map_exists:
                 # Refuce to resume without map file
-                i = dev['Dest Paths']['Image']
+                i = dev['Dest Paths']['image']
                 i = i[i.rfind('/')+1:]
                 print_error(
                     'Detected image "{}" but not the matching map'.format(i))
@@ -350,7 +424,7 @@ def dest_safety_check(source, dest):
     # Convert to bytes and compare size
     source_size = get_size_in_bytes(source_size)
     dest_size = get_size_in_bytes(dest_size)
-    if source['Type'] == 'Image' and dest_size < (source_size * 1.2):
+    if source['Type'] == 'image' and dest_size < (source_size * 1.2):
         # Imaging: ensure 120% of source size is available
         print_error(
             'Not enough free space on destination, refusing to continue.')
@@ -359,7 +433,7 @@ def dest_safety_check(source, dest):
                 d_size=human_readable_size(dest_size),
                 s_size=human_readable_size(source_size * 1.2)))
         abort_ddrescue_tui()
-    elif source['Type'] == 'Clone' and source_size > dest_size:
+    elif source['Type'] == 'clone' and source_size > dest_size:
         # Cloning: ensure dest >= size
         print_error('Destination is too small, refusing to continue.')
         print_standard(
@@ -369,7 +443,7 @@ def dest_safety_check(source, dest):
         abort_ddrescue_tui()
 
     # Imaging specific checks
-    if source['Type'] == 'Image':
+    if source['Type'] == 'image':
         # Filesystem Type
         if dest['Filesystem'] not in RECOMMENDED_FSTYPES:
             print_error(
@@ -531,6 +605,21 @@ def get_status_color(s, t_success=99, t_warn=90):
     return color
 
 
+def is_writable_dir(dir_obj):
+    """Check if we have read-write-execute permissions, returns bool."""
+    is_ok = True
+    path_st_mode = os.stat(dir_obj.path).st_mode
+    is_ok == is_ok and path_st_mode & stat.S_IRUSR
+    is_ok == is_ok and path_st_mode & stat.S_IWUSR
+    is_ok == is_ok and path_st_mode & stat.S_IXUSR
+    return is_ok
+
+
+def is_writable_filesystem(dir_obj):
+    """Check if filesystem is mounted read-write, returns bool."""
+    return 'rw' in dir_obj.details.get('options', '')
+
+
 def mark_all_passes_pending(source):
     """Mark all devs and passes as pending in preparation for retry."""
     source['Current Pass'] = 'Pass 1'
@@ -555,7 +644,7 @@ def menu_clone(source_path, dest_path):
     source['Recovered Size'] = 0
     source['Started Recovery'] = False
     source['Total Size'] = 0
-    source['Type'] = 'Clone'
+    source['Type'] = 'clone'
     dest = select_device(
         'destination', dest_path,
         skip_device=source['Details'], allow_image_file=False)
@@ -586,9 +675,45 @@ def menu_clone(source_path, dest_path):
 
 
 def menu_ddrescue(source_path, dest_path, run_mode):
-    """Main ddrescue menu."""
-    # TODO Merge menu_clone and menu_image here
-    pass
+    """ddrescue menu."""
+    source = None
+    dest = None
+    if source_path:
+        source = create_path_obj(source_path)
+    if dest_path:
+        dest = create_path_obj(dest_path)
+
+    # Show selection menus (if necessary)
+    if not source:
+        source = select_device('source')
+    if not dest:
+        if run_mode == 'clone':
+            dest = select_device('destination', skip_device=source)
+        else:
+            dest = select_directory()
+
+    # Build BlockPairs
+    state = RecoveryState(run_mode)
+    if run_mode == 'clone':
+        state.add_block_pair(source, dest)
+    else:
+        # TODO select dev or child dev(s)
+
+    # Confirmations
+    # TODO Show selection details
+    # TODO resume?
+    # TODO Proceed? (maybe merge with resume? prompt?)
+    # TODO double-confirm for clones for safety
+
+    # Main menu
+    build_outer_panes(source, dest)
+    # TODO Fix
+    #menu_main(source, dest)
+    pause('Fake Main Menu... ')
+
+    # Done
+    run_program(['tmux', 'kill-window'])
+    exit_script()
 
 def menu_image(source_path, dest_path):
     """ddrescue imaging menu."""
@@ -602,7 +727,7 @@ def menu_image(source_path, dest_path):
     source['Recovered Size'] = 0
     source['Started Recovery'] = False
     source['Total Size'] = 0
-    source['Type'] = 'Image'
+    source['Type'] = 'image'
     dest = select_dest_path(dest_path, skip_device=source['Details'])
     dest_safety_check(source, dest)
 
@@ -1017,7 +1142,7 @@ def resume_from_map(source):
     non_scraped = 0
 
     # Read map data
-    if source['Type'] != 'Clone' and source['Children']:
+    if source['Type'] != 'clone' and source['Children']:
         # Imaging child device(s)
         for child in source['Children']:
             if os.path.exists(child['Dest Paths']['Map']):
@@ -1130,14 +1255,14 @@ def run_ddrescue(source, dest, settings):
         update_progress(source)
 
         # Set ddrescue cmd
-        if source['Type'] == 'Clone':
+        if source['Type'] == 'clone':
             cmd = [
                 'ddrescue', *settings, '--force', s_dev['Dev Path'],
                 dest['Dev Path'], s_dev['Dest Paths']['Map']]
         else:
             cmd = [
                 'ddrescue', *settings, s_dev['Dev Path'],
-                s_dev['Dest Paths']['Image'], s_dev['Dest Paths']['Map']]
+                s_dev['Dest Paths']['image'], s_dev['Dest Paths']['Map']]
         if current_pass == 'Pass 1':
             cmd.extend(['--no-trim', '--no-scrape'])
         elif current_pass == 'Pass 2':
@@ -1290,7 +1415,7 @@ def select_device(description='device', provided_path=None,
 def set_dest_image_paths(source, dest):
     """Set destination image path for source and any child devices."""
     # TODO function deprecated
-    if source['Type'] == 'Clone':
+    if source['Type'] == 'clone':
         base = '{pwd}/Clone_{size}_{model}'.format(
             pwd=os.path.realpath(global_vars['Env']['PWD']),
             size=source['Details']['size'],
@@ -1301,7 +1426,7 @@ def set_dest_image_paths(source, dest):
             model=source['Details'].get('model', 'Unknown'),
             **dest)
     source['Dest Paths'] = {
-        'Image': '{}.dd'.format(base),
+        'image': '{}.dd'.format(base),
         'Map': '{}.map'.format(base)}
 
     # Child devices
@@ -1318,7 +1443,7 @@ def set_dest_image_paths(source, dest):
             p_label=p_label,
             **dest)
         child['Dest Paths'] = {
-            'Image': '{}.dd'.format(base),
+            'image': '{}.dd'.format(base),
             'Map': '{}.map'.format(base)}
 
 
@@ -1386,7 +1511,7 @@ def show_selection_details(source, dest):
     print_standard(' ')
 
     # Destination
-    if source['Type'] == 'Clone':
+    if source['Type'] == 'clone':
         print_success('Destination device ', end='')
         print_error('(ALL DATA WILL BE DELETED)', timestamp=False)
         show_device_details(dest['Dev Path'])
@@ -1511,7 +1636,7 @@ def update_progress(source, end_run=False):
         source['Progress Out'] = '{}/progress.out'.format(
             global_vars['LogDir'])
     output = []
-    if source['Type'] == 'Clone':
+    if source['Type'] == 'clone':
         output.append('   {BLUE}Cloning Status{CLEAR}'.format(**COLORS))
     else:
         output.append('   {BLUE}Imaging Status{CLEAR}'.format(**COLORS))
@@ -1530,7 +1655,7 @@ def update_progress(source, end_run=False):
     output.append('─────────────────────')
 
     # Main device
-    if source['Type'] == 'Clone':
+    if source['Type'] == 'clone':
         output.append('{BLUE}{dev}{CLEAR}'.format(
             dev='Image File' if source['Is Image'] else source['Dev Path'],
             **COLORS))
