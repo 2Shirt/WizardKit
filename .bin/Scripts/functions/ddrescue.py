@@ -206,7 +206,10 @@ class DevObj(BaseObj):
     def set_details(self):
         """Set details via lsblk."""
         self.type = 'Dev'
-        # TODO Run lsblk
+        self.details = get_device_details(self.path)
+        self.name = self.details.get('name', 'UNKNOWN')
+        self.size = get_size_in_bytes(self.details.get('size', 'UNKNOWN'))
+        self.report = get_device_report(self.path)
 
 
 class DirObj(BaseObj):
@@ -218,7 +221,10 @@ class DirObj(BaseObj):
     def set_details(self):
         """Set details via findmnt."""
         self.type = 'Dir'
-        # TODO Run findmnt
+        self.details = get_dir_details(self.path)
+        self.name = self.path
+        self.size = get_size_in_bytes(self.details.get('avail', 'UNKNOWN'))
+        self.report = get_dir_report(self.path)
 
 
 class ImageObj(BaseObj):
@@ -230,9 +236,12 @@ class ImageObj(BaseObj):
     def set_details(self):
         """Setup loopback device and set details via lsblk."""
         self.type = 'Image'
-        # TODO Run losetup
-        # TODO Run lsblk
-        # TODO Remove loopback device
+        self.loop_dev = setup_loopback_device(self.path)
+        self.details = get_image_details(self.loopdev)
+        self.name = self.path[self.path.rfind('/')+1:]
+        self.size = get_size_in_bytes(self.details.get('size', 'UNKNOWN'))
+        self.report = get_image_report(self.loop_dev)
+        self.report = self.report.replace(self.loop_dev, '{Img}')
 
 
 # Functions
@@ -333,28 +342,14 @@ def dest_safety_check(source, dest):
     """Verify the destination is appropriate for the source."""
     source_size = source['Details']['size']
     if dest['Is Dir']:
-        cmd = [
-            'findmnt', '-J',
-            '-o', 'SOURCE,TARGET,FSTYPE,OPTIONS,SIZE,AVAIL,USED',
-            '-T', dest['Path']]
-        result = run_program(cmd)
-        try:
-            json_data = json.loads(result.stdout.decode())
-        except Exception:
-            # Welp, let's abort
-            print_error('Failed to verify destination usability.')
-            abort_ddrescue_tui()
-        else:
-            dest_size = json_data['filesystems'][0]['avail']
-            dest['Free Space'] = dest_size
-            dest['Filesystem'] = json_data['filesystems'][0]['fstype']
-            dest['Mount options'] = json_data['filesystems'][0]['options']
+        # MOVED
+        pass
     else:
         dest_size = dest['Details']['size']
 
     # Convert to bytes and compare size
-    source_size = get_device_size_in_bytes(source_size)
-    dest_size = get_device_size_in_bytes(dest_size)
+    source_size = get_size_in_bytes(source_size)
+    dest_size = get_size_in_bytes(dest_size)
     if source['Type'] == 'Image' and dest_size < (source_size * 1.2):
         # Imaging: ensure 120% of source size is available
         print_error(
@@ -413,15 +408,75 @@ def get_device_details(dev_path):
             dev_path)
         result = run_program(cmd)
     except CalledProcessError:
-        print_error('Failed to get device details for {}'.format(dev_path))
-        abort_ddrescue_tui()
+        # Return empty dict and let calling section deal with the issue
+        return {}
 
     json_data = json.loads(result.stdout.decode())
     # Just return the first device (there should only be one)
     return json_data['blockdevices'][0]
 
 
-def get_device_size_in_bytes(s):
+def get_device_report(dev_path):
+    """Build colored device report using lsblk, returns str."""
+    result = run_program([
+        'lsblk', '--nodeps',
+        '--output', 'NAME,TRAN,TYPE,SIZE,VENDOR,MODEL,SERIAL',
+        dev_path])
+    lines = result.stdout.decode().strip().splitlines()
+    lines.append('')
+
+    # FS details (if any)
+    result = run_program([
+        'lsblk',
+        '--output', 'NAME,SIZE,FSTYPE,LABEL,MOUNTPOINT',
+        dev_path])
+    lines.extend(result.stdout.decode().strip().splitlines())
+
+    # Color label lines
+    output = []
+    for line in lines:
+        if line[0:4] == 'NAME':
+            output.append('{BLUE}{line}{CLEAR}'.format(line=line, **COLORS))
+        else:
+            output.append(line)
+
+    # Done
+    return '\n'.join(output)
+
+
+def get_dir_details(dir_path):
+    """Get dir details via findmnt, returns JSON dict."""
+    try:
+        result = run_program([
+            'findmnt', '-J',
+            '-o', 'SOURCE,TARGET,FSTYPE,OPTIONS,SIZE,AVAIL,USED',
+            '-T', dir_path])
+        json_data = json.loads(result.stdout.decode())
+    except Exception:
+        raise GenericError(
+            'Failed to get directory details for "{}".'.format(self.path))
+    else:
+        return json_data['filesystems'][0]
+
+
+def get_dir_report(dir_path):
+    """Build colored dir report using findmnt, returns str."""
+    output = []
+    result = run_program([
+        'findmnt',
+        '--output', 'SIZE,AVAIL,USED,FSTYPE,OPTIONS',
+        '--target', dir_path])
+    for line in result.stdout.decode().strip().splitlines():
+        if 'FSTYPE' in line:
+            output.append('{BLUE}{line}{CLEAR}'.format(line=line, **COLORS))
+        else:
+            output.append(line)
+
+    # Done
+    return '\n'.join(output)
+
+
+def get_size_in_bytes(s):
     """Convert size string from lsblk string to bytes, returns int."""
     s = re.sub(r'(\d+\.?\d*)\s*([KMGTB])B?', r'\1 \2B', s, re.IGNORECASE)
     return convert_to_bytes(s)
@@ -437,11 +492,11 @@ def get_recovery_scope_size(source):
     source['Total Size'] = 0
     if source['Children']:
         for child in source['Children']:
-            child['Size'] = get_device_size_in_bytes(child['Details']['size'])
+            child['Size'] = get_size_in_bytes(child['Details']['size'])
             source['Total Size'] += child['Size']
     else:
         # Whole dev
-        source['Size'] = get_device_size_in_bytes(source['Details']['size'])
+        source['Size'] = get_size_in_bytes(source['Details']['size'])
         source['Total Size'] = source['Size']
 
 
