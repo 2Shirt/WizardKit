@@ -462,15 +462,23 @@ def get_dir_details(dir_path):
 def get_dir_report(dir_path):
     """Build colored dir report using findmnt, returns str."""
     output = []
+    width = len(dir_path)+1
     result = run_program([
         'findmnt',
         '--output', 'SIZE,AVAIL,USED,FSTYPE,OPTIONS',
         '--target', dir_path])
     for line in result.stdout.decode().strip().splitlines():
         if 'FSTYPE' in line:
-            output.append('{BLUE}{line}{CLEAR}'.format(line=line, **COLORS))
+            output.append('{BLUE}{path:<{width}}{line}{CLEAR}'.format(
+                path=dir_path,
+                width=width,
+                line=line,
+                **COLORS))
         else:
-            output.append(line)
+            output.append('{path:<{width}}{line}'.format(
+                path=dir_path,
+                width=width,
+                line=line))
 
     # Done
     return '\n'.join(output)
