@@ -173,6 +173,68 @@ class RecoveryState():
             label='', data=human_readable_size(self.rescued))
 
 
+class BaseObj():
+    """Base object used by DevObj, DirObj, and ImageObj."""
+    def __init__(self, path):
+        self.type = 'Base'
+        self.path = os.path.realpath(path)
+        self.set_details()
+
+    def is_dev():
+        return self.type == 'Dev'
+
+    def is_dir():
+        return self.type == 'Dir'
+
+    def is_image():
+        return self.type == 'Image'
+
+    def self_check():
+        pass
+
+    def set_details(self):
+        pass
+
+
+class DevObj(BaseObj):
+    """Block device object."""
+    def self_check(self):
+        """Verify that self.path points to a block device."""
+        if not pathlib.Path(self.path).is_block_device():
+            raise GenericError('TODO')
+
+    def set_details(self):
+        """Set details via lsblk."""
+        self.type = 'Dev'
+        # TODO Run lsblk
+
+
+class DirObj(BaseObj):
+    def self_check(self):
+        """Verify that self.path points to a directory."""
+        if not pathlib.Path(self.path).is_dir():
+            raise GenericError('TODO')
+
+    def set_details(self):
+        """Set details via findmnt."""
+        self.type = 'Dir'
+        # TODO Run findmnt
+
+
+class ImageObj(BaseObj):
+    def self_check(self):
+        """Verify that self.path points to a file."""
+        if not pathlib.Path(self.path).is_file():
+            raise GenericError('TODO')
+
+    def set_details(self):
+        """Setup loopback device and set details via lsblk."""
+        self.type = 'Image'
+        # TODO Run losetup
+        # TODO Run lsblk
+        # TODO Remove loopback device
+
+
 # Functions
 def abort_ddrescue_tui():
     run_program(['losetup', '-D'])
@@ -251,6 +313,20 @@ def check_dest_paths(source):
             's' if len(source_devs) > 1 else '')
         if abort_imaging or (resume_files_exist and not ask(p)):
             abort_ddrescue_tui()
+
+
+def create_path_obj(path):
+    """Create Dev, Dir, or Image obj based on path given."""
+    obj = None
+    if pathlib.Path(self.path).is_block_device():
+        obj = Dev(path)
+    elif pathlib.Path(self.path).is_dir():
+        obj = DirObj(path)
+    elif pathlib.Path(self.path).is_file():
+        obj = ImageObj(path)
+    else:
+        raise GenericAbort('TODO')
+    return obj
 
 
 def dest_safety_check(source, dest):
