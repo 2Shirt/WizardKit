@@ -115,7 +115,8 @@ class BlockPair():
                     'Detected map "{}" but not the matching image'.format(
                         self.map_path))
         elif not dest_exists:
-            raise GenericError('Destination device missing')
+            raise GenericError('Destination device "{}" missing'.format(
+                self.dest_path))
 
     def update_progress(self, pass_num):
         """Update progress using map file."""
@@ -312,6 +313,8 @@ class ImageObj(BaseObj):
         self.details = get_device_details(self.loopdev)
         self.details['model'] = 'ImageFile'
         self.name = self.path[self.path.rfind('/')+1:]
+        self.prefix = '{}_ImageFile'.format(
+            self.details.get('size', 'UNKNOWN'))
         self.size = get_size_in_bytes(self.details.get('size', 'UNKNOWN'))
         self.report = get_device_report(self.loop_dev)
         self.report = self.report.replace(self.loop_dev, '{Img}')
@@ -356,48 +359,6 @@ def build_outer_panes(source, dest):
         'cat', source['Progress Out'])
 
 
-def check_dest_paths(source):
-    """Check for image and/or map file and alert user about details."""
-    dd_image_exists = os.path.exists(source['Dest Paths']['image'])
-    map_exists = os.path.exists(source['Dest Paths']['Map'])
-    if 'clone' in source['Dest Paths']['Map']:
-        if map_exists:
-            # We're cloning and a matching map file was detected
-            if not ask('Matching map file detected, resume recovery?'):
-                abort_ddrescue_tui()
-    else:
-        abort_imaging = False
-        resume_files_exist = False
-        source_devs = [source]
-        if source['Children']:
-            source_devs = source['Children']
-        for dev in source_devs:
-            # We're imaging
-            dd_image_exists = os.path.exists(dev['Dest Paths']['image'])
-            map_exists = os.path.exists(dev['Dest Paths']['Map'])
-            if dd_image_exists and not map_exists:
-                # Refuce to resume without map file
-                i = dev['Dest Paths']['image']
-                i = i[i.rfind('/')+1:]
-                print_error(
-                    'Detected image "{}" but not the matching map'.format(i))
-                abort_imaging = True
-            elif not dd_image_exists and map_exists:
-                # Can't resume without dd_image
-                m = dev['Dest Paths']['Map']
-                m = m[m.rfind('/')+1:]
-                print_error(
-                    'Detected map "{}" but not the matching image'.format(m))
-                abort_imaging = True
-            elif dd_image_exists and map_exists:
-                # Matching dd_image and map file were detected
-                resume_files_exist = True
-        p = 'Matching image and map file{} detected, resume recovery?'.format(
-            's' if len(source_devs) > 1 else '')
-        if abort_imaging or (resume_files_exist and not ask(p)):
-            abort_ddrescue_tui()
-
-
 def create_path_obj(path):
     """Create Dev, Dir, or Image obj based on path given."""
     obj = None
@@ -410,65 +371,6 @@ def create_path_obj(path):
     else:
         raise GenericAbort('TODO')
     return obj
-
-
-def dest_safety_check(source, dest):
-    """Verify the destination is appropriate for the source."""
-    source_size = source['Details']['size']
-    if dest['Is Dir']:
-        # MOVED
-        pass
-    else:
-        dest_size = dest['Details']['size']
-
-    # Convert to bytes and compare size
-    source_size = get_size_in_bytes(source_size)
-    dest_size = get_size_in_bytes(dest_size)
-    if source['Type'] == 'image' and dest_size < (source_size * 1.2):
-        # Imaging: ensure 120% of source size is available
-        print_error(
-            'Not enough free space on destination, refusing to continue.')
-        print_standard(
-            '  Dest {d_size} < Required {s_size}'.format(
-                d_size=human_readable_size(dest_size),
-                s_size=human_readable_size(source_size * 1.2)))
-        abort_ddrescue_tui()
-    elif source['Type'] == 'clone' and source_size > dest_size:
-        # Cloning: ensure dest >= size
-        print_error('Destination is too small, refusing to continue.')
-        print_standard(
-            '  Dest {d_size} < Source {s_size}'.format(
-                d_size=human_readable_size(dest_size),
-                s_size=human_readable_size(source_size)))
-        abort_ddrescue_tui()
-
-    # Imaging specific checks
-    if source['Type'] == 'image':
-        # Filesystem Type
-        if dest['Filesystem'] not in RECOMMENDED_FSTYPES:
-            print_error(
-                'Destination filesystem "{}" is not recommended.'.format(
-                    dest['Filesystem']))
-            print_info('Recommended types are: {}'.format(
-                ' / '.join(RECOMMENDED_FSTYPES).upper()))
-            print_standard(' ')
-            if not ask('Proceed anyways? (Strongly discouraged)'):
-                abort_ddrescue_tui()
-        # Read-Write access
-        dest_ok = True
-        dest_st_mode = os.stat(dest['Path']).st_mode
-        dest_ok = dest_ok and dest_st_mode & stat.S_IRUSR
-        dest_ok = dest_ok and dest_st_mode & stat.S_IWUSR
-        dest_ok = dest_ok and dest_st_mode & stat.S_IXUSR
-        if not dest_ok:
-            print_error('Destination is not writable, refusing to continue.')
-            abort_ddrescue_tui()
-
-        # Mount options check
-        if 'rw' not in dest['Mount options'].split(','):
-            print_error(
-                'Destination is not mounted read-write, refusing to continue.')
-            abort_ddrescue_tui()
 
 
 def get_device_details(dev_path):
@@ -568,18 +470,6 @@ def get_formatted_status(label, data):
     """TODO"""
     # TODO
     pass
-def get_recovery_scope_size(source):
-    """Calculate total size of selected dev(s)."""
-    # TODO function deprecated
-    source['Total Size'] = 0
-    if source['Children']:
-        for child in source['Children']:
-            child['Size'] = get_size_in_bytes(child['Details']['size'])
-            source['Total Size'] += child['Size']
-    else:
-        # Whole dev
-        source['Size'] = get_size_in_bytes(source['Details']['size'])
-        source['Total Size'] = source['Size']
 
 
 def get_status_color(s, t_success=99, t_warn=90):
@@ -698,6 +588,7 @@ def menu_ddrescue(source_path, dest_path, run_mode):
         state.add_block_pair(source, dest)
     else:
         # TODO select dev or child dev(s)
+        pass
 
     # Confirmations
     # TODO Show selection details
@@ -1133,85 +1024,6 @@ def read_map_file(map_path):
     return map_data
 
 
-def resume_from_map(source):
-    """Read map file(s) and set current progress to resume previous session."""
-    # TODO function deprecated
-    map_data_read = False
-    non_tried = 0
-    non_trimmed = 0
-    non_scraped = 0
-
-    # Read map data
-    if source['Type'] != 'clone' and source['Children']:
-        # Imaging child device(s)
-        for child in source['Children']:
-            if os.path.exists(child['Dest Paths']['Map']):
-                map_data = read_map_file(child['Dest Paths']['Map'])
-                map_data_read = True
-                non_tried += map_data['non-tried']
-                non_trimmed += map_data['non-trimmed']
-                non_scraped += map_data['non-scraped']
-                child['Recovered Size'] = map_data['rescued']/100*child['Size']
-
-                # Get (dev) current pass
-                dev_current_pass = 1
-                if map_data['non-tried'] == 0:
-                    if map_data['non-trimmed'] > 0:
-                        dev_current_pass = 2
-                    elif map_data['non-scraped'] > 0:
-                        dev_current_pass = 3
-                    elif map_data['rescued'] == 100:
-                        dev_current_pass = 4
-
-                # Mark passes as skipped
-                for x in range(1, dev_current_pass):
-                    p_num = 'Pass {}'.format(x)
-                    child[p_num]['Done'] = True
-                    child[p_num]['Status'] = 'Skipped'
-
-            elif map_data_read:
-                # No map but we've already read at least one map, force pass 1
-                non_tried = 1
-    elif os.path.exists(source['Dest Paths']['Map']):
-        # Cloning or Imaging whole device
-        map_data = read_map_file(source['Dest Paths']['Map'])
-        map_data_read = True
-        non_tried += map_data['non-tried']
-        non_trimmed += map_data['non-trimmed']
-        non_scraped += map_data['non-scraped']
-
-    # Bail
-    if not map_data_read:
-        # No map data found, assuming fresh start
-        return
-
-    # Set current pass
-    if non_tried > 0:
-        current_pass = 'Pass 1'
-    elif non_trimmed > 0:
-        current_pass = 'Pass 2'
-        source['Pass 1']['Done'] = True
-        source['Pass 1']['Status'] = 'Skipped'
-    elif non_scraped > 0:
-        current_pass = 'Pass 3'
-        source['Pass 1']['Done'] = True
-        source['Pass 1']['Status'] = 'Skipped'
-        source['Pass 2']['Done'] = True
-        source['Pass 2']['Status'] = 'Skipped'
-    else:
-        source['Current Pass'] = 'Done'
-        update_progress(source, end_run=True)
-        return
-    source['Current Pass'] = current_pass
-
-    # Update current pass
-    if not source['Children']:
-        if os.path.exists(source['Dest Paths']['Map']):
-            map_data = read_map_file(source['Dest Paths']['Map'])
-            source[current_pass]['Done'] = map_data['pass completed']
-            source['Recovered Size'] = map_data['rescued']/100*source['Size']
-
-
 def run_ddrescue(source, dest, settings):
     """Run ddrescue pass."""
     current_pass = source['Current Pass']
@@ -1410,41 +1222,6 @@ def select_device(description='device', provided_path=None,
         dev['Display Name'] = dev['Display Name']
 
     return dev
-
-
-def set_dest_image_paths(source, dest):
-    """Set destination image path for source and any child devices."""
-    # TODO function deprecated
-    if source['Type'] == 'clone':
-        base = '{pwd}/Clone_{size}_{model}'.format(
-            pwd=os.path.realpath(global_vars['Env']['PWD']),
-            size=source['Details']['size'],
-            model=source['Details'].get('model', 'Unknown'))
-    else:
-        base = '{Path}/{size}_{model}'.format(
-            size=source['Details']['size'],
-            model=source['Details'].get('model', 'Unknown'),
-            **dest)
-    source['Dest Paths'] = {
-        'image': '{}.dd'.format(base),
-        'Map': '{}.map'.format(base)}
-
-    # Child devices
-    for child in source['Children']:
-        p_label = ''
-        if child['Details']['label']:
-            p_label = '_{}'.format(child['Details']['label'])
-        base = '{Path}/{size}_{model}_{p_num}_{p_size}{p_label}'.format(
-            size=source['Details']['size'],
-            model=source['Details'].get('model', 'Unknown'),
-            p_num=child['Details']['name'].replace(
-                child['Details']['pkname'], ''),
-            p_size=child['Details']['size'],
-            p_label=p_label,
-            **dest)
-        child['Dest Paths'] = {
-            'image': '{}.dd'.format(base),
-            'Map': '{}.map'.format(base)}
 
 
 def setup_loopback_device(source_path):
