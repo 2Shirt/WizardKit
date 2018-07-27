@@ -43,15 +43,13 @@ if __name__ == '__main__':
         print_standard('\nDone.')
         pause("Press Enter to exit...")
         exit_script()
-    except GenericAbort as ga:
-        if str(ga):
-            print_warning(str(ga))
+    except GenericAbort:
         abort()
     except GenericError as ge:
+        msg = 'Generic Error'
         if str(ge):
-            print_error(str(ge))
-        else:
-            print_error('Generic Error?')
+            msg = str(ge)
+        print_error(msg)
         abort()
     except SystemExit:
         pass

@@ -147,24 +147,24 @@ class RecoveryState():
         if self.mode == 'clone':
             # Cloning safety checks
             if source.is_dir():
-                raise GenericAbort('Invalid source "{}"'.format(
+                raise GenericError('Invalid source "{}"'.format(
                     source.path))
             elif not dest.is_dev():
-                raise GenericAbort('Invalid destination "{}"'.format(
+                raise GenericError('Invalid destination "{}"'.format(
                     dest.path))
             elif source.size > dest.size:
-                raise GenericAbort(
+                raise GenericError(
                     'Destination is too small, refusing to continue.')
         else:
             # Imaging safety checks
             if not source.is_dev():
-                raise GenericAbort('Invalid source "{}"'.format(
+                raise GenericError('Invalid source "{}"'.format(
                     source.path))
             elif not dest.is_dir():
-                raise GenericAbort('Invalid destination "{}"'.format(
+                raise GenericError('Invalid destination "{}"'.format(
                     dest.path))
             elif (source.size * 1.2) > dest.size:
-                raise GenericAbort(
+                raise GenericError(
                     'Destination is too small, refusing to continue.')
             elif dest.fstype.lower() not in RECOMMENDED_FSTYPES:
                 print_error(
@@ -174,12 +174,12 @@ class RecoveryState():
                     ' / '.join(RECOMMENDED_FSTYPES).upper()))
                 print_standard(' ')
                 if not ask('Proceed anyways? (Strongly discouraged)'):
-                    raise GenericAbort('Aborted.')
+                    raise GenericAbort()
             elif not is_writable_dir(dest):
-                raise GenericAbort(
+                raise GenericError(
                     'Destination is not writable, refusing to continue.')
             elif not is_writable_filesystem(dest):
-                raise GenericAbort(
+                raise GenericError(
                     'Destination is mounted read-only, refusing to continue.')
         
         # Safety checks passed
@@ -188,11 +188,7 @@ class RecoveryState():
     def self_checks(self):
         """Run self-checks for each BlockPair object."""
         for bp in self.block_pairs:
-            try:
-                bp.self_check()
-            except GenericError as err:
-                print_error(err)
-                raise GenericAbort('Aborted.')
+            bp.self_check()
 
     def set_pass_num(self):
         """Set current pass based on all block-pair's progress."""
@@ -252,7 +248,8 @@ class DevObj(BaseObj):
     def self_check(self):
         """Verify that self.path points to a block device."""
         if not pathlib.Path(self.path).is_block_device():
-            raise GenericError('TODO')
+            raise GenericError('Path "{}" is not a block device.'.format(
+                self.path))
 
     def set_details(self):
         """Set details via lsblk."""
@@ -288,7 +285,8 @@ class DirObj(BaseObj):
     def self_check(self):
         """Verify that self.path points to a directory."""
         if not pathlib.Path(self.path).is_dir():
-            raise GenericError('TODO')
+            raise GenericError('Path "{}" is not a directory.'.format(
+                self.path))
 
     def set_details(self):
         """Set details via findmnt."""
@@ -304,7 +302,8 @@ class ImageObj(BaseObj):
     def self_check(self):
         """Verify that self.path points to a file."""
         if not pathlib.Path(self.path).is_file():
-            raise GenericError('TODO')
+            raise GenericError('Path "{}" is not an image file.'.format(
+                self.path))
 
     def set_details(self):
         """Setup loopback device, set details via lsblk, then detach device."""
@@ -322,11 +321,6 @@ class ImageObj(BaseObj):
 
 
 # Functions
-def abort_ddrescue_tui():
-    run_program(['losetup', '-D'])
-    abort()
-
-
 def build_outer_panes(source, dest):
     """Build top and side panes."""
     clear_screen()
@@ -369,7 +363,7 @@ def create_path_obj(path):
     elif pathlib.Path(self.path).is_file():
         obj = ImageObj(path)
     else:
-        raise GenericAbort('TODO')
+        raise GenericError('Invalid path "{}"'.format(path))
     return obj
 
 
@@ -551,7 +545,7 @@ def menu_clone(source_path, dest_path):
 
     # Confirm
     if not ask('Proceed with clone?'):
-        abort_ddrescue_tui()
+        raise GenericAbort()
     show_safety_check()
 
     # Main menu
@@ -634,7 +628,7 @@ def menu_image(source_path, dest_path):
 
     # Confirm
     if not ask('Proceed with imaging?'):
-        abort_ddrescue_tui()
+        raise GenericAbort()
 
     # Main menu
     build_outer_panes(source, dest)
@@ -805,7 +799,7 @@ def menu_select_children(source):
         elif selection == 'P' and one_or_more_devs_selected:
             break
         elif selection == 'Q':
-            abort_ddrescue_tui()
+            raise GenericAbort()
 
     # Check selection
     selected_children = [{
@@ -833,8 +827,8 @@ def menu_select_device(title='Which device?', skip_device={}):
         result = run_program(cmd)
         json_data = json.loads(result.stdout.decode())
     except CalledProcessError:
-        print_error('Failed to get device details for {}'.format(dev_path))
-        abort_ddrescue_tui()
+        raise GenericError(
+            'Failed to get device details for {}'.format(dev_path))
 
     # Build menu
     dev_options = []
@@ -854,8 +848,7 @@ def menu_select_device(title='Which device?', skip_device={}):
             'Disabled': disable_dev})
     dev_options = sorted(dev_options, key=itemgetter('Name'))
     if not dev_options:
-        print_error('No devices available.')
-        abort_ddrescue_tui()
+        raise GenericError('No devices available.')
 
     # Show Menu
     actions = [{'Name': 'Quit', 'Letter': 'Q'}]
@@ -868,7 +861,7 @@ def menu_select_device(title='Which device?', skip_device={}):
     if selection.isnumeric():
         return dev_options[int(selection)-1]['Path']
     elif selection == 'Q':
-        abort_ddrescue_tui()
+        raise GenericAbort()
 
 
 def menu_select_path(skip_device={}):
@@ -890,7 +883,7 @@ def menu_select_path(skip_device={}):
         action_entries=actions)
 
     if selection == 'Q':
-        abort_ddrescue_tui()
+        raise GenericAbort()
     elif selection.isnumeric():
         index = int(selection) - 1
         if path_options[index]['Path']:
@@ -928,7 +921,7 @@ def menu_select_path(skip_device={}):
             if selection.isnumeric():
                 s_path = vol_options[int(selection)-1]['Path']
             elif selection == 'Q':
-                abort_ddrescue_tui()
+                raise GenericAbort()
 
         elif path_options[index]['Name'] == 'Enter manually':
             # Manual entry
@@ -1007,8 +1000,7 @@ def read_map_file(map_path):
             try:
                 map_data[m.group('key')] = float(m.group('value'))
             except ValueError:
-                print_error('Failed to read map data')
-                abort_ddrescue_tui()
+                raise GenericError('Failed to read map data')
         m = re.match(r'.*current status:\s+(?P<status>.*)', line.strip())
         if m:
             map_data['pass completed'] = bool(m.group('status') == 'finished')
@@ -1133,8 +1125,7 @@ def select_dest_path(provided_path=None, skip_device={}):
 
     # Check path
     if not pathlib.Path(dest['Path']).is_dir():
-        print_error('Invalid path "{}"'.format(dest['Path']))
-        abort_ddrescue_tui()
+        raise GenericError('Invalid path "{}"'.format(dest['Path']))
 
     # Create ticket folder
     if ask('Create ticket folder?'):
@@ -1144,9 +1135,8 @@ def select_dest_path(provided_path=None, skip_device={}):
         try:
             os.makedirs(dest['Path'], exist_ok=True)
         except OSError:
-            print_error('Failed to create folder "{}"'.format(
-                dest['Path']))
-            abort_ddrescue_tui()
+            raise GenericError(
+                'Failed to create folder "{}"'.format(dest['Path']))
 
     # Set display name
     result = run_program(['tput', 'cols'])
@@ -1181,8 +1171,7 @@ def select_device(description='device', provided_path=None,
         dev['Dev Path'] = setup_loopback_device(dev['Path'])
         dev['Is Image'] = True
     else:
-        print_error('Invalid {} "{}"'.format(description, dev['Path']))
-        abort_ddrescue_tui()
+        raise GenericError('Invalid {} "{}"'.format(description, dev['Path']))
 
     # Get device details
     dev['Details'] = get_device_details(dev['Dev Path'])
@@ -1237,8 +1226,7 @@ def setup_loopback_device(source_path):
         dev_path = out.stdout.decode().strip()
         sleep(1)
     except CalledProcessError:
-        print_error('Failed to setup loopback device for source.')
-        abort_ddrescue_tui()
+        raise GenericError('Failed to setup loopback device for source.')
     else:
         return dev_path
 
@@ -1272,7 +1260,7 @@ def show_safety_check():
     print_warning('This is irreversible and will lead '
                   'to {CLEAR}{RED}DATA LOSS.'.format(**COLORS))
     if not ask('Asking again to confirm, is this correct?'):
-        abort_ddrescue_tui()
+        raise GenericAbort()
 
 
 def show_selection_details(source, dest):
