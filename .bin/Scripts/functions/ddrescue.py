@@ -260,7 +260,11 @@ class DevObj(BaseObj):
         """Set details via lsblk."""
         self.type = 'dev'
         self.details = get_device_details(self.path)
-        self.name = self.details.get('name', 'UNKNOWN')
+        self.name = '{name} {size} {model} {serial}'.format(
+            name=self.details.get('name', 'UNKNOWN'),
+            size=self.details.get('size', 'UNKNOWN'),
+            model=self.details.get('model', 'UNKNOWN'),
+            serial=self.details.get('serial', 'UNKNOWN'))
         self.model = self.details.get('model', 'UNKNOWN')
         self.model_size = self.details.get('size', 'UNKNOWN')
         self.size = get_size_in_bytes(self.details.get('size', 'UNKNOWN'))
@@ -298,7 +302,7 @@ class DirObj(BaseObj):
         self.type = 'dir'
         self.details = get_dir_details(self.path)
         self.fstype = self.details.get('fstype', 'UNKNOWN')
-        self.name = self.path
+        self.name = self.path + '/'
         self.size = get_size_in_bytes(self.details.get('avail', 'UNKNOWN'))
         self.report = get_dir_report(self.path)
 
@@ -316,7 +320,9 @@ class ImageObj(BaseObj):
         self.loop_dev = setup_loopback_device(self.path)
         self.details = get_device_details(self.loop_dev)
         self.details['model'] = 'ImageFile'
-        self.name = self.path[self.path.rfind('/')+1:]
+        self.name = '{name} {size}'.format(
+            name=self.path[self.path.rfind('/')+1:],
+            size=self.details.get('size', 'UNKNOWN'))
         self.prefix = '{}_ImageFile'.format(
             self.details.get('size', 'UNKNOWN'))
         self.size = get_size_in_bytes(self.details.get('size', 'UNKNOWN'))
@@ -330,13 +336,25 @@ class ImageObj(BaseObj):
 def build_outer_panes(source, dest):
     """Build top and side panes."""
     clear_screen()
+    result = run_program(['tput', 'cols'])
+    width = int(
+        (int(result.stdout.decode().strip()) - SIDE_PANE_WIDTH) / 2) - 2
 
     # Top panes
+    source_str = source.name
+    if len(source_str) > width:
+        source_str = '{}...'.format(source_str[:width-3])
+    dest_str = dest.name
+    if len(dest_str) > width:
+        if dest.is_dev():
+            dest_str = '{}...'.format(dest_str[:width-3])
+        else:
+            dest_str = '...{}'.format(dest_str[-width+3:])
     source_pane = tmux_splitw(
         '-bdvl', '2',
         '-PF', '#D',
         'echo-and-hold "{BLUE}Source{CLEAR}\n{text}"'.format(
-            text=source['Display Name'],
+            text=source_str,
             **COLORS))
     tmux_splitw(
         '-t', source_pane,
@@ -348,15 +366,16 @@ def build_outer_panes(source, dest):
         '-t', source_pane,
         '-dhp', '50',
         'echo-and-hold "{BLUE}Destination{CLEAR}\n{text}"'.format(
-            text=dest['Display Name'],
+            text=dest_str,
             **COLORS))
 
     # Side pane
-    update_progress(source)
-    tmux_splitw(
-        '-dhl', '{}'.format(SIDE_PANE_WIDTH),
-        'watch', '--color', '--no-title', '--interval', '1',
-        'cat', source['Progress Out'])
+    # TODO FIX IT
+    #update_progress(source)
+    #tmux_splitw(
+    #    '-dhl', '{}'.format(SIDE_PANE_WIDTH),
+    #    'watch', '--color', '--no-title', '--interval', '1',
+    #    'cat', source['Progress Out'])
 
 
 def create_path_obj(path):
@@ -455,8 +474,8 @@ def get_dir_report(dir_path):
         '--target', dir_path])
     for line in result.stdout.decode().strip().splitlines():
         if 'FSTYPE' in line:
-            output.append('{BLUE}{path:<{width}}{line}{CLEAR}'.format(
-                path=dir_path,
+            output.append('{BLUE}{label:<{width}}{line}{CLEAR}'.format(
+                label='PATH',
                 width=width,
                 line=line,
                 **COLORS))
