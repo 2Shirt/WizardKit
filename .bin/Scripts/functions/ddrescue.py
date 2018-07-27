@@ -47,7 +47,7 @@ class BlockPair():
         self.resumed = False
         self.rescued = 0
         self.status = ['Pending', 'Pending', 'Pending']
-        self.total_size = source.size
+        self.size = source.size
         # Set dest paths
         if self.mode == 'clone':
             # Cloning
@@ -71,7 +71,7 @@ class BlockPair():
         """Mark pass as done and check if 100% recovered."""
         if map_data['full recovery']:
             self.pass_done = [True, True, True]
-            self.rescued = self.total_size
+            self.rescued = self.size
             self.status[pass_num] = get_formatted_status(
                 label='Pass {}'.format(pass_num),
                 data=100)
@@ -90,10 +90,10 @@ class BlockPair():
     def load_map_data(self):
         """Load data from map file and set progress."""
         map_data = read_map_file(self.map_path)
-        self.rescued = map_data['rescued'] * self.total_size
+        self.rescued = map_data['rescued'] * self.size
         if map_data['full recovery']:
             self.pass_done = [True, True, True]
-            self.rescued = self.total_size
+            self.rescued = self.size
             self.status = ['Skipped', 'Skipped', 'Skipped']
         elif map_data['non-tried'] > 0:
             # Initial pass incomplete
@@ -126,10 +126,10 @@ class BlockPair():
         """Update progress using map file."""
         if os.path.exists(self.map_path):
             map_data = read_map_file(self.map_path)
-            self.rescued = map_data['rescued'] * self.total_size
+            self.rescued = map_data['rescued'] * self.size
             self.status[pass_num] = get_formatted_status(
                 label='Pass {}'.format(pass_num),
-                data=(self.rescued/self.total_size)*100)
+                data=(self.rescued/self.size)*100)
 
 
 class RecoveryState():
@@ -187,7 +187,7 @@ class RecoveryState():
                     'Destination is mounted read-only, refusing to continue.')
         
         # Safety checks passed
-        self.block_pairs.append(BlockPair(source, dest))
+        self.block_pairs.append(BlockPair(source, dest, self.mode))
 
     def self_checks(self):
         """Run self-checks for each BlockPair and update state values."""
@@ -314,15 +314,16 @@ class ImageObj(BaseObj):
         """Setup loopback device, set details via lsblk, then detach device."""
         self.type = 'image'
         self.loop_dev = setup_loopback_device(self.path)
-        self.details = get_device_details(self.loopdev)
+        self.details = get_device_details(self.loop_dev)
         self.details['model'] = 'ImageFile'
         self.name = self.path[self.path.rfind('/')+1:]
         self.prefix = '{}_ImageFile'.format(
             self.details.get('size', 'UNKNOWN'))
         self.size = get_size_in_bytes(self.details.get('size', 'UNKNOWN'))
         self.report = get_device_report(self.loop_dev)
-        self.report = self.report.replace(self.loop_dev, '{Img}')
-        run_program(['losetup', '--detach', loop_path], check=False)
+        self.report = self.report.replace(
+            self.loop_dev[self.loop_dev.rfind('/')+1:], '(Img)')
+        run_program(['losetup', '--detach', self.loop_dev], check=False)
 
 
 # Functions
@@ -361,11 +362,11 @@ def build_outer_panes(source, dest):
 def create_path_obj(path):
     """Create Dev, Dir, or Image obj based on path given."""
     obj = None
-    if pathlib.Path(self.path).is_block_device():
-        obj = Dev(path)
-    elif pathlib.Path(self.path).is_dir():
+    if pathlib.Path(path).is_block_device():
+        obj = DevObj(path)
+    elif pathlib.Path(path).is_dir():
         obj = DirObj(path)
-    elif pathlib.Path(self.path).is_file():
+    elif pathlib.Path(path).is_file():
         obj = ImageObj(path)
     else:
         raise GenericError('Invalid path "{}"'.format(path))
@@ -611,6 +612,7 @@ def menu_ddrescue(source_path, dest_path, run_mode):
         state.add_block_pair(source, dest)
     else:
         # TODO select dev or child dev(s)
+        state.add_block_pair(source, dest)
         pass
 
     # Update state
