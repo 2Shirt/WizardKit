@@ -72,7 +72,9 @@ class BlockPair():
         if map_data['full recovery']:
             self.pass_done = [True, True, True]
             self.rescued = self.total_size
-            self.status[pass_num] = get_formatted_status(100)
+            self.status[pass_num] = get_formatted_status(
+                label='Pass {}'.format(pass_num),
+                data=100)
             # Mark future passes as Skipped
             pass_num += 1
             while pass_num <= 2:
@@ -474,9 +476,23 @@ def get_size_in_bytes(s):
 
 
 def get_formatted_status(label, data):
-    """TODO"""
-    # TODO
-    pass
+    """Build status string using provided info, returns str."""
+    data_width = SIDE_PANE_WIDTH - len(label)
+    try:
+        data_str = '{data:>{data_width}.2f} %'.format(
+        data=data,
+        data_width=data_width-2)
+    except ValueError:
+        # Assuming non-numeric data
+        data_str = '{data:>{data_width}}'.format(
+        data=data,
+        data_width=data_width)
+    status = '{label}{s_color}{data_str}{CLEAR}'.format(
+        label=label,
+        s_color=get_status_color(data),
+        data_str=data_str,
+        **COLORS)
+    return status
 
 
 def get_status_color(s, t_success=99, t_warn=90):
@@ -489,7 +505,7 @@ def get_status_color(s, t_success=99, t_warn=90):
         # Status is either in lists below or will default to red
         pass
 
-    if s in ('Pending',):
+    if s in ('Pending',) or str(s)[-2:] in (' b', 'Kb', 'Mb', 'Gb', 'Tb'):
         color = COLORS['CLEAR']
     elif s in ('Skipped', 'Unknown', 'Working'):
         color = COLORS['YELLOW']
