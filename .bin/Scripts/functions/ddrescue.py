@@ -44,6 +44,7 @@ class BlockPair():
         self.mode = mode
         self.name = source.name
         self.pass_done = [False, False, False]
+        self.resumed = False
         self.rescued = 0
         self.status = ['Pending', 'Pending', 'Pending']
         self.total_size = source.size
@@ -64,6 +65,7 @@ class BlockPair():
                 prefix=source.prefix)
         if os.path.exists(self.map_path):
             self.load_map_data()
+            self.resumed = True
 
     def finish_pass(self, pass_num):
         """Mark pass as done and check if 100% recovered."""
@@ -186,9 +188,12 @@ class RecoveryState():
         self.block_pairs.append(BlockPair(source, dest))
 
     def self_checks(self):
-        """Run self-checks for each BlockPair object."""
+        """Run self-checks for each BlockPair and update state values."""
+        self.total_size = 0
         for bp in self.block_pairs:
             bp.self_check()
+            self.resumed |= bp.resumed
+            self.total_size += bp.size
 
     def set_pass_num(self):
         """Set current pass based on all block-pair's progress."""
@@ -210,10 +215,8 @@ class RecoveryState():
     def update_progress(self):
         """Update overall progress using block_pairs."""
         self.rescued = 0
-        self.total_size = 0
         for bp in self.block_pairs:
             self.rescued += bp.rescued
-            self.total_size += bp.size
         self.status_percent = get_formatted_status(
             label='Recovered:', data=(self.rescued/self.total_size)*100)
         self.status_amount = get_formatted_status(
@@ -365,6 +368,16 @@ def create_path_obj(path):
     else:
         raise GenericError('Invalid path "{}"'.format(path))
     return obj
+
+
+def double_confirm_clone():
+    """Display warning and get 2nd confirmation from user, returns bool."""
+    print_standard('\nSAFETY CHECK')
+    print_warning('All data will be DELETED from the '
+                  'destination device and partition(s) listed above.')
+    print_warning('This is irreversible and will lead '
+                  'to {CLEAR}{RED}DATA LOSS.'.format(**COLORS))
+    return ask('Asking again to confirm, is this correct?')
 
 
 def get_device_details(dev_path):
@@ -584,11 +597,22 @@ def menu_ddrescue(source_path, dest_path, run_mode):
         # TODO select dev or child dev(s)
         pass
 
+    # Update state
+    state.self_checks()
+    state.set_pass_num()
+    state.update_progress()
+
     # Confirmations
-    # TODO Show selection details
-    # TODO resume?
-    # TODO Proceed? (maybe merge with resume? prompt?)
-    # TODO double-confirm for clones for safety
+    clear_screen()
+    show_selection_details(state, source, dest)
+    prompt = 'Start {}?'.format(state.mode.replace('e', 'ing'))
+    if state.resumed:
+        print_info('Map data detected and loaded.')
+        prompt = prompt.replace('Start', 'Resume')
+    if not ask(prompt):
+        raise GenericAbort()
+    if state.mode == 'clone' and not double_confirm_clone():
+        raise GenericAbort()
 
     # Main menu
     build_outer_panes(source, dest)
@@ -1252,40 +1276,20 @@ def show_device_details(dev_path):
         print_standard(line)
 
 
-def show_safety_check():
-    """Display safety check message and get confirmation from user."""
-    print_standard('\nSAFETY CHECK')
-    print_warning('All data will be DELETED from the '
-                  'destination device and partition(s) listed above.')
-    print_warning('This is irreversible and will lead '
-                  'to {CLEAR}{RED}DATA LOSS.'.format(**COLORS))
-    if not ask('Asking again to confirm, is this correct?'):
-        raise GenericAbort()
-
-
-def show_selection_details(source, dest):
-    clear_screen()
-
+def show_selection_details(state, source, dest):
+    """Show selection details."""
     # Source
-    print_success('Source device')
-    if source['Is Image']:
-        print_standard('Using image file: {}'.format(source['Path']))
-        print_standard('                  (via loopback device: {})'.format(
-            source['Dev Path']))
-    show_device_details(source['Dev Path'])
+    print_success('Source')
+    print_standard(source.report)
     print_standard(' ')
 
     # Destination
-    if source['Type'] == 'clone':
-        print_success('Destination device ', end='')
+    if state.mode == 'clone':
+        print_success('Destination ', end='')
         print_error('(ALL DATA WILL BE DELETED)', timestamp=False)
-        show_device_details(dest['Dev Path'])
     else:
-        print_success('Destination path')
-        print_standard(dest['Path'])
-        print_info('{:<8}{}'.format('FREE', 'FSTYPE'))
-        print_standard('{:<8}{}'.format(
-            dest['Free Space'], dest['Filesystem']))
+        print_success('Destination')
+    print_standard(dest.report)
     print_standard(' ')
 
 
