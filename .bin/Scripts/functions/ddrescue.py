@@ -164,8 +164,8 @@ class DevObj(BaseObj):
                 self.path))
         if self.parent:
             print_warning('"{}" is a child device.'.format(self.path))
-            if ask('Use parent device "{}" instead?'.format(self.parent):
-                self.path = os.path.realpath(path)
+            if ask('Use parent device "{}" instead?'.format(self.parent)):
+                self.path = os.path.realpath(self.parent)
                 self.set_details()
 
     def set_details(self):
@@ -576,17 +576,17 @@ def menu_ddrescue(source_path, dest_path, run_mode):
     dest = None
     if source_path:
         source = create_path_obj(source_path)
+    else:
+        source = select_device('source')
+    source.self_check()
     if dest_path:
         dest = create_path_obj(dest_path)
-
-    # Show selection menus (if necessary)
-    if not source:
-        source = select_device('source')
-    if not dest:
+    else:
         if run_mode == 'clone':
             dest = select_device('destination', skip_device=source)
         else:
             dest = select_directory()
+    dest.self_check()
 
     # Build BlockPairs
     state = RecoveryState(run_mode)
@@ -794,58 +794,6 @@ def menu_select_children(source):
         'Pass 3': {'Status': 'Pending', 'Done': False}} for d in dev_options
         if d['Selected'] and 'Whole device' not in d['Base Name']]
     return selected_children
-
-
-def menu_select_device(title='Which device?', skip_device={}):
-    """Select block device via a menu, returns dev_path as str."""
-    skip_names = [
-        skip_device.get('name', None), skip_device.get('pkname', None)]
-    skip_names = [n for n in skip_names if n]
-    try:
-        cmd = (
-            'lsblk',
-            '--json',
-            '--nodeps',
-            '--output-all',
-            '--paths')
-        result = run_program(cmd)
-        json_data = json.loads(result.stdout.decode())
-    except CalledProcessError:
-        raise GenericError(
-            'Failed to get device details for {}'.format(dev_path))
-
-    # Build menu
-    dev_options = []
-    for dev in json_data['blockdevices']:
-        # Disable dev if in skip_names
-        disable_dev = dev['name'] in skip_names or dev['pkname'] in skip_names
-
-        # Append non-matching devices
-        dev_options.append({
-            'Name': '{name:12} {tran:5} {size:6} {model} {serial}'.format(
-                name=dev['name'],
-                tran=dev['tran'] if dev['tran'] else '',
-                size=dev['size'] if dev['size'] else '',
-                model=dev['model'] if dev['model'] else '',
-                serial=dev['serial'] if dev['serial'] else ''),
-            'Path': dev['name'],
-            'Disabled': disable_dev})
-    dev_options = sorted(dev_options, key=itemgetter('Name'))
-    if not dev_options:
-        raise GenericError('No devices available.')
-
-    # Show Menu
-    actions = [{'Name': 'Quit', 'Letter': 'Q'}]
-    selection = menu_select(
-        title=title,
-        main_entries=dev_options,
-        action_entries=actions,
-        disabled_label='SOURCE DEVICE')
-
-    if selection.isnumeric():
-        return dev_options[int(selection)-1]['Path']
-    elif selection == 'Q':
-        raise GenericAbort()
 
 
 def menu_select_path(skip_device={}):
@@ -1134,67 +1082,54 @@ def select_dest_path(provided_path=None, skip_device={}):
     return dest
 
 
-def select_device(description='device', provided_path=None,
-                  skip_device={}, allow_image_file=True):
-    """Select device via provided path or menu, return dev as dict."""
-    dev = {'Is Dir': False, 'Is Image': False}
+def select_device(description='device', skip_device=None):
+    """Select device via a menu, returns DevObj."""
+    cmd = (
+        'lsblk',
+        '--json',
+        '--nodeps',
+        '--output-all',
+        '--paths')
+    result = run_program(cmd)
+    json_data = json.loads(result.stdout.decode())
+    skip_names = []
+    if skip_device:
+        skip_names.append(skip_device.path)
+        if skip_device.parent:
+            skip_names.append(skip_device.parent)
 
-    # Set path
-    if provided_path:
-        dev['Path'] = provided_path
-    else:
-        dev['Path'] = menu_select_device(
-            title='Please select a {}'.format(description),
-            skip_device=skip_device)
-    dev['Path'] = os.path.realpath(dev['Path'])
+    # Build menu
+    dev_options = []
+    for dev in json_data['blockdevices']:
+        # Disable dev if in skip_names
+        disabled = dev['name'] in skip_names or dev['pkname'] in skip_names
 
-    # Check path
-    if pathlib.Path(dev['Path']).is_block_device():
-        dev['Dev Path'] = dev['Path']
-    elif allow_image_file and pathlib.Path(dev['Path']).is_file():
-        dev['Dev Path'] = setup_loopback_device(dev['Path'])
-        dev['Is Image'] = True
-    else:
-        raise GenericError('Invalid {} "{}"'.format(description, dev['Path']))
+        # Add to options
+        dev_options.append({
+            'Name': '{name:12} {tran:5} {size:6} {model} {serial}'.format(
+                name=dev['name'],
+                tran=dev['tran'] if dev['tran'] else '',
+                size=dev['size'] if dev['size'] else '',
+                model=dev['model'] if dev['model'] else '',
+                serial=dev['serial'] if dev['serial'] else ''),
+            'Dev': DevObj(dev['name']),
+            'Disabled': disabled})
+    dev_options = sorted(dev_options, key=itemgetter('Name'))
+    if not dev_options:
+        raise GenericError('No devices available.')
 
-    # Get device details
-    dev['Details'] = get_device_details(dev['Dev Path'])
-    if 'Children' not in dev:
-        dev['Children'] = []
+    # Show Menu
+    actions = [{'Name': 'Quit', 'Letter': 'Q'}]
+    selection = menu_select(
+        title='Please select the {} device'.format(description),
+        main_entries=dev_options,
+        action_entries=actions,
+        disabled_label='ALREADY SELECTED')
 
-    # Check for parent device(s)
-    while dev['Details']['pkname']:
-        print_warning('{} "{}" is a child device.'.format(
-            description.title(), dev['Dev Path']))
-        if ask('Use parent device "{}" instead?'.format(
-                dev['Details']['pkname'])):
-            # Update dev with parent info
-            dev['Dev Path'] = dev['Details']['pkname']
-            dev['Details'] = get_device_details(dev['Dev Path'])
-        else:
-            # Leave alone
-            break
-
-    # Set display name
-    if dev['Is Image']:
-        dev['Display Name'] = dev['Path']
-    else:
-        dev['Display Name'] = '{name} {size} {model}'.format(
-            **dev['Details'])
-    result = run_program(['tput', 'cols'])
-    width = int(
-        (int(result.stdout.decode().strip()) - SIDE_PANE_WIDTH) / 2) - 2
-    if len(dev['Display Name']) > width:
-        if dev['Is Image']:
-            dev['Display Name'] = '...{}'.format(
-                dev['Display Name'][-(width-3):])
-        else:
-            dev['Display Name'] = '{}...'.format(
-                dev['Display Name'][:(width-3)])
-    else:
-        dev['Display Name'] = dev['Display Name']
-
-    return dev
+    if selection.isnumeric():
+        return dev_options[int(selection)-1]['Dev']
+    elif selection == 'Q':
+        raise GenericAbort()
 
 
 def setup_loopback_device(source_path):
