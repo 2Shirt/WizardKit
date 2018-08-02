@@ -1004,6 +1004,7 @@ def select_path(skip_device=None):
             # Local device
             local_device = select_device(
                 skip_device=skip_device)
+            s_path = ''
 
             # Mount device volume(s)
             report = mount_volumes(
@@ -1028,9 +1029,22 @@ def select_path(skip_device=None):
                 main_entries=vol_options,
                 action_entries=actions)
             if selection.isnumeric():
-                selected_path = DirObj(vol_options[int(selection)-1]['Path'])
+                s_path = vol_options[int(selection)-1]['Path']
             elif selection == 'Q':
                 raise GenericAbort()
+
+            # Create folder
+            if ask('Create ticket folder?'):
+                ticket_folder = get_simple_string('Please enter folder name')
+                s_path = os.path.join(s_path, ticket_folder)
+                try:
+                    os.makedirs(s_path, exist_ok=True)
+                except OSError:
+                    raise GenericError(
+                        'Failed to create folder "{}"'.format(s_path))
+            
+            # Create DirObj
+            selected_path = DirObj(s_path)
 
         elif path_options[index]['Name'] == 'Enter manually':
             # Manual entry
