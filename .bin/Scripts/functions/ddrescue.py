@@ -13,7 +13,7 @@ from functions.data import *
 from operator import itemgetter
 
 # STATIC VARIABLES
-AUTO_NEXT_PASS_1_THRESHOLD = 90
+AUTO_NEXT_PASS_1_THRESHOLD = 95
 AUTO_NEXT_PASS_2_THRESHOLD = 98
 DDRESCUE_SETTINGS = {
     '--binary-prefixes': {'Enabled': True, 'Hidden': True},
