@@ -62,10 +62,10 @@ class BaseObj():
 
 class BlockPair():
     """Object to track data and methods together for source and dest."""
-    def __init__(self, source, dest, mode):
-        self.source_path = source.path
+    def __init__(self, mode, source, dest):
         self.mode = mode
-        self.name = source.name
+        self.source = source
+        self.dest = dest
         self.pass_done = [False, False, False]
         self.resumed = False
         self.rescued = 0
@@ -89,6 +89,11 @@ class BlockPair():
         if os.path.exists(self.map_path):
             self.load_map_data()
             self.resumed = True
+        # Fix status strings
+        for pass_num in [1, 2, 3]:
+            self.status[pass_num-1] = get_formatted_status(
+                label='Pass {}'.format(pass_num),
+                data=self.status[pass_num-1])
 
     def finish_pass(self, pass_num):
         """Mark pass as done and check if 100% recovered."""
@@ -196,7 +201,7 @@ class DevObj(BaseObj):
         if self.parent:
             # Add child device details
             self.prefix += '_{c_num}_{c_size}{sep}{c_label}'.format(
-                c_num=self.name.replace(self.parent, ''),
+                c_num=self.path.replace(self.parent, ''),
                 c_size=self.details.get('size', 'UNKNOWN'),
                 sep='_' if self.label else '',
                 c_label=self.label)
@@ -248,8 +253,8 @@ class RecoveryState():
     """Object to track BlockPair objects and overall state."""
     def __init__(self, mode, source, dest):
         self.mode = mode.lower()
-        self.source_name = source.name
-        self.dest_name = dest.name
+        self.source = source
+        self.dest = dest
         self.block_pairs = []
         self.current_pass = 0
         self.finished = False
@@ -302,7 +307,7 @@ class RecoveryState():
                     'Destination is mounted read-only, refusing to continue.')
         
         # Safety checks passed
-        self.block_pairs.append(BlockPair(source, dest, self.mode))
+        self.block_pairs.append(BlockPair(self.mode, source, dest))
 
     def self_checks(self):
         """Run self-checks for each BlockPair and update state values."""
@@ -349,10 +354,10 @@ def build_outer_panes(state):
         (int(result.stdout.decode().strip()) - SIDE_PANE_WIDTH) / 2) - 2
 
     # Top panes
-    source_str = state.source_name
+    source_str = state.source.name
     if len(source_str) > width:
         source_str = '{}...'.format(source_str[:width-3])
-    dest_str = state.dest_name
+    dest_str = state.dest.name
     if len(dest_str) > width:
         if state.mode == 'clone':
             dest_str = '{}...'.format(dest_str[:width-3])
@@ -586,7 +591,6 @@ def menu_ddrescue(source_path, dest_path, run_mode):
         dest = create_path_obj(dest_path)
     else:
         if run_mode == 'clone':
-            x
             dest = select_device('destination', skip_device=source)
         else:
             dest = select_path(skip_device=source)
@@ -970,7 +974,12 @@ def select_parts(source_device):
                 raise GenericAbort()
 
         # Build list of selected parts
-        selected_parts = [d['Dev'] for d in dev_options if d['Selected']]
+        for d in dev_options:
+            if d['Selected']:
+                d['Dev'].model = source_device.model
+                d['Dev'].model_size = source_device.model_size
+                d['Dev'].update_filename_prefix()
+                selected_parts.append(d['Dev'])
 
     return selected_parts
 
@@ -1179,197 +1188,40 @@ def tmux_splitw(*args):
     return result.stdout.decode().strip()
 
 
-def update_progress(source, end_run=False):
-    """Update progress for source dev(s) and update status pane file."""
-    current_pass = source['Current Pass']
-    pass_complete_for_all_devs = True
-    total_recovery = True
-    source['Recovered Size'] = 0
-    if current_pass != 'Done':
-        source[current_pass]['Min Status'] = 100
-    try:
-        current_pass_num = int(current_pass[-1:])
-        next_pass_num = current_pass_num + 1
-    except ValueError:
-        # Either Done or undefined?
-        current_pass_num = -1
-        next_pass_num = -1
-    if 1 <= next_pass_num <= 3:
-        next_pass = 'Pass {}'.format(next_pass_num)
-    else:
-        next_pass = 'Done'
-
-    # Update children progress
-    for child in source['Children']:
-        if current_pass == 'Done':
-            continue
-        if os.path.exists(child['Dest Paths']['Map']):
-            map_data = read_map_file(child['Dest Paths']['Map'])
-            if child['Dev Path'] == source.get('Current Device', ''):
-                # Current child device
-                r_size = map_data['rescued']/100 * child['Size']
-                child[current_pass]['Done'] = map_data['pass completed']
-                if source['Started Recovery']:
-                    child[current_pass]['Status'] = map_data['rescued']
-                child['Recovered Size'] = r_size
-
-            # All child devices
-            pass_complete_for_all_devs &= child[current_pass]['Done']
-            total_recovery &= map_data['full recovery']
-            try:
-                source['Recovered Size'] += child.get('Recovered Size', 0)
-                source[current_pass]['Min Status'] = min(
-                    source[current_pass]['Min Status'],
-                    child[current_pass]['Status'])
-            except TypeError:
-                # Force 0% to disable auto-continue
-                source[current_pass]['Min Status'] = 0
-        else:
-            # Map missing, assuming this pass hasn't run for this dev yet
-            pass_complete_for_all_devs = False
-            total_recovery = False
-
-    # Update source progress
-    if len(source['Children']) > 0:
-        # Imaging parts, skip updating source progress
-        pass
-    elif os.path.exists(source['Dest Paths']['Map']):
-        # Cloning/Imaging whole device
-        map_data = read_map_file(source['Dest Paths']['Map'])
-        if current_pass != 'Done':
-            source[current_pass]['Done'] = map_data['pass completed']
-            if source['Started Recovery']:
-                source[current_pass]['Status'] = map_data['rescued']
-            try:
-                source[current_pass]['Min Status'] = min(
-                    source[current_pass]['Min Status'],
-                    source[current_pass]['Status'])
-            except TypeError:
-                # Force 0% to disable auto-continue
-                source[current_pass]['Min Status'] = 0
-            pass_complete_for_all_devs &= source[current_pass]['Done']
-        source['Recovered Size'] = map_data['rescued']/100 * source['Size']
-        total_recovery &= map_data['full recovery']
-    else:
-        # Cloning/Imaging whole device and map missing
-        pass_complete_for_all_devs = False
-        total_recovery = False
-
-    # End of pass updates
-    if end_run:
-        if total_recovery:
-            # Sweet!
-            source['Current Pass'] = 'Done'
-            source['Recovered Size'] = source['Total Size']
-            for p_num in ['Pass 1', 'Pass 2', 'Pass 3']:
-                if source[p_num]['Status'] == 'Pending':
-                    source[p_num]['Status'] = 'Skipped'
-                for child in source['Children']:
-                    if child[p_num]['Status'] == 'Pending':
-                        child[p_num]['Status'] = 'Skipped'
-        elif pass_complete_for_all_devs:
-            # Ready for next pass?
-            source['Current Pass'] = next_pass
-            if current_pass != 'Done':
-                source[current_pass]['Done'] = True
-
-    # Start building output lines
-    if 'Progress Out' not in source:
-        source['Progress Out'] = '{}/progress.out'.format(
-            global_vars['LogDir'])
+def update_progress(state):
+    """Update progress file for side pane."""
     output = []
-    if source['Type'] == 'clone':
+    if state.mode == 'clone':
         output.append('   {BLUE}Cloning Status{CLEAR}'.format(**COLORS))
     else:
         output.append('   {BLUE}Imaging Status{CLEAR}'.format(**COLORS))
     output.append('─────────────────────')
 
     # Overall progress
-    recovered_p = (source['Recovered Size'] / source['Total Size']) * 100
-    recovered_s = human_readable_size(source['Recovered Size'])
     output.append('{BLUE}Overall Progress{CLEAR}'.format(**COLORS))
-    output.append('Recovered:{s_color}{recovered_p:>9.2f} %{CLEAR}'.format(
-        s_color=get_status_color(recovered_p),
-        recovered_p=recovered_p,
-        **COLORS))
-    output.append('{recovered_s:>{width}}'.format(
-        recovered_s=recovered_s, width=SIDE_PANE_WIDTH))
+    output.append(state.status_percent)
+    output.append(state.status_amount)
     output.append('─────────────────────')
 
-    # Main device
-    if source['Type'] == 'clone':
-        output.append('{BLUE}{dev}{CLEAR}'.format(
-            dev='Image File' if source['Is Image'] else source['Dev Path'],
-            **COLORS))
-        for x in (1, 2, 3):
-            p_num = 'Pass {}'.format(x)
-            s_display = source[p_num]['Status']
-            try:
-                s_display = float(s_display)
-            except ValueError:
-                # Ignore and leave s_display alone
-                pass
-            else:
-                s_display = '{:0.2f} %'.format(s_display)
-            output.append('{p_num}{s_color}{s_display:>15}{CLEAR}'.format(
-                p_num=p_num,
-                s_color=get_status_color(source[p_num]['Status']),
-                s_display=s_display,
+    # Source(s) progress
+    for bp in state.block_pairs:
+        if state.source.is_image():
+            output.append('{BLUE}Image File{CLEAR}'.format(**COLORS))
+        elif state.mode == 'image' and len(state.block_pairs) == 1:
+            output.append('{BLUE}{source} {YELLOW}(Whole){CLEAR}'.format(
+                source=bp.source.path,
                 **COLORS))
-    else:
-        # Image mode
-        if source['Children']:
-            # Just parts
-            for child in source['Children']:
-                output.append('{BLUE}{dev}{CLEAR}'.format(
-                    dev=child['Dev Path'],
-                    **COLORS))
-                for x in (1, 2, 3):
-                    p_num = 'Pass {}'.format(x)
-                    s_display = child[p_num]['Status']
-                    try:
-                        s_display = float(s_display)
-                    except ValueError:
-                        # Ignore and leave s_display alone
-                        pass
-                    else:
-                        s_display = '{:0.2f} %'.format(s_display)
-                    output.append(
-                        '{p_num}{s_color}{s_display:>15}{CLEAR}'.format(
-                            p_num=p_num,
-                            s_color=get_status_color(child[p_num]['Status']),
-                            s_display=s_display,
-                            **COLORS))
-                p = (child.get('Recovered Size', 0) / child['Size']) * 100
-                output.append('Recovered:{s_color}{p:>9.2f} %{CLEAR}'.format(
-                        s_color=get_status_color(p), p=p, **COLORS))
-                output.append(' ')
         else:
-            # Whole device
-            output.append('{BLUE}{dev}{CLEAR} {YELLOW}(Whole){CLEAR}'.format(
-                dev=source['Dev Path'],
+            output.append('{BLUE}{source}{CLEAR}'.format(
+                source=bp.source.path,
                 **COLORS))
-            for x in (1, 2, 3):
-                p_num = 'Pass {}'.format(x)
-                s_display = source[p_num]['Status']
-                try:
-                    s_display = float(s_display)
-                except ValueError:
-                    # Ignore and leave s_display alone
-                    pass
-                else:
-                    s_display = '{:0.2f} %'.format(s_display)
-                output.append(
-                    '{p_num}{s_color}{s_display:>15}{CLEAR}'.format(
-                        p_num=p_num,
-                        s_color=get_status_color(source[p_num]['Status']),
-                        s_display=s_display,
-                        **COLORS))
+        output.extend(bp.status)
+        output.append(' ')
 
     # Add line-endings
     output = ['{}\n'.format(line) for line in output]
 
-    with open(source['Progress Out'], 'w') as f:
+    with open(state.progress_out, 'w') as f:
         f.writelines(output)
 
 
