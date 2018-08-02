@@ -281,7 +281,7 @@ class RecoveryState():
                     dest.path))
             elif (source.size * 1.2) > dest.size:
                 raise GenericError(
-                    'Destination is too small, refusing to continue.')
+                    'Not enough free space, refusing to continue.')
             elif dest.fstype.lower() not in RECOMMENDED_FSTYPES:
                 print_error(
                     'Destination filesystem "{}" is not recommended.'.format(
@@ -471,24 +471,25 @@ def get_dir_details(dir_path):
 
 def get_dir_report(dir_path):
     """Build colored dir report using findmnt, returns str."""
+    dir_path = dir_path
     output = []
     width = len(dir_path)+1
     result = run_program([
         'findmnt',
         '--output', 'SIZE,AVAIL,USED,FSTYPE,OPTIONS',
         '--target', dir_path])
-    for line in result.stdout.decode().strip().splitlines():
+    for line in result.stdout.decode().splitlines():
         if 'FSTYPE' in line:
             output.append('{BLUE}{label:<{width}}{line}{CLEAR}'.format(
                 label='PATH',
                 width=width,
-                line=line,
+                line=line.replace('\n',''),
                 **COLORS))
         else:
             output.append('{path:<{width}}{line}'.format(
                 path=dir_path,
                 width=width,
-                line=line))
+                line=line.replace('\n','')))
 
     # Done
     return '\n'.join(output)
@@ -583,9 +584,10 @@ def menu_ddrescue(source_path, dest_path, run_mode):
         dest = create_path_obj(dest_path)
     else:
         if run_mode == 'clone':
+            x
             dest = select_device('destination', skip_device=source)
         else:
-            dest = select_directory()
+            dest = select_path(skip_device=source)
     dest.self_check()
 
     # Build BlockPairs
@@ -796,78 +798,6 @@ def menu_select_children(source):
     return selected_children
 
 
-def menu_select_path(skip_device={}):
-    """Select path via menu, returns path as str."""
-    pwd = os.path.realpath(global_vars['Env']['PWD'])
-    s_path = None
-
-    # Build Menu
-    path_options = [
-        {'Name': 'Current directory: {}'.format(pwd), 'Path': pwd},
-        {'Name': 'Local device', 'Path': None},
-        {'Name': 'Enter manually', 'Path': None}]
-    actions = [{'Name': 'Quit', 'Letter': 'Q'}]
-
-    # Show Menu
-    selection = menu_select(
-        title='Please make a selection',
-        main_entries=path_options,
-        action_entries=actions)
-
-    if selection == 'Q':
-        raise GenericAbort()
-    elif selection.isnumeric():
-        index = int(selection) - 1
-        if path_options[index]['Path']:
-            # Current directory
-            s_path = pwd
-
-        elif path_options[index]['Name'] == 'Local device':
-            # Local device
-            local_device = select_device(
-                skip_device=skip_device,
-                allow_image_file=False)
-
-            # Mount device volume(s)
-            report = mount_volumes(
-                all_devices=False,
-                device_path=local_device['Dev Path'],
-                read_write=True)
-
-            # Select volume
-            vol_options = []
-            for k, v in sorted(report.items()):
-                disabled = v['show_data']['data'] == 'Failed to mount'
-                if disabled:
-                    name = '{name} (Failed to mount)'.format(**v)
-                else:
-                    name = '{name} (mounted on "{mount_point}")'.format(**v)
-                vol_options.append({
-                    'Name': name,
-                    'Path': v['mount_point'],
-                    'Disabled': disabled})
-            selection = menu_select(
-                title='Please select a volume',
-                main_entries=vol_options,
-                action_entries=actions)
-            if selection.isnumeric():
-                s_path = vol_options[int(selection)-1]['Path']
-            elif selection == 'Q':
-                raise GenericAbort()
-
-        elif path_options[index]['Name'] == 'Enter manually':
-            # Manual entry
-            while not s_path:
-                m_path = input('Please enter path: ').strip()
-                if m_path and pathlib.Path(m_path).is_dir():
-                    s_path = os.path.realpath(m_path)
-                elif m_path and pathlib.Path(m_path).is_file():
-                    print_error('File "{}" exists'.format(m_path))
-                else:
-                    print_error('Invalid path "{}"'.format(m_path))
-    return s_path
-
-
 def menu_settings(source):
     """Change advanced ddrescue settings."""
     title = '{GREEN}ddrescue TUI: Expert Settings{CLEAR}\n\n'.format(**COLORS)
@@ -1045,41 +975,75 @@ def run_ddrescue(source, dest, settings):
     run_program(['tmux', 'kill-pane', '-t', smart_pane])
 
 
-def select_dest_path(provided_path=None, skip_device={}):
-    dest = {'Is Dir': True, 'Is Image': False}
+def select_path(skip_device=None):
+    """Optionally mount local dev and select path, returns DirObj."""
+    wd = os.path.realpath(global_vars['Env']['PWD'])
+    selected_path = None
 
-    # Set path
-    if provided_path:
-        dest['Path'] = provided_path
-    else:
-        dest['Path'] = menu_select_path(skip_device=skip_device)
-    dest['Path'] = os.path.realpath(dest['Path'])
+    # Build menu
+    path_options = [
+        {'Name': 'Current directory: {}'.format(wd), 'Path': wd},
+        {'Name': 'Local device', 'Path': None},
+        {'Name': 'Enter manually', 'Path': None}]
+    actions = [{'Name': 'Quit', 'Letter': 'Q'}]
 
-    # Check path
-    if not pathlib.Path(dest['Path']).is_dir():
-        raise GenericError('Invalid path "{}"'.format(dest['Path']))
+    # Show Menu
+    selection = menu_select(
+        title='Please make a selection',
+        main_entries=path_options,
+        action_entries=actions)
 
-    # Create ticket folder
-    if ask('Create ticket folder?'):
-        ticket_folder = get_simple_string('Please enter folder name')
-        dest['Path'] = os.path.join(
-            dest['Path'], ticket_folder)
-        try:
-            os.makedirs(dest['Path'], exist_ok=True)
-        except OSError:
-            raise GenericError(
-                'Failed to create folder "{}"'.format(dest['Path']))
+    if selection == 'Q':
+        raise GenericAbort()
+    elif selection.isnumeric():
+        index = int(selection) - 1
+        if path_options[index]['Path'] == wd:
+            # Current directory
+            selected_path = DirObj(wd)
 
-    # Set display name
-    result = run_program(['tput', 'cols'])
-    width = int(
-        (int(result.stdout.decode().strip()) - SIDE_PANE_WIDTH) / 2) - 2
-    if len(dest['Path']) > width:
-        dest['Display Name'] = '...{}'.format(dest['Path'][-(width-3):])
-    else:
-        dest['Display Name'] = dest['Path']
+        elif path_options[index]['Name'] == 'Local device':
+            # Local device
+            local_device = select_device(
+                skip_device=skip_device)
 
-    return dest
+            # Mount device volume(s)
+            report = mount_volumes(
+                all_devices=False,
+                device_path=local_device.path,
+                read_write=True)
+
+            # Select volume
+            vol_options = []
+            for k, v in sorted(report.items()):
+                disabled = v['show_data']['data'] == 'Failed to mount'
+                if disabled:
+                    name = '{name} (Failed to mount)'.format(**v)
+                else:
+                    name = '{name} (mounted on "{mount_point}")'.format(**v)
+                vol_options.append({
+                    'Name': name,
+                    'Path': v['mount_point'],
+                    'Disabled': disabled})
+            selection = menu_select(
+                title='Please select a volume',
+                main_entries=vol_options,
+                action_entries=actions)
+            if selection.isnumeric():
+                selected_path = DirObj(vol_options[int(selection)-1]['Path'])
+            elif selection == 'Q':
+                raise GenericAbort()
+
+        elif path_options[index]['Name'] == 'Enter manually':
+            # Manual entry
+            while not selected_path:
+                manual_path = input('Please enter path: ').strip()
+                if manual_path and pathlib.Path(manual_path).is_dir():
+                    selected_path = DirObj(manual_path)
+                elif manual_path and pathlib.Path(manual_path).is_file():
+                    print_error('File "{}" exists'.format(manual_path))
+                else:
+                    print_error('Invalid path "{}"'.format(manual_path))
+    return selected_path
 
 
 def select_device(description='device', skip_device=None):
