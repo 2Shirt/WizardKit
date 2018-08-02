@@ -595,9 +595,9 @@ def menu_ddrescue(source_path, dest_path, run_mode):
     if run_mode == 'clone':
         state.add_block_pair(source, dest)
     else:
-        # TODO select dev or child dev(s)
-        state.add_block_pair(source, dest)
-        pass
+        source_parts = select_parts(source)
+        for part in source_parts:
+            state.add_block_pair(part, dest)
 
     # Update state
     state.self_checks()
@@ -728,74 +728,6 @@ def menu_main(source, dest):
             menu_settings(source)
         elif selection == 'Q':
             break
-
-
-def menu_select_children(source):
-    """Select child device(s) or whole disk, returns list."""
-    dev_options = [{
-        'Base Name': '{:<14}(Whole device)'.format(source['Dev Path']),
-        'Path': source['Dev Path'],
-        'Selected': True}]
-    for c_details in source['Details'].get('children', []):
-        dev_options.append({
-            'Base Name': '{:<14}({:>6} {})'.format(
-                c_details['name'],
-                c_details['size'],
-                c_details['fstype'] if c_details['fstype'] else 'Unknown'),
-            'Details': c_details,
-            'Path': c_details['name'],
-            'Selected': False})
-    actions = [
-        {'Name': 'Proceed', 'Letter': 'P'},
-        {'Name': 'Quit', 'Letter': 'Q'}]
-
-    # Skip Menu if there's no children
-    if len(dev_options) == 1:
-        return []
-
-    # Show Menu
-    while True:
-        one_or_more_devs_selected = False
-        # Update entries
-        for dev in dev_options:
-            if dev['Selected']:
-                one_or_more_devs_selected = True
-                dev['Name'] = '* {}'.format(dev['Base Name'])
-            else:
-                dev['Name'] = '  {}'.format(dev['Base Name'])
-
-        selection = menu_select(
-            title='Please select part(s) to image',
-            main_entries=dev_options,
-            action_entries=actions)
-
-        if selection.isnumeric():
-            # Toggle selection
-            index = int(selection) - 1
-            dev_options[index]['Selected'] = not dev_options[index]['Selected']
-
-            # Deselect whole device if child selected (this round)
-            if index > 0:
-                dev_options[0]['Selected'] = False
-
-            # Deselect all children if whole device selected
-            if dev_options[0]['Selected']:
-                for dev in dev_options[1:]:
-                    dev['Selected'] = False
-        elif selection == 'P' and one_or_more_devs_selected:
-            break
-        elif selection == 'Q':
-            raise GenericAbort()
-
-    # Check selection
-    selected_children = [{
-        'Details': d['Details'],
-        'Dev Path': d['Path'],
-        'Pass 1': {'Status': 'Pending', 'Done': False},
-        'Pass 2': {'Status': 'Pending', 'Done': False},
-        'Pass 3': {'Status': 'Pending', 'Done': False}} for d in dev_options
-        if d['Selected'] and 'Whole device' not in d['Base Name']]
-    return selected_children
 
 
 def menu_settings(source):
@@ -973,6 +905,73 @@ def run_ddrescue(source, dest, settings):
         # Pause on errors
         pause('Press Enter to return to main menu... ')
     run_program(['tmux', 'kill-pane', '-t', smart_pane])
+
+
+def select_parts(source_device):
+    """Select partition(s) or whole device, returns list of DevObj()s."""
+    selected_parts = []
+    children = source_device.details.get('children', [])
+
+    if not children:
+        # No partitions detected, auto-select whole device.
+        selected_parts = [source_device]
+    else:
+        # Build menu
+        dev_options = [{
+            'Base Name': '{:<14}(Whole device)'.format(source_device.path),
+            'Dev': source_device,
+            'Selected': True}]
+        for c_details in children:
+            dev_options.append({
+                'Base Name': '{:<14}({:>6} {})'.format(
+                    c_details['name'],
+                    c_details['size'],
+                    c_details['fstype'] if c_details['fstype'] else 'Unknown'),
+                'Details': c_details,
+                'Dev': DevObj(c_details['name']),
+                'Selected': False})
+        actions = [
+            {'Name': 'Proceed', 'Letter': 'P'},
+            {'Name': 'Quit', 'Letter': 'Q'}]
+
+        # Show menu
+        while True:
+            one_or_more_devs_selected = False
+            # Update entries
+            for dev in dev_options:
+                if dev['Selected']:
+                    one_or_more_devs_selected = True
+                    dev['Name'] = '* {}'.format(dev['Base Name'])
+                else:
+                    dev['Name'] = '  {}'.format(dev['Base Name'])
+
+            selection = menu_select(
+                title='Please select part(s) to image',
+                main_entries=dev_options,
+                action_entries=actions)
+
+            if selection.isnumeric():
+                # Toggle selection
+                index = int(selection) - 1
+                dev_options[index]['Selected'] = not dev_options[index]['Selected']
+
+                # Deselect whole device if child selected (this round)
+                if index > 0:
+                    dev_options[0]['Selected'] = False
+
+                # Deselect all children if whole device selected
+                if dev_options[0]['Selected']:
+                    for dev in dev_options[1:]:
+                        dev['Selected'] = False
+            elif selection == 'P' and one_or_more_devs_selected:
+                break
+            elif selection == 'Q':
+                raise GenericAbort()
+
+        # Build list of selected parts
+        selected_parts = [d['Dev'] for d in dev_options if d['Selected']]
+
+    return selected_parts
 
 
 def select_path(skip_device=None):
