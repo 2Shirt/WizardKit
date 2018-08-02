@@ -246,11 +246,14 @@ class ImageObj(BaseObj):
 
 class RecoveryState():
     """Object to track BlockPair objects and overall state."""
-    def __init__(self, mode):
+    def __init__(self, mode, source, dest):
+        self.mode = mode.lower()
+        self.source_name = source.name
+        self.dest_name = dest.name
         self.block_pairs = []
         self.current_pass = 0
         self.finished = False
-        self.mode = mode.lower()
+        self.progress_out = '{}/progress.out'.format(global_vars['LogDir'])
         self.rescued = 0
         self.resumed = False
         self.started = False
@@ -338,7 +341,7 @@ class RecoveryState():
 
 
 # Functions
-def build_outer_panes(source, dest):
+def build_outer_panes(state):
     """Build top and side panes."""
     clear_screen()
     result = run_program(['tput', 'cols'])
@@ -346,12 +349,12 @@ def build_outer_panes(source, dest):
         (int(result.stdout.decode().strip()) - SIDE_PANE_WIDTH) / 2) - 2
 
     # Top panes
-    source_str = source.name
+    source_str = state.source_name
     if len(source_str) > width:
         source_str = '{}...'.format(source_str[:width-3])
-    dest_str = dest.name
+    dest_str = state.dest_name
     if len(dest_str) > width:
-        if dest.is_dev():
+        if state.mode == 'clone':
             dest_str = '{}...'.format(dest_str[:width-3])
         else:
             dest_str = '...{}'.format(dest_str[-width+3:])
@@ -375,12 +378,11 @@ def build_outer_panes(source, dest):
             **COLORS))
 
     # Side pane
-    # TODO FIX IT
-    #update_progress(source)
-    #tmux_splitw(
-    #    '-dhl', '{}'.format(SIDE_PANE_WIDTH),
-    #    'watch', '--color', '--no-title', '--interval', '1',
-    #    'cat', source['Progress Out'])
+    update_progress(state)
+    tmux_splitw(
+        '-dhl', str(SIDE_PANE_WIDTH),
+        'watch', '--color', '--no-title', '--interval', '1',
+        'cat', state.progress_out)
 
 
 def create_path_obj(path):
@@ -591,12 +593,11 @@ def menu_ddrescue(source_path, dest_path, run_mode):
     dest.self_check()
 
     # Build BlockPairs
-    state = RecoveryState(run_mode)
+    state = RecoveryState(run_mode, source, dest)
     if run_mode == 'clone':
         state.add_block_pair(source, dest)
     else:
-        source_parts = select_parts(source)
-        for part in source_parts:
+        for part in select_parts(source):
             state.add_block_pair(part, dest)
 
     # Update state
@@ -617,7 +618,7 @@ def menu_ddrescue(source_path, dest_path, run_mode):
         raise GenericAbort()
 
     # Main menu
-    build_outer_panes(source, dest)
+    build_outer_panes(state)
     # TODO Fix
     #menu_main(source, dest)
     pause('Fake Main Menu... ')
