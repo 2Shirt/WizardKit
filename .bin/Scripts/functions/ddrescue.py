@@ -37,6 +37,29 @@ USAGE = """    {script_name} clone [source [destination]]
 
 
 # Clases
+class BaseObj():
+    """Base object used by DevObj, DirObj, and ImageObj."""
+    def __init__(self, path):
+        self.type = 'base'
+        self.path = os.path.realpath(path)
+        self.set_details()
+
+    def is_dev(self):
+        return self.type == 'dev'
+
+    def is_dir(self):
+        return self.type == 'dir'
+
+    def is_image(self):
+        return self.type == 'image'
+
+    def self_check(self):
+        pass
+
+    def set_details(self):
+        self.details = {}
+
+
 class BlockPair():
     """Object to track data and methods together for source and dest."""
     def __init__(self, source, dest, mode):
@@ -132,6 +155,95 @@ class BlockPair():
                 data=(self.rescued/self.size)*100)
 
 
+class DevObj(BaseObj):
+    """Block device object."""
+    def self_check(self):
+        """Verify that self.path points to a block device."""
+        if not pathlib.Path(self.path).is_block_device():
+            raise GenericError('Path "{}" is not a block device.'.format(
+                self.path))
+        if self.parent:
+            print_warning('"{}" is a child device.'.format(self.path))
+            if ask('Use parent device "{}" instead?'.format(self.parent):
+                self.path = os.path.realpath(path)
+                self.set_details()
+
+    def set_details(self):
+        """Set details via lsblk."""
+        self.type = 'dev'
+        self.details = get_device_details(self.path)
+        self.name = '{name} {size} {model} {serial}'.format(
+            name=self.details.get('name', 'UNKNOWN'),
+            size=self.details.get('size', 'UNKNOWN'),
+            model=self.details.get('model', 'UNKNOWN'),
+            serial=self.details.get('serial', 'UNKNOWN'))
+        self.model = self.details.get('model', 'UNKNOWN')
+        self.model_size = self.details.get('size', 'UNKNOWN')
+        self.size = get_size_in_bytes(self.details.get('size', 'UNKNOWN'))
+        self.report = get_device_report(self.path)
+        self.parent = self.details.get('pkname', '')
+        self.label = self.details.get('label', '')
+        if not self.label:
+            # Force empty string in case it's set to None
+            self.label = ''
+        self.update_filename_prefix()
+
+    def update_filename_prefix(self):
+        """Set filename prefix based on details."""
+        self.prefix = '{m_size}_{model}'.format(
+            m_size=self.model_size,
+            model=self.model)
+        if self.parent:
+            # Add child device details
+            self.prefix += '_{c_num}_{c_size}{sep}{c_label}'.format(
+                c_num=self.name.replace(self.parent, ''),
+                c_size=self.details.get('size', 'UNKNOWN'),
+                sep='_' if self.label else '',
+                c_label=self.label)
+
+
+class DirObj(BaseObj):
+    def self_check(self):
+        """Verify that self.path points to a directory."""
+        if not pathlib.Path(self.path).is_dir():
+            raise GenericError('Path "{}" is not a directory.'.format(
+                self.path))
+
+    def set_details(self):
+        """Set details via findmnt."""
+        self.type = 'dir'
+        self.details = get_dir_details(self.path)
+        self.fstype = self.details.get('fstype', 'UNKNOWN')
+        self.name = self.path + '/'
+        self.size = get_size_in_bytes(self.details.get('avail', 'UNKNOWN'))
+        self.report = get_dir_report(self.path)
+
+
+class ImageObj(BaseObj):
+    def self_check(self):
+        """Verify that self.path points to a file."""
+        if not pathlib.Path(self.path).is_file():
+            raise GenericError('Path "{}" is not an image file.'.format(
+                self.path))
+
+    def set_details(self):
+        """Setup loopback device, set details via lsblk, then detach device."""
+        self.type = 'image'
+        self.loop_dev = setup_loopback_device(self.path)
+        self.details = get_device_details(self.loop_dev)
+        self.details['model'] = 'ImageFile'
+        self.name = '{name} {size}'.format(
+            name=self.path[self.path.rfind('/')+1:],
+            size=self.details.get('size', 'UNKNOWN'))
+        self.prefix = '{}_ImageFile'.format(
+            self.details.get('size', 'UNKNOWN'))
+        self.size = get_size_in_bytes(self.details.get('size', 'UNKNOWN'))
+        self.report = get_device_report(self.loop_dev)
+        self.report = self.report.replace(
+            self.loop_dev[self.loop_dev.rfind('/')+1:], '(Img)')
+        run_program(['losetup', '--detach', self.loop_dev], check=False)
+
+
 class RecoveryState():
     """Object to track BlockPair objects and overall state."""
     def __init__(self, mode):
@@ -223,113 +335,6 @@ class RecoveryState():
             label='Recovered:', data=(self.rescued/self.total_size)*100)
         self.status_amount = get_formatted_status(
             label='', data=human_readable_size(self.rescued))
-
-
-class BaseObj():
-    """Base object used by DevObj, DirObj, and ImageObj."""
-    def __init__(self, path):
-        self.type = 'base'
-        self.path = os.path.realpath(path)
-        self.set_details()
-
-    def is_dev(self):
-        return self.type == 'dev'
-
-    def is_dir(self):
-        return self.type == 'dir'
-
-    def is_image(self):
-        return self.type == 'image'
-
-    def self_check(self):
-        pass
-
-    def set_details(self):
-        self.details = {}
-
-
-class DevObj(BaseObj):
-    """Block device object."""
-    def self_check(self):
-        """Verify that self.path points to a block device."""
-        if not pathlib.Path(self.path).is_block_device():
-            raise GenericError('Path "{}" is not a block device.'.format(
-                self.path))
-
-    def set_details(self):
-        """Set details via lsblk."""
-        self.type = 'dev'
-        self.details = get_device_details(self.path)
-        self.name = '{name} {size} {model} {serial}'.format(
-            name=self.details.get('name', 'UNKNOWN'),
-            size=self.details.get('size', 'UNKNOWN'),
-            model=self.details.get('model', 'UNKNOWN'),
-            serial=self.details.get('serial', 'UNKNOWN'))
-        self.model = self.details.get('model', 'UNKNOWN')
-        self.model_size = self.details.get('size', 'UNKNOWN')
-        self.size = get_size_in_bytes(self.details.get('size', 'UNKNOWN'))
-        self.report = get_device_report(self.path)
-        self.parent = self.details.get('pkname', '')
-        self.label = self.details.get('label', '')
-        if not self.label:
-            # Force empty string in case it's set to None
-            self.label = ''
-        self.update_filename_prefix()
-
-    def update_filename_prefix(self):
-        """Set filename prefix based on details."""
-        self.prefix = '{m_size}_{model}'.format(
-            m_size=self.model_size,
-            model=self.model)
-        if self.parent:
-            # Add child device details
-            self.prefix += '_{c_num}_{c_size}{sep}{c_label}'.format(
-                c_num=self.name.replace(self.parent, ''),
-                c_size=self.details.get('size', 'UNKNOWN'),
-                sep='_' if self.label else '',
-                c_label=self.label)
-
-
-class DirObj(BaseObj):
-    def self_check(self):
-        """Verify that self.path points to a directory."""
-        if not pathlib.Path(self.path).is_dir():
-            raise GenericError('Path "{}" is not a directory.'.format(
-                self.path))
-
-    def set_details(self):
-        """Set details via findmnt."""
-        self.type = 'dir'
-        self.details = get_dir_details(self.path)
-        self.fstype = self.details.get('fstype', 'UNKNOWN')
-        self.name = self.path + '/'
-        self.size = get_size_in_bytes(self.details.get('avail', 'UNKNOWN'))
-        self.report = get_dir_report(self.path)
-
-
-class ImageObj(BaseObj):
-    def self_check(self):
-        """Verify that self.path points to a file."""
-        if not pathlib.Path(self.path).is_file():
-            raise GenericError('Path "{}" is not an image file.'.format(
-                self.path))
-
-    def set_details(self):
-        """Setup loopback device, set details via lsblk, then detach device."""
-        self.type = 'image'
-        self.loop_dev = setup_loopback_device(self.path)
-        self.details = get_device_details(self.loop_dev)
-        self.details['model'] = 'ImageFile'
-        self.name = '{name} {size}'.format(
-            name=self.path[self.path.rfind('/')+1:],
-            size=self.details.get('size', 'UNKNOWN'))
-        self.prefix = '{}_ImageFile'.format(
-            self.details.get('size', 'UNKNOWN'))
-        self.size = get_size_in_bytes(self.details.get('size', 'UNKNOWN'))
-        self.report = get_device_report(self.loop_dev)
-        self.report = self.report.replace(
-            self.loop_dev[self.loop_dev.rfind('/')+1:], '(Img)')
-        run_program(['losetup', '--detach', self.loop_dev], check=False)
 
 
 # Functions
@@ -565,48 +570,6 @@ def mark_all_passes_pending(source):
             child[p_num]['Done'] = False
 
 
-def menu_clone(source_path, dest_path):
-    """ddrescue cloning menu."""
-
-    # Set devices
-    source = select_device('source', source_path)
-    source['Current Pass'] = 'Pass 1'
-    source['Pass 1'] = {'Status': 'Pending', 'Done': False}
-    source['Pass 2'] = {'Status': 'Pending', 'Done': False}
-    source['Pass 3'] = {'Status': 'Pending', 'Done': False}
-    source['Recovered Size'] = 0
-    source['Started Recovery'] = False
-    source['Total Size'] = 0
-    source['Type'] = 'clone'
-    dest = select_device(
-        'destination', dest_path,
-        skip_device=source['Details'], allow_image_file=False)
-    dest_safety_check(source, dest)
-
-    # Show selection details
-    show_selection_details(source, dest)
-
-    # Set status details
-    set_dest_image_paths(source, dest)
-    get_recovery_scope_size(source)
-    check_dest_paths(source)
-    resume_from_map(source)
-
-    # Confirm
-    if not ask('Proceed with clone?'):
-        raise GenericAbort()
-    show_safety_check()
-
-    # Main menu
-    build_outer_panes(source, dest)
-    menu_main(source, dest)
-
-    # Done
-    run_program(['losetup', '-D'])
-    run_program(['tmux', 'kill-window'])
-    exit_script()
-
-
 def menu_ddrescue(source_path, dest_path, run_mode):
     """ddrescue menu."""
     source = None
@@ -660,46 +623,6 @@ def menu_ddrescue(source_path, dest_path, run_mode):
     # Done
     run_program(['tmux', 'kill-window'])
     exit_script()
-
-def menu_image(source_path, dest_path):
-    """ddrescue imaging menu."""
-
-    # Set devices
-    source = select_device('source', source_path, allow_image_file=False)
-    source['Current Pass'] = 'Pass 1'
-    source['Pass 1'] = {'Status': 'Pending', 'Done': False}
-    source['Pass 2'] = {'Status': 'Pending', 'Done': False}
-    source['Pass 3'] = {'Status': 'Pending', 'Done': False}
-    source['Recovered Size'] = 0
-    source['Started Recovery'] = False
-    source['Total Size'] = 0
-    source['Type'] = 'image'
-    dest = select_dest_path(dest_path, skip_device=source['Details'])
-    dest_safety_check(source, dest)
-
-    # Select child device(s)
-    source['Children'] = menu_select_children(source)
-    set_dest_image_paths(source, dest)
-    get_recovery_scope_size(source)
-    check_dest_paths(source)
-    resume_from_map(source)
-
-    # Show selection details
-    show_selection_details(source, dest)
-
-    # Confirm
-    if not ask('Proceed with imaging?'):
-        raise GenericAbort()
-
-    # Main menu
-    build_outer_panes(source, dest)
-    menu_main(source, dest)
-
-    # Done
-    run_program(['losetup', '-D'])
-    run_program(['tmux', 'kill-window'])
-    exit_script()
-
 
 def menu_main(source, dest):
     """Main menu is used to set ddrescue settings."""
