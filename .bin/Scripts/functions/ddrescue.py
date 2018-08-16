@@ -640,7 +640,7 @@ def menu_ddrescue(source_path, dest_path, run_mode):
 
     # Confirmations
     clear_screen()
-    show_selection_details(state, source, dest)
+    show_selection_details(state)
     prompt = 'Start {}?'.format(state.mode.replace('e', 'ing'))
     if state.resumed:
         print_info('Map data detected and loaded.')
@@ -1168,11 +1168,11 @@ def show_device_details(dev_path):
         print_standard(line)
 
 
-def show_selection_details(state, source, dest):
+def show_selection_details(state):
     """Show selection details."""
     # Source
     print_success('Source')
-    print_standard(source.report)
+    print_standard(state.source.report)
     print_standard(' ')
 
     # Destination
@@ -1181,7 +1181,7 @@ def show_selection_details(state, source, dest):
         print_error('(ALL DATA WILL BE DELETED)', timestamp=False)
     else:
         print_success('Destination')
-    print_standard(dest.report)
+    print_standard(state.dest.report)
     print_standard(' ')
 
 
