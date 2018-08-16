@@ -90,7 +90,7 @@ class BlockPair():
         if os.path.exists(self.map_path):
             self.load_map_data()
             self.resumed = True
-        fix_status_strings()
+        self.fix_status_strings()
 
     def fix_status_strings(self):
         """Format status strings via get_formatted_status()."""
@@ -334,7 +334,7 @@ class RecoveryState():
 
     def retry_all_passes(self):
         """Mark all passes as pending for all block-pairs."""
-        self.current_pass = 0
+        self.finished = False
         for bp in self.block_pairs:
             bp.pass_done = [False, False, False]
             bp.status = ['Pending', 'Pending', 'Pending']
@@ -367,11 +367,11 @@ class RecoveryState():
                 break
         if self.finished:
             self.current_pass_str = '- "Done"'
-        elif pass_num == 0:
+        elif self.current_pass == 0:
             self.current_pass_str = '1 "Initial Read"'
-        elif pass_num == 1:
+        elif self.current_pass == 1:
             self.current_pass_str = '2 "Trimming bad areas"'
-        elif pass_num == 2:
+        elif self.current_pass == 2:
             self.current_pass_str = '3 "Scraping bad areas"'
 
     def update_progress(self):
@@ -724,6 +724,7 @@ def menu_main(state):
                 state.started = True
                 run_ddrescue(state, pass_settings)
                 if state.finished or not auto_run:
+                    state.set_pass_num()
                     break
                 if state.current_pass_done():
                     if (state.current_pass == 0 and
