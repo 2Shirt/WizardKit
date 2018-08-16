@@ -262,7 +262,7 @@ class RecoveryState():
         self.block_pairs = []
         self.current_pass = 0
         self.current_pass_str = '0: Initializing'
-        self.ddrescue_settings = DDRESCUE_SETTINGS.copy()
+        self.settings = DDRESCUE_SETTINGS.copy()
         self.finished = False
         self.progress_out = '{}/progress.out'.format(global_vars['LogDir'])
         self.rescued = 0
@@ -569,7 +569,7 @@ def get_status_color(s, t_success=99, t_warn=90):
 
     if s in ('Pending',) or str(s)[-2:] in (' b', 'Kb', 'Mb', 'Gb', 'Tb'):
         color = COLORS['CLEAR']
-    elif s in ('Skipped', 'Unknown', 'Working'):
+    elif s in ('Skipped', 'Unknown'):
         color = COLORS['YELLOW']
     elif p_recovered >= t_success:
         color = COLORS['GREEN']
@@ -699,7 +699,7 @@ def menu_main(state):
         elif selection == 'S':
             # Set settings for pass
             settings = []
-            for k, v in state.ddrescue_settings.items():
+            for k, v in state.settings.items():
                 if not v['Enabled']:
                     continue
                 if k[-1:] == '=':
@@ -741,7 +741,7 @@ def menu_main(state):
                 state.set_pass_num()
 
         elif selection == 'C':
-            menu_settings(source)
+            menu_settings(state)
         elif selection == 'Q':
             if state.rescued_percent < 100:
                 print_warning('Recovery is less than 100%')
@@ -751,7 +751,7 @@ def menu_main(state):
                 break
 
 
-def menu_settings(source):
+def menu_settings(state):
     """Change advanced ddrescue settings."""
     title = '{GREEN}ddrescue TUI: Expert Settings{CLEAR}\n\n'.format(**COLORS)
     title += '{YELLOW}These settings can cause {CLEAR}'.format(**COLORS)
@@ -761,7 +761,7 @@ def menu_settings(source):
 
     # Build menu
     settings = []
-    for k, v in sorted(source['Settings'].items()):
+    for k, v in sorted(state.settings.items()):
         if not v.get('Hidden', False):
             settings.append({'Base Name': k.replace('=', ''), 'Flag': k})
     actions = [{'Name': 'Main Menu', 'Letter': 'M'}]
@@ -771,9 +771,9 @@ def menu_settings(source):
         for s in settings:
             s['Name'] = '{}{}{}'.format(
                 s['Base Name'],
-                ' = ' if 'Value' in source['Settings'][s['Flag']] else '',
-                source['Settings'][s['Flag']].get('Value', ''))
-            if not source['Settings'][s['Flag']]['Enabled']:
+                ' = ' if 'Value' in state.settings[s['Flag']] else '',
+                state.settings[s['Flag']].get('Value', ''))
+            if not state.settings[s['Flag']]['Enabled']:
                 s['Name'] = '{YELLOW}{name} (Disabled){CLEAR}'.format(
                     name=s['Name'],
                     **COLORS)
@@ -784,27 +784,27 @@ def menu_settings(source):
         if selection.isnumeric():
             index = int(selection) - 1
             flag = settings[index]['Flag']
-            enabled = source['Settings'][flag]['Enabled']
-            if 'Value' in source['Settings'][flag]:
+            enabled = state.settings[flag]['Enabled']
+            if 'Value' in state.settings[flag]:
                 answer = choice(
                     choices=['T', 'C'],
                     prompt='Toggle or change value for "{}"'.format(flag))
                 if answer == 'T':
                     # Toggle
-                    source['Settings'][flag]['Enabled'] = not enabled
+                    state.settings[flag]['Enabled'] = not enabled
                 else:
                     # Update value
-                    source['Settings'][flag]['Value'] = get_simple_string(
+                    state.settings[flag]['Value'] = get_simple_string(
                         prompt='Enter new value')
             else:
-                source['Settings'][flag]['Enabled'] = not enabled
+                state.settings[flag]['Enabled'] = not enabled
         elif selection == 'M':
             break
 
 
 def read_map_file(map_path):
     """Read map file with ddrescuelog and return data as dict."""
-    map_data = {}
+    map_data = {'full recovery': False}
     try:
         result = run_program(['ddrescuelog', '-t', map_path])
     except CalledProcessError:
@@ -864,21 +864,28 @@ def run_ddrescue(state):
         if bp.pass_done[state.current_pass]:
             # Skip to next block-pair
             continue
-        bp.status[state.current_pass] = 'Working'
         update_progress(state)
 
         # Set ddrescue cmd
-        cmd = [
-            'ddrescue', *settings,
-            bp.source_path, bp.dest_path, bp.map_path]
+        cmd = ['ddrescue', bp.source_path, bp.dest_path, bp.map_path]
+        for k, v in state.settings.items():
+            if not v['Enabled']:
+                continue
+            if 'Value' in v:
+                cmd.append('{}{}{}'.format(
+                    k,
+                    '' if k[-1:] == '=' else ' ',
+                    v['Value']))
+            else:
+                cmd.append(k)
         if state.mode == 'clone':
             cmd.append('--force')
-        if current_pass == 0:
+        if state.current_pass == 0:
             cmd.extend(['--no-trim', '--no-scrape'])
-        elif current_pass == 1:
+        elif state.current_pass == 1:
             # Allow trimming
             cmd.append('--no-scrape')
-        elif current_pass == 2:
+        elif state.current_pass == 2:
             # Allow trimming and scraping
             pass
 
