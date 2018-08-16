@@ -1147,27 +1147,6 @@ def setup_loopback_device(source_path):
         return dev_path
 
 
-def show_device_details(dev_path):
-    """Display device details on screen."""
-    cmd = (
-        'lsblk', '--nodeps',
-        '--output', 'NAME,TRAN,TYPE,SIZE,VENDOR,MODEL,SERIAL',
-        dev_path)
-    result = run_program(cmd)
-    output = result.stdout.decode().splitlines()
-    print_info(output.pop(0))
-    for line in output:
-        print_standard(line)
-
-    # Children info
-    cmd = ('lsblk', '--output', 'NAME,SIZE,FSTYPE,LABEL,MOUNTPOINT', dev_path)
-    result = run_program(cmd)
-    output = result.stdout.decode().splitlines()
-    print_info(output.pop(0))
-    for line in output:
-        print_standard(line)
-
-
 def show_selection_details(state):
     """Show selection details."""
     # Source
