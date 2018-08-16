@@ -424,7 +424,7 @@ def build_outer_panes(state):
             **COLORS))
 
     # Side pane
-    update_progress(state)
+    update_sidepane(state)
     tmux_splitw(
         '-dhl', str(SIDE_PANE_WIDTH),
         'watch', '--color', '--no-title', '--interval', '1',
@@ -862,7 +862,7 @@ def run_ddrescue(state, pass_settings):
         if bp.pass_done[state.current_pass]:
             # Skip to next block-pair
             continue
-        update_progress(state)
+        update_sidepane(state)
 
         # Set ddrescue cmd
         cmd = [
@@ -887,16 +887,24 @@ def run_ddrescue(state, pass_settings):
             # ddrescue_proc = popen_program(['./__exit_ok', *cmd])
             # ddrescue_proc = popen_program(cmd)
             while True:
+                bp.update_progress(state.current_pass)
+                update_sidepane(state)
                 try:
                     ddrescue_proc.wait(timeout=10)
                     sleep(2)
-                    update_progress(state)
+                    bp.update_progress(state.current_pass)
+                    update_sidepane(state)
                     break
                 except subprocess.TimeoutExpired:
-                    update_progress(state)
+                    # Catch to update bp/sidepane
+                    pass
         except KeyboardInterrupt:
             # Catch user abort
             pass
+
+        # Update progress/sidepane again
+        bp.update_progress(state.current_pass)
+        update_sidepane(state)
 
         # Was ddrescue aborted?
         return_code = ddrescue_proc.poll()
@@ -1174,9 +1182,10 @@ def tmux_splitw(*args):
     return result.stdout.decode().strip()
 
 
-def update_progress(state):
+def update_sidepane(state):
     """Update progress file for side pane."""
     output = []
+    state.update_progress()
     if state.mode == 'clone':
         output.append('   {BLUE}Cloning Status{CLEAR}'.format(**COLORS))
     else:
@@ -1195,11 +1204,11 @@ def update_progress(state):
             output.append('{BLUE}Image File{CLEAR}'.format(**COLORS))
         elif state.mode == 'image' and len(state.block_pairs) == 1:
             output.append('{BLUE}{source} {YELLOW}(Whole){CLEAR}'.format(
-                source=bp.source.path,
+                source=bp.source_path,
                 **COLORS))
         else:
             output.append('{BLUE}{source}{CLEAR}'.format(
-                source=bp.source.path,
+                source=bp.source_path,
                 **COLORS))
         output.extend(bp.status)
         output.append(' ')
