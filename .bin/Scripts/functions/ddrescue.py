@@ -17,15 +17,15 @@ AUTO_PASS_1_THRESHOLD = 95
 AUTO_PASS_2_THRESHOLD = 98
 DDRESCUE_SETTINGS = {
     '--binary-prefixes': {'Enabled': True, 'Hidden': True},
-    '--data-preview': {'Enabled': True, 'Hidden': True},
+    '--data-preview': {'Enabled': True, 'Hidden': True, 'Value': '5'},
     '--idirect': {'Enabled': True},
     '--odirect': {'Enabled': True},
     '--max-read-rate': {'Enabled': False, 'Value': '32MiB'},
     '--min-read-rate': {'Enabled': True, 'Value': '64KiB'},
     '--reopen-on-error': {'Enabled': True},
-    '--retry-passes=': {'Enabled': True, 'Value': '0'},
-    '--test-mode=': {'Enabled': False, 'Value': 'test.map'},
-    '--timeout=': {'Enabled': True, 'Value': '5m'},
+    '--retry-passes': {'Enabled': True, 'Value': '0'},
+    '--test-mode': {'Enabled': False, 'Value': 'test.map'},
+    '--timeout': {'Enabled': True, 'Value': '5m'},
     '-vvvv': {'Enabled': True, 'Hidden': True},
     }
 RECOMMENDED_FSTYPES = ['ext3', 'ext4', 'xfs']
@@ -90,7 +90,10 @@ class BlockPair():
         if os.path.exists(self.map_path):
             self.load_map_data()
             self.resumed = True
-        # Fix status strings
+        fix_status_strings()
+
+    def fix_status_strings(self):
+        """Format status strings via get_formatted_status()."""
         for pass_num in [1, 2, 3]:
             self.status[pass_num-1] = get_formatted_status(
                 label='Pass {}'.format(pass_num),
@@ -328,6 +331,15 @@ class RecoveryState():
         for bp in self.block_pairs:
             min_percent = min(min_percent, bp.rescued)
         return min_percent
+
+    def retry_all_passes(self):
+        """Mark all passes as pending for all block-pairs."""
+        self.current_pass = 0
+        for bp in self.block_pairs:
+            bp.pass_done = [False, False, False]
+            bp.status = ['Pending', 'Pending', 'Pending']
+            bp.fix_status_strings()
+        self.set_pass_num()
 
     def self_checks(self):
         """Run self-checks for each BlockPair and update state values."""
@@ -595,18 +607,6 @@ def is_writable_filesystem(dir_obj):
     return 'rw' in dir_obj.details.get('options', '')
 
 
-def mark_all_passes_pending(source):
-    """Mark all devs and passes as pending in preparation for retry."""
-    source['Current Pass'] = 'Pass 1'
-    source['Started Recovery'] = False
-    for p_num in ['Pass 1', 'Pass 2', 'Pass 3']:
-        source[p_num]['Status'] = 'Pending'
-        source[p_num]['Done'] = False
-        for child in source['Children']:
-            child[p_num]['Status'] = 'Pending'
-            child[p_num]['Done'] = False
-
-
 def menu_ddrescue(source_path, dest_path, run_mode):
     """ddrescue menu."""
     source = None
@@ -698,25 +698,22 @@ def menu_main(state):
             main_options[index]['Enabled'] = not main_options[index]['Enabled']
         elif selection == 'S':
             # Set settings for pass
-            settings = []
+            pass_settings = []
             for k, v in state.settings.items():
                 if not v['Enabled']:
                     continue
-                if k[-1:] == '=':
-                    settings.append('{}{}'.format(k, v['Value']))
+                if 'Value' in v:
+                    pass_settings.append('{}={}'.format(k, v['Value']))
                 else:
-                    settings.append(k)
-                    if 'Value' in v:
-                        settings.append(v['Value'])
+                    pass_settings.append(k)
             for opt in main_options:
                 if 'Auto' in opt['Base Name']:
                     auto_run = opt['Enabled']
                 if 'Retry' in opt['Base Name'] and opt['Enabled']:
-                    settings.extend(['--retrim', '--try-again'])
-                    mark_all_passes_pending(source)
-                    current_pass = 'Pass 1'
+                    pass_settings.extend(['--retrim', '--try-again'])
+                    state.retry_all_passes()
                 if 'Reverse' in opt['Base Name'] and opt['Enabled']:
-                    settings.append('--reverse')
+                    pass_settings.append('--reverse')
                 # Disable for next pass
                 if 'Auto' not in opt['Base Name']:
                     opt['Enabled'] = False
@@ -725,7 +722,7 @@ def menu_main(state):
             state.started = False
             while auto_run or not state.started:
                 state.started = True
-                run_ddrescue(state)
+                run_ddrescue(state, pass_settings)
                 if state.finished or not auto_run:
                     break
                 if state.current_pass_done():
@@ -763,7 +760,7 @@ def menu_settings(state):
     settings = []
     for k, v in sorted(state.settings.items()):
         if not v.get('Hidden', False):
-            settings.append({'Base Name': k.replace('=', ''), 'Flag': k})
+            settings.append({'Base Name': k, 'Flag': k})
     actions = [{'Name': 'Main Menu', 'Letter': 'M'}]
 
     # Show menu
@@ -835,7 +832,7 @@ def read_map_file(map_path):
     return map_data
 
 
-def run_ddrescue(state):
+def run_ddrescue(state, pass_settings):
     """Run ddrescue pass."""
     return_code = None
 
@@ -867,17 +864,9 @@ def run_ddrescue(state):
         update_progress(state)
 
         # Set ddrescue cmd
-        cmd = ['ddrescue', bp.source_path, bp.dest_path, bp.map_path]
-        for k, v in state.settings.items():
-            if not v['Enabled']:
-                continue
-            if 'Value' in v:
-                cmd.append('{}{}{}'.format(
-                    k,
-                    '' if k[-1:] == '=' else ' ',
-                    v['Value']))
-            else:
-                cmd.append(k)
+        cmd = [
+            'ddrescue', *pass_settings,
+            bp.source_path, bp.dest_path, bp.map_path]
         if state.mode == 'clone':
             cmd.append('--force')
         if state.current_pass == 0:
