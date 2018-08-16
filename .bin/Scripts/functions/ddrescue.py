@@ -658,7 +658,7 @@ def menu_ddrescue(source_path, dest_path, run_mode):
     run_program(['tmux', 'kill-window'])
     exit_script()
 
-def menu_main(source, dest):
+def menu_main(state):
     """Main menu is used to set ddrescue settings."""
     title = '{GREEN}ddrescue TUI: Main Menu{CLEAR}\n\n'.format(**COLORS)
     title += '{BLUE}Current pass: {CLEAR}'.format(**COLORS)
