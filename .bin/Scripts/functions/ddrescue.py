@@ -106,12 +106,14 @@ class BlockPair():
             self.pass_done = [True, True, True]
             self.rescued = self.size
             self.status[pass_num] = get_formatted_status(
-                label='Pass {}'.format(pass_num),
+                label='Pass {}'.format(pass_num+1),
                 data=100)
             # Mark future passes as Skipped
             pass_num += 1
             while pass_num <= 2:
-                self.status[pass_num] = 'Skipped'
+                self.status[pass_num] = get_formatted_status(
+                    label='Pass {}'.format(pass_num+1),
+                    data='Skipped')
                 pass_num += 1
         else:
             self.pass_done[pass_num] = True
@@ -723,20 +725,18 @@ def menu_main(state):
             while auto_run or not state.started:
                 state.started = True
                 run_ddrescue(state, pass_settings)
-                if state.finished or not auto_run:
-                    state.set_pass_num()
-                    break
                 if state.current_pass_done():
                     if (state.current_pass == 0 and
                             state.current_pass_min() < AUTO_PASS_1_THRESHOLD):
                         auto_run = False
-                    if (state.current_pass == 1 and
+                    elif (state.current_pass == 1 and
                             state.current_pass_min() < AUTO_PASS_2_THRESHOLD):
                         auto_run = False
                 else:
                     auto_run = False
-                # Update current pass for next iteration
                 state.set_pass_num()
+                if state.finished:
+                    break
 
         elif selection == 'C':
             menu_settings(state)
@@ -919,6 +919,7 @@ def run_ddrescue(state, pass_settings):
         else:
             # Mark pass finished
             bp.finish_pass(state.current_pass)
+            update_sidepane(state)
 
     # Done
     if str(return_code) != '0':
