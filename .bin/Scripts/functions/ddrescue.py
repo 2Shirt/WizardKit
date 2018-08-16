@@ -65,6 +65,7 @@ class BlockPair():
     def __init__(self, mode, source, dest):
         self.mode = mode
         self.source = source
+        self.source_path = source.path
         self.dest = dest
         self.pass_done = [False, False, False]
         self.resumed = False
@@ -97,6 +98,7 @@ class BlockPair():
 
     def finish_pass(self, pass_num):
         """Mark pass as done and check if 100% recovered."""
+        map_data = read_map_file(self.map_path)
         if map_data['full recovery']:
             self.pass_done = [True, True, True]
             self.rescued = self.size
@@ -111,10 +113,6 @@ class BlockPair():
         else:
             self.pass_done[pass_num] = True
 
-    def get_pass_done(self, pass_num):
-        """Return pass number's done state."""
-        return self.pass_done[pass_num]
-
     def load_map_data(self):
         """Load data from map file and set progress."""
         map_data = read_map_file(self.map_path)
@@ -128,8 +126,8 @@ class BlockPair():
             # Initial pass incomplete
             pass
         elif map_data['non-trimmed'] > 0:
-            self.pass_done[0] = True
-            self.status[0] = 'Skipped'
+            self.pass_done = [True, False, False]
+            self.status = ['Skipped', 'Pending', 'Pending']
         elif map_data['non-scraped'] > 0:
             self.pass_done = [True, True, False]
             self.status = ['Skipped', 'Skipped', 'Pending']
@@ -259,6 +257,7 @@ class RecoveryState():
     def __init__(self, mode, source, dest):
         self.mode = mode.lower()
         self.source = source
+        self.source_path = source.path
         self.dest = dest
         self.block_pairs = []
         self.current_pass = 0
@@ -320,7 +319,7 @@ class RecoveryState():
         """Checks if pass is done for all block-pairs, returns bool."""
         done = True
         for bp in self.block_pairs:
-            done &= bp.get_pass_done(self.current_pass)
+            done &= bp.pass_done[self.current_pass]
         return done
 
     def current_pass_min(self):
@@ -345,7 +344,7 @@ class RecoveryState():
             # Iterate backwards through passes
             pass_done = True
             for bp in self.block_pairs:
-                pass_done &= bp.get_pass_done(pass_num)
+                pass_done &= bp.pass_done[pass_num]
             if pass_done:
                 # All block-pairs reported being done
                 # Set to next pass, unless we're on the last pass (2)
@@ -806,7 +805,11 @@ def menu_settings(source):
 def read_map_file(map_path):
     """Read map file with ddrescuelog and return data as dict."""
     map_data = {}
-    result = run_program(['ddrescuelog', '-t', map_path])
+    try:
+        result = run_program(['ddrescuelog', '-t', map_path])
+    except CalledProcessError:
+        # (Grossly) assuming map_data hasn't been saved yet, return empty dict
+        return map_data
 
     # Parse output
     for line in result.stdout.decode().splitlines():
@@ -824,7 +827,7 @@ def read_map_file(map_path):
     # Check if 100% done
     try:
         run_program(['ddrescuelog', '-D', map_path])
-    except subprocess.CalledProcessError:
+    except CalledProcessError:
         map_data['full recovery'] = False
     else:
         map_data['full recovery'] = True
@@ -832,24 +835,15 @@ def read_map_file(map_path):
     return map_data
 
 
-def run_ddrescue(source, dest, settings):
+def run_ddrescue(state):
     """Run ddrescue pass."""
-    current_pass = source['Current Pass']
     return_code = None
 
-    if current_pass == 'Done':
+    if state.finished:
         clear_screen()
         print_warning('Recovery already completed?')
         pause('Press Enter to return to main menu...')
         return
-
-    # Set device(s) to clone/image
-    source[current_pass]['Status'] = 'Working'
-    source['Started Recovery'] = True
-    source_devs = [source]
-    if source['Children']:
-        # Use only selected child devices
-        source_devs = source['Children']
 
     # Set heights
     # NOTE: 12/33 is based on min heights for SMART/ddrescue panes (12+22+1sep)
@@ -863,39 +857,35 @@ def run_ddrescue(source, dest, settings):
         '-bdvl', str(height_smart),
         '-PF', '#D',
         'watch', '--color', '--no-title', '--interval', '300',
-        'ddrescue-tui-smart-display', source['Dev Path'])
+        'ddrescue-tui-smart-display', state.source_path)
 
-    # Start pass for each selected device
-    for s_dev in source_devs:
-        if s_dev[current_pass]['Done']:
-            # Move to next device
+    # Run pass for each block-pair
+    for bp in state.block_pairs:
+        if bp.pass_done[state.current_pass]:
+            # Skip to next block-pair
             continue
-        source['Current Device'] = s_dev['Dev Path']
-        s_dev[current_pass]['Status'] = 'Working'
-        update_progress(source)
+        bp.status[state.current_pass] = 'Working'
+        update_progress(state)
 
         # Set ddrescue cmd
-        if source['Type'] == 'clone':
-            cmd = [
-                'ddrescue', *settings, '--force', s_dev['Dev Path'],
-                dest['Dev Path'], s_dev['Dest Paths']['Map']]
-        else:
-            cmd = [
-                'ddrescue', *settings, s_dev['Dev Path'],
-                s_dev['Dest Paths']['image'], s_dev['Dest Paths']['Map']]
-        if current_pass == 'Pass 1':
+        cmd = [
+            'ddrescue', *settings,
+            bp.source_path, bp.dest_path, bp.map_path]
+        if state.mode == 'clone':
+            cmd.append('--force')
+        if current_pass == 0:
             cmd.extend(['--no-trim', '--no-scrape'])
-        elif current_pass == 'Pass 2':
+        elif current_pass == 1:
             # Allow trimming
             cmd.append('--no-scrape')
-        elif current_pass == 'Pass 3':
+        elif current_pass == 2:
             # Allow trimming and scraping
             pass
 
         # Start ddrescue
         try:
             clear_screen()
-            print_info('Current dev: {}'.format(s_dev['Dev Path']))
+            print_info('Current dev: {}'.format(bp.source_path))
             ddrescue_proc = popen_program(['./__choose_exit', *cmd])
             # ddrescue_proc = popen_program(['./__exit_ok', *cmd])
             # ddrescue_proc = popen_program(cmd)
@@ -903,10 +893,10 @@ def run_ddrescue(source, dest, settings):
                 try:
                     ddrescue_proc.wait(timeout=10)
                     sleep(2)
-                    update_progress(source)
+                    update_progress(state)
                     break
                 except subprocess.TimeoutExpired:
-                    update_progress(source)
+                    update_progress(state)
         except KeyboardInterrupt:
             # Catch user abort
             pass
@@ -921,6 +911,9 @@ def run_ddrescue(source, dest, settings):
             # i.e. not None and not 0
             print_error('Error(s) encountered, see message above.')
             break
+        else:
+            # Mark pass finished
+            bp.finish_pass(state.current_pass)
 
     # Done
     if str(return_code) != '0':
