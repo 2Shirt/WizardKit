@@ -13,8 +13,8 @@ from functions.data import *
 from operator import itemgetter
 
 # STATIC VARIABLES
-AUTO_NEXT_PASS_1_THRESHOLD = 95
-AUTO_NEXT_PASS_2_THRESHOLD = 98
+AUTO_PASS_1_THRESHOLD = 95
+AUTO_PASS_2_THRESHOLD = 98
 DDRESCUE_SETTINGS = {
     '--binary-prefixes': {'Enabled': True, 'Hidden': True},
     '--data-preview': {'Enabled': True, 'Hidden': True},
@@ -118,7 +118,8 @@ class BlockPair():
     def load_map_data(self):
         """Load data from map file and set progress."""
         map_data = read_map_file(self.map_path)
-        self.rescued = map_data['rescued'] * self.size / 100
+        self.rescued_percent = map_data['rescued']
+        self.rescued = (self.rescued_percent * self.size) / 100
         if map_data['full recovery']:
             self.pass_done = [True, True, True]
             self.rescued = self.size
@@ -157,7 +158,8 @@ class BlockPair():
         """Update progress using map file."""
         if os.path.exists(self.map_path):
             map_data = read_map_file(self.map_path)
-            self.rescued = map_data['rescued'] * self.size
+            self.rescued_percent = map_data['rescued']
+            self.rescued = (self.rescued_percent * self.size) / 100
             self.status[pass_num] = get_formatted_status(
                 label='Pass {}'.format(pass_num),
                 data=(self.rescued/self.size)*100)
@@ -260,6 +262,8 @@ class RecoveryState():
         self.dest = dest
         self.block_pairs = []
         self.current_pass = 0
+        self.current_pass_str = '0: Initializing'
+        self.ddrescue_settings = DDRESCUE_SETTINGS.copy()
         self.finished = False
         self.progress_out = '{}/progress.out'.format(global_vars['LogDir'])
         self.rescued = 0
@@ -312,6 +316,20 @@ class RecoveryState():
         # Safety checks passed
         self.block_pairs.append(BlockPair(self.mode, source, dest))
 
+    def current_pass_done(self):
+        """Checks if pass is done for all block-pairs, returns bool."""
+        done = True
+        for bp in self.block_pairs:
+            done &= bp.get_pass_done(self.current_pass)
+        return done
+
+    def current_pass_min(self):
+        """Gets minimum pass rescued percentage, returns float."""
+        min_percent = 100
+        for bp in self.block_pairs:
+            min_percent = min(min_percent, bp.rescued)
+        return min_percent
+
     def self_checks(self):
         """Run self-checks for each BlockPair and update state values."""
         self.total_size = 0
@@ -336,14 +354,23 @@ class RecoveryState():
                     # Also mark overall recovery as finished if on last pass
                     self.finished = True
                 break
+        if self.finished:
+            self.current_pass_str = '- "Done"'
+        elif pass_num == 0:
+            self.current_pass_str = '1 "Initial Read"'
+        elif pass_num == 1:
+            self.current_pass_str = '2 "Trimming bad areas"'
+        elif pass_num == 2:
+            self.current_pass_str = '3 "Scraping bad areas"'
 
     def update_progress(self):
         """Update overall progress using block_pairs."""
         self.rescued = 0
         for bp in self.block_pairs:
             self.rescued += bp.rescued
+        self.rescued_percent = (self.rescued / self.total_size) * 100
         self.status_percent = get_formatted_status(
-            label='Recovered:', data=(self.rescued/self.total_size)*100)
+            label='Recovered:', data=self.rescued_percent)
         self.status_amount = get_formatted_status(
             label='', data=human_readable_size(self.rescued))
 
@@ -626,9 +653,7 @@ def menu_ddrescue(source_path, dest_path, run_mode):
 
     # Main menu
     build_outer_panes(state)
-    # TODO Fix
-    #menu_main(source, dest)
-    pause('Fake Main Menu... ')
+    menu_main(state)
 
     # Done
     run_program(['tmux', 'kill-window'])
@@ -638,8 +663,6 @@ def menu_main(source, dest):
     """Main menu is used to set ddrescue settings."""
     title = '{GREEN}ddrescue TUI: Main Menu{CLEAR}\n\n'.format(**COLORS)
     title += '{BLUE}Current pass: {CLEAR}'.format(**COLORS)
-    if 'Settings' not in source:
-        source['Settings'] = DDRESCUE_SETTINGS.copy()
 
     # Build menu
     main_options = [
@@ -659,14 +682,6 @@ def menu_main(source, dest):
 
     # Show menu
     while True:
-        current_pass = source['Current Pass']
-        display_pass = '1 "Initial Read"'
-        if current_pass == 'Pass 2':
-            display_pass = '2 "Trimming bad areas"'
-        elif current_pass == 'Pass 3':
-            display_pass = '3 "Scraping bad areas"'
-        elif current_pass == 'Done':
-            display_pass = 'Done'
         # Update entries
         for opt in main_options:
             opt['Name'] = '{} {}'.format(
@@ -674,7 +689,7 @@ def menu_main(source, dest):
                 opt['Base Name'])
 
         selection = menu_select(
-            title=title+display_pass,
+            title=title+state.current_pass_str,
             main_entries=main_options,
             action_entries=actions)
 
@@ -685,7 +700,7 @@ def menu_main(source, dest):
         elif selection == 'S':
             # Set settings for pass
             settings = []
-            for k, v in source['Settings'].items():
+            for k, v in state.ddrescue_settings.items():
                 if not v['Enabled']:
                     continue
                 if k[-1:] == '=':
@@ -707,35 +722,34 @@ def menu_main(source, dest):
                 if 'Auto' not in opt['Base Name']:
                     opt['Enabled'] = False
 
-            # Run ddrecue
-            first_run = True
-            while auto_run or first_run:
-                first_run = False
-                run_ddrescue(source, dest, settings)
-                update_progress(source, end_run=True)
-                if current_pass == 'Done':
-                    # "Pass Done" i.e. all passes done
+            # Run ddrescue
+            state.started = False
+            while auto_run or not state.started:
+                state.started = True
+                run_ddrescue(state)
+                if state.finished or not auto_run:
                     break
-                if not main_options[0]['Enabled']:
-                    # Auto next pass
-                    break
-                if source[current_pass]['Done']:
-                    min_status = source[current_pass]['Min Status']
-                    if (current_pass == 'Pass 1' and
-                            min_status < AUTO_NEXT_PASS_1_THRESHOLD):
+                if state.current_pass_done():
+                    if (state.current_pass == 0 and
+                            state.current_pass_min() < AUTO_PASS_1_THRESHOLD):
                         auto_run = False
-                    elif (current_pass == 'Pass 2' and
-                            min_status < AUTO_NEXT_PASS_2_THRESHOLD):
+                    if (state.current_pass == 1 and
+                            state.current_pass_min() < AUTO_PASS_2_THRESHOLD):
                         auto_run = False
                 else:
                     auto_run = False
                 # Update current pass for next iteration
-                current_pass = source['Current Pass']
+                state.set_pass_num()
 
         elif selection == 'C':
             menu_settings(source)
         elif selection == 'Q':
-            break
+            if state.rescued_percent < 100:
+                print_warning('Recovery is less than 100%')
+                if ask('Are you sure you want to quit?'):
+                    break
+            else:
+                break
 
 
 def menu_settings(source):
