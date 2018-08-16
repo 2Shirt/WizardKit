@@ -847,8 +847,9 @@ def run_ddrescue(state, pass_settings):
     # NOTE: 12/33 is based on min heights for SMART/ddrescue panes (12+22+1sep)
     result = run_program(['tput', 'lines'])
     height = int(result.stdout.decode().strip())
-    height_smart = int(height * (12 / 33))
-    height_ddrescue = height - height_smart
+    height_smart = int(height * (8 / 33))
+    height_journal = int(height * (4 / 33))
+    height_ddrescue = height - height_smart - height_journal
 
     # Show SMART status
     smart_pane = tmux_splitw(
@@ -856,6 +857,12 @@ def run_ddrescue(state, pass_settings):
         '-PF', '#D',
         'watch', '--color', '--no-title', '--interval', '300',
         'ddrescue-tui-smart-display', state.source_path)
+
+    # Show systemd journal output
+    journal_pane = tmux_splitw(
+        '-dvl', str(height_journal),
+        '-PF', '#D',
+        'journalctl', '-f')
 
     # Run pass for each block-pair
     for bp in state.block_pairs:
@@ -926,6 +933,7 @@ def run_ddrescue(state, pass_settings):
         # Pause on errors
         pause('Press Enter to return to main menu... ')
     run_program(['tmux', 'kill-pane', '-t', smart_pane])
+    run_program(['tmux', 'kill-pane', '-t', journal_pane])
 
 
 def select_parts(source_device):
