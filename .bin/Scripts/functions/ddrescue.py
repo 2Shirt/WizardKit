@@ -118,7 +118,7 @@ class BlockPair():
     def load_map_data(self):
         """Load data from map file and set progress."""
         map_data = read_map_file(self.map_path)
-        self.rescued = map_data['rescued'] * self.size
+        self.rescued = map_data['rescued'] * self.size / 100
         if map_data['full recovery']:
             self.pass_done = [True, True, True]
             self.rescued = self.size
@@ -132,6 +132,9 @@ class BlockPair():
         elif map_data['non-scraped'] > 0:
             self.pass_done = [True, True, False]
             self.status = ['Skipped', 'Skipped', 'Pending']
+        else:
+            self.pass_done = [True, True, True]
+            self.status = ['Skipped', 'Skipped', 'Skipped']
 
     def self_check(self):
         """Self check to abort on bad dest/map combinations."""

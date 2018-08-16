@@ -31,13 +31,17 @@ if __name__ == '__main__':
             # We'll set the missing paths later
             pass
 
-        # Show usage?
+        # Show usage
+        if re.search(r'-*(h|help|\?)', str(sys.argv), re.IGNORECASE):
+            show_usage(script_name)
+            exit_script()
+
+        # Start cloning/imaging
         if run_mode in ('clone', 'image'):
             menu_ddrescue(source_path, dest_path, run_mode)
         else:
-            if not re.search(r'(^$|help|-h|\?)', run_mode, re.IGNORECASE):
+            if not re.search(r'^-*(h|help\?)', run_mode, re.IGNORECASE):
                 print_error('Invalid mode.')
-            show_usage(script_name)
         
         # Done
         print_standard('\nDone.')
