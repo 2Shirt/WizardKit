@@ -187,7 +187,7 @@ def get_mounted_volumes():
         mounted_volumes.extend(item.get('children', []))
     return {item['source']: item for item in mounted_volumes}
 
-def mount_all_volumes():
+def mount_volumes(all_devices=True, device_path=None, read_write=False):
     """Mount all detected filesystems."""
     report = {}
 
@@ -195,6 +195,9 @@ def mount_all_volumes():
     cmd = [
         'lsblk', '-J', '-p',
         '-o', 'NAME,FSTYPE,LABEL,UUID,PARTTYPE,TYPE,SIZE']
+    if not all_devices and device_path:
+        # Only mount volumes for specific device
+        cmd.append(device_path)
     result = run_program(cmd)
     json_data = json.loads(result.stdout.decode())
     devs = json_data.get('blockdevices', [])
@@ -233,8 +236,11 @@ def mount_all_volumes():
                 vol_data['show_data']['warning'] = True
             else:
                 # Mount volume
+                cmd = ['udevil', 'mount',
+                    '-o', 'rw' if read_write else 'ro',
+                    vol_path]
                 try:
-                    run_program(['udevil', 'mount', '-o', 'ro', vol_path])
+                    run_program(cmd)
                 except subprocess.CalledProcessError:
                     vol_data['show_data']['data'] = 'Failed to mount'
                     vol_data['show_data']['error'] = True
@@ -242,11 +248,16 @@ def mount_all_volumes():
             mounted_volumes = get_mounted_volumes()
 
             # Format pretty result string
-            if vol_data['show_data']['data'] != 'Failed to mount':
+            if vol_data['show_data']['data'] == 'Failed to mount':
+                vol_data['mount_point'] = None
+            else:
                 size_used = human_readable_size(
                     mounted_volumes[vol_path]['used'])
                 size_avail = human_readable_size(
                     mounted_volumes[vol_path]['avail'])
+                vol_data['size_avail'] = size_avail
+                vol_data['size_used'] = size_used
+                vol_data['mount_point'] = mounted_volumes[vol_path]['target']
                 vol_data['show_data']['data'] = 'Mounted on {}'.format(
                     mounted_volumes[vol_path]['target'])
                 vol_data['show_data']['data'] = '{:40} ({} used, {} free)'.format(

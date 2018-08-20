@@ -1,0 +1,39 @@
+#!/bin/python3
+#
+## Wizard Kit: SMART attributes display for ddrescue TUI
+
+import os
+import sys
+import time
+
+# Init
+os.chdir(os.path.dirname(os.path.realpath(__file__)))
+sys.path.append(os.getcwd())
+from functions.hw_diags import *
+#init_global_vars()
+
+if __name__ == '__main__':
+    try:
+        # Prep
+        clear_screen()
+        dev_path = sys.argv[1]
+        devs = scan_disks(True, dev_path)
+        
+        # Warn if SMART unavailable
+        if dev_path not in devs:
+            print_error('SMART data not available')
+            exit_script()
+        
+        # Initial screen
+        dev = devs[dev_path]
+        clear_screen()
+        show_disk_details(dev, only_attributes=True)
+        
+        # Done
+        exit_script()
+    except SystemExit:
+        pass
+    except:
+        major_exception()
+
+# vim: sts=4 sw=4 ts=4

@@ -1,10 +1,10 @@
 #!/bin/bash
 #
-## Wizard Kit: HW Diagnostics - Menu Launcher
+## Wizard Kit: ddrescue TUI Launcher
 
-SESSION_NAME="hw-diags"
-WINDOW_NAME="Hardware Diagnostics"
-MENU="hw-diags-menu"
+SESSION_NAME="ddrescue-tui"
+WINDOW_NAME="GNU ddrescue TUI"
+MENU="ddrescue-tui-menu"
 
 function ask() {
     while :; do

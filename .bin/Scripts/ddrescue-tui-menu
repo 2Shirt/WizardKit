@@ -1,0 +1,63 @@
+#!/bin/python3
+#
+## Wizard Kit: TUI for ddrescue cloning and imaging
+
+import os
+import sys
+
+# Init
+sys.path.append(os.path.dirname(os.path.realpath(__file__)))
+
+from functions.ddrescue import *
+from functions.hw_diags import *
+init_global_vars()
+
+if __name__ == '__main__':
+    try:
+        # Prep
+        clear_screen()
+        args = list(sys.argv)
+        run_mode = ''
+        source_path = None
+        dest_path = None
+
+        # Parse args
+        try:
+            script_name = os.path.basename(args.pop(0))
+            run_mode = str(args.pop(0)).lower()
+            source_path = args.pop(0)
+            dest_path = args.pop(0)
+        except IndexError:
+            # We'll set the missing paths later
+            pass
+
+        # Show usage
+        if re.search(r'-*(h|help|\?)', str(sys.argv), re.IGNORECASE):
+            show_usage(script_name)
+            exit_script()
+
+        # Start cloning/imaging
+        if run_mode in ('clone', 'image'):
+            menu_ddrescue(source_path, dest_path, run_mode)
+        else:
+            if not re.search(r'^-*(h|help\?)', run_mode, re.IGNORECASE):
+                print_error('Invalid mode.')
+        
+        # Done
+        print_standard('\nDone.')
+        pause("Press Enter to exit...")
+        exit_script()
+    except GenericAbort:
+        abort()
+    except GenericError as ge:
+        msg = 'Generic Error'
+        if str(ge):
+            msg = str(ge)
+        print_error(msg)
+        abort()
+    except SystemExit:
+        pass
+    except:
+        major_exception()
+
+# vim: sts=4 sw=4 ts=4

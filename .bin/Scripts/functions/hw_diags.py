@@ -1,6 +1,7 @@
 # Wizard Kit: Functions - HW Diagnostics
 
 import json
+import time
 
 from functions.common import *
 
@@ -56,7 +57,9 @@ def get_read_rate(s):
 
 def get_smart_details(dev):
     """Get SMART data for dev if possible, returns dict."""
-    cmd = 'sudo smartctl --all --json /dev/{}'.format(dev).split()
+    cmd = 'sudo smartctl --all --json {}{}'.format(
+        '' if '/dev/' in dev else '/dev/',
+        dev).split()
     result = run_program(cmd, check=False)
     try:
         return json.loads(result.stdout.decode())
@@ -509,12 +512,17 @@ def run_tests(tests):
                 global_vars['LogFile']))
             pause('Press Enter to exit...')
 
-def scan_disks():
+def scan_disks(full_paths=False, only_path=None):
     """Scan for disks eligible for hardware testing."""
     clear_screen()
 
     # Get eligible disk list
-    result = run_program(['lsblk', '-J', '-O'])
+    cmd = ['lsblk', '-J', '-O']
+    if full_paths:
+        cmd.append('-p')
+    if only_path:
+        cmd.append(only_path)
+    result = run_program(cmd)
     json_data = json.loads(result.stdout.decode())
     devs = {}
     for d in json_data.get('blockdevices', []):
@@ -536,13 +544,18 @@ def scan_disks():
     for dev, data in devs.items():
         # Get SMART attributes
         run_program(
-            cmd = 'sudo smartctl -s on /dev/{}'.format(dev).split(),
+            cmd = 'sudo smartctl -s on {}{}'.format(
+              '' if full_paths else '/dev/',
+              dev).split(),
             check = False)
         data['smartctl'] = get_smart_details(dev)
     
         # Get NVMe attributes
         if data['lsblk']['tran'] == 'nvme':
             cmd = 'sudo nvme smart-log /dev/{} -o json'.format(dev).split()
+            cmd = 'sudo nvme smart-log {}{} -o json'.format(
+                '' if full_paths else '/dev/',
+                dev).split()
             result = run_program(cmd, check=False)
             try:
                 data['nvme-cli'] = json.loads(result.stdout.decode())
@@ -588,19 +601,23 @@ def scan_disks():
     TESTS['NVMe/SMART']['Devices'] = devs
     TESTS['badblocks']['Devices'] = devs
     TESTS['iobenchmark']['Devices'] = devs
+    return devs
 
-def show_disk_details(dev):
+def show_disk_details(dev, only_attributes=False):
     """Display disk details."""
     dev_name = dev['lsblk']['name']
-    # Device description
-    print_info('Device: /dev/{}'.format(dev['lsblk']['name']))
-    print_standard(' {:>4} ({}) {} {}'.format(
-        str(dev['lsblk'].get('size', '???b')).strip(),
-        str(dev['lsblk'].get('tran', '???')).strip().upper().replace(
-            'NVME', 'NVMe'),
-        str(dev['lsblk'].get('model', 'Unknown Model')).strip(),
-        str(dev['lsblk'].get('serial', 'Unknown Serial')).strip(),
-        ))
+    if not only_attributes:
+      # Device description
+      print_info('Device: {}{}'.format(
+          '' if '/dev/' in dev['lsblk']['name'] else '/dev/',
+          dev['lsblk']['name']))
+      print_standard(' {:>4} ({}) {} {}'.format(
+          str(dev['lsblk'].get('size', '???b')).strip(),
+          str(dev['lsblk'].get('tran', '???')).strip().upper().replace(
+              'NVME', 'NVMe'),
+          str(dev['lsblk'].get('model', 'Unknown Model')).strip(),
+          str(dev['lsblk'].get('serial', 'Unknown Serial')).strip(),
+          ))
 
     # Warnings
     if dev.get('NVMe Disk', False):
@@ -615,7 +632,12 @@ def show_disk_details(dev):
 
     # Attributes
     if dev.get('NVMe Disk', False):
-        print_info('Attributes:')
+        if only_attributes:
+            print_info('SMART Attributes:', end='')
+            print_warning('             Updated: {}'.format(
+                time.strftime('%Y-%m-%d %H:%M %Z')))
+        else:
+            print_info('Attributes:')
         for attrib, threshold in sorted(ATTRIBUTES['NVMe'].items()):
             if attrib in dev['nvme-cli']:
                 print_standard(
@@ -636,7 +658,12 @@ def show_disk_details(dev):
                     print_success(raw_str, timestamp=False)
     elif dev['smartctl'].get('ata_smart_attributes', None):
         # SMART attributes
-        print_info('Attributes:')
+        if only_attributes:
+            print_info('SMART Attributes:', end='')
+            print_warning('             Updated: {}'.format(
+                time.strftime('%Y-%m-%d %H:%M %Z')))
+        else:
+            print_info('Attributes:')
         s_table = dev['smartctl'].get('ata_smart_attributes', {}).get(
             'table', {})
         s_table = {a.get('id', 'Unknown'): a for a in s_table}
