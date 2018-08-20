@@ -20,7 +20,7 @@ DDRESCUE_SETTINGS = {
     '--data-preview': {'Enabled': True, 'Hidden': True, 'Value': '5'},
     '--idirect': {'Enabled': True},
     '--odirect': {'Enabled': True},
-    '--max-read-rate': {'Enabled': False, 'Value': '32MiB'},
+    '--max-read-rate': {'Enabled': False, 'Value': '1MiB'},
     '--min-read-rate': {'Enabled': True, 'Value': '64KiB'},
     '--reopen-on-error': {'Enabled': True},
     '--retry-passes': {'Enabled': True, 'Value': '0'},
@@ -890,9 +890,7 @@ def run_ddrescue(state, pass_settings):
         try:
             clear_screen()
             print_info('Current dev: {}'.format(bp.source_path))
-            ddrescue_proc = popen_program(['./__choose_exit', *cmd])
-            # ddrescue_proc = popen_program(['./__exit_ok', *cmd])
-            # ddrescue_proc = popen_program(cmd)
+            ddrescue_proc = popen_program(cmd)
             while True:
                 bp.update_progress(state.current_pass)
                 update_sidepane(state)
