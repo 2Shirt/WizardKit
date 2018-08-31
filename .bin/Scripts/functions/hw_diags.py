@@ -20,8 +20,10 @@ ATTRIBUTES = {
         184: {'Error': 1},
         187: {'Warning': 1},
         188: {'Warning': 1},
+        196: {'Warning': 1, 'Error': 10, 'Ignore': True},
         197: {'Error': 1},
         198: {'Error': 1},
+        199: {'Error': 1, 'Ignore': True},
         201: {'Warning': 1},
         },
     }
