@@ -207,13 +207,17 @@ class DevObj(BaseObj):
         self.prefix = '{m_size}_{model}'.format(
             m_size=self.model_size,
             model=self.model)
+        self.prefix = self.prefix.strip()
         if self.parent:
             # Add child device details
-            self.prefix += '_{c_num}_{c_size}{sep}{c_label}'.format(
-                c_num=self.path.replace(self.parent, ''),
+            c_num = self.path.replace(self.parent, '')
+            self.prefix += '_{c_prefix}{c_num}_{c_size}{sep}{c_label}'.format(
+                c_prefix='p' if len(c_num) == 1 else '',
+                c_num=c_num,
                 c_size=self.details.get('size', 'UNKNOWN'),
                 sep='_' if self.label else '',
                 c_label=self.label)
+        self.prefix = self.prefix.strip()
 
 
 class DirObj(BaseObj):
