@@ -1215,10 +1215,6 @@ def update_sidepane(state):
     for bp in state.block_pairs:
         if state.source.is_image():
             output.append('{BLUE}Image File{CLEAR}'.format(**COLORS))
-        elif state.mode == 'image' and len(state.block_pairs) == 1:
-            output.append('{BLUE}{source} {YELLOW}(Whole){CLEAR}'.format(
-                source=bp.source_path,
-                **COLORS))
         else:
             output.append('{BLUE}{source}{CLEAR}'.format(
                 source=bp.source_path,
