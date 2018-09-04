@@ -218,7 +218,7 @@ class DevObj(BaseObj):
                 c_size=self.details.get('size', 'UNKNOWN'),
                 sep='_' if self.label else '',
                 c_label=self.label)
-        self.prefix = self.prefix.strip()
+        self.prefix = self.prefix.strip().replace(' ', '_')
 
 
 class DirObj(BaseObj):
