@@ -165,7 +165,7 @@ class BlockPair():
             self.rescued_percent = map_data['rescued']
             self.rescued = (self.rescued_percent * self.size) / 100
             self.status[pass_num] = get_formatted_status(
-                label='Pass {}'.format(pass_num),
+                label='Pass {}'.format(pass_num+1),
                 data=(self.rescued/self.size)*100)
 
 
