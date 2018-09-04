@@ -71,6 +71,7 @@ class BlockPair():
         self.pass_done = [False, False, False]
         self.resumed = False
         self.rescued = 0
+        self.rescued_percent = 0
         self.status = ['Pending', 'Pending', 'Pending']
         self.size = source.size
         # Set dest paths
@@ -336,7 +337,7 @@ class RecoveryState():
         """Gets minimum pass rescued percentage, returns float."""
         min_percent = 100
         for bp in self.block_pairs:
-            min_percent = min(min_percent, bp.rescued)
+            min_percent = min(min_percent, bp.rescued_percent)
         return min_percent
 
     def retry_all_passes(self):
