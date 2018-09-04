@@ -41,6 +41,7 @@ class BaseObj():
     """Base object used by DevObj, DirObj, and ImageObj."""
     def __init__(self, path):
         self.type = 'base'
+        self.parent = None
         self.path = os.path.realpath(path)
         self.set_details()
 
