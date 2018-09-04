@@ -32,7 +32,7 @@ if __name__ == '__main__':
             pass
 
         # Show usage
-        if re.search(r'-*(h|help|\?)', str(sys.argv), re.IGNORECASE):
+        if re.search(r'-+(h|help)', str(sys.argv), re.IGNORECASE):
             show_usage(script_name)
             exit_script()
 

@@ -41,6 +41,7 @@ class BaseObj():
     """Base object used by DevObj, DirObj, and ImageObj."""
     def __init__(self, path):
         self.type = 'base'
+        self.parent = None
         self.path = os.path.realpath(path)
         self.set_details()
 
@@ -70,6 +71,7 @@ class BlockPair():
         self.pass_done = [False, False, False]
         self.resumed = False
         self.rescued = 0
+        self.rescued_percent = 0
         self.status = ['Pending', 'Pending', 'Pending']
         self.size = source.size
         # Set dest paths
@@ -161,10 +163,10 @@ class BlockPair():
         """Update progress using map file."""
         if os.path.exists(self.map_path):
             map_data = read_map_file(self.map_path)
-            self.rescued_percent = map_data['rescued']
+            self.rescued_percent = map_data.get('rescued', 0)
             self.rescued = (self.rescued_percent * self.size) / 100
             self.status[pass_num] = get_formatted_status(
-                label='Pass {}'.format(pass_num),
+                label='Pass {}'.format(pass_num+1),
                 data=(self.rescued/self.size)*100)
 
 
@@ -206,13 +208,17 @@ class DevObj(BaseObj):
         self.prefix = '{m_size}_{model}'.format(
             m_size=self.model_size,
             model=self.model)
+        self.prefix = self.prefix.strip()
         if self.parent:
             # Add child device details
-            self.prefix += '_{c_num}_{c_size}{sep}{c_label}'.format(
-                c_num=self.path.replace(self.parent, ''),
+            c_num = self.path.replace(self.parent, '')
+            self.prefix += '_{c_prefix}{c_num}_{c_size}{sep}{c_label}'.format(
+                c_prefix='p' if len(c_num) == 1 else '',
+                c_num=c_num,
                 c_size=self.details.get('size', 'UNKNOWN'),
                 sep='_' if self.label else '',
                 c_label=self.label)
+        self.prefix = self.prefix.strip()
 
 
 class DirObj(BaseObj):
@@ -331,7 +337,7 @@ class RecoveryState():
         """Gets minimum pass rescued percentage, returns float."""
         min_percent = 100
         for bp in self.block_pairs:
-            min_percent = min(min_percent, bp.rescued)
+            min_percent = min(min_percent, bp.rescued_percent)
         return min_percent
 
     def retry_all_passes(self):
@@ -1209,10 +1215,6 @@ def update_sidepane(state):
     for bp in state.block_pairs:
         if state.source.is_image():
             output.append('{BLUE}Image File{CLEAR}'.format(**COLORS))
-        elif state.mode == 'image' and len(state.block_pairs) == 1:
-            output.append('{BLUE}{source} {YELLOW}(Whole){CLEAR}'.format(
-                source=bp.source_path,
-                **COLORS))
         else:
             output.append('{BLUE}{source}{CLEAR}'.format(
                 source=bp.source_path,
