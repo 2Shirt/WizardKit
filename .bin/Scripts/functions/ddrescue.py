@@ -163,7 +163,7 @@ class BlockPair():
         """Update progress using map file."""
         if os.path.exists(self.map_path):
             map_data = read_map_file(self.map_path)
-            self.rescued_percent = map_data['rescued']
+            self.rescued_percent = map_data.get('rescued', 0)
             self.rescued = (self.rescued_percent * self.size) / 100
             self.status[pass_num] = get_formatted_status(
                 label='Pass {}'.format(pass_num+1),
