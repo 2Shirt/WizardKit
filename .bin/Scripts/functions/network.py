@@ -3,6 +3,7 @@
 ## Wizard Kit: Functions - Network
 
 import os
+import shutil
 import sys
 
 # Init
@@ -26,13 +27,8 @@ def connect_to_network():
     if is_connected():
         return
     
-    # LAN
-    if 'en' in net_ifs:
-        # Reload the tg3/broadcom driver (known fix for some Dell systems)
-        try_and_print(message='Reloading drivers...', function=reload_tg3)
-    
     # WiFi
-    if not is_connected() and 'wl' in net_ifs:
+    if 'wl' in net_ifs:
         cmd = [
             'nmcli', 'dev', 'wifi',
             'connect', WIFI_SSID,
@@ -42,6 +38,18 @@ def connect_to_network():
             function = run_program,
             cmd = cmd)
 
+    # LAN
+    if not is_connected():
+        # Reload the tg3/broadcom driver (known fix for some Dell systems)
+        try_and_print(message='Reloading drivers...', function=reload_tg3)
+        
+        # Rebuild conkyrc
+        shutil.copyfile(
+            '/etc/skel/.conkyrc',
+            '{HOME}/.conkyrc'.format(**global_vars['Env']))
+        cmd = ['{HOME}/.update_conky'.format(**global_vars['Env'])]
+        run_program(cmd, check=False)
+    
 def is_connected():
     """Check for a valid private IP."""
     devs = psutil.net_if_addrs()
