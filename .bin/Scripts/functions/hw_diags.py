@@ -135,9 +135,9 @@ def get_smart_details(dev):
 def get_status_color(s):
     """Get color based on status, returns str."""
     color = COLORS['CLEAR']
-    if s in ['Denied', 'NS', 'OVERRIDE', 'Unknown']:
+    if s in ['Denied', 'NS', 'OVERRIDE']:
         color = COLORS['RED']
-    elif s in ['Aborted', 'Working', 'Skipped']:
+    elif s in ['Aborted', 'Unknown', 'Working', 'Skipped']:
         color = COLORS['YELLOW']
     elif s in ['CS']:
         color = COLORS['GREEN']
@@ -335,7 +335,7 @@ def run_iobenchmark():
             # Calculate dd values
             ## test_size is the area to be read in bytes
             ##      If the dev is < 10Gb then it's the whole dev
-            ##      Otherwise it's the smaller of 10Gb and 1% of the dev
+            ##      Otherwise it's the larger of 10Gb or 1% of the dev
             ##
             ## test_chunks is the number of groups of "Chunk Size" in test_size
             ##      This number is reduced to a multiple of the graph width in
@@ -412,9 +412,9 @@ def run_iobenchmark():
                 pos += width
             report = generate_horizontal_graph(h_graph_rates)
             report += '\nRead speed: {:3.1f} MB/s (Min: {:3.1f}, Max: {:3.1f})'.format(
-                sum(read_rates)/len(read_rates)/1024**2,
-                min(read_rates)/1024**2,
-                max(read_rates)/1024**2)
+                sum(read_rates)/len(read_rates)/(1024**2),
+                min(read_rates)/(1024**2),
+                max(read_rates)/(1024**2))
             TESTS['iobenchmark']['Results'][name] = report
 
             # Set CS/NS
@@ -425,9 +425,12 @@ def run_iobenchmark():
             else:
                 TESTS['iobenchmark']['Status'][name] = 'CS'
 
-            # Move temp file
-            shutil.move(progress_file, '{}/iobenchmark-{}.log'.format(
-                global_vars['LogDir'], name))
+            # Save logs
+            dest_filename = '{}/iobenchmark-{}.log'.format(global_vars['LogDir'], name)
+            shutil.move(progress_file, dest_filename)
+            with open(dest_filename.replace('.', '-raw.'), 'a') as f:
+                for rate in read_rates:
+                    f.write('{} MB/s\n'.format(rate/(1024**2)))
         update_progress()
 
     # Done
