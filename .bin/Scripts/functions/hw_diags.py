@@ -132,6 +132,15 @@ def get_smart_details(dev):
         # Let other sections deal with the missing data
         return {}
 
+def get_smart_value(smart_data, smart_id):
+    """Get SMART value from table, returns int or None."""
+    value = None
+    table = smart_data.get('ata_smart_attributes', {}).get('table', [])
+    for row in table:
+        if str(row.get('id', '?')) == str(smart_id):
+            value = row.get('raw', {}).get('value', None)
+    return value
+
 def get_status_color(s):
     """Get color based on status, returns str."""
     color = COLORS['CLEAR']
@@ -737,19 +746,29 @@ def scan_disks(full_paths=False, only_path=None):
             data['SMART Support'] = False
             
         # Ask for manual overrides if necessary
-        if not data['Quick Health OK'] and (TESTS['badblocks']['Enabled'] or TESTS['iobenchmark']['Enabled']):
+        if TESTS['badblocks']['Enabled'] or TESTS['iobenchmark']['Enabled']:
             show_disk_details(data)
-            print_warning("WARNING: Health can't be confirmed for: {}".format(
-                '/dev/{}'.format(dev)))
-            dev_name = data['lsblk']['name']
-            print_standard(' ')
-            if ask('Run tests on this device anyway?'):
-                TESTS['NVMe/SMART']['Status'][dev_name] = 'OVERRIDE'
-            else:
-                TESTS['NVMe/SMART']['Status'][dev_name] = 'NS'
-                TESTS['badblocks']['Status'][dev_name] = 'Denied'
-                TESTS['iobenchmark']['Status'][dev_name] = 'Denied'
-            print_standard(' ') # In case there's more than one "OVERRIDE" disk
+            needs_override = False
+            if not data['Quick Health OK']:
+                needs_override = True
+                print_warning(
+                    "WARNING: Health can't be confirmed for: /dev/{}".format(dev))
+            if get_smart_value(data['smartctl'], '199'):
+                # SMART attribute present and it's value is non-zero
+                needs_override = True
+                print_warning(
+                    'WARNING: SMART 199/C7 error detected on /dev/{}'.format(dev))
+                print_standard('    (Have you tried swapping the drive cable?)')
+            if needs_override:
+                dev_name = data['lsblk']['name']
+                print_standard(' ')
+                if ask('Run tests on this device anyway?'):
+                    TESTS['NVMe/SMART']['Status'][dev_name] = 'OVERRIDE'
+                else:
+                    TESTS['NVMe/SMART']['Status'][dev_name] = 'NS'
+                    TESTS['badblocks']['Status'][dev_name] = 'Denied'
+                    TESTS['iobenchmark']['Status'][dev_name] = 'Denied'
+                print_standard(' ') # In case there's more than one "OVERRIDE" disk
 
     TESTS['NVMe/SMART']['Devices'] = devs
     TESTS['badblocks']['Devices'] = devs
