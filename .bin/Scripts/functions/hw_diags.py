@@ -677,6 +677,8 @@ def run_tests(tests):
 def scan_disks(full_paths=False, only_path=None):
     """Scan for disks eligible for hardware testing."""
     clear_screen()
+    print_standard(' ')
+    print_standard('Scanning disks...')
 
     # Get eligible disk list
     cmd = ['lsblk', '-J', '-O']
