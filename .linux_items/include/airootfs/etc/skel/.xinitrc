@@ -12,6 +12,7 @@ conky -d
 nm-applet &
 cbatticon &
 volumeicon &
+$HOME/.update_hostname
 connect-to-network &
 (sleep 5s && killall dunst) &
 $HOME/.urxvt_default_res &
