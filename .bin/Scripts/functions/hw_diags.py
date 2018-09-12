@@ -271,18 +271,21 @@ def run_badblocks():
             print_standard('Done', timestamp=False)
 
             # Check results
-            with open(progress_file, 'r') as f:
-                text = f.read()
-                TESTS['badblocks']['Results'][name] = text
-                r = re.search(r'Pass completed.*0/0/0 errors', text)
-                if r:
-                    TESTS['badblocks']['Status'][name] = 'CS'
-                else:
-                    TESTS['badblocks']['Status'][name] = 'NS'
+            if os.path.exists(progress_file):
+                with open(progress_file, 'r') as f:
+                    text = f.read()
+                    TESTS['badblocks']['Results'][name] = text
+                    r = re.search(r'Pass completed.*0/0/0 errors', text)
+                    if r:
+                        TESTS['badblocks']['Status'][name] = 'CS'
+                    else:
+                        TESTS['badblocks']['Status'][name] = 'NS'
 
-            # Move temp file
-            shutil.move(progress_file, '{}/badblocks-{}.log'.format(
-                global_vars['LogDir'], name))
+                # Move temp file
+                shutil.move(progress_file, '{}/badblocks-{}.log'.format(
+                    global_vars['LogDir'], name))
+            else:
+                TESTS['badblocks']['Status'][name] = 'NS'
         update_progress()
 
     # Done
