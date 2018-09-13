@@ -329,7 +329,7 @@
     </keybind>
     <keybind key="W-t">
       <action name="Execute">
-        <command>urxvt</command>
+        <command>urxvt -e zsh -c 'tmux new-session -A -t general; zsh'</command>
       </action>
     </keybind>
     <keybind key="W-v">
