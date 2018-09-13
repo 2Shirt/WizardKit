@@ -251,6 +251,10 @@ function update_live_env() {
     # udevil fix
     echo "mkdir /media" >> "$LIVE_DIR/airootfs/root/customize_airootfs.sh"
 
+    # VNC password
+    echo "mkdir '/home/$username/.vnc'" >> "$LIVE_DIR/airootfs/root/customize_airootfs.sh"
+    echo "echo '$TECH_PASSWORD' | vncpasswd -f > '/home/$username/.vnc/passwd'" >> "$LIVE_DIR/airootfs/root/customize_airootfs.sh"
+
     # Wallpaper
     mkdir -p "$LIVE_DIR/airootfs/usr/share/wallpaper"
     cp "$ROOT_DIR/Images/Linux.png" "$LIVE_DIR/airootfs/usr/share/wallpaper/burned.in"

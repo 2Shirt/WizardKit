@@ -17,4 +17,5 @@ connect-to-network &
 (sleep 5s && killall dunst) &
 $HOME/.urxvt_default_res &
 $HOME/.update_wallpaper &
+x0vncserver -display :0 -passwordfile $HOME/.vnc/passwd -AlwaysShared &
 exec openbox-session
