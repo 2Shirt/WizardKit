@@ -153,6 +153,67 @@ def cleanup_transfer(dest_path):
                 except Exception:
                     pass
 
+def find_core_storage_volumes():
+    """Try to create block devices for any Apple CoreStorage volumes."""
+    corestorage_uuid = '53746f72-6167-11aa-aa11-00306543ecac'
+    dmsetup_cmd_file = '{TmpDir}/dmsetup_command'
+
+    # Get CoreStorage devices
+    cmd = [
+        'lsblk', '--json', '--list', '--paths',
+        '--output', 'NAME,PARTTYPE']
+    result = run_program(cmd)
+    json_data = json.loads(result.stdout.decode())
+    devs = json_data.get('blockdevices', [])
+    devs = [d for d in devs if d.get('parttype', '') == corestorage_uuid]
+    if devs:
+        print_standard(' ')
+        print_standard('Detected CoreStorage partition{}'.format(
+            '' if len(devs) == 1 else 's'))
+        print_standard('    Scanning for inner volume(s)....')
+
+    # Search for inner volumes and setup dev mappers
+    for dev in devs:
+        dev_path = dev.get('name', '')
+        if not dev_path:
+            # Can't setup block device without the dev path
+            continue
+        dev_name = re.sub(r'.*/', '', dev_path)
+        log_path = '{LogDir}/testdisk_{dev_name}.log'.format(
+            dev_name=dev_name, **global_vars)
+
+        # Run TestDisk
+        cmd = [
+            'sudo', 'testdisk',
+            '/logname', log_path, '/debug', '/log',
+            '/cmd', dev_path, 'partition_none,analyze']
+        result = run_program(cmd, check=False)
+        if result.returncode:
+            # i.e. return code is non-zero
+            continue
+        if not os.path.exists(log_path):
+            # TestDisk failed to write log
+            continue
+
+        # Check log for found volumes
+        cs_vols = {}
+        with open(log_path, 'r') as f:
+            for line in f.readlines():
+                r = re.match(
+                    r'^.*echo "([^"]+)" . dmsetup create test(\d)$',
+                    line.strip(),
+                    re.IGNORECASE)
+                if r:
+                    cs_name = 'CoreStorage_{}_{}'.format(dev_name, r.group(2))
+                    cs_vols[cs_name] = r.group(1)
+
+        # Create mapper device(s)
+        for name, dm_cmd in sorted(cs_vols.items()):
+            with open(dmsetup_cmd_file, 'w') as f:
+                f.write(dm_cmd)
+            cmd = ['sudo', 'dmsetup', 'create', name, dmsetup_cmd_file]
+            run_program(cmd, check=False)
+
 def fix_path_sep(path_str):
     """Replace non-native and duplicate dir separators, returns str."""
     return re.sub(r'(\\|/)+', lambda s: os.sep, path_str)
@@ -190,14 +251,17 @@ def get_mounted_volumes():
 def mount_volumes(all_devices=True, device_path=None, read_write=False):
     """Mount all detected filesystems."""
     report = {}
-
-    # Get list of block devices
     cmd = [
-        'lsblk', '-J', '-p',
-        '-o', 'NAME,FSTYPE,LABEL,UUID,PARTTYPE,TYPE,SIZE']
+        'lsblk', '--json', '--paths',
+        '--output', 'NAME,FSTYPE,LABEL,UUID,PARTTYPE,TYPE,SIZE']
     if not all_devices and device_path:
         # Only mount volumes for specific device
         cmd.append(device_path)
+    else:
+        # Check for Apple CoreStorage volumes first
+        find_core_storage_volumes()
+
+    # Get list of block devices
     result = run_program(cmd)
     json_data = json.loads(result.stdout.decode())
     devs = json_data.get('blockdevices', [])
