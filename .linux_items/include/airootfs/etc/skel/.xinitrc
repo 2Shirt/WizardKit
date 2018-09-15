@@ -10,7 +10,6 @@ compton --backend xrender --xrender-sync --xrender-sync-fence &
 sleep 1s
 conky -d
 nm-applet &
-cbatticon &
 volumeicon &
 $HOME/.update_hostname
 connect-to-network &
