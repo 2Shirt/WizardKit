@@ -21,7 +21,7 @@ URxvt*externalBorder:   0
 !URxvt.colorIT:      	#87af5f
 !URxvt.colorBD:      	#c5c8c6
 !URxvt.colorUL:      	#87afd7
-URxvt.geometry: 	92x16
+URxvt.geometry:        92x16
 URxvt.internalBorder:	8
 URxvt.shading:		10
 URxvt.transparent:	true
@@ -53,6 +53,7 @@ URxvt.transparent:	true
 *.color15:      #ffffff
 
 ! fonts
+!Xft.dpi: 192
 Xft.autohint: 0
 Xft.antialias: 1
 Xft.hinting: true

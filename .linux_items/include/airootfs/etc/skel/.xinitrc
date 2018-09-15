@@ -1,6 +1,7 @@
 #!/bin/sh
 
 dbus-update-activation-environment --systemd DISPLAY
+$HOME/.update_dpi_settings
 xrdb -merge $HOME/.Xresources
 xset s off
 xset -dpms
@@ -11,10 +12,8 @@ sleep 1s
 conky -d
 nm-applet &
 volumeicon &
-$HOME/.update_hostname
 connect-to-network &
-(sleep 5s && killall dunst) &
-$HOME/.urxvt_default_res &
-$HOME/.update_wallpaper &
+$HOME/.update_hostname &
+feh --bg-fill "$HOME/.wallpaper" &
 x0vncserver -display :0 -passwordfile $HOME/.vnc/passwd -AlwaysShared &
 exec openbox-session
