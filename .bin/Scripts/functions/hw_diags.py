@@ -647,6 +647,8 @@ def run_tests(tests):
 
     # Initialize
     if TESTS['NVMe/SMART']['Enabled'] or TESTS['badblocks']['Enabled'] or TESTS['iobenchmark']['Enabled']:
+        print_standard(' ')
+        print_standard('Scanning disks...')
         scan_disks()
     update_progress()
 
@@ -680,8 +682,6 @@ def run_tests(tests):
 def scan_disks(full_paths=False, only_path=None):
     """Scan for disks eligible for hardware testing."""
     clear_screen()
-    print_standard(' ')
-    print_standard('Scanning disks...')
 
     # Get eligible disk list
     cmd = ['lsblk', '-J', '-O']
