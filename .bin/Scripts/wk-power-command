@@ -1,0 +1,21 @@
+#!/bin/bash
+#
+## Wizard Kit: Wrapper for logout, reboot, & poweroff
+
+# Unmount filesystems
+find /media -maxdepth 1 -mindepth 1 -type d \
+  -exec udevil umount "{}" \;
+
+# Flush write cache
+sudo sync
+
+# Perform requested action
+case "${1:-x}" in
+  poweroff)
+    sudo systemctl poweroff;;
+  reboot)
+    sudo systemctl reboot;;
+  *)
+    openbox --exit;;
+esac
+exit 0

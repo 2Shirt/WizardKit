@@ -219,6 +219,10 @@ function update_live_env() {
     # Services
     sed -i -r 's/^(.*pacman-init.*)$/#NOPE#\1/' "$LIVE_DIR/airootfs/root/customize_airootfs.sh"
     sed -i -r 's/^(.*choose-mirror.*)$/#NOPE#\1/' "$LIVE_DIR/airootfs/root/customize_airootfs.sh"
+
+    # Shutdown stall fix
+    echo "sed -i -r 's/^.*(DefaultTimeoutStartSec)=.*$/\1=15s/' /etc/systemd/system.conf" >> "$LIVE_DIR/airootfs/root/customize_airootfs.sh"
+    echo "sed -i -r 's/^.*(DefaultTimeoutStopSec)=.*$/\1=15s/' /etc/systemd/system.conf" >> "$LIVE_DIR/airootfs/root/customize_airootfs.sh"
     
     # SSH
     mkdir -p "$SKEL_DIR/.ssh"
