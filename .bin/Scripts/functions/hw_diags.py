@@ -224,9 +224,9 @@ def menu_diags(*args):
                 'pipes -t 0 -t 1 -t 2 -t 3 -p 5 -R -r 4000'.split(),
                 check=False, pipe=False)
         elif selection == 'R':
-            run_program(['reboot'])
+            run_program(['systemctl', 'reboot'])
         elif selection == 'S':
-            run_program(['poweroff'])
+            run_program(['systemctl', 'poweroff'])
         elif selection == 'Q':
             break
 
