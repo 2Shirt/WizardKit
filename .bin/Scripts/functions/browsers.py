@@ -285,6 +285,9 @@ def get_ie_homepages():
         homepages.append(main_page)
     if len(extra_pages) > 0:
         homepages.extend(extra_pages)
+
+    # Remove all curly braces
+    homepages = [h.replace('{', '').replace('}', '') for h in homepages]
     return homepages
 
 def get_mozilla_homepages(prefs_path):
