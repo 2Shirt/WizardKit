@@ -156,7 +156,7 @@ def cleanup_transfer(dest_path):
 def find_core_storage_volumes():
     """Try to create block devices for any Apple CoreStorage volumes."""
     corestorage_uuid = '53746f72-6167-11aa-aa11-00306543ecac'
-    dmsetup_cmd_file = '{TmpDir}/dmsetup_command'
+    dmsetup_cmd_file = '{TmpDir}/dmsetup_command'.format(**global_vars)
 
     # Get CoreStorage devices
     cmd = [
