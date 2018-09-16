@@ -48,10 +48,6 @@ SOURCE_URLS = {
     'aria2': 'https://github.com/aria2/aria2/releases/download/release-1.33.1/aria2-1.33.1-win-32bit-build1.zip',
     }
 VCREDIST_SOURCES = {
-    '2008sp1': {
-        '32': 'https://download.microsoft.com/download/5/D/8/5D8C65CB-C849-4025-8E95-C3966CAFD8AE/vcredist_x86.exe',
-        '64': 'https://download.microsoft.com/download/5/D/8/5D8C65CB-C849-4025-8E95-C3966CAFD8AE/vcredist_x64.exe',
-        },
     '2010sp1': {
         '32': 'https://download.microsoft.com/download/1/6/5/165255E7-1014-4D0A-B094-B6A430A6BFFC/vcredist_x86.exe',
         '64': 'https://download.microsoft.com/download/1/6/5/165255E7-1014-4D0A-B094-B6A430A6BFFC/vcredist_x64.exe',
@@ -65,8 +61,8 @@ VCREDIST_SOURCES = {
         '64': 'https://download.microsoft.com/download/0/5/6/056dcda9-d667-4e27-8001-8a0c6971d6b1/vcredist_x64.exe',
         },
     '2017': {
-        '32': 'https://download.visualstudio.microsoft.com/download/pr/100349138/88b50ce70017bf10f2d56d60fcba6ab1/VC_redist.x86.exe',
-        '64': 'https://download.visualstudio.microsoft.com/download/pr/100349091/2cd2dba5748dc95950a5c42c2d2d78e4/VC_redist.x64.exe',
+        '32': 'https://aka.ms/vs/15/release/vc_redist.x86.exe',
+        '64': 'https://aka.ms/vs/15/release/vc_redist.x64.exe',
         },
     }
 NINITE_SOURCES = {
