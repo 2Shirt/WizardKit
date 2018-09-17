@@ -254,20 +254,30 @@ if ($MyInvocation.InvocationName -ne ".") {
         # Fast Copy
         Write-Host "Extracting: FastCopy"
         try {
+            # Extract Installer
             $ArgumentList = @(
-                "x", "$Temp\fastcopy64.zip", "-o$Build\bin\amd64\FastCopy",
-                "-aoa", "-bso0", "-bse0", "-bsp0",
-                "-x!setup.exe", "-x!*.dll")
+                "e", "$Temp\fastcopy.zip", "-o$Temp",
+                "-aoa", "-bso0", "-bse0", "-bsp0")
             Start-Process -FilePath $SevenZip -ArgumentList $ArgumentList -NoNewWindow -Wait
+
+            # Extract 64-bit
             $ArgumentList = @(
-                "e", "$Temp\fastcopy32.zip", "-o$Build\bin\x86\FastCopy",
-                "-aoa", "-bso0", "-bse0", "-bsp0",
-                "-x!setup.exe", "-x!*.dll")
-            Start-Process -FilePath $SevenZip -ArgumentList $ArgumentList -NoNewWindow -Wait
+                "/NOSUBDIR", "/DIR=$Build\bin\amd64\FastCopy",
+                "/EXTRACT64")
+            Start-Process -FilePath "$TEMP\FastCopy354_installer.exe" -ArgumentList $ArgumentList -NoNewWindow -Wait
+            Remove-Item "$Build\bin\amd64\FastCopy\setup.exe" -Force
+
+            # Extract 32-bit
+            $ArgumentList = @(
+                "/NOSUBDIR", "/DIR=$Build\bin\x86\FastCopy",
+                "/EXTRACT32")
+            Start-Process -FilePath "$TEMP\FastCopy354_installer.exe" -ArgumentList $ArgumentList -NoNewWindow -Wait
+            Remove-Item "$Build\bin\x86\FastCopy\setup.exe" -Force
         }
         catch {
             Write-Host ("  ERROR: Failed to extract files." ) -ForegroundColor "Red"
         }
+
         
         # Killer Network Driver
         Write-Host "Extracting: Killer Network Driver"
