@@ -158,16 +158,16 @@ if ($MyInvocation.InvocationName -ne ".") {
             @("produkey32.zip", "http://www.nirsoft.net/utils/produkey.zip"),
             @("produkey64.zip", "http://www.nirsoft.net/utils/produkey-x64.zip"),
             # Python
-            @("python32.zip", "https://www.python.org/ftp/python/3.7.0/python-3.7.0-embed-win32.zip"),
-            @("python64.zip", "https://www.python.org/ftp/python/3.7.0/python-3.7.0-embed-amd64.zip"),
+            @("python32.zip", "https://www.python.org/ftp/python/3.6.0/python-3.6.0-embed-win32.zip"),
+            @("python64.zip", "https://www.python.org/ftp/python/3.6.0/python-3.6.0-embed-amd64.zip"),
             # Python: psutil
             @(
                 "psutil64.whl",
-                (FindDynamicUrl "https://pypi.org/project/psutil/" "href=.*-cp37-cp37m-win_amd64.whl")
+                (FindDynamicUrl "https://pypi.org/project/psutil/" "href=.*-cp36-cp36m-win_amd64.whl")
             ),
             @(
                 "psutil32.whl",
-                (FindDynamicUrl "https://pypi.org/project/psutil/" "href=.*-cp37-cp37m-win32.whl")
+                (FindDynamicUrl "https://pypi.org/project/psutil/" "href=.*-cp36-cp36m-win32.whl")
             ),
             # Q-Dir
             @("qdir32.zip", "https://www.softwareok.com/Download/Q-Dir_Portable.zip"),
