@@ -452,7 +452,6 @@ def run_iobenchmark():
 def run_mprime():
     """Run Prime95 for MPRIME_LIMIT minutes while showing the temps."""
     aborted = False
-    clear_screen()
     print_log('\nStart Prime95 test')
     TESTS['Prime95']['Status'] = 'Working'
     update_progress()
@@ -467,12 +466,15 @@ def run_mprime():
     
     # Start test
     run_program(['apple-fans', 'max'])
-    print_standard('Running Prime95 for {} minutes'.format(MPRIME_LIMIT))
-    print_warning('If running too hot, press CTL+c to abort the test')
     try:
-        sleep(int(MPRIME_LIMIT)*60)
+        for i in range(int(MPRIME_LIMIT)):
+            clear_screen()
+            print_standard('Running Prime95 ({} minutes left)'.format(
+                int(MPRIME_LIMIT)-i))
+            print_warning('If running too hot, press CTRL+c to abort the test')
+            sleep(60)
     except KeyboardInterrupt:
-        # Catch CTL+C
+        # Catch CTRL+C
         aborted = True
 
     # Save "final" temps
