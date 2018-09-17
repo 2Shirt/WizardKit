@@ -492,14 +492,11 @@ def update_samsung_magician():
     download_to_temp('Samsung Magician.zip', SOURCE_URLS['Samsung Magician'])
 
     # Extract
-    extract_generic(
-        source=r'{}\Samsung Magician.zip'.format(global_vars['TmpDir']),
-        dest=r'{}\_Drivers'.format(global_vars['CBinDir']),
-        mode='e')
+    extract_temp_to_cbin('Samsung Magician.zip', '_Drivers\Samsung Magician')
     shutil.move(
-        r'{}\_Drivers\Samsung_Magician_Installer.exe'.format(
+        r'{}\_Drivers\Samsung Magician\Samsung_Magician_Installer.exe'.format(
             global_vars['CBinDir']),
-        r'{}\_Drivers\Samsung Magician.exe'.format(
+        r'{}\_Drivers\Samsung Magician\Samsung Magician.exe'.format(
             global_vars['CBinDir']))
 
     # Cleanup
