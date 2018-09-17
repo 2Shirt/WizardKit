@@ -849,11 +849,10 @@ def update_adwcleaner():
     remove_from_kit('AdwCleaner')
     
     # Download
-    url = resolve_dynamic_url(
-        SOURCE_URLS['AdwCleaner'],
-        'id="downloadLink"')
     download_generic(
-        r'{}\AdwCleaner'.format(global_vars['CBinDir']), 'AdwCleaner.exe', url)
+        r'{}\AdwCleaner'.format(global_vars['CBinDir']),
+        'AdwCleaner.exe',
+        SOURCE_URLS['AdwCleaner'])
 
 def update_kvrt():
     # Stop running processes
