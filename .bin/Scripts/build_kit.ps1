@@ -82,25 +82,25 @@ if ($MyInvocation.InvocationName -ne ".") {
     DownloadFile -Path $Path -Name "7z-extra.7z" -Url "https://www.7-zip.org/a/7z1805-extra.7z"
 
     # ConEmu
-    $Url = "https://github.com/Maximus5/ConEmu/releases/download/v18.05.06/ConEmuPack.180506.7z"
+    $Url = "https://github.com/Maximus5/ConEmu/releases/download/v18.06.26/ConEmuPack.180626.7z"
     DownloadFile -Path $Path -Name "ConEmuPack.7z" -Url $Url
 
     # Notepad++
-    $Url = "https://notepad-plus-plus.org/repository/7.x/7.5.6/npp.7.5.6.bin.minimalist.7z"
+    $Url = "https://notepad-plus-plus.org/repository/7.x/7.5.8/npp.7.5.8.bin.minimalist.7z"
     DownloadFile -Path $Path -Name "npp.7z" -Url $Url
 
     # Python
-    $Url = "https://www.python.org/ftp/python/3.6.5/python-3.6.5-embed-win32.zip"
+    $Url = "https://www.python.org/ftp/python/3.7.0/python-3.7.0-embed-win32.zip"
     DownloadFile -Path $Path -Name "python32.zip" -Url $Url
-    $Url = "https://www.python.org/ftp/python/3.6.5/python-3.6.5-embed-amd64.zip"
+    $Url = "https://www.python.org/ftp/python/3.7.0/python-3.7.0-embed-amd64.zip"
     DownloadFile -Path $Path -Name "python64.zip" -Url $Url
 
     # Python: psutil
     $DownloadPage = "https://pypi.org/project/psutil/"
-    $RegEx = "href=.*-cp36-cp36m-win32.whl"
+    $RegEx = "href=.*-cp37-cp37m-win32.whl"
     $Url = FindDynamicUrl $DownloadPage $RegEx
     DownloadFile -Path $Path -Name "psutil32.whl" -Url $Url
-    $RegEx = "href=.*-cp36-cp36m-win_amd64.whl"
+    $RegEx = "href=.*-cp37-cp37m-win_amd64.whl"
     $Url = FindDynamicUrl $DownloadPage $RegEx
     DownloadFile -Path $Path -Name "psutil64.whl" -Url $Url
 

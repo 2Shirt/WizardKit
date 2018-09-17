@@ -1,9 +1,10 @@
 # Wizard Kit: Settings - Sources
 
 SOURCE_URLS = {
+    'Adobe Reader DC': 'http://ardownload.adobe.com/pub/adobe/reader/win/AcrobatDC/1801120058/AcroRdrDC1801120058_en_US.exe',
+    'AdwCleaner': 'https://downloads.malwarebytes.com/file/adwcleaner',
     'AIDA64': 'http://download.aida64.com/aida64engineer597.zip',
-    'Adobe Reader DC': 'http://ardownload.adobe.com/pub/adobe/reader/win/AcrobatDC/1801120040/AcroRdrDC1801120040_en_US.exe',
-    'AdwCleaner': 'https://toolslib.net/downloads/finish/1-adwcleaner/',
+    'aria2': 'https://github.com/aria2/aria2/releases/download/release-1.34.0/aria2-1.34.0-win-32bit-build1.zip',
     'Autoruns': 'https://download.sysinternals.com/files/Autoruns.zip',
     'BleachBit': 'https://download.bleachbit.org/BleachBit-2.0-portable.zip',
     'BlueScreenView32': 'http://www.nirsoft.net/utils/bluescreenview.zip',
@@ -14,38 +15,35 @@ SOURCE_URLS = {
     'ERUNT': 'http://www.aumha.org/downloads/erunt.zip',
     'Everything32': 'https://www.voidtools.com/Everything-1.4.1.895.x86.zip',
     'Everything64': 'https://www.voidtools.com/Everything-1.4.1.895.x64.zip',
-    'FastCopy32': 'http://ftp.vector.co.jp/69/93/2323/FastCopy341.zip',
-    'FastCopy64': 'http://ftp.vector.co.jp/69/93/2323/FastCopy341_x64.zip',
-    'Firefox uBO': 'https://addons.mozilla.org/firefox/downloads/file/956394/ublock_origin-1.16.6-an+fx.xpi',
-    'HWiNFO': 'http://app.oldfoss.com:81/download/HWiNFO/hwi_582.zip',
+    'FastCopy': 'http://ftp.vector.co.jp/70/64/2323/FastCopy354_installer.zip',
+    'Firefox uBO': 'https://addons.mozilla.org/firefox/downloads/file/1056733/ublock_origin-1.16.20-an+fx.xpi',
     'HitmanPro32': 'https://dl.surfright.nl/HitmanPro.exe',
     'HitmanPro64': 'https://dl.surfright.nl/HitmanPro_x64.exe',
-    'IOBit_Uninstaller': 'https://portableapps.com/redirect/?a=IObitUninstallerPortable&t=http%3A%2F%2Fdownloads.portableapps.com%2Fportableapps%2Fiobituninstallerportable%2FIObitUninstallerPortable_7.3.0.13.paf.exe',
+    'HWiNFO': 'http://app.oldfoss.com:81/download/HWiNFO/hwi_588.zip',
     'Intel SSD Toolbox': r'https://downloadmirror.intel.com/27656/eng/Intel%20SSD%20Toolbox%20-%20v3.5.2.exe',
+    'IOBit_Uninstaller': 'https://portableapps.duckduckgo.com/IObitUninstallerPortable_7.5.0.7.paf.exe',
     'KVRT': 'http://devbuilds.kaspersky-labs.com/devbuilds/KVRT/latest/full/KVRT.exe',
-    'NotepadPlusPlus': 'https://notepad-plus-plus.org/repository/7.x/7.5.6/npp.7.5.6.bin.minimalist.7z',
-    'Office Deployment Tool 2013': 'https://download.microsoft.com/download/6/2/3/6230F7A2-D8A9-478B-AC5C-57091B632FCF/officedeploymenttool_x86_4827-1000.exe',
-    'Office Deployment Tool 2016': 'https://download.microsoft.com/download/2/7/A/27AF1BE6-DD20-4CB4-B154-EBAB8A7D4A7E/officedeploymenttool_9326.3600.exe',
+    'NotepadPlusPlus': 'https://notepad-plus-plus.org/repository/7.x/7.5.8/npp.7.5.8.bin.minimalist.7z',
+    'Office Deployment Tool 2016': 'https://download.microsoft.com/download/2/7/A/27AF1BE6-DD20-4CB4-B154-EBAB8A7D4A7E/officedeploymenttool_10810.33603.exe',
     'ProduKey32': 'http://www.nirsoft.net/utils/produkey.zip',
     'ProduKey64': 'http://www.nirsoft.net/utils/produkey-x64.zip',
     'PuTTY': 'https://the.earth.li/~sgtatham/putty/latest/w32/putty.zip',
     'RKill': 'https://www.bleepingcomputer.com/download/rkill/dl/10/',
+    'Samsung Magician': 'https://s3.ap-northeast-2.amazonaws.com/global.semi.static/SAMSUNG_SSD_v5_2_1_180523/CD0CFAC4675B9E502899B41BE00525C3909ECE3AD57CC1A2FB6B74A766B2A1EA/Samsung_Magician_Installer.zip',
     'SDIO Themes': 'http://snappy-driver-installer.org/downloads/SDIO_Themes.zip',
     'SDIO Torrent': 'http://snappy-driver-installer.org/downloads/SDIO_Update.torrent',
-    'Samsung Magician': 'http://downloadcenter.samsung.com/content/SW/201801/20180123130636806/Samsung_Magician_Installer.exe',
     'TDSSKiller': 'https://media.kaspersky.com/utilities/VirusUtilities/EN/tdsskiller.exe',
     'TestDisk': 'https://www.cgsecurity.org/testdisk-7.1-WIP.win.zip',
-    'TreeSizeFree': 'https://www.jam-software.com/treesize_free/TreeSizeFree-Portable.zip',
     'wimlib32': 'https://wimlib.net/downloads/wimlib-1.12.0-windows-i686-bin.zip',
     'wimlib64': 'https://wimlib.net/downloads/wimlib-1.12.0-windows-x86_64-bin.zip',
     'Winapp2': 'https://github.com/MoscaDotTo/Winapp2/archive/master.zip',
-    'XMPlay 7z': 'http://support.xmplay.com/files/16/xmp-7z.zip?v=800962',
-    'XMPlay Game': 'http://support.xmplay.com/files/12/xmp-gme.zip?v=515637',
-    'XMPlay RAR': 'http://support.xmplay.com/files/16/xmp-rar.zip?v=409646',
-    'XMPlay WAModern': 'http://support.xmplay.com/files/10/WAModern.zip?v=207099',
-    'XMPlay': 'http://support.xmplay.com/files/20/xmplay383.zip?v=298195',
+    'WizTree': 'https://antibody-software.com/files/wiztree_3_26_portable.zip',
+    'XMPlay 7z': 'https://support.xmplay.com/files/16/xmp-7z.zip?v=800962',
+    'XMPlay Game': 'https://support.xmplay.com/files/12/xmp-gme.zip?v=515637',
+    'XMPlay RAR': 'https://support.xmplay.com/files/16/xmp-rar.zip?v=409646',
+    'XMPlay WAModern': 'https://support.xmplay.com/files/10/WAModern.zip?v=207099',
+    'XMPlay': 'https://support.xmplay.com/files/20/xmplay383.zip?v=298195',
     'XYplorerFree': 'https://www.xyplorer.com/download/xyplorer_free_noinstall.zip',
-    'aria2': 'https://github.com/aria2/aria2/releases/download/release-1.33.1/aria2-1.33.1-win-32bit-build1.zip',
     }
 VCREDIST_SOURCES = {
     '2010sp1': {
@@ -67,9 +65,8 @@ VCREDIST_SOURCES = {
     }
 NINITE_SOURCES = {
     'Bundles': {
-        'Runtimes.exe': '.net4.7.1-air-java8-silverlight',
-        'Legacy.exe': '.net4.7.1-7zip-air-chrome-firefox-java8-silverlight-vlc',
-        'Modern.exe': '.net4.7.1-7zip-air-chrome-classicstart-firefox-java8-silverlight-vlc',
+        'Legacy.exe': '.net4.7.2-7zip-chrome-firefox-vlc',
+        'Modern.exe': '.net4.7.2-7zip-chrome-classicstart-firefox-vlc',
         },
     'Audio-Video': {
         'AIMP.exe': 'aimp',
@@ -94,6 +91,7 @@ NINITE_SOURCES = {
         'SugarSync.exe': 'sugarsync',
         },
     'Communication': {
+        'Discord': 'discord',
         'Pidgin.exe': 'pidgin',
         'Skype.exe': 'skype',
         'Trillian.exe': 'trillian',
@@ -105,7 +103,6 @@ NINITE_SOURCES = {
         },
     'Developer': {
         'Eclipse.exe': 'eclipse',
-        'FileZilla.exe': 'filezilla',
         'JDK 8.exe': 'jdk8',
         'JDK 8 (x64).exe': 'jdkx8',
         'Notepad++.exe': 'notepadplusplus',
@@ -149,7 +146,7 @@ NINITE_SOURCES = {
         },
     'Runtimes': {
         'Adobe Air.exe': 'air',
-        'dotNET.exe': '.net4.7.1',
+        'dotNET.exe': '.net4.7.2',
         'Java 8.exe': 'java8',
         'Shockwave.exe': 'shockwave',
         'Silverlight.exe': 'silverlight',
@@ -193,6 +190,7 @@ RST_SOURCES = {
     'SetupRST_15.8.exe': 'https://downloadmirror.intel.com/27442/eng/SetupRST.exe',
     'SetupRST_15.9.exe': 'https://downloadmirror.intel.com/27400/eng/SetupRST.exe',
     'SetupRST_16.0.exe': 'https://downloadmirror.intel.com/27681/eng/SetupRST.exe',
+    'SetupRST_16.5.exe': 'https://downloadmirror.intel.com/27984/eng/SetupRST.exe',
     }
 
 

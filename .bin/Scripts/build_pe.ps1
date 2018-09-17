@@ -136,20 +136,19 @@ if ($MyInvocation.InvocationName -ne ".") {
             @("bluescreenview32.zip", "http://www.nirsoft.net/utils/bluescreenview.zip"),
             @("bluescreenview64.zip", "http://www.nirsoft.net/utils/bluescreenview-x64.zip"),
             # ConEmu
-            @("ConEmuPack.7z", "https://github.com/Maximus5/ConEmu/releases/download/v18.05.06/ConEmuPack.180506.7z"),
+            @("ConEmuPack.7z", "https://github.com/Maximus5/ConEmu/releases/download/v18.06.26/ConEmuPack.180626.7z"),
             # Fast Copy
-            @("fastcopy32.zip", "http://ftp.vector.co.jp/69/93/2323/FastCopy341.zip"),
-            @("fastcopy64.zip", "http://ftp.vector.co.jp/69/93/2323/FastCopy341_x64.zip"),
+            @("fastcopy.zip", "http://ftp.vector.co.jp/70/64/2323/FastCopy354_installer.zip"),
             # HWiNFO
-            @("hwinfo.zip", "http://app.oldfoss.com:81/download/HWiNFO/hwi_582.zip"),
+            @("hwinfo.zip", "http://app.oldfoss.com:81/download/HWiNFO/hwi_588.zip"),
             # Killer Network Drivers
             @(
                 "killerinf.zip",
                 ("http://www.killernetworking.com"+(FindDynamicUrl "http://www.killernetworking.com/driver-downloads/item/killer-drivers-inf" "Download Killer-Ethernet").replace('&amp;', '&'))
             ),
             # Notepad++
-            @("npp_x86.7z", "https://notepad-plus-plus.org/repository/7.x/7.5.6/npp.7.5.6.bin.minimalist.7z"),
-            @("npp_amd64.7z", "https://notepad-plus-plus.org/repository/7.x/7.5.6/npp.7.5.6.bin.minimalist.x64.7z"),
+            @("npp_x86.7z", "https://notepad-plus-plus.org/repository/7.x/7.5.8/npp.7.5.8.bin.minimalist.7z"),
+            @("npp_amd64.7z", "https://notepad-plus-plus.org/repository/7.x/7.5.8/npp.7.5.8.bin.minimalist.x64.7z"),
             # NT Password Editor
             @("ntpwed.zip", "http://cdslow.org.ru/files/ntpwedit/ntpwed07.zip"),
             # Prime95
@@ -159,16 +158,16 @@ if ($MyInvocation.InvocationName -ne ".") {
             @("produkey32.zip", "http://www.nirsoft.net/utils/produkey.zip"),
             @("produkey64.zip", "http://www.nirsoft.net/utils/produkey-x64.zip"),
             # Python
-            @("python32.zip", "https://www.python.org/ftp/python/3.6.5/python-3.6.5-embed-win32.zip"),
-            @("python64.zip", "https://www.python.org/ftp/python/3.6.5/python-3.6.5-embed-amd64.zip"),
+            @("python32.zip", "https://www.python.org/ftp/python/3.7.0/python-3.7.0-embed-win32.zip"),
+            @("python64.zip", "https://www.python.org/ftp/python/3.7.0/python-3.7.0-embed-amd64.zip"),
             # Python: psutil
             @(
                 "psutil64.whl",
-                (FindDynamicUrl "https://pypi.org/project/psutil/" "href=.*-cp36-cp36m-win_amd64.whl")
+                (FindDynamicUrl "https://pypi.org/project/psutil/" "href=.*-cp37-cp37m-win_amd64.whl")
             ),
             @(
                 "psutil32.whl",
-                (FindDynamicUrl "https://pypi.org/project/psutil/" "href=.*-cp36-cp36m-win32.whl")
+                (FindDynamicUrl "https://pypi.org/project/psutil/" "href=.*-cp37-cp37m-win32.whl")
             ),
             # Q-Dir
             @("qdir32.zip", "https://www.softwareok.com/Download/Q-Dir_Portable.zip"),
