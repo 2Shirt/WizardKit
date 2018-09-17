@@ -760,22 +760,23 @@ def update_putty():
     # Cleanup
     remove_from_temp('putty.zip')
 
-def update_treesizefree():
+def update_wiztree():
     # Stop running processes
-    kill_process('TreeSizeFree.exe')
+    for process in ['WizTree.exe', 'WizTree64.exe']:
+        kill_process(process)
     
     # Remove existing folders
-    remove_from_kit('TreeSizeFree')
+    remove_from_kit('WizTree')
     
     # Download
     download_to_temp(
-        'treesizefree.zip', SOURCE_URLS['TreeSizeFree'])
+        'wiztree.zip', SOURCE_URLS['WizTree'])
     
     # Extract files
-    extract_temp_to_cbin('treesizefree.zip', 'TreeSizeFree')
+    extract_temp_to_cbin('wiztree.zip', 'WizTree')
     
     # Cleanup
-    remove_from_temp('treesizefree.zip')
+    remove_from_temp('wiztree.zip')
 
 def update_xmplay():
     # Stop running processes

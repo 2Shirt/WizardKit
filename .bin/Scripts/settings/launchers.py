@@ -475,10 +475,10 @@ LAUNCHERS = {
             'L_PATH': 'PuTTY',
             'L_ITEM': 'PUTTY.EXE',
             },
-        'TreeSizeFree': {
+        'WizTree': {
             'L_TYPE': 'Executable',
-            'L_PATH': 'TreeSizeFree',
-            'L_ITEM': 'TreeSizeFree.exe',
+            'L_PATH': 'WizTree',
+            'L_ITEM': 'WizTree.exe',
             'L_ELEV': 'True',
             },
         'Update Kit': {

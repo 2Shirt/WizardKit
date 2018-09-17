@@ -70,7 +70,7 @@ if __name__ == '__main__':
         try_and_print(message='FirefoxExtensions...', function=update_firefox_ublock_origin, other_results=other_results, width=40)
         try_and_print(message='PuTTY...', function=update_putty, other_results=other_results, width=40)
         try_and_print(message='Notepad++...', function=update_notepadplusplus, other_results=other_results, width=40)
-        try_and_print(message='TreeSizeFree...', function=update_treesizefree, other_results=other_results, width=40)
+        try_and_print(message='WizTree...', function=update_wiztree, other_results=other_results, width=40)
         try_and_print(message='XMPlay...', function=update_xmplay, other_results=other_results, width=40)
         
         # Repairs
