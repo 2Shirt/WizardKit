@@ -489,10 +489,21 @@ def update_samsung_magician():
     remove_from_kit('Samsung Magician.exe')
     
     # Download
-    download_generic(
-        r'{}\_Drivers\Samsung Magician'.format(global_vars['CBinDir']),
-        'Samsung Magician.exe',
-        SOURCE_URLS['Samsung Magician'])
+    download_to_temp('Samsung Magician.zip', SOURCE_URLS['Samsung Magician'])
+
+    # Extract
+    extract_generic(
+        source=r'{}\Samsung Magician.zip'.format(global_vars['TmpDir']),
+        dest=r'{}\_Drivers'.format(global_vars['CBinDir']),
+        mode='e')
+    shutil.move(
+        r'{}\_Drivers\Samsung_Magician_Installer.exe'.format(
+            global_vars['CBinDir']),
+        r'{}\_Drivers\Samsung Magician.exe'.format(
+            global_vars['CBinDir']))
+
+    # Cleanup
+    remove_from_temp('Samsung Magician.zip')
 
 def update_sdi_origin():
     # Download aria2
