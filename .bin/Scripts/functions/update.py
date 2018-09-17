@@ -587,8 +587,8 @@ def update_office():
     if os.path.exists(include_path):
         shutil.copytree(include_path, dest)
     
-    # Download and extract
-    for year in ['2013', '2016']:
+    for year in ['2016']:
+        # Download and extract
         name = 'odt{}.exe'.format(year)
         url = 'Office Deployment Tool {}'.format(year)
         download_to_temp(name, SOURCE_URLS[url])
@@ -602,9 +602,8 @@ def update_office():
             r'{}\{}'.format(global_vars['TmpDir'], year),
             r'{}\_Office\{}'.format(global_vars['CBinDir'], year))
     
-    # Cleanup
-    remove_from_temp('odt2013.exe')
-    remove_from_temp('odt2016.exe')
+        # Cleanup
+        remove_from_temp('odt{}.exe'.format(year))
 
 def update_classic_start_skin():
     # Remove existing folders

@@ -356,32 +356,6 @@ LAUNCHERS = {
             'L_ELEV': 'True',
             },
         },
-    r'Installers\Extras\Office\2013': {
-        'Home and Business 2013 (x32)': {
-            'L_TYPE': 'Office',
-            'L_PATH': '2013',
-            'L_ITEM': 'hb_32.xml',
-            'L_NCMD': 'True',
-            },
-        'Home and Business 2013 (x64)': {
-            'L_TYPE': 'Office',
-            'L_PATH': '2013',
-            'L_ITEM': 'hb_64.xml',
-            'L_NCMD': 'True',
-            },
-        'Home and Student 2013 (x32)': {
-            'L_TYPE': 'Office',
-            'L_PATH': '2013',
-            'L_ITEM': 'hs_32.xml',
-            'L_NCMD': 'True',
-            },
-        'Home and Student 2013 (x64)': {
-            'L_TYPE': 'Office',
-            'L_PATH': '2013',
-            'L_ITEM': 'hs_64.xml',
-            'L_NCMD': 'True',
-            },
-        },
     r'Installers\Extras\Office\2016': {
         'Home and Business 2016 (x32)': {
             'L_TYPE': 'Office',
