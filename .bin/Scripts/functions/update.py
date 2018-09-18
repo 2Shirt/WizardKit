@@ -720,16 +720,10 @@ def update_firefox_ublock_origin():
     remove_from_kit('FirefoxExtensions')
     
     # Download
-    download_to_temp('ff-uBO.xpi', SOURCE_URLS['Firefox uBO'])
-    
-    # Extract files
-    extract_generic(
-        r'{}\ff-uBO.xpi'.format(global_vars['TmpDir']),
-        r'{}\FirefoxExtensions\uBlock0@raymondhill.net'.format(
-            global_vars['CBinDir']))
-    
-    # Cleanup
-    remove_from_temp('ff-uBO.xpi')
+    download_generic(
+        r'{}\FirefoxExtensions'.format(global_vars['CBinDir']),
+        'ublock_origin.xpi',
+        SOURCE_URLS['Firefox uBO'])
 
 def update_notepadplusplus():
     # Stop running processes
