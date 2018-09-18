@@ -17,6 +17,7 @@ $Date = Get-Date -UFormat "%Y-%m-%d"
 $Host.UI.RawUI.BackgroundColor = "Black"
 $Host.UI.RawUI.ForegroundColor = "White"
 $HostSystem32 = "{0}\System32" -f $Env:SystemRoot
+$HostSysWOW64 = "{0}\SysWOW64" -f $Env:SystemRoot
 $DISM = "{0}\DISM.exe" -f $Env:DISMRoot
 #Enable TLS 1.2
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
@@ -158,16 +159,16 @@ if ($MyInvocation.InvocationName -ne ".") {
             @("produkey32.zip", "http://www.nirsoft.net/utils/produkey.zip"),
             @("produkey64.zip", "http://www.nirsoft.net/utils/produkey-x64.zip"),
             # Python
-            @("python32.zip", "https://www.python.org/ftp/python/3.6.0/python-3.6.0-embed-win32.zip"),
-            @("python64.zip", "https://www.python.org/ftp/python/3.6.0/python-3.6.0-embed-amd64.zip"),
+            @("python32.zip", "https://www.python.org/ftp/python/3.7.0/python-3.7.0-embed-win32.zip"),
+            @("python64.zip", "https://www.python.org/ftp/python/3.7.0/python-3.7.0-embed-amd64.zip"),
             # Python: psutil
             @(
                 "psutil64.whl",
-                (FindDynamicUrl "https://pypi.org/project/psutil/" "href=.*-cp36-cp36m-win_amd64.whl")
+                (FindDynamicUrl "https://pypi.org/project/psutil/" "href=.*-cp37-cp37m-win_amd64.whl")
             ),
             @(
                 "psutil32.whl",
-                (FindDynamicUrl "https://pypi.org/project/psutil/" "href=.*-cp36-cp36m-win32.whl")
+                (FindDynamicUrl "https://pypi.org/project/psutil/" "href=.*-cp37-cp37m-win32.whl")
             ),
             # Q-Dir
             @("qdir32.zip", "https://www.softwareok.com/Download/Q-Dir_Portable.zip"),
@@ -177,6 +178,9 @@ if ($MyInvocation.InvocationName -ne ".") {
             @("testdisk64.zip", "https://www.cgsecurity.org/testdisk-7.1-WIP.win64.zip"),
             # VirtIO drivers
             @("virtio-win.iso", "https://fedorapeople.org/groups/virt/virtio-win/direct-downloads/latest-virtio/virtio-win.iso"),
+            # Visual C++ Runtimes
+            @("vcredist_x86.exe", "https://aka.ms/vs/15/release/vc_redist.x86.exe"),
+            @("vcredist_x64.exe", "https://aka.ms/vs/15/release/vc_redist.x64.exe"),
             # wimlib-imagex
             @("wimlib32.zip", "https://wimlib.net/downloads/wimlib-1.12.0-windows-i686-bin.zip"),
             @("wimlib64.zip", "https://wimlib.net/downloads/wimlib-1.12.0-windows-x86_64-bin.zip")
@@ -190,6 +194,13 @@ if ($MyInvocation.InvocationName -ne ".") {
         if ($DownloadErrors -gt 0) {
             Abort
         }
+
+        ## Install ##
+        # Visual C++ Runtimes
+        Write-Host "Installing: Visual C++ Runtimes"
+        $ArgumentList = @("/install", "/passive", "/norestart")
+        Start-Process -FilePath "$Temp\vcredist_x86.exe" -ArgumentList $ArgumentList -Wait
+        Start-Process -FilePath "$Temp\vcredist_x64.exe" -ArgumentList $ArgumentList -Wait
         
         ## Extract ##
         # 7-Zip
@@ -423,6 +434,12 @@ if ($MyInvocation.InvocationName -ne ".") {
         catch {
             Write-Host ("  ERROR: Failed to extract files." ) -ForegroundColor "Red"
         }
+        try {
+            Copy-Item -Path "$HostSystem32\vcruntime140.dll" -Destination "$Build\bin\amd64\python\vcruntime140.dll" -Force
+        }
+        catch {
+            Write-Host ("  ERROR: Failed to copy Visual C++ Runtime DLL." ) -ForegroundColor "Red"
+        }
 
         # Python (x32)
         Write-Host "Extracting: Python (x32)"
@@ -439,6 +456,12 @@ if ($MyInvocation.InvocationName -ne ".") {
         }
         catch {
             Write-Host ("  ERROR: Failed to extract files." ) -ForegroundColor "Red"
+        }
+        try {
+            Copy-Item -Path "$HostSysWOW64\vcruntime140.dll" -Destination "$Build\bin\x86\python\vcruntime140.dll" -Force
+        }
+        catch {
+            Write-Host ("  ERROR: Failed to copy Visual C++ Runtime DLL." ) -ForegroundColor "Red"
         }
     
         # Q-Dir

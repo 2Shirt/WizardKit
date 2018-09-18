@@ -11,6 +11,7 @@ $Bin = (Get-Item $WD).Parent.FullName
 $Root = (Get-Item $Bin -Force).Parent.FullName
 $Temp = "$Bin\tmp"
 $System32 = "{0}\System32" -f $Env:SystemRoot
+$SysWOW64 = "{0}\SysWOW64" -f $Env:SystemRoot
 Push-Location "$WD"
 $Host.UI.RawUI.BackgroundColor = "black"
 $Host.UI.RawUI.ForegroundColor = "white"
@@ -112,12 +113,25 @@ if ($MyInvocation.InvocationName -ne ".") {
         $Url = FindDynamicUrl -SourcePage $DownloadPage -RegEx $RegEx
         DownloadFile -Path $Path -Name $Name -Url $Url
     }
+
+    # Visual C++ Runtimes
+    $Url = "https://aka.ms/vs/15/release/vc_redist.x86.exe"
+    DownloadFile -Path $Path -Name "vcredist_x86.exe" -Url $Url
+    $Url = "https://aka.ms/vs/15/release/vc_redist.x64.exe"
+    DownloadFile -Path $Path -Name "vcredist_x64.exe" -Url $Url
     
     ## Bail ##
     # If errors were encountered during downloads
     if ($DownloadErrors -gt 0) {
         Abort
     }
+
+    ## Install ##
+    # Visual C++ Runtimes
+    $ArgumentList = @("/install", "/passive", "/norestart")
+    Start-Process -FilePath "$Temp\vcredist_x86.exe" -ArgumentList $ArgumentList -Wait
+    Start-Process -FilePath "$Temp\vcredist_x64.exe" -ArgumentList $ArgumentList -Wait
+    Remove-Item "$Temp\vcredist*.exe"
     
     ## Extract ##
     # 7-Zip
@@ -191,6 +205,13 @@ if ($MyInvocation.InvocationName -ne ".") {
         catch {
             Write-Host ("  ERROR: Failed to extract files." ) -ForegroundColor "Red"
         }
+    }
+    try {
+        Copy-Item -Path "$System32\vcruntime140.dll" -Destination "$Bin\Python\x64\vcruntime140.dll" -Force
+        Copy-Item -Path "$SysWOW64\vcruntime140.dll" -Destination "$Bin\Python\x32\vcruntime140.dll" -Force
+    }
+    catch {
+        Write-Host ("  ERROR: Failed to copy Visual C++ Runtime DLLs." ) -ForegroundColor "Red"
     }
     Remove-Item "$Temp\python*.zip"
     Remove-Item "$Temp\*.whl"
