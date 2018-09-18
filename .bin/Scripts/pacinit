@@ -1,0 +1,15 @@
+#!/bin/bash
+#
+## Wizard Kit: Update pacman settings to usage in live sessions
+
+# Disable custom repo (used at build-time)
+sudo sed -i -r "s/^(\[custom\])/#\1/" /etc/pacman.conf
+sudo sed -i -r "s/^(SigLevel = Optional TrustAll)/#\1/" /etc/pacman.conf
+sudo sed -i -r "s/^(Server = )/#\1/" /etc/pacman.conf
+
+# Disable signature checks
+sudo sed -i -r "s/^SigLevel.*/SigLevel = Never/" /etc/pacman.conf
+
+# Refresh package databases
+sudo pacman -Sy
+
