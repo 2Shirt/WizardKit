@@ -5,6 +5,9 @@ from functions.common import *
 # STATIC VARIABLES
 HKCU = winreg.HKEY_CURRENT_USER
 HKLM = winreg.HKEY_LOCAL_MACHINE
+MOZILLA_FIREFOX_UBO_PATH = r'{}\{}\ublock_origin.xpi'.format(
+    os.environ.get('PROGRAMFILES'),
+    r'Mozilla Firefox\distribution\extensions')
 OTHER_RESULTS = {
     'Error': {
         'CalledProcessError':   'Unknown Error',
@@ -76,9 +79,6 @@ SETTINGS_EXPLORER_USER = {
         },
     }
 SETTINGS_GOOGLE_CHROME = {
-    r'Software\Google\Chrome\Extensions': {
-        'WOW64_32': True,
-        },
     r'Software\Google\Chrome\Extensions\cjpalhdlnbpafiamejdnhcphjbkeiagm': {
         'SZ Items': {
             'update_url': 'https://clients2.google.com/service/update2/crx'},
@@ -88,6 +88,19 @@ SETTINGS_GOOGLE_CHROME = {
         'SZ Items': {
             'update_url': 'https://clients2.google.com/service/update2/crx'},
         'WOW64_32': True,
+        },
+    }
+SETTINGS_MOZILLA_FIREFOX_32 = {
+    r'Software\Mozilla\Firefox\Extensions': {
+        'SZ Items': {
+            'uBlock0@raymondhill.net': MOZILLA_FIREFOX_UBO_PATH},
+        'WOW64_32': True,
+        },
+    }
+SETTINGS_MOZILLA_FIREFOX_64 = {
+    r'Software\Mozilla\Firefox\Extensions': {
+        'SZ Items': {
+            'uBlock0@raymondhill.net': MOZILLA_FIREFOX_UBO_PATH},
         },
     }
 VCR_REDISTS = [
@@ -221,7 +234,7 @@ def install_adobe_reader():
     run_program(cmd)
 
 def install_chrome_extensions():
-    """Update registry to 'install' Google Chrome extensions for all users."""
+    """Update registry to install Google Chrome extensions for all users."""
     write_registry_settings(SETTINGS_GOOGLE_CHROME, all_users=True)
 
 def install_classicstart_skin():
@@ -238,16 +251,20 @@ def install_classicstart_skin():
     shutil.copy(source, dest)
 
 def install_firefox_extensions():
-    """Extract Firefox extensions to installation folder."""
+    """Update registry to install Firefox extensions for all users."""
     dist_path = r'{PROGRAMFILES}\Mozilla Firefox\distribution\extensions'.format(
         **global_vars['Env'])
     source_path = r'{CBinDir}\FirefoxExtensions.7z'.format(**global_vars)
     if not os.path.exists(source_path):
         raise FileNotFoundError
+
+    # Update registry
+    write_registry_settings(SETTINGS_MOZILLA_FIREFOX_32, all_users=True)
+    write_registry_settings(SETTINGS_MOZILLA_FIREFOX_64, all_users=True)
     
     # Extract extension(s) to distribution folder
     cmd = [
-        global_vars['Tools']['SevenZip'], 'x', '-aos', '-bso0', '-bse0',
+        global_vars['Tools']['SevenZip'], 'e', '-aos', '-bso0', '-bse0',
         '-p{ArchivePassword}'.format(**global_vars),
         '-o{dist_path}'.format(dist_path=dist_path),
         source_path]

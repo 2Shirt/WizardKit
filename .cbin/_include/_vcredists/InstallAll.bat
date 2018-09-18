@@ -1,9 +1,6 @@
 @echo off
 setlocal
 
-start "" /wait "2008sp1\x32\vcredist.exe" /qb! /norestart
-start "" /wait "2008sp1\x64\vcredist.exe" /qb! /norestart
-
 start "" /wait "2010\x32\vcredist.exe" /passive /norestart
 start "" /wait "2010\x64\vcredist.exe" /passive /norestart
 

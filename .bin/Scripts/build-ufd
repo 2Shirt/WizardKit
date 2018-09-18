@@ -557,7 +557,9 @@ mount "${WINPE_ISO}" /mnt/WinPE -r >> "${LOG_FILE}" 2>&1
 echo "Copying Linux files..."
 rsync ${RSYNC_ARGS} /mnt/Linux/* /mnt/Dest/ >> "${LOG_FILE}" 2>&1
 sed -i "s/${ISO_LABEL}/${UFD_LABEL}/" /mnt/Dest/EFI/boot/refind.conf
+sed -i "s/#UFD#//" /mnt/Dest/EFI/boot/refind.conf
 sed -i "s/${ISO_LABEL}/${UFD_LABEL}/" /mnt/Dest/arch/boot/syslinux/*cfg
+sed -i "s/#UFD#//" /mnt/Dest/arch/boot/syslinux/*cfg
 
 echo "Copying WinPE files..."
 rsync ${RSYNC_ARGS} /mnt/WinPE/{Boot,bootmgr{,.efi},en-us,sources} /mnt/Dest/ >> "${LOG_FILE}" 2>&1

@@ -150,7 +150,6 @@ goto Exit
 :LaunchOffice
 call "%bin%\Scripts\init_client_dir.cmd" /Office
 set "_odt=False"
-if %L_PATH% equ 2013 (set "_odt=True")
 if %L_PATH% equ 2016 (set "_odt=True")
 if "%_odt%" == "True" (
     goto LaunchOfficeODT

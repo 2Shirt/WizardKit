@@ -190,9 +190,9 @@ function update_live_env() {
     
     # Live packages
     while read -r p; do
-        sed -i "/$p/d" "$LIVE_DIR/packages.both"
+        sed -i "/$p/d" "$LIVE_DIR/packages.x86_64"
     done < "$ROOT_DIR/.linux_items/packages/live_remove"
-    cat "$ROOT_DIR/.linux_items/packages/live_add" >> "$LIVE_DIR/packages.both"
+    cat "$ROOT_DIR/.linux_items/packages/live_add" >> "$LIVE_DIR/packages.x86_64"
     echo "[custom]" >> "$LIVE_DIR/pacman.conf"
     echo "SigLevel = Optional TrustAll" >> "$LIVE_DIR/pacman.conf"
     echo "Server = file://$REPO_DIR" >> "$LIVE_DIR/pacman.conf"
@@ -219,13 +219,18 @@ function update_live_env() {
     # Services
     sed -i -r 's/^(.*pacman-init.*)$/#NOPE#\1/' "$LIVE_DIR/airootfs/root/customize_airootfs.sh"
     sed -i -r 's/^(.*choose-mirror.*)$/#NOPE#\1/' "$LIVE_DIR/airootfs/root/customize_airootfs.sh"
+
+    # Shutdown stall fix
+    echo "sed -i -r 's/^.*(DefaultTimeoutStartSec)=.*$/\1=15s/' /etc/systemd/system.conf" >> "$LIVE_DIR/airootfs/root/customize_airootfs.sh"
+    echo "sed -i -r 's/^.*(DefaultTimeoutStopSec)=.*$/\1=15s/' /etc/systemd/system.conf" >> "$LIVE_DIR/airootfs/root/customize_airootfs.sh"
     
     # SSH
     mkdir -p "$SKEL_DIR/.ssh"
     ssh-keygen -b 4096 -C "$username@$hostname" -N "" -f "$SKEL_DIR/.ssh/id_rsa"
     echo 'rm /root/.ssh/id*' >> "$LIVE_DIR/airootfs/root/customize_airootfs.sh"
     echo 'rm /root/.zlogin' >> "$LIVE_DIR/airootfs/root/customize_airootfs.sh"
-    sed -i -r 's/^(.*PermitRootLogin.*)$/#NOPE#\1/' "$LIVE_DIR/airootfs/root/customize_airootfs.sh"
+    sed -r '/.*PermitRootLogin.*/d' "$LIVE_DIR/airootfs/root/customize_airootfs.sh"
+    cp "$ROOT_DIR/.linux_items/authorized_keys" "$SKEL_DIR/.ssh/authorized_keys"
     
     # Root user
     echo "echo 'root:$ROOT_PASSWORD' | chpasswd" >> "$LIVE_DIR/airootfs/root/customize_airootfs.sh"
@@ -250,6 +255,10 @@ function update_live_env() {
 
     # udevil fix
     echo "mkdir /media" >> "$LIVE_DIR/airootfs/root/customize_airootfs.sh"
+
+    # VNC password
+    echo "mkdir '/home/$username/.vnc'" >> "$LIVE_DIR/airootfs/root/customize_airootfs.sh"
+    echo "echo '$TECH_PASSWORD' | vncpasswd -f > '/home/$username/.vnc/passwd'" >> "$LIVE_DIR/airootfs/root/customize_airootfs.sh"
 
     # Wallpaper
     mkdir -p "$LIVE_DIR/airootfs/usr/share/wallpaper"
@@ -317,9 +326,11 @@ function build_iso() {
 
     # Removing cached (and possibly outdated) custom repo packages
     for package in $(cat "$ROOT_DIR/.linux_items/packages/aur"); do
-        if [[ -f /var/cache/pacman/pkg/${package}* ]]; then
-            rm /var/cache/pacman/pkg/${package}*
-        fi
+        for p in /var/cache/pacman/pkg/*${package}*; do
+            if [[ -f "${p}" ]]; then
+                rm "${p}"
+            fi
+        done
     done
     
     # Build ISO

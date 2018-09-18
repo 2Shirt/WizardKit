@@ -1,6 +1,7 @@
 # Wizard Kit: Functions - HW Diagnostics
 
 import json
+import time
 
 from functions.common import *
 
@@ -19,10 +20,36 @@ ATTRIBUTES = {
         184: {'Error': 1},
         187: {'Warning': 1},
         188: {'Warning': 1},
+        196: {'Warning': 1, 'Error': 10, 'Ignore': True},
         197: {'Error': 1},
         198: {'Error': 1},
+        199: {'Error': 1, 'Ignore': True},
         201: {'Warning': 1},
         },
+    }
+IO_VARS = {
+    'Block Size': 512*1024,
+    'Chunk Size': 16*1024**2,
+    'Minimum Dev Size': 8*1024**3,
+    'Minimum Test Size': 10*1024**3,
+    'Alt Test Size Factor': 0.01,
+    'Progress Refresh Rate': 5,
+    'Scale 16': [2**(0.6*x)+(16*x) for x in range(1,17)],
+    'Scale 32': [2**(0.6*x/2)+(16*x/2) for x in range(1,33)],
+    'Threshold Fail': 65*1024**2,
+    'Threshold Warn': 135*1024**2,
+    'Threshold Great': 750*1024**2,
+    'Graph Horizontal': ('▁', '▂', '▃', '▄', '▅', '▆', '▇', '█'),
+    'Graph Horizontal Width': 40,
+    'Graph Vertical': (
+        '▏',    '▎',    '▍',    '▌',
+        '▋',    '▊',    '▉',    '█',
+        '█▏',   '█▎',   '█▍',   '█▌',
+        '█▋',   '█▊',   '█▉',   '██',
+        '██▏',  '██▎',  '██▍',  '██▌',
+        '██▋',  '██▊',  '██▉',  '███',
+        '███▏', '███▎', '███▍', '███▌',
+        '███▋', '███▊', '███▉', '████'),
     }
 TESTS = {
     'Prime95': {
@@ -46,6 +73,45 @@ TESTS = {
         },
     }
 
+def generate_horizontal_graph(rates):
+    """Generate two-line horizontal graph from rates, returns str."""
+    line_top = ''
+    line_bottom = ''
+    for r in rates:
+        step = get_graph_step(r, scale=16)
+
+        # Set color
+        r_color = COLORS['CLEAR']
+        if r < IO_VARS['Threshold Fail']:
+            r_color = COLORS['RED']
+        elif r < IO_VARS['Threshold Warn']:
+            r_color = COLORS['YELLOW']
+        elif r > IO_VARS['Threshold Great']:
+            r_color = COLORS['GREEN']
+
+        # Build graph
+        if step < 8:
+            line_top += ' '
+            line_bottom += '{}{}'.format(r_color, IO_VARS['Graph Horizontal'][step])
+        else:
+            line_top += '{}{}'.format(r_color, IO_VARS['Graph Horizontal'][step-8])
+            line_bottom += '{}{}'.format(r_color, IO_VARS['Graph Horizontal'][-1])
+    line_top += COLORS['CLEAR']
+    line_bottom += COLORS['CLEAR']
+    return '{}\n{}'.format(line_top, line_bottom)
+
+def get_graph_step(rate, scale=16):
+    """Get graph step based on rate and scale, returns int."""
+    m_rate = rate / (1024**2)
+    step = 0
+    scale_name = 'Scale {}'.format(scale)
+    for x in range(scale-1, -1, -1):
+        # Iterate over scale backwards
+        if m_rate >= IO_VARS[scale_name][x]:
+            step = x
+            break
+    return step
+
 def get_read_rate(s):
     """Get read rate in bytes/s from dd progress output."""
     real_rate = None
@@ -56,7 +122,9 @@ def get_read_rate(s):
 
 def get_smart_details(dev):
     """Get SMART data for dev if possible, returns dict."""
-    cmd = 'sudo smartctl --all --json /dev/{}'.format(dev).split()
+    cmd = 'sudo smartctl --all --json {}{}'.format(
+        '' if '/dev/' in dev else '/dev/',
+        dev).split()
     result = run_program(cmd, check=False)
     try:
         return json.loads(result.stdout.decode())
@@ -64,12 +132,21 @@ def get_smart_details(dev):
         # Let other sections deal with the missing data
         return {}
 
+def get_smart_value(smart_data, smart_id):
+    """Get SMART value from table, returns int or None."""
+    value = None
+    table = smart_data.get('ata_smart_attributes', {}).get('table', [])
+    for row in table:
+        if str(row.get('id', '?')) == str(smart_id):
+            value = row.get('raw', {}).get('value', None)
+    return value
+
 def get_status_color(s):
     """Get color based on status, returns str."""
     color = COLORS['CLEAR']
-    if s in ['Denied', 'NS', 'OVERRIDE', 'Unknown']:
+    if s in ['Denied', 'NS', 'OVERRIDE']:
         color = COLORS['RED']
-    elif s in ['Aborted', 'Working', 'Skipped']:
+    elif s in ['Aborted', 'Unknown', 'Working', 'Skipped']:
         color = COLORS['YELLOW']
     elif s in ['CS']:
         color = COLORS['GREEN']
@@ -147,9 +224,9 @@ def menu_diags(*args):
                 'pipes -t 0 -t 1 -t 2 -t 3 -p 5 -R -r 4000'.split(),
                 check=False, pipe=False)
         elif selection == 'R':
-            run_program(['reboot'])
+            run_program(['systemctl', 'reboot'])
         elif selection == 'S':
-            run_program(['poweroff'])
+            run_program(['systemctl', 'poweroff'])
         elif selection == 'Q':
             break
 
@@ -194,18 +271,21 @@ def run_badblocks():
             print_standard('Done', timestamp=False)
 
             # Check results
-            with open(progress_file, 'r') as f:
-                text = f.read()
-                TESTS['badblocks']['Results'][name] = text
-                r = re.search(r'Pass completed.*0/0/0 errors', text)
-                if r:
-                    TESTS['badblocks']['Status'][name] = 'CS'
-                else:
-                    TESTS['badblocks']['Status'][name] = 'NS'
+            if os.path.exists(progress_file):
+                with open(progress_file, 'r') as f:
+                    text = f.read()
+                    TESTS['badblocks']['Results'][name] = text
+                    r = re.search(r'Pass completed.*0/0/0 errors', text)
+                    if r:
+                        TESTS['badblocks']['Status'][name] = 'CS'
+                    else:
+                        TESTS['badblocks']['Status'][name] = 'NS'
 
-            # Move temp file
-            shutil.move(progress_file, '{}/badblocks-{}.log'.format(
-                global_vars['LogDir'], name))
+                # Move temp file
+                shutil.move(progress_file, '{}/badblocks-{}.log'.format(
+                    global_vars['LogDir'], name))
+            else:
+                TESTS['badblocks']['Status'][name] = 'NS'
         update_progress()
 
     # Done
@@ -249,32 +329,120 @@ def run_iobenchmark():
             TESTS['iobenchmark']['Status'][name] = 'Working'
             update_progress()
             print_standard('  /dev/{:11}  '.format(name+'...'), end='', flush=True)
-            run_program('tmux split-window -dl 5 {} {} {}'.format(
-                'hw-diags-iobenchmark',
-                '/dev/{}'.format(name),
-                progress_file).split())
-            wait_for_process('dd')
+
+            # Get dev size
+            cmd = 'sudo lsblk -bdno size /dev/{}'.format(name)
+            try:
+                result = run_program(cmd.split())
+                dev_size = result.stdout.decode().strip()
+                dev_size = int(dev_size)
+            except:
+                # Failed to get dev size, requires manual testing instead
+                TESTS['iobenchmark']['Status'][name] = 'Unknown'
+                continue
+            if dev_size < IO_VARS['Minimum Dev Size']:
+                TESTS['iobenchmark']['Status'][name] = 'Unknown'
+                continue
+
+            # Calculate dd values
+            ## test_size is the area to be read in bytes
+            ##      If the dev is < 10Gb then it's the whole dev
+            ##      Otherwise it's the larger of 10Gb or 1% of the dev
+            ##
+            ## test_chunks is the number of groups of "Chunk Size" in test_size
+            ##      This number is reduced to a multiple of the graph width in
+            ##      order to allow for the data to be condensed cleanly
+            ##
+            ## skip_blocks is the number of "Block Size" groups not tested
+            ## skip_count is the number of blocks to skip per test_chunk
+            ## skip_extra is how often to add an additional skip block
+            ##      This is needed to ensure an even testing across the dev
+            ##      This is calculated by using the fractional amount left off
+            ##      of the skip_count variable
+            test_size = min(IO_VARS['Minimum Test Size'], dev_size)
+            test_size = max(
+                test_size, dev_size*IO_VARS['Alt Test Size Factor'])
+            test_chunks = int(test_size // IO_VARS['Chunk Size'])
+            test_chunks -= test_chunks % IO_VARS['Graph Horizontal Width']
+            test_size = test_chunks * IO_VARS['Chunk Size']
+            skip_blocks = int((dev_size - test_size) // IO_VARS['Block Size'])
+            skip_count = int((skip_blocks / test_chunks) // 1)
+            skip_extra = 0
+            try:
+                skip_extra = 1 + int(1 / ((skip_blocks / test_chunks) % 1))
+            except ZeroDivisionError:
+                # skip_extra == 0 is fine
+                pass
+
+            # Open dd progress pane after initializing file
+            with open(progress_file, 'w') as f:
+                f.write('')
+            sleep(1)
+            cmd = 'tmux split-window -dp 75 -PF #D tail -f {}'.format(
+                progress_file)
+            result = run_program(cmd.split())
+            bottom_pane = result.stdout.decode().strip()
+
+            # Run dd read tests
+            offset = 0
+            read_rates = []
+            for i in range(test_chunks):
+                i += 1
+                s = skip_count
+                c = int(IO_VARS['Chunk Size'] / IO_VARS['Block Size'])
+                if skip_extra and i % skip_extra == 0:
+                    s += 1
+                cmd = 'sudo dd bs={b} skip={s} count={c} if=/dev/{n} of={o}'.format(
+                    b=IO_VARS['Block Size'],
+                    s=offset+s,
+                    c=c,
+                    n=name,
+                    o='/dev/null')
+                result = run_program(cmd.split())
+                result_str = result.stderr.decode().replace('\n', '')
+                read_rates.append(get_read_rate(result_str))
+                if i % IO_VARS['Progress Refresh Rate'] == 0:
+                    # Update vertical graph
+                    update_io_progress(
+                        percent=i/test_chunks*100,
+                        rate=read_rates[-1],
+                        progress_file=progress_file)
+                # Update offset
+                offset += s + c
             print_standard('Done', timestamp=False)
 
-            # Check results
-            with open(progress_file, 'r') as f:
-                text = f.read()
-                io_stats = text.replace('\r', '\n').split('\n')
-                try:
-                    io_stats = [get_read_rate(s) for s in io_stats]
-                    io_stats = [float(s/1048576) for s in io_stats if s]
-                    TESTS['iobenchmark']['Results'][name] = 'Read speed: {:3.1f} MB/s (Min: {:3.1f}, Max: {:3.1f})'.format(
-                        sum(io_stats) / len(io_stats),
-                        min(io_stats),
-                        max(io_stats))
-                    TESTS['iobenchmark']['Status'][name] = 'CS'
-                except:
-                    # Requires manual testing
-                    TESTS['iobenchmark']['Status'][name] = 'NS'
+            # Close bottom pane
+            run_program(['tmux', 'kill-pane', '-t', bottom_pane])
 
-            # Move temp file
-            shutil.move(progress_file, '{}/iobenchmark-{}.log'.format(
-                global_vars['LogDir'], name))
+            # Build report
+            h_graph_rates = []
+            pos = 0
+            width = int(test_chunks / IO_VARS['Graph Horizontal Width'])
+            for i in range(IO_VARS['Graph Horizontal Width']):
+                # Append average rate for WIDTH number of rates to new array
+                h_graph_rates.append(sum(read_rates[pos:pos+width])/width)
+                pos += width
+            report = generate_horizontal_graph(h_graph_rates)
+            report += '\nRead speed: {:3.1f} MB/s (Min: {:3.1f}, Max: {:3.1f})'.format(
+                sum(read_rates)/len(read_rates)/(1024**2),
+                min(read_rates)/(1024**2),
+                max(read_rates)/(1024**2))
+            TESTS['iobenchmark']['Results'][name] = report
+
+            # Set CS/NS
+            if min(read_rates) <= IO_VARS['Threshold Fail']:
+                TESTS['iobenchmark']['Status'][name] = 'NS'
+            elif min(read_rates) <= IO_VARS['Threshold Warn']:
+                TESTS['iobenchmark']['Status'][name] = 'Unknown'
+            else:
+                TESTS['iobenchmark']['Status'][name] = 'CS'
+
+            # Save logs
+            dest_filename = '{}/iobenchmark-{}.log'.format(global_vars['LogDir'], name)
+            shutil.move(progress_file, dest_filename)
+            with open(dest_filename.replace('.', '-raw.'), 'a') as f:
+                for rate in read_rates:
+                    f.write('{} MB/s\n'.format(rate/(1024**2)))
         update_progress()
 
     # Done
@@ -284,7 +452,6 @@ def run_iobenchmark():
 def run_mprime():
     """Run Prime95 for MPRIME_LIMIT minutes while showing the temps."""
     aborted = False
-    clear_screen()
     print_log('\nStart Prime95 test')
     TESTS['Prime95']['Status'] = 'Working'
     update_progress()
@@ -299,12 +466,15 @@ def run_mprime():
     
     # Start test
     run_program(['apple-fans', 'max'])
-    print_standard('Running Prime95 for {} minutes'.format(MPRIME_LIMIT))
-    print_warning('If running too hot, press CTL+c to abort the test')
     try:
-        sleep(int(MPRIME_LIMIT)*60)
+        for i in range(int(MPRIME_LIMIT)):
+            clear_screen()
+            print_standard('Running Prime95 ({} minutes left)'.format(
+                int(MPRIME_LIMIT)-i))
+            print_warning('If running too hot, press CTRL+c to abort the test')
+            sleep(60)
     except KeyboardInterrupt:
-        # Catch CTL+C
+        # Catch CTRL+C
         aborted = True
 
     # Save "final" temps
@@ -479,6 +649,8 @@ def run_tests(tests):
 
     # Initialize
     if TESTS['NVMe/SMART']['Enabled'] or TESTS['badblocks']['Enabled'] or TESTS['iobenchmark']['Enabled']:
+        print_standard(' ')
+        print_standard('Scanning disks...')
         scan_disks()
     update_progress()
 
@@ -509,12 +681,17 @@ def run_tests(tests):
                 global_vars['LogFile']))
             pause('Press Enter to exit...')
 
-def scan_disks():
+def scan_disks(full_paths=False, only_path=None):
     """Scan for disks eligible for hardware testing."""
     clear_screen()
 
     # Get eligible disk list
-    result = run_program(['lsblk', '-J', '-O'])
+    cmd = ['lsblk', '-J', '-O']
+    if full_paths:
+        cmd.append('-p')
+    if only_path:
+        cmd.append(only_path)
+    result = run_program(cmd)
     json_data = json.loads(result.stdout.decode())
     devs = {}
     for d in json_data.get('blockdevices', []):
@@ -536,13 +713,18 @@ def scan_disks():
     for dev, data in devs.items():
         # Get SMART attributes
         run_program(
-            cmd = 'sudo smartctl -s on /dev/{}'.format(dev).split(),
+            cmd = 'sudo smartctl -s on {}{}'.format(
+              '' if full_paths else '/dev/',
+              dev).split(),
             check = False)
         data['smartctl'] = get_smart_details(dev)
     
         # Get NVMe attributes
         if data['lsblk']['tran'] == 'nvme':
             cmd = 'sudo nvme smart-log /dev/{} -o json'.format(dev).split()
+            cmd = 'sudo nvme smart-log {}{} -o json'.format(
+                '' if full_paths else '/dev/',
+                dev).split()
             result = run_program(cmd, check=False)
             try:
                 data['nvme-cli'] = json.loads(result.stdout.decode())
@@ -571,36 +753,50 @@ def scan_disks():
             data['SMART Support'] = False
             
         # Ask for manual overrides if necessary
-        if not data['Quick Health OK'] and (TESTS['badblocks']['Enabled'] or TESTS['iobenchmark']['Enabled']):
+        if TESTS['badblocks']['Enabled'] or TESTS['iobenchmark']['Enabled']:
             show_disk_details(data)
-            print_warning("WARNING: Health can't be confirmed for: {}".format(
-                '/dev/{}'.format(dev)))
-            dev_name = data['lsblk']['name']
-            print_standard(' ')
-            if ask('Run tests on this device anyway?'):
-                TESTS['NVMe/SMART']['Status'][dev_name] = 'OVERRIDE'
-            else:
-                TESTS['NVMe/SMART']['Status'][dev_name] = 'NS'
-                TESTS['badblocks']['Status'][dev_name] = 'Denied'
-                TESTS['iobenchmark']['Status'][dev_name] = 'Denied'
-            print_standard(' ') # In case there's more than one "OVERRIDE" disk
+            needs_override = False
+            if not data['Quick Health OK']:
+                needs_override = True
+                print_warning(
+                    "WARNING: Health can't be confirmed for: /dev/{}".format(dev))
+            if get_smart_value(data['smartctl'], '199'):
+                # SMART attribute present and it's value is non-zero
+                needs_override = True
+                print_warning(
+                    'WARNING: SMART 199/C7 error detected on /dev/{}'.format(dev))
+                print_standard('    (Have you tried swapping the drive cable?)')
+            if needs_override:
+                dev_name = data['lsblk']['name']
+                print_standard(' ')
+                if ask('Run tests on this device anyway?'):
+                    TESTS['NVMe/SMART']['Status'][dev_name] = 'OVERRIDE'
+                else:
+                    TESTS['NVMe/SMART']['Status'][dev_name] = 'NS'
+                    TESTS['badblocks']['Status'][dev_name] = 'Denied'
+                    TESTS['iobenchmark']['Status'][dev_name] = 'Denied'
+                print_standard(' ') # In case there's more than one "OVERRIDE" disk
 
     TESTS['NVMe/SMART']['Devices'] = devs
     TESTS['badblocks']['Devices'] = devs
     TESTS['iobenchmark']['Devices'] = devs
+    return devs
 
-def show_disk_details(dev):
+def show_disk_details(dev, only_attributes=False):
     """Display disk details."""
     dev_name = dev['lsblk']['name']
-    # Device description
-    print_info('Device: /dev/{}'.format(dev['lsblk']['name']))
-    print_standard(' {:>4} ({}) {} {}'.format(
-        str(dev['lsblk'].get('size', '???b')).strip(),
-        str(dev['lsblk'].get('tran', '???')).strip().upper().replace(
-            'NVME', 'NVMe'),
-        str(dev['lsblk'].get('model', 'Unknown Model')).strip(),
-        str(dev['lsblk'].get('serial', 'Unknown Serial')).strip(),
-        ))
+    if not only_attributes:
+      # Device description
+      print_info('Device: {}{}'.format(
+          '' if '/dev/' in dev['lsblk']['name'] else '/dev/',
+          dev['lsblk']['name']))
+      print_standard(' {:>4} ({}) {} {}'.format(
+          str(dev['lsblk'].get('size', '???b')).strip(),
+          str(dev['lsblk'].get('tran', '???')).strip().upper().replace(
+              'NVME', 'NVMe'),
+          str(dev['lsblk'].get('model', 'Unknown Model')).strip(),
+          str(dev['lsblk'].get('serial', 'Unknown Serial')).strip(),
+          ))
 
     # Warnings
     if dev.get('NVMe Disk', False):
@@ -615,7 +811,12 @@ def show_disk_details(dev):
 
     # Attributes
     if dev.get('NVMe Disk', False):
-        print_info('Attributes:')
+        if only_attributes:
+            print_info('SMART Attributes:', end='')
+            print_warning('             Updated: {}'.format(
+                time.strftime('%Y-%m-%d %H:%M %Z')))
+        else:
+            print_info('Attributes:')
         for attrib, threshold in sorted(ATTRIBUTES['NVMe'].items()):
             if attrib in dev['nvme-cli']:
                 print_standard(
@@ -636,7 +837,12 @@ def show_disk_details(dev):
                     print_success(raw_str, timestamp=False)
     elif dev['smartctl'].get('ata_smart_attributes', None):
         # SMART attributes
-        print_info('Attributes:')
+        if only_attributes:
+            print_info('SMART Attributes:', end='')
+            print_warning('             Updated: {}'.format(
+                time.strftime('%Y-%m-%d %H:%M %Z')))
+        else:
+            print_info('Attributes:')
         s_table = dev['smartctl'].get('ata_smart_attributes', {}).get(
             'table', {})
         s_table = {a.get('id', 'Unknown'): a for a in s_table}
@@ -730,12 +936,37 @@ def show_results():
                 and io_status not in ['Denied', 'OVERRIDE', 'Skipped']):
                 print_info('Benchmark:')
                 result = TESTS['iobenchmark']['Results'].get(name, '')
-                print_standard('  {}'.format(result))
+                for line in result.split('\n'):
+                    print_standard('  {}'.format(line))
             print_standard(' ')
 
     # Done
     pause('Press Enter to return to main menu... ')
     run_program('tmux kill-pane -a'.split())
+
+def update_io_progress(percent, rate, progress_file):
+    """Update I/O progress file."""
+    bar_color = COLORS['CLEAR']
+    rate_color = COLORS['CLEAR']
+    step = get_graph_step(rate, scale=32)
+    if rate < IO_VARS['Threshold Fail']:
+        bar_color = COLORS['RED']
+        rate_color = COLORS['YELLOW']
+    elif rate < IO_VARS['Threshold Warn']:
+        bar_color = COLORS['YELLOW']
+        rate_color = COLORS['YELLOW']
+    elif rate > IO_VARS['Threshold Great']:
+        bar_color = COLORS['GREEN']
+        rate_color = COLORS['GREEN']
+    line = '  {p:5.1f}%  {b_color}{b:<4}  {r_color}{r:6.1f} Mb/s{c}\n'.format(
+        p=percent,
+        b_color=bar_color,
+        b=IO_VARS['Graph Vertical'][step],
+        r_color=rate_color,
+        r=rate/(1024**2),
+        c=COLORS['CLEAR'])
+    with open(progress_file, 'a') as f:
+        f.write(line)
 
 def update_progress():
     """Update progress file."""
@@ -792,3 +1023,4 @@ def update_progress():
 if __name__ == '__main__':
     print("This file is not meant to be called directly.")
 
+# vim: sts=4 sw=4 ts=4

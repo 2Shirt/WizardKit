@@ -282,8 +282,8 @@ LAUNCHERS = {
         'Intel RST (Current Release)': {
             'L_TYPE': 'Executable',
             'L_PATH': '_Drivers\Intel RST',
-            'L_ITEM': 'SetupRST_16.0.exe',
-            'L_7ZIP': 'SetupRST_16.0.exe',
+            'L_ITEM': 'SetupRST_16.5.exe',
+            'L_7ZIP': 'SetupRST_16.5.exe',
             },
         'Intel RST (Previous Releases)': {
             'L_TYPE': 'Folder',
@@ -354,32 +354,6 @@ LAUNCHERS = {
             'L_PATH': 'Scripts',
             'L_ITEM': 'install_sw_bundle.py',
             'L_ELEV': 'True',
-            },
-        },
-    r'Installers\Extras\Office\2013': {
-        'Home and Business 2013 (x32)': {
-            'L_TYPE': 'Office',
-            'L_PATH': '2013',
-            'L_ITEM': 'hb_32.xml',
-            'L_NCMD': 'True',
-            },
-        'Home and Business 2013 (x64)': {
-            'L_TYPE': 'Office',
-            'L_PATH': '2013',
-            'L_ITEM': 'hb_64.xml',
-            'L_NCMD': 'True',
-            },
-        'Home and Student 2013 (x32)': {
-            'L_TYPE': 'Office',
-            'L_PATH': '2013',
-            'L_ITEM': 'hs_32.xml',
-            'L_NCMD': 'True',
-            },
-        'Home and Student 2013 (x64)': {
-            'L_TYPE': 'Office',
-            'L_PATH': '2013',
-            'L_ITEM': 'hs_64.xml',
-            'L_NCMD': 'True',
             },
         },
     r'Installers\Extras\Office\2016': {
@@ -475,10 +449,10 @@ LAUNCHERS = {
             'L_PATH': 'PuTTY',
             'L_ITEM': 'PUTTY.EXE',
             },
-        'TreeSizeFree': {
+        'WizTree': {
             'L_TYPE': 'Executable',
-            'L_PATH': 'TreeSizeFree',
-            'L_ITEM': 'TreeSizeFree.exe',
+            'L_PATH': 'WizTree',
+            'L_ITEM': 'WizTree.exe',
             'L_ELEV': 'True',
             },
         'Update Kit': {

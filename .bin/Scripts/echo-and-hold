@@ -1,0 +1,12 @@
+#!/bin/bash
+#
+## Wizard Kit: "echo" text to screen and "hold" by waiting for user input
+
+function usage {
+    echo "Usage: $(basename "$0") \"text\""
+    echo "  e.g. $(basename "$0") \"Some text to show\""
+}
+
+echo -en "$@" && read -r __dont_care
+exit 0
+

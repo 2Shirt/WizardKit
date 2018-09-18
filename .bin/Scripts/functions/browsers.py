@@ -46,6 +46,9 @@ UBO_CHROME_REG =        r'Software\Wow6432Node\Google\Chrome\Extensions\cjpalhdl
 UBO_EXTRA_CHROME =      'https://chrome.google.com/webstore/detail/ublock-origin-extra/pgdnlhfefecpicbbihgmbmffkjpaplco?hl=en'
 UBO_EXTRA_CHROME_REG =  r'Software\Wow6432Node\Google\Chrome\Extensions\pgdnlhfefecpicbbihgmbmffkjpaplco'
 UBO_MOZILLA =           'https://addons.mozilla.org/en-us/firefox/addon/ublock-origin/'
+UBO_MOZZILA_PATH =      r'{}\Mozilla Firefox\distribution\extensions\ublock_origin.xpi'.format(os.environ.get('PROGRAMFILES'))
+UBO_MOZILLA_REG =       r'Software\Mozilla\Firefox\Extensions'
+UBO_MOZILLA_REG_NAME =  'uBlock0@raymondhill.net'
 UBO_OPERA =             'https://addons.opera.com/en/extensions/details/ublock/?display=en'
 SUPPORTED_BROWSERS = {
     'Internet Explorer': {
@@ -285,6 +288,9 @@ def get_ie_homepages():
         homepages.append(main_page)
     if len(extra_pages) > 0:
         homepages.extend(extra_pages)
+
+    # Remove all curly braces
+    homepages = [h.replace('{', '').replace('}', '') for h in homepages]
     return homepages
 
 def get_mozilla_homepages(prefs_path):
@@ -366,14 +372,17 @@ def install_adblock(indent=8, width=32):
                     urls.append(UBO_EXTRA_CHROME)
             
             elif browser_data[browser]['base'] == 'mozilla':
-                # Assume UBO is not installed first and change if it is
-                urls.append(UBO_MOZILLA)
-                if browser == 'Mozilla Firefox':
-                    ubo = browser_data[browser]['exe_path'].replace(
-                        'firefox.exe',
-                        r'distribution\extensions\uBlock0@raymondhill.net')
-                    if os.path.exists(ubo):
+                # Check for system extensions
+                try:
+                    with winreg.OpenKey(HKLM, UBO_MOZILLA_REG) as key:
+                        winreg.QueryValueEx(key, UBO_MOZILLA_REG_NAME)
+                except FileNotFoundError:
+                    urls = [UBO_MOZILLA]
+                else:
+                    if os.path.exists(UBO_MOZZILA_PATH):
                         urls = ['about:addons']
+                    else:
+                        urls = [UBO_MOZILLA]
             
             elif browser_data[browser]['base'] == 'ie':
                 urls.append(IE_GALLERY)

@@ -235,19 +235,34 @@ def update_fastcopy():
     remove_from_kit('FastCopy')
     
     # Download
-    download_to_temp('FastCopy32.zip', SOURCE_URLS['FastCopy32'])
-    download_to_temp('FastCopy64.zip', SOURCE_URLS['FastCopy64'])
-    
-    # Extract
-    extract_temp_to_bin('FastCopy64.zip', 'FastCopy', sz_args=['FastCopy.exe'])
+    download_to_temp('FastCopy.zip', SOURCE_URLS['FastCopy'])
+
+    # Extract installer
+    extract_temp_to_bin('FastCopy.zip', 'FastCopy')
+    _path = r'{}\FastCopy'.format(global_vars['BinDir'])
+    _installer = 'FastCopy354_installer.exe'
+
+    # Extract 64-bit
+    cmd = [
+        r'{}\{}'.format(_path, _installer),
+        '/NOSUBDIR', '/DIR={}'.format(_path),
+        '/EXTRACT64']
+    run_program(cmd)
     shutil.move(
         r'{}\FastCopy\FastCopy.exe'.format(global_vars['BinDir']),
         r'{}\FastCopy\FastCopy64.exe'.format(global_vars['BinDir']))
-    extract_temp_to_bin('FastCopy32.zip', 'FastCopy', sz_args=[r'-x!setup.exe', r'-x!*.dll'])
-    
+
+    # Extract 32-bit
+    cmd = [
+        r'{}\{}'.format(_path, _installer),
+        '/NOSUBDIR', '/DIR={}'.format(_path),
+        '/EXTRACT32']
+    run_program(cmd)
+
     # Cleanup
-    remove_from_temp('FastCopy32.zip')
-    remove_from_temp('FastCopy64.zip')
+    os.remove(r'{}\{}'.format(_path, _installer))
+    os.remove(r'{}\setup.exe'.format(_path, _installer))
+    remove_from_temp('FastCopy.zip')
 
 def update_wimlib():
     # Stop running processes
@@ -474,10 +489,18 @@ def update_samsung_magician():
     remove_from_kit('Samsung Magician.exe')
     
     # Download
-    download_generic(
-        r'{}\_Drivers\Samsung Magician'.format(global_vars['CBinDir']),
-        'Samsung Magician.exe',
-        SOURCE_URLS['Samsung Magician'])
+    download_to_temp('Samsung Magician.zip', SOURCE_URLS['Samsung Magician'])
+
+    # Extract
+    extract_temp_to_cbin('Samsung Magician.zip', '_Drivers\Samsung Magician')
+    shutil.move(
+        r'{}\_Drivers\Samsung Magician\Samsung_Magician_Installer.exe'.format(
+            global_vars['CBinDir']),
+        r'{}\_Drivers\Samsung Magician\Samsung Magician.exe'.format(
+            global_vars['CBinDir']))
+
+    # Cleanup
+    remove_from_temp('Samsung Magician.zip')
 
 def update_sdi_origin():
     # Download aria2
@@ -561,8 +584,8 @@ def update_office():
     if os.path.exists(include_path):
         shutil.copytree(include_path, dest)
     
-    # Download and extract
-    for year in ['2013', '2016']:
+    for year in ['2016']:
+        # Download and extract
         name = 'odt{}.exe'.format(year)
         url = 'Office Deployment Tool {}'.format(year)
         download_to_temp(name, SOURCE_URLS[url])
@@ -576,9 +599,8 @@ def update_office():
             r'{}\{}'.format(global_vars['TmpDir'], year),
             r'{}\_Office\{}'.format(global_vars['CBinDir'], year))
     
-    # Cleanup
-    remove_from_temp('odt2013.exe')
-    remove_from_temp('odt2016.exe')
+        # Cleanup
+        remove_from_temp('odt{}.exe'.format(year))
 
 def update_classic_start_skin():
     # Remove existing folders
@@ -698,16 +720,10 @@ def update_firefox_ublock_origin():
     remove_from_kit('FirefoxExtensions')
     
     # Download
-    download_to_temp('ff-uBO.xpi', SOURCE_URLS['Firefox uBO'])
-    
-    # Extract files
-    extract_generic(
-        r'{}\ff-uBO.xpi'.format(global_vars['TmpDir']),
-        r'{}\FirefoxExtensions\uBlock0@raymondhill.net'.format(
-            global_vars['CBinDir']))
-    
-    # Cleanup
-    remove_from_temp('ff-uBO.xpi')
+    download_generic(
+        r'{}\FirefoxExtensions'.format(global_vars['CBinDir']),
+        'ublock_origin.xpi',
+        SOURCE_URLS['Firefox uBO'])
 
 def update_notepadplusplus():
     # Stop running processes
@@ -745,22 +761,23 @@ def update_putty():
     # Cleanup
     remove_from_temp('putty.zip')
 
-def update_treesizefree():
+def update_wiztree():
     # Stop running processes
-    kill_process('TreeSizeFree.exe')
+    for process in ['WizTree.exe', 'WizTree64.exe']:
+        kill_process(process)
     
     # Remove existing folders
-    remove_from_kit('TreeSizeFree')
+    remove_from_kit('WizTree')
     
     # Download
     download_to_temp(
-        'treesizefree.zip', SOURCE_URLS['TreeSizeFree'])
+        'wiztree.zip', SOURCE_URLS['WizTree'])
     
     # Extract files
-    extract_temp_to_cbin('treesizefree.zip', 'TreeSizeFree')
+    extract_temp_to_cbin('wiztree.zip', 'WizTree')
     
     # Cleanup
-    remove_from_temp('treesizefree.zip')
+    remove_from_temp('wiztree.zip')
 
 def update_xmplay():
     # Stop running processes
@@ -826,11 +843,10 @@ def update_adwcleaner():
     remove_from_kit('AdwCleaner')
     
     # Download
-    url = resolve_dynamic_url(
-        SOURCE_URLS['AdwCleaner'],
-        'id="downloadLink"')
     download_generic(
-        r'{}\AdwCleaner'.format(global_vars['CBinDir']), 'AdwCleaner.exe', url)
+        r'{}\AdwCleaner'.format(global_vars['CBinDir']),
+        'AdwCleaner.exe',
+        SOURCE_URLS['AdwCleaner'])
 
 def update_kvrt():
     # Stop running processes

@@ -3,6 +3,7 @@
 ## Wizard Kit: Functions - Network
 
 import os
+import shutil
 import sys
 
 # Init
@@ -26,13 +27,8 @@ def connect_to_network():
     if is_connected():
         return
     
-    # LAN
-    if 'en' in net_ifs:
-        # Reload the tg3/broadcom driver (known fix for some Dell systems)
-        try_and_print(message='Reloading drivers...', function=reload_tg3)
-    
     # WiFi
-    if not is_connected() and 'wl' in net_ifs:
+    if 'wl' in net_ifs:
         cmd = [
             'nmcli', 'dev', 'wifi',
             'connect', WIFI_SSID,
@@ -41,7 +37,7 @@ def connect_to_network():
             message = 'Connecting to {}...'.format(WIFI_SSID),
             function = run_program,
             cmd = cmd)
-
+    
 def is_connected():
     """Check for a valid private IP."""
     devs = psutil.net_if_addrs()
@@ -70,13 +66,6 @@ def speedtest():
     output = [line.split() for line in output]
     output = [(a, float(b), c) for a, b, c in output]
     return ['{:10}{:6.2f} {}'.format(*line) for line in output]
-
-def reload_tg3():
-    """Reload tg3 module as a workaround for some Dell systems."""
-    run_program(['sudo', 'modprobe', '-r', 'tg3'])
-    run_program(['sudo', 'modprobe', 'broadcom'])
-    run_program(['sudo', 'modprobe', 'tg3'])
-    sleep(5)
 
 if __name__ == '__main__':
     print("This file is not meant to be called directly.")
