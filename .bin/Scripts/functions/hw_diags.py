@@ -420,7 +420,7 @@ def run_iobenchmark():
                 c = int(IO_VARS['Chunk Size'] / IO_VARS['Block Size'])
                 if skip_extra and i % skip_extra == 0:
                     s += 1
-                cmd = 'sudo dd bs={b} skip={s} count={c} if=/dev/{n} of={o}'.format(
+                cmd = 'sudo dd bs={b} skip={s} count={c} if=/dev/{n} of={o} iflag=direct'.format(
                     b=IO_VARS['Block Size'],
                     s=offset+s,
                     c=c,
