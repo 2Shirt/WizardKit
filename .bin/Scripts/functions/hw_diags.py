@@ -812,7 +812,7 @@ def scan_disks(full_paths=False, only_path=None):
                 if ask('Run tests on this device anyway?'):
                     TESTS['NVMe/SMART']['Status'][dev_name] = 'OVERRIDE'
                 else:
-                    TESTS['NVMe/SMART']['Status'][dev_name] = 'NS'
+                    TESTS['NVMe/SMART']['Status'][dev_name] = 'Skipped'
                     TESTS['badblocks']['Status'][dev_name] = 'Denied'
                     TESTS['iobenchmark']['Status'][dev_name] = 'Denied'
                 print_standard(' ') # In case there's more than one "OVERRIDE" disk
