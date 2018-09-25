@@ -104,10 +104,6 @@ SETTINGS_MOZILLA_FIREFOX_64 = {
         },
     }
 VCR_REDISTS = [
-    {'Name': 'Visual C++ 2008 SP1 x32...',
-        'Cmd': [r'2008sp1\x32\vcredist.exe', '/qb! /norestart']},
-    {'Name': 'Visual C++ 2008 SP1 x64...',
-        'Cmd': [r'2008sp1\x64\vcredist.exe', '/qb! /norestart']},
     {'Name': 'Visual C++ 2010 x32...',
         'Cmd': [r'2010sp1\x32\vcredist.exe', '/passive', '/norestart']},
     {'Name': 'Visual C++ 2010 x64...',
