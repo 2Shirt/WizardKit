@@ -68,6 +68,7 @@ TESTS = {
         'Status': {},
         },
     'iobenchmark': {
+        'Data': {},
         'Enabled': False,
         'Results': {},
         'Status': {},
@@ -410,7 +411,9 @@ def run_iobenchmark():
 
             # Run dd read tests
             offset = 0
-            read_rates = []
+            TESTS['iobenchmark']['Data'][name] = {
+                'Graph': [],
+                'Read Rates': []}
             for i in range(test_chunks):
                 i += 1
                 s = skip_count
@@ -425,12 +428,18 @@ def run_iobenchmark():
                     o='/dev/null')
                 result = run_program(cmd.split())
                 result_str = result.stderr.decode().replace('\n', '')
-                read_rates.append(get_read_rate(result_str))
+                cur_rate = get_read_rate(result_str)
+                TESTS['iobenchmark']['Data'][name]['Read Rates'].append(
+                    cur_rate)
+                TESTS['iobenchmark']['Data'][name]['Graph'].append(
+                    '{percent:0.1f} {rate}'.format(
+                        percent=i/test_chunks*100,
+                        rate=int(cur_rate/(1024**2))))
                 if i % IO_VARS['Progress Refresh Rate'] == 0:
                     # Update vertical graph
                     update_io_progress(
                         percent=i/test_chunks*100,
-                        rate=read_rates[-1],
+                        rate=cur_rate,
                         progress_file=progress_file)
                 # Update offset
                 offset += s + c
@@ -440,24 +449,29 @@ def run_iobenchmark():
             run_program(['tmux', 'kill-pane', '-t', bottom_pane])
 
             # Build report
-            h_graph_rates = []
+            avg_min_max = 'Average read speed: {:3.1f} MB/s (Min: {:3.1f}, Max: {:3.1f})'.format(
+                sum(TESTS['iobenchmark']['Data'][name]['Read Rates'])/len(
+                    TESTS['iobenchmark']['Data'][name]['Read Rates'])/(1024**2),
+                min(TESTS['iobenchmark']['Data'][name]['Read Rates'])/(1024**2),
+                max(TESTS['iobenchmark']['Data'][name]['Read Rates'])/(1024**2))
+            TESTS['iobenchmark']['Data'][name]['Avg/Min/Max'] = avg_min_max
+            TESTS['iobenchmark']['Data'][name]['Merged Rates'] = []
             pos = 0
             width = int(test_chunks / IO_VARS['Graph Horizontal Width'])
             for i in range(IO_VARS['Graph Horizontal Width']):
                 # Append average rate for WIDTH number of rates to new array
-                h_graph_rates.append(sum(read_rates[pos:pos+width])/width)
+                TESTS['iobenchmark']['Data'][name]['Merged Rates'].append(sum(
+                    TESTS['iobenchmark']['Data'][name]['Read Rates'][pos:pos+width])/width)
                 pos += width
-            report = generate_horizontal_graph(h_graph_rates)
-            report += '\nRead speed: {:3.1f} MB/s (Min: {:3.1f}, Max: {:3.1f})'.format(
-                sum(read_rates)/len(read_rates)/(1024**2),
-                min(read_rates)/(1024**2),
-                max(read_rates)/(1024**2))
+            report = generate_horizontal_graph(
+                TESTS['iobenchmark']['Data'][name]['Merged Rates'])
+            report += '\n{}'.format(avg_min_max)
             TESTS['iobenchmark']['Results'][name] = report
 
             # Set CS/NS
-            if min(read_rates) <= IO_VARS['Threshold Fail']:
+            if min(TESTS['iobenchmark']['Data'][name]['Read Rates']) <= IO_VARS['Threshold Fail']:
                 TESTS['iobenchmark']['Status'][name] = 'NS'
-            elif min(read_rates) <= IO_VARS['Threshold Warn']:
+            elif min(TESTS['iobenchmark']['Data'][name]['Read Rates']) <= IO_VARS['Threshold Warn']:
                 TESTS['iobenchmark']['Status'][name] = 'Unknown'
             else:
                 TESTS['iobenchmark']['Status'][name] = 'CS'
@@ -466,8 +480,7 @@ def run_iobenchmark():
             dest_filename = '{}/iobenchmark-{}.log'.format(global_vars['LogDir'], name)
             shutil.move(progress_file, dest_filename)
             with open(dest_filename.replace('.', '-raw.'), 'a') as f:
-                for rate in read_rates:
-                    f.write('{} MB/s\n'.format(rate/(1024**2)))
+                f.write('\n'.join(TESTS['iobenchmark']['Data'][name]['Graph']))
         update_progress()
 
     # Done
