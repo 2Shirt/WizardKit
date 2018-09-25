@@ -29,13 +29,14 @@ ATTRIBUTES = {
     }
 IO_VARS = {
     'Block Size': 512*1024,
-    'Chunk Size': 16*1024**2,
+    'Chunk Size': 32*1024**2,
     'Minimum Dev Size': 8*1024**3,
     'Minimum Test Size': 10*1024**3,
     'Alt Test Size Factor': 0.01,
     'Progress Refresh Rate': 5,
-    'Scale 16': [2**(0.6*x)+(16*x) for x in range(1,17)],
-    'Scale 32': [2**(0.6*x/2)+(16*x/2) for x in range(1,33)],
+    'Scale 8': [2**(0.56*(x+1))+(16*(x+1)) for x in range(8)],
+    'Scale 16': [2**(0.56*(x+1))+(16*(x+1)) for x in range(16)],
+    'Scale 32': [2**(0.56*(x+1)/2)+(16*(x+1)/2) for x in range(32)],
     'Threshold Fail': 65*1024**2,
     'Threshold Warn': 135*1024**2,
     'Threshold Great': 750*1024**2,
