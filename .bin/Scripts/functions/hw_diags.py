@@ -507,8 +507,10 @@ def run_mprime():
     try:
         for i in range(int(MPRIME_LIMIT)):
             clear_screen()
-            print_standard('Running Prime95 ({} minutes left)'.format(
-                int(MPRIME_LIMIT)-i))
+            min_left = int(MPRIME_LIMIT) - i
+            print_standard('Running Prime95 ({} minute{} left)'.format(
+                min_left,
+                's' if min_left != 1 else ''))
             print_warning('If running too hot, press CTRL+c to abort the test')
             sleep(60)
     except KeyboardInterrupt:
