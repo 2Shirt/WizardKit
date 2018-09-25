@@ -74,12 +74,16 @@ TESTS = {
         },
     }
 
-def generate_horizontal_graph(rates):
+def generate_horizontal_graph(rates, oneline=False):
     """Generate two-line horizontal graph from rates, returns str."""
-    line_top = ''
-    line_bottom = ''
+    line_1 = ''
+    line_2 = ''
+    line_3 = ''
+    line_4 = ''
     for r in rates:
-        step = get_graph_step(r, scale=16)
+        step = get_graph_step(r, scale=32)
+        if oneline:
+            step = get_graph_step(r, scale=8)
 
         # Set color
         r_color = COLORS['CLEAR']
@@ -91,15 +95,35 @@ def generate_horizontal_graph(rates):
             r_color = COLORS['GREEN']
 
         # Build graph
-        if step < 8:
-            line_top += ' '
-            line_bottom += '{}{}'.format(r_color, IO_VARS['Graph Horizontal'][step])
+        full_block = '{}{}'.format(r_color, IO_VARS['Graph Horizontal'][-1])
+        if step >= 24:
+            line_1 += '{}{}'.format(r_color, IO_VARS['Graph Horizontal'][step-24])
+            line_2 += full_block
+            line_3 += full_block
+            line_4 += full_block
+        elif step >= 16:
+            line_1 += ' '
+            line_2 += '{}{}'.format(r_color, IO_VARS['Graph Horizontal'][step-16])
+            line_3 += full_block
+            line_4 += full_block
+        elif step >= 8:
+            line_1 += ' '
+            line_2 += ' '
+            line_3 += '{}{}'.format(r_color, IO_VARS['Graph Horizontal'][step-8])
+            line_4 += full_block
         else:
-            line_top += '{}{}'.format(r_color, IO_VARS['Graph Horizontal'][step-8])
-            line_bottom += '{}{}'.format(r_color, IO_VARS['Graph Horizontal'][-1])
-    line_top += COLORS['CLEAR']
-    line_bottom += COLORS['CLEAR']
-    return '{}\n{}'.format(line_top, line_bottom)
+            line_1 += ' '
+            line_2 += ' '
+            line_3 += ' '
+            line_4 += '{}{}'.format(r_color, IO_VARS['Graph Horizontal'][step])
+    line_1 += COLORS['CLEAR']
+    line_2 += COLORS['CLEAR']
+    line_3 += COLORS['CLEAR']
+    line_4 += COLORS['CLEAR']
+    if oneline:
+        return line_4
+    else:
+        return '\n'.join([line_1, line_2, line_3, line_4])
 
 def get_graph_step(rate, scale=16):
     """Get graph step based on rate and scale, returns int."""
