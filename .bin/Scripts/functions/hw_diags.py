@@ -170,7 +170,7 @@ def get_smart_value(smart_data, smart_id):
 def get_status_color(s):
     """Get color based on status, returns str."""
     color = COLORS['CLEAR']
-    if s in ['Denied', 'NS', 'OVERRIDE']:
+    if s in ['Denied', 'ERROR', 'NS', 'OVERRIDE']:
         color = COLORS['RED']
     elif s in ['Aborted', 'Unknown', 'Working', 'Skipped']:
         color = COLORS['YELLOW']
@@ -364,10 +364,10 @@ def run_iobenchmark():
                 dev_size = int(dev_size)
             except:
                 # Failed to get dev size, requires manual testing instead
-                TESTS['iobenchmark']['Status'][name] = 'Unknown'
+                TESTS['iobenchmark']['Status'][name] = 'ERROR'
                 continue
             if dev_size < IO_VARS['Minimum Dev Size']:
-                TESTS['iobenchmark']['Status'][name] = 'Unknown'
+                TESTS['iobenchmark']['Status'][name] = 'ERROR'
                 continue
 
             # Calculate dd values
