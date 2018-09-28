@@ -1,0 +1,150 @@
+#!/bin/bash
+#
+## sort photorec results into something usefull
+
+## Set paths
+recup_dir="${1%/}"
+[ -n "$recup_dir" ] || recup_dir="."
+recup_dir="$(realpath "$recup_dir")"
+out_dir="$recup_dir/Recovered"
+bad_dir="$recup_dir/Corrupt"
+
+## Test path before starting (using current dir if not specified)
+for d in $recup_dir/recup*; do
+    ### Source: http://stackoverflow.com/a/6364244
+    ## Check if the glob gets expanded to existing files.
+    ## If not, f here will be exactly the pattern above
+    ## and the exists test will evaluate to false.
+    [ -e "$d" ] && echo "Found recup folder(s)" || {
+        echo "ERROR: No recup folders found"
+        echo "Usage: $0 recup_dir"
+        exit 1
+    }
+
+    ## This is all we needed to know, so we can break after the first iteration
+    break
+done
+
+# Hard link files into folders by type
+for d in $recup_dir/recup*; do
+    if [ -d "$d" ]; then
+        echo "Linking $d"
+        pushd $d >/dev/null
+        find -type f | while read k; do
+            file="$(basename "$k")"
+            src="$(realpath "$k")"
+            ext="$(echo "${file##*.}" | tr '[:upper:]' '[:lower:]')"
+            ext_dir="$out_dir/$ext"
+            if [ "${file##*.}" = "$file" ]; then
+                ext_dir="$out_dir/_MISC_"
+            elif [ "$ext" = "jpg" ] && [ "${file:0:1}" = "t" ]; then
+                ext_dir="$out_dir/jpg-thumbnail"
+            fi
+            #echo "  $file -> $ext_dir"
+            [ -d "$ext_dir" ] || mkdir -p "$ext_dir"
+            ln "$src" "$ext_dir"
+        done
+        popd >/dev/null
+    else
+        echo "ERROR: '$d' not a directory"
+    fi
+done
+
+## Check the files output by photorec for corruption
+pushd "$out_dir" >/dev/null
+
+# Check archives with 7-Zip
+#for d in 7z bz2 gz lzh lzo rar tar xz zip; do
+#    if [ -d "$d" ]; then
+#        echo "Checking $d files"
+#        pushd "$d" >/dev/null
+#        for f in *; do
+#            if ! 7z t "$f" >/dev/null 2>&1; then
+#                #echo "  BAD: $f"
+#                [ -d "$bad_dir/$d" ] || mkdir -p "$bad_dir/$d"
+#                mv -n "$f" "$bad_dir/$d/$f"
+#            fi
+#        done
+#        popd >/dev/null
+#    fi
+#done
+
+# Check Audio/Video files with ffprobe
+for d in avi flac flv m4a m4p m4v mkv mid mov mp2 mp3 mp4 mpg mpg2 ogg ts vob wav; do
+    if [ -d "$d" ]; then
+        echo "Checking $d files"
+        pushd "$d" >/dev/null
+        for f in *; do
+            if ! ffprobe "$f" >/dev/null 2>&1; then
+                #echo "  BAD: $f"
+                [ -d "$bad_dir/$d" ] || mkdir -p "$bad_dir/$d"
+                mv -n "$f" "$bad_dir/$d/$f"
+            fi
+        done
+        popd >/dev/null
+    fi
+done
+
+# Check .doc files with antiword
+if [ -d "doc" ]; then
+    echo "Checking doc files"
+    pushd "doc" >/dev/null
+    for f in *doc; do
+        if ! antiword "$f" >/dev/null 2>&1; then
+            #echo "  BAD: $f"
+            [ -d "$bad_dir/doc" ] || mkdir -p "$bad_dir/doc"
+            mv -n "$f" "$bad_dir/doc/$f"
+        fi
+    done
+    popd >/dev/null
+fi
+
+# Check .docx files with 7z and grep
+if [ -d "docx" ]; then
+    echo "Checking docx files"
+    pushd "docx" >/dev/null
+    for f in *docx; do
+        if ! 7z l "$f" | grep -q -s "word/document.xml"; then
+            #echo "  BAD: $f"
+            [ -d "$bad_dir/docx" ] || mkdir -p "$bad_dir/docx"
+            mv -n "$f" "$bad_dir/docx/$f"
+        fi
+    done
+    popd >/dev/null
+fi
+
+# Sort pictures by date (only for common camera formats)
+for d in jpg mrw orf raf raw rw2 tif x3f; do
+    if [ -d "$d" ]; then
+        echo "Sorting $d files by date"
+        pushd "$d" >/dev/null
+        for f in *; do
+            date_dir="$(date -d "$(stat -c %y "$f")" +"%F")"
+            [ -d "$date_dir" ] || mkdir "$date_dir"
+            mv -n "$f" "$date_dir/"
+        done
+        popd >/dev/null
+    fi
+done
+
+# Sort mov files by encoded date
+if [ -d "mov" ]; then
+    echo "Sorting mov files by date"
+    pushd "mov" >/dev/null
+    for f in *mov; do
+        enc_date="$(mediainfo "$f" | grep -i "Encoded date" | head -1 | sed -r 's/.*: //')"
+        date_dir="$(date -d "$enc_date" +"%F")"
+        echo "$date_dir" | grep -E -q -s '^[0-9]{4}-[0-9]{2}-[0-9]{2}$' || date_dir="Unknown Date"
+        [ -d "$date_dir" ] || mkdir "$date_dir"
+        mv -n "$f" "$date_dir/"
+    done
+    popd >/dev/null
+fi
+
+## sort audio files by tags
+
+## sort matroska files by metadata
+
+## return to original dir
+popd >/dev/null
+
