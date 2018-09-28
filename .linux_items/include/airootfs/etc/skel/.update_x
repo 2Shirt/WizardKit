@@ -1,0 +1,94 @@
+#!/bin/env bash
+#
+## Calculate DPI, update settings if necessary, then start desktop apps
+
+REGEX_XRANDR='^.* ([0-9]+)x([0-9]+)\+[0-9]+\+[0-9]+.* ([0-9]+)mm x ([0-9]+)mm.*$'
+REGEX_URXVT='(URxvt.geometry:\s+).*'
+
+# Get screen data
+xrandr_str="$(xrandr | grep mm | head -1)"
+width_px="$(echo "${xrandr_str}" | sed -r "s/${REGEX_XRANDR}/\1/")"
+height_px="$(echo "${xrandr_str}" | sed -r "s/${REGEX_XRANDR}/\2/")"
+width_mm="$(echo "${xrandr_str}" | sed -r "s/${REGEX_XRANDR}/\3/")"
+height_mm="$(echo "${xrandr_str}" | sed -r "s/${REGEX_XRANDR}/\4/")"
+
+# Convert to in
+width_in="$(echo "${width_mm} * 0.03937" | bc)"
+height_in="$(echo "${height_mm} * 0.03937" | bc)"
+
+# Calculate diagonals
+diag_px="$(echo "sqrt(${width_px}^2 + ${height_px}^2)" | bc)"
+diag_in="$(echo "sqrt(${width_in}^2 + ${height_in}^2)" | bc)"
+
+# Calculate DPI
+dpi="$(echo "${diag_px} / ${diag_in}" | bc 2>/dev/null || True)"
+dpi="${dpi:-0}"
+
+# Calculate URxvt default window size
+width_urxvt="$(echo "${width_px} * 112/1280" | bc)"
+height_urxvt="$(echo "${height_px} * 33/720" | bc)"
+offset_urxvt="24"
+
+# Update settings if necessary
+if [[ "${dpi}" -ge 192 ]]; then
+  # Conky
+  sed -i 's/minimum_size 180 0/minimum_size 360 0/' "${HOME}/.conkyrc"
+  sed -i 's/maximum_width 180/maximum_width 360/' "${HOME}/.conkyrc"
+  sed -i 's/gap_x 20/gap_x 40/' "${HOME}/.conkyrc"
+  sed -i 's/gap_y 24/gap_y 48/' "${HOME}/.conkyrc"
+
+  # Fonts
+  sed -i 's/!Xft.dpi: 192/Xft.dpi: 192/' "${HOME}/.Xresources"
+
+  # GDK
+  export GDK_SCALE=2
+  export GDK_DPI_SCALE=0.5
+
+  # i3
+  sed -i -r 's/(height\s+) 26/\1 52/' "${HOME}/.config/i3/config"
+
+  # Tint2
+  sed -i 's/panel_size = 100% 30/panel_size = 100% 60/' \
+    "${HOME}/.config/tint2/tint2rc"
+  sed -i 's/Inconsolata 10/Inconsolata 20/g' \
+    "${HOME}/.config/tint2/tint2rc"
+  sed -i 's/Inconsolata 12/Inconsolata 24/g' \
+    "${HOME}/.config/tint2/tint2rc"
+  sed -i 's/systray_icon_size = 24/systray_icon_size = 48/' \
+    "${HOME}/.config/tint2/tint2rc"
+
+  # URxvt
+  width_urxvt="$(echo "${width_urxvt} / 2" | bc)"
+  height_urxvt="$(echo "${height_urxvt} / 2" | bc)"
+  offset_urxvt="$(echo "${offset_urxvt} * 2" | bc)"
+fi
+
+# Update URxvt (Always)
+urxvt_geometry="${width_urxvt}x${height_urxvt}+${offset_urxvt}+${offset_urxvt}"
+sed -i -r "s/${REGEX_URXVT}/\1${urxvt_geometry}/" "${HOME}/.Xresources"
+
+# Update X
+xset s off
+xset -dpms
+xrdb -merge $HOME/.Xresources
+
+# Start common desktop apps
+feh --bg-fill "$HOME/.wallpaper"
+compton --backend xrender --xrender-sync --xrender-sync-fence &
+sleep 1s
+x0vncserver -display :0 -passwordfile $HOME/.vnc/passwd -AlwaysShared &
+conky &
+nm-applet &
+volumeicon &
+
+# Start WM specific apps
+if fgrep -q "i3" /proc/cmdline; then
+  # i3
+  i3-msg restart
+else
+  # openbox
+  openbox --restart
+  tint2 &
+  cbatticon --hide-notification &
+fi
+
