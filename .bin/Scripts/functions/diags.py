@@ -61,11 +61,22 @@ def run_hwinfo_sensors():
             f.write('SummaryOnly=0\n')
     popen_program(global_vars['Tools']['HWiNFO'])
 
+def run_nircmd(*cmd):
+    """Run custom NirCmd."""
+    extract_item('NirCmd', silent=True)
+    cmd = [global_vars['Tools']['NirCmd'], *cmd]
+    run_program(cmd, check=False)
+
 def run_xmplay():
     """Run XMPlay to test audio."""
     extract_item('XMPlay', silent=True)
     cmd = [global_vars['Tools']['XMPlay'],
         r'{BinDir}\XMPlay\music.7z'.format(**global_vars)]
+
+    # Unmute audio first
+    run_nircmd(['mutesysvolume', '0'])
+
+    # Open XMPlay
     popen_program(cmd)
 
 def run_hitmanpro():

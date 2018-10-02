@@ -30,6 +30,9 @@ TOOLS = {
         '64': r'HWiNFO\HWiNFO64.exe'},
     'KVRT': {
         '32': r'KVRT\KVRT.exe'},
+    'NirCmd': {
+        '32': r'NirCmd\nircmdc.exe',
+        '64': r'NirCmd\nircmdc64.exe'},
     'NotepadPlusPlus': {
         '32': r'NotepadPlusPlus\notepadplusplus.exe'},
     'ProduKey': {
