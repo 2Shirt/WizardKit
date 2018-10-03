@@ -58,12 +58,12 @@ def check_secure_boot_status():
         if boot_mode != 'UEFI':
             raise OSInstalledLegacyError
         else:
-          # Check error message
-          err = result.stderr.decode()
-          if 'Cmdlet not supported' in err:
-              raise SecureBootNotAvailError
-          else:
-              raise GenericError
+            # Check error message
+            err = result.stderr.decode()
+            if 'Cmdlet not supported' in err:
+                raise SecureBootNotAvailError
+            else:
+                raise GenericError
 
 def get_boot_mode():
     """Check if Windows is booted in UEFI or Legacy mode, returns str."""
