@@ -1,5 +1,7 @@
 # Wizard Kit: Functions - Diagnostics
 
+import ctypes
+
 from functions.common import *
 
 # STATIC VARIABLES
@@ -30,12 +32,59 @@ def check_connection():
         result = try_and_print(message='Ping test...',  function=ping, cs='OK')
         if result['CS']:
             break
+        if not ask('ERROR: System appears offline, try again?'):
+            if ask('Continue anyway?'):
+                break
+            else:
+                abort()
+
+def check_secure_boot_status():
+    """Checks UEFI Secure Boot status via PowerShell."""
+    boot_mode = get_boot_mode()
+    cmd = ['PowerShell', '-Command', 'Confirm-SecureBootUEFI']
+    result = run_program(cmd, check=False)
+
+    # Check results
+    if result.returncode == 0:
+        out = result.stdout.decode()
+        if 'True' in out:
+            # It's on, do nothing
+            return
+        elif 'False' in out:
+            raise SecureBootDisabledError
         else:
-            if not ask('ERROR: System appears offline, try again?'):
-                if ask('Continue anyway?'):
-                    break
-                else:
-                    abort()
+            raise SecureBootUnknownError
+    else:
+        if boot_mode != 'UEFI':
+            raise OSInstalledLegacyError
+        else:
+          # Check error message
+          err = result.stderr.decode()
+          if 'Cmdlet not supported' in err:
+              raise SecureBootNotAvailError
+          else:
+              raise GenericError
+
+def get_boot_mode():
+    """Check if Windows is booted in UEFI or Legacy mode, returns str."""
+    kernel = ctypes.windll.kernel32
+    firmware_type = ctypes.c_uint()
+
+    # Get value from kernel32 API
+    try:
+        kernel.GetFirmwareType(ctypes.byref(firmware_type))
+    except:
+        # Just set to zero
+        firmware_type = ctypes.c_uint(0)
+
+    # Set return value
+    type_str = 'Unknown'
+    if firmware_type.value == 1:
+        type_str = 'Legacy'
+    elif firmware_type.value == 2:
+        type_str = 'UEFI'
+
+    return type_str
 
 def run_autoruns():
     """Run AutoRuns in the background with VirusTotal checks enabled."""

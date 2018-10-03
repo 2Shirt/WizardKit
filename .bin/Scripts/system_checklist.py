@@ -24,11 +24,17 @@ if __name__ == '__main__':
         ticket_number = get_ticket_number()
         other_results = {
             'Error': {
-                'CalledProcessError':   'Unknown Error',
-                'BIOSKeyNotFoundError': 'BIOS key not found',
-                'FileNotFoundError':    'File not found',
+                'BIOSKeyNotFoundError':     'BIOS key not found',
+                'CalledProcessError':       'Unknown Error',
+                'FileNotFoundError':        'File not found',
+                'GenericError':             'Unknown Error',
+                'SecureBootDisabledError':  'Disabled',
             },
-            'Warning': {}}
+            'Warning': {
+                'OSInstalledLegacyError':   'OS installed Legacy',
+                'SecureBootNotAvailError':  'Not available',
+                'SecureBootUnknownError':   'Unknown',
+            }}
         if ENABLED_TICKET_NUMBERS:
             print_info('Starting System Checklist for Ticket #{}\n'.format(
                 ticket_number))
@@ -76,6 +82,8 @@ if __name__ == '__main__':
             try_and_print(message='BIOS Activation:',
                 function=activate_with_bios,
                 other_results=other_results)
+        try_and_print(message='Secure Boot Status:',
+            function=check_secure_boot_status, other_results=other_results)
         try_and_print(message='Installed RAM:',
             function=show_installed_ram, ns='Unknown', silent_function=False)
         show_free_space()
