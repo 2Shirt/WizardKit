@@ -859,11 +859,14 @@ def run_ddrescue(state, pass_settings):
     height_ddrescue = height - height_smart - height_journal
 
     # Show SMART status
+    smart_dev = state.source_path
+    if state.source.parent:
+        smart_dev = state.source.parent
     smart_pane = tmux_splitw(
         '-bdvl', str(height_smart),
         '-PF', '#D',
         'watch', '--color', '--no-title', '--interval', '300',
-        'ddrescue-tui-smart-display', state.source_path)
+        'ddrescue-tui-smart-display', smart_dev)
 
     # Show systemd journal output
     journal_pane = tmux_splitw(
