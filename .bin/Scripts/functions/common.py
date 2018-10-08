@@ -64,10 +64,22 @@ class NotInstalledError(Exception):
 class NoProfilesError(Exception):
     pass
 
+class OSInstalledLegacyError(Exception):
+    pass
+
 class PathNotFoundError(Exception):
     pass
 
 class UnsupportedOSError(Exception):
+    pass
+
+class SecureBootDisabledError(Exception):
+    pass
+
+class SecureBootNotAvailError(Exception):
+    pass
+
+class SecureBootUnknownError(Exception):
     pass
 
 # General functions
@@ -271,7 +283,7 @@ def human_readable_size(size, decimals=0):
         units = 'Kb'
     else:
         units = ' b'
-    
+
     # Return
     return '{size:>{width}.{decimals}f} {units}'.format(
         size=size, width=width, decimals=decimals, units=units)
@@ -462,7 +474,7 @@ def run_program(cmd, args=[], check=True, pipe=True, shell=False):
 
 def set_title(title='~Some Title~'):
     """Set title.
-    
+
     Used for window title and menu titles."""
     global_vars['Title'] = title
     os.system('title {}'.format(title))
@@ -566,7 +578,7 @@ def try_and_print(message='Trying...',
 
 def upload_crash_details():
     """Upload log and runtime data to the CRASH_SERVER.
-    
+
     Intended for uploading to a public Nextcloud share."""
     if not ENABLED_UPLOAD_DATA:
         raise GenericError
@@ -648,7 +660,7 @@ def init_global_vars():
 def check_os():
     """Set OS specific variables."""
     tmp = {}
-    
+
     # Query registry
     path = r'SOFTWARE\Microsoft\Windows NT\CurrentVersion'
     with winreg.OpenKey(HKLM, path) as key:
@@ -697,7 +709,7 @@ def check_os():
     tmp['DisplayName'] = '{} x{}'.format(tmp['Name'], tmp['Arch'])
     if tmp['Notes']:
         tmp['DisplayName'] += ' ({})'.format(tmp['Notes'])
-    
+
     global_vars['OS'] = tmp
 
 def check_tools():
@@ -714,7 +726,7 @@ def check_tools():
 
 def clean_env_vars():
     """Remove conflicting global_vars and env variables.
-    
+
     This fixes an issue where both global_vars and
     global_vars['Env'] are expanded at the same time."""
     for key in global_vars.keys():
@@ -768,7 +780,7 @@ def set_common_vars():
 
 def set_linux_vars():
     """Set common variables in a Linux environment.
-    
+
     These assume we're running under a WK-Linux build."""
     result = run_program(['mktemp', '-d'])
     global_vars['TmpDir'] =             result.stdout.decode().strip()
