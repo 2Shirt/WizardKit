@@ -5,6 +5,7 @@
 
 # Connect
 connect-to-network
+sleep 2s
 
 IP="$(ip a show scope global \
   | grep inet \
