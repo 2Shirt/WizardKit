@@ -68,7 +68,8 @@ def backup_file_list():
 
 def backup_power_plans():
     """Export current power plans."""
-    os.makedirs(r'{BackupDir}\Power Plans'.format(**global_vars), exist_ok=True)
+    os.makedirs(r'{BackupDir}\Power Plans\{Date}'.format(
+        **global_vars), exist_ok=True)
     plans = run_program(['powercfg', '/L'])
     plans = plans.stdout.decode().splitlines()
     plans = [p for p in plans if re.search(r'^Power Scheme', p)]
@@ -76,22 +77,24 @@ def backup_power_plans():
         guid = re.sub(r'Power Scheme GUID:\s+([0-9a-f\-]+).*', r'\1', p)
         name = re.sub(
             r'Power Scheme GUID:\s+[0-9a-f\-]+\s+\(([^\)]+)\).*', r'\1', p)
-        out = r'{BackupDir}\Power Plans\{name}.pow'.format(
+        out = r'{BackupDir}\Power Plans\{Date}\{name}.pow'.format(
             name=name, **global_vars)
         if not os.path.exists(out):
             cmd = ['powercfg', '-export', out, guid]
             run_program(cmd, check=False)
 
-def backup_registry():
+def backup_registry(overwrite=False):
     """Backup registry including user hives."""
     extract_item('erunt', silent=True)
     cmd = [
         global_vars['Tools']['ERUNT'],
-        r'{BackupDir}\Registry'.format(**global_vars),
+        r'{BackupDir}\Registry\{Date}'.format(**global_vars),
         'sysreg',
         'curuser',
         'otherusers',
         '/noprogresswindow']
+    if overwrite:
+        cmd.append('/noconfirmdelete')
     run_program(cmd)
 
 def get_folder_size(path):
@@ -162,7 +165,7 @@ def get_installed_office():
 
 def get_shell_path(folder, user='current'):
     """Get shell path using SHGetKnownFolderPath via knownpaths, returns str.
-    
+
     NOTE: Only works for the current user.
     Code based on https://gist.github.com/mkropat/7550097
     """
@@ -175,14 +178,14 @@ def get_shell_path(folder, user='current'):
     except AttributeError:
         # Unknown folder ID, ignore and return None
         pass
-    
+
     if folderid:
         try:
             path = knownpaths.get_path(folderid, getattr(knownpaths.UserHandle, user))
         except PathNotFoundError:
             # Folder not found, ignore and return None
             pass
-    
+
     return path
 
 def get_user_data_paths(user):
@@ -196,7 +199,7 @@ def get_user_data_paths(user):
         'Extra Folders': {},
         }
     unload_hive = False
-    
+
     if user['Name'] == global_vars['Env']['USERNAME']:
         # We can use SHGetKnownFolderPath for the current user
         paths['Profile']['Path'] = get_shell_path('Profile')
@@ -212,7 +215,7 @@ def get_user_data_paths(user):
         except Exception:
             # Profile path not found, leaving as None.
             pass
-        
+
         # Shell folders (Prep)
         if not reg_path_exists(HKU, hive_path) and paths['Profile']['Path']:
             # User not logged-in, loading hive
@@ -226,7 +229,7 @@ def get_user_data_paths(user):
             except subprocess.CalledProcessError:
                 # Failed to load user hive
                 pass
-        
+
         # Shell folders
         shell_folders = r'{}\{}'.format(hive_path, REG_SHELL_FOLDERS)
         if (reg_path_exists(HKU, hive_path)
@@ -252,7 +255,7 @@ def get_user_data_paths(user):
                 if (folder not in paths['Shell Folders']
                     and os.path.exists(folder_path)):
                     paths['Shell Folders'][folder] = {'Path': folder_path}
-    
+
     # Extra folders
     if paths['Profile']['Path']:
         for folder in EXTRA_FOLDERS:
@@ -260,12 +263,12 @@ def get_user_data_paths(user):
                 folder=folder, **paths['Profile'])
             if os.path.exists(folder_path):
                 paths['Extra Folders'][folder] = {'Path': folder_path}
-        
+
     # Shell folders (cleanup)
     if unload_hive:
         cmd = ['reg', 'unload', r'HKU\{}'.format(TMP_HIVE_PATH)]
         run_program(cmd, check=False)
-    
+
     # Done
     return paths
 
@@ -277,7 +280,7 @@ def get_user_folder_sizes(users):
     with winreg.OpenKey(HKCU,
         r'Software\Sysinternals\Du', access=winreg.KEY_WRITE) as key:
         winreg.SetValueEx(key, 'EulaAccepted', 0, winreg.REG_DWORD, 1)
-    
+
     for u in users:
         u.update(get_user_data_paths(u))
         if u['Profile']['Path']:
@@ -292,7 +295,7 @@ def get_user_folder_sizes(users):
 def get_user_list():
     """Get user list via WMIC, returns list of dicts."""
     users = []
-    
+
     # Get user info from WMI
     cmd = ['wmic', 'useraccount', 'get', '/format:csv']
     try:
@@ -300,10 +303,10 @@ def get_user_list():
     except subprocess.CalledProcessError:
         # Meh, return empty list to avoid a full crash
         return users
-        
+
     entries = out.stdout.decode().splitlines()
     entries = [e.strip().split(',') for e in entries if e.strip()]
-    
+
     # Add user(s) to dict
     keys = entries[0]
     for e in entries[1:]:
@@ -314,10 +317,10 @@ def get_user_list():
         # Assume SIDs ending with 1000+ are "Standard" and others are "System"
         e['Type'] = 'Standard' if re.search(r'-1\d+$', e['SID']) else 'System'
         users.append(e)
-    
+
     # Sort list
     users.sort(key=itemgetter('Name'))
-    
+
     # Done
     return users
 
@@ -368,25 +371,37 @@ def run_aida64():
             '/TEXT', '/SILENT', '/SAFEST']
         run_program(cmd, check=False)
 
-def run_bleachbit():
+def run_bleachbit(cleaners=None, preview=True):
     """Run BleachBit preview and save log.
-    
-    This is a preview so no files should be deleted."""
-    if not os.path.exists(global_vars['LogDir']+r'\BleachBit.log'):
-        extract_item('BleachBit', silent=True)
-        cmd = [global_vars['Tools']['BleachBit'], '--preview', '--preset']
-        out = run_program(cmd, check=False)
-        # Save stderr
-        if out.stderr.decode().splitlines():
-            with open(global_vars['LogDir']+r'\BleachBit.err', 'a',
-                encoding='utf-8') as f:
-                for line in out.stderr.decode().splitlines():
-                    f.write(line.strip() + '\n')
-        # Save stdout
-        with open(global_vars['LogDir']+r'\BleachBit.log', 'a',
-            encoding='utf-8') as f:
-            for line in out.stdout.decode().splitlines():
+
+    If preview is True then no files should be deleted."""
+    error_path = r'{}\Tools\BleachBit.err'.format(global_vars['LogDir'])
+    log_path = error_path.replace('err', 'log')
+    extract_item('BleachBit', silent=True)
+
+    # Safety check
+    if not cleaners:
+        # Disable cleaning and use preset config
+        cleaners = ['--preset']
+        preview = True
+
+    # Run
+    cmd = [
+        global_vars['Tools']['BleachBit'],
+        '--preview' if preview else '--clean']
+    cmd.extend(cleaners)
+    out = run_program(cmd, check=False)
+
+    # Save stderr
+    if out.stderr.decode().splitlines():
+        with open(error_path, 'a', encoding='utf-8') as f:
+            for line in out.stderr.decode().splitlines():
                 f.write(line.strip() + '\n')
+
+    # Save stdout
+    with open(log_path, 'a', encoding='utf-8') as f:
+        for line in out.stdout.decode().splitlines():
+            f.write(line.strip() + '\n')
 
 def show_disk_usage(disk):
     """Show free and used space for a specified disk."""
@@ -459,7 +474,7 @@ def show_os_name():
 def show_temp_files_size():
     """Show total size of temp files identified by BleachBit."""
     size = None
-    with open(r'{LogDir}\BleachBit.log'.format(**global_vars), 'r') as f:
+    with open(r'{LogDir}\Tools\BleachBit.log'.format(**global_vars), 'r') as f:
         for line in f.readlines():
             if re.search(r'^disk space to be recovered:', line, re.IGNORECASE):
                 size = re.sub(r'.*: ', '', line.strip())
