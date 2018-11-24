@@ -6,16 +6,16 @@ WINDOWS_BUILDS = {
      '6000': (  'Vista',    'RTM',      'Longhorn',     None,                   'unsupported'),
      '6001': (  'Vista',    'SP1',      'Longhorn',     None,                   'unsupported'),
      '6002': (  'Vista',    'SP2',      'Longhorn',     None,                   'unsupported'),
-     
+
      '7600': (  '7',        'RTM',      'Vienna',       None,                   'unsupported'),
      '7601': (  '7',        'SP1',      'Vienna',       None,                   'outdated'),
-     
+
      #9199 is a fake build since Win 8 is 6.2.9200 but that collides with Win 8.1 (6.3.9200)
      '9199': (  '8',        'RTM',      None,           None,                   'unsupported'),
 
      '9200': (  '8.1',      None,       'Blue',         None,                   'outdated'),
      '9600': (  '8.1',      None,       'Update',       None,                   None),
-     
+
      '9841': (  '10',       None,       'Threshold 1',  None,                   'preview build'),
      '9860': (  '10',       None,       'Threshold 1',  None,                   'preview build'),
      '9879': (  '10',       None,       'Threshold 1',  None,                   'preview build'),
@@ -149,6 +149,36 @@ WINDOWS_BUILDS = {
     '17655': (  '10',       None,       'Redstone 5',   None,                   'preview build'),
     '17661': (  '10',       None,       'Redstone 5',   None,                   'preview build'),
     '17666': (  '10',       None,       'Redstone 5',   None,                   'preview build'),
+    '17677': (  '10',       None,       'Redstone 5',   None,                   'preview build'),
+    '17682': (  '10',       None,       'Redstone 5',   None,                   'preview build'),
+    '17686': (  '10',       None,       'Redstone 5',   None,                   'preview build'),
+    '17692': (  '10',       None,       'Redstone 5',   None,                   'preview build'),
+    '17704': (  '10',       None,       'Redstone 5',   None,                   'preview build'),
+    '17711': (  '10',       None,       'Redstone 5',   None,                   'preview build'),
+    '17713': (  '10',       None,       'Redstone 5',   None,                   'preview build'),
+    '17723': (  '10',       None,       'Redstone 5',   None,                   'preview build'),
+    '17728': (  '10',       None,       'Redstone 5',   None,                   'preview build'),
+    '17730': (  '10',       None,       'Redstone 5',   None,                   'preview build'),
+    '17733': (  '10',       None,       'Redstone 5',   None,                   'preview build'),
+    '17735': (  '10',       None,       'Redstone 5',   None,                   'preview build'),
+    '17738': (  '10',       None,       'Redstone 5',   None,                   'preview build'),
+    '17741': (  '10',       None,       'Redstone 5',   None,                   'preview build'),
+    '17744': (  '10',       None,       'Redstone 5',   None,                   'preview build'),
+    '17746': (  '10',       None,       'Redstone 5',   None,                   'preview build'),
+    '17751': (  '10',       None,       'Redstone 5',   None,                   'preview build'),
+    '17754': (  '10',       None,       'Redstone 5',   None,                   'preview build'),
+    '17755': (  '10',       None,       'Redstone 5',   None,                   'preview build'),
+    '17758': (  '10',       None,       'Redstone 5',   None,                   'preview build'),
+    '17760': (  '10',       None,       'Redstone 5',   None,                   'preview build'),
+    '17763': (  '10',       'v1809',    'Redstone 5',   'October 2018 Update',  'preview build'),
+    '18204': (  '10',       None,       '19H1',         None,                   'preview build'),
+    '18214': (  '10',       None,       '19H1',         None,                   'preview build'),
+    '18219': (  '10',       None,       '19H1',         None,                   'preview build'),
+    '18234': (  '10',       None,       '19H1',         None,                   'preview build'),
+    '18237': (  '10',       None,       '19H1',         None,                   'preview build'),
+    '18242': (  '10',       None,       '19H1',         None,                   'preview build'),
+    '18247': (  '10',       None,       '19H1',         None,                   'preview build'),
+    '18252': (  '10',       None,       '19H1',         None,                   'preview build'),
 }
 
 if __name__ == '__main__':
