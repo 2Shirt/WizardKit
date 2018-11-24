@@ -138,7 +138,9 @@ def remove_from_kit(item):
     item_locations = []
     for p in [global_vars['BinDir'], global_vars['CBinDir']]:
         item_locations.append(r'{}\{}'.format(p, item))
+        item_locations.append(r'{}\{}.7z'.format(p, item))
         item_locations.append(r'{}\_Drivers\{}'.format(p, item))
+        item_locations.append(r'{}\_Drivers\{}.7z'.format(p, item))
     for item_path in item_locations:
         remove_item(item_path)
 
@@ -596,6 +598,21 @@ def update_adobe_reader_dc():
     # Download
     download_generic(
         dest, 'Adobe Reader DC.exe', SOURCE_URLS['Adobe Reader DC'])
+
+def update_macs_fan_control():
+    # Prep
+    dest = r'{}\Installers'.format(
+        global_vars['BaseDir'])
+
+    # Remove existing installer
+    try:
+        os.remove(r'{}\Macs Fan Control.exe'.format(dest))
+    except FileNotFoundError:
+        pass
+
+    # Download
+    download_generic(
+        dest, 'Macs Fan Control.exe', SOURCE_URLS['Macs Fan Control'])
 
 def update_office():
     # Remove existing folders

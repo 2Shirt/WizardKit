@@ -40,9 +40,9 @@ if __name__ == '__main__':
         try_and_print(message='AIDA64...', function=update_aida64, other_results=other_results, width=40)
         try_and_print(message='Autoruns...', function=update_autoruns, other_results=other_results, width=40)
         try_and_print(message='BleachBit...', function=update_bleachbit, other_results=other_results, width=40)
-        try_and_print(message='BlueScreenView...', function=update_bluescreenview, other_results=other_results, width=40)
+        try_and_print(message='Blue Screen View...', function=update_bluescreenview, other_results=other_results, width=40)
         try_and_print(message='ERUNT...', function=update_erunt, other_results=other_results, width=40)
-        try_and_print(message='HitmanPro...', function=update_hitmanpro, other_results=other_results, width=40)
+        try_and_print(message='Hitman Pro...', function=update_hitmanpro, other_results=other_results, width=40)
         try_and_print(message='HWiNFO...', function=update_hwinfo, other_results=other_results, width=40)
         try_and_print(message='NirCmd...', function=update_nircmd, other_results=other_results, width=40)
         try_and_print(message='ProduKey...', function=update_produkey, other_results=other_results, width=40)
@@ -58,6 +58,7 @@ if __name__ == '__main__':
         # Installers
         print_info('    Installers')
         try_and_print(message='Adobe Reader DC...', function=update_adobe_reader_dc, other_results=other_results, width=40)
+        try_and_print(message='Macs Fan Control...', function=update_macs_fan_control, other_results=other_results, width=40)
         try_and_print(message='MS Office...', function=update_office, other_results=other_results, width=40)
         try_and_print(message='Visual C++ Runtimes...', function=update_vcredists, other_results=other_results, width=40)
         update_all_ninite(other_results=other_results, width=40)
@@ -68,7 +69,7 @@ if __name__ == '__main__':
         try_and_print(message='Classic Start Skin...', function=update_classic_start_skin, other_results=other_results, width=40)
         try_and_print(message='Du...', function=update_du, other_results=other_results, width=40)
         try_and_print(message='Everything...', function=update_everything, other_results=other_results, width=40)
-        try_and_print(message='FirefoxExtensions...', function=update_firefox_ublock_origin, other_results=other_results, width=40)
+        try_and_print(message='Firefox Extensions...', function=update_firefox_ublock_origin, other_results=other_results, width=40)
         try_and_print(message='PuTTY...', function=update_putty, other_results=other_results, width=40)
         try_and_print(message='Notepad++...', function=update_notepadplusplus, other_results=other_results, width=40)
         try_and_print(message='WizTree...', function=update_wiztree, other_results=other_results, width=40)
@@ -79,7 +80,7 @@ if __name__ == '__main__':
         try_and_print(message='AdwCleaner...', function=update_adwcleaner, other_results=other_results, width=40)
         try_and_print(message='KVRT...', function=update_kvrt, other_results=other_results, width=40)
         try_and_print(message='RKill...', function=update_rkill, other_results=other_results, width=40)
-        try_and_print(message='TDSSKiller...', function=update_tdsskiller, other_results=other_results, width=40)
+        try_and_print(message='TDSS Killer...', function=update_tdsskiller, other_results=other_results, width=40)
 
         # Uninstallers
         print_info('    Uninstallers')
