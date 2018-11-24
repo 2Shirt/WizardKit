@@ -9,7 +9,7 @@ sys.path.append(os.getcwd())
 from functions.setup import *
 init_global_vars()
 os.system('title {}: Install Visual C++ Runtimes'.format(KIT_NAME_FULL))
-global_vars['LogFile'] = r'{LogDir}\Install Visual C++ Runtimes.log'.format(**global_vars)
+set_log_file('Install Visual C++ Runtimes.log')
 
 if __name__ == '__main__':
     try:
@@ -20,12 +20,12 @@ if __name__ == '__main__':
             'Error': {
                 'CalledProcessError':   'Unknown Error',
             }}
-        
+
         if ask('Install Visual C++ Runtimes?'):
             install_vcredists()
         else:
             abort()
-        
+
         print_standard('\nDone.')
         exit_script()
     except SystemExit:
