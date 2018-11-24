@@ -17,7 +17,7 @@ WINDOWS_VERSIONS = [
     {'Name': 'Windows 7 Ultimate', 
         'Image File': 'Win7', 
         'Image Name': 'Windows 7 ULTIMATE'},
-    
+
     {'Name': 'Windows 8.1', 
         'Image File': 'Win8', 
         'Image Name': 'Windows 8.1',
@@ -25,7 +25,7 @@ WINDOWS_VERSIONS = [
     {'Name': 'Windows 8.1 Pro', 
         'Image File': 'Win8', 
         'Image Name': 'Windows 8.1 Pro'},
-    
+
     {'Name': 'Windows 10 Home', 
         'Image File': 'Win10', 
         'Image Name': 'Windows 10 Home',
@@ -75,7 +75,7 @@ def find_windows_image(windows_version):
                         image['Glob'] = '--ref="{}*.swm"'.format(
                             image['Path'][:-4])
                     break
-    
+
     # Display image to be used (if any) and return
     if image:
         print_info('Using image: {}'.format(image['Path']))
@@ -122,7 +122,7 @@ def format_gpt(disk):
         'set id="de94bba4-06d1-4d40-a16a-bfd50179d6ac"',
         'gpt attributes=0x8000000000000001',
         ]
-    
+
     # Run
     run_diskpart(script)
 
@@ -151,7 +151,7 @@ def format_mbr(disk):
         'assign letter="T"',
         'set id=27',
         ]
-    
+
     # Run
     run_diskpart(script)
 
@@ -197,11 +197,11 @@ def setup_windows_re(windows_version, windows_letter='W', tools_letter='T'):
     win = r'{}:\Windows'.format(windows_letter)
     winre = r'{}\System32\Recovery\WinRE.wim'.format(win)
     dest = r'{}:\Recovery\WindowsRE'.format(tools_letter)
-    
+
     # Copy WinRE.wim
     os.makedirs(dest, exist_ok=True)
     shutil.copy(winre, r'{}\WinRE.wim'.format(dest))
-    
+
     # Set location
     cmd = [
         r'{}\System32\ReAgentc.exe'.format(win),
@@ -231,7 +231,7 @@ def wim_contains_image(filename, imagename):
         run_program(cmd)
     except subprocess.CalledProcessError:
         return False
-    
+
     return True
 
 if __name__ == '__main__':

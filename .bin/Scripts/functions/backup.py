@@ -16,7 +16,7 @@ def backup_partition(disk, par):
     """Create a backup image of a partition."""
     if par.get('Image Exists', False) or par['Number'] in disk['Bad Partitions']:
         raise GenericAbort
-    
+
     cmd = [
         global_vars['Tools']['wimlib-imagex'],
         'capture',
@@ -48,7 +48,7 @@ def get_volume_display_name(mountpoint):
         serial_number = None
         max_component_length = None
         file_system_flags = None
-        
+
         vol_info = kernel32.GetVolumeInformationW(
             ctypes.c_wchar_p(mountpoint),
             vol_name_buffer,
@@ -59,16 +59,16 @@ def get_volume_display_name(mountpoint):
             fs_name_buffer,
             ctypes.sizeof(fs_name_buffer)
             )
-        
+
         name = '{} "{}"'.format(name, vol_name_buffer.value)
     except:
         pass
-    
+
     return name
 
 def prep_disk_for_backup(destination, disk, backup_prefix):
     """Gather details about the disk and its partitions.
-    
+
     This includes partitions that can't be backed up,
         whether backups already exist on the BACKUP_SERVER,
         partition names/sizes/used space, etc."""
@@ -83,7 +83,7 @@ def prep_disk_for_backup(destination, disk, backup_prefix):
     if disk['Valid Partitions'] <= 0:
         print_error('ERROR: No partitions can be backed up for this disk')
         raise GenericAbort
-    
+
     # Prep partitions
     for par in disk['Partitions']:
         display = '{size} {fs}'.format(
@@ -91,7 +91,7 @@ def prep_disk_for_backup(destination, disk, backup_prefix):
             width = width,
             size = par['Size'],
             fs = par['FileSystem'])
-        
+
         if par['Number'] in disk['Bad Partitions']:
             # Set display string using partition description & OS type
             display = '* {display}\t\t{q}{name}{q}\t{desc} ({os})'.format(
@@ -120,7 +120,7 @@ def prep_disk_for_backup(destination, disk, backup_prefix):
                 display = '+ {}'.format(display)
             else:
                 display = '  {}'.format(display)
-            
+
             # Append rest of Display String for valid/clobber partitions
             display += ' (Used: {used})\t{q}{name}{q}'.format(
                 used = par['Used Space'],
@@ -128,7 +128,7 @@ def prep_disk_for_backup(destination, disk, backup_prefix):
                 name = par['Name'])
         # For all partitions
         par['Display String'] = display
-    
+
     # Set description for bad partitions
     warnings = '\n'
     if disk['Bad Partitions']:
@@ -148,7 +148,7 @@ def select_backup_destination(auto_select=True):
     actions = [
         {'Name': 'Main Menu', 'Letter': 'M'},
         ]
-    
+
     # Add local disks
     for d in psutil.disk_partitions():
         if re.search(r'^{}'.format(global_vars['Env']['SYSTEMDRIVE']), d.mountpoint, re.IGNORECASE):
@@ -161,7 +161,7 @@ def select_backup_destination(auto_select=True):
                     get_volume_display_name(d.mountpoint)),
                 'Letter':   re.sub(r'^(\w):\\.*$', r'\1', d.mountpoint),
                 })
-    
+
     # Size check
     for dest in destinations:
         if 'IP' in dest:
@@ -175,11 +175,11 @@ def select_backup_destination(auto_select=True):
     if not destinations:
         print_warning('No backup destinations found.')
         raise GenericAbort
-    
+
     # Skip menu?
     if len(destinations) == 1 and auto_select:
         return destinations[0]
-    
+
     selection = menu_select(
         title = 'Where are we backing up to?',
         main_entries = destinations,

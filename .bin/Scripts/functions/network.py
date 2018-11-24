@@ -26,7 +26,7 @@ def connect_to_network():
     # Bail if currently connected
     if is_connected():
         return
-    
+
     # WiFi
     if 'wl' in net_ifs:
         cmd = [
@@ -37,7 +37,7 @@ def connect_to_network():
             message = 'Connecting to {}...'.format(WIFI_SSID),
             function = run_program,
             cmd = cmd)
-    
+
 def is_connected():
     """Check for a valid private IP."""
     devs = psutil.net_if_addrs()

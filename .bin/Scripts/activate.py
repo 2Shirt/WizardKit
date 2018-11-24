@@ -39,7 +39,7 @@ if __name__ == '__main__':
             selection = menu_select(
                 '{}: Windows Activation Menu'.format(KIT_NAME_FULL),
                 main_entries=activation_methods, action_entries=actions)
-            
+
             if (selection.isnumeric()):
                 result = try_and_print(
                     message = activation_methods[int(selection)-1]['Name'],

@@ -17,16 +17,16 @@ if __name__ == '__main__':
         other_results = {
             'Error': {'CalledProcessError':   'Unknown Error'},
             'Warning': {}}
-        
+
         if not ask('Enable booting to SafeMode (with Networking)?'):
             abort()
-        
+
         # Configure SafeMode
         try_and_print(message='Set BCD option...',
             function=enable_safemode, other_results=other_results)
         try_and_print(message='Enable MSI in SafeMode...',
             function=enable_safemode_msi, other_results=other_results)
-        
+
         # Done
         print_standard('\nDone.')
         pause('Press Enter to reboot...')
