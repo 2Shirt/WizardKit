@@ -11,8 +11,7 @@ from functions.cleanup import *
 from functions.setup import *
 init_global_vars()
 os.system('title {}: User Checklist Tool'.format(KIT_NAME_FULL))
-global_vars['LogFile'] = r'{LogDir}\User Checklist ({USERNAME}).log'.format(
-    **global_vars, **global_vars['Env'])
+set_log_file('User Checklist ({USERNAME}).log'.format(**global_vars['Env']))
 
 if __name__ == '__main__':
     try:
@@ -31,29 +30,29 @@ if __name__ == '__main__':
         if global_vars['OS']['Version'] == '10':
             answer_config_classicshell = ask('Configure ClassicShell?')
             answer_config_explorer_user = ask('Configure Explorer?')
-        
+
         # Cleanup
         print_info('Cleanup')
         try_and_print(message='Desktop...',
             function=cleanup_desktop, cs='Done')
-        
+
         # Scan for supported browsers
         print_info('Scanning for browsers')
         scan_for_browsers()
-        
+
         # Homepages
         print_info('Current homepages')
         list_homepages()
-        
+
         # Backup
         print_info('Backing up browsers')
         backup_browsers()
-        
+
         # Reset
         if answer_config_browsers and answer_reset_browsers:
             print_info('Resetting browsers')
             reset_browsers()
-        
+
         # Configure
         print_info('Configuring programs')
         if answer_config_browsers:
@@ -75,7 +74,7 @@ if __name__ == '__main__':
 
         # Run speedtest
         popen_program(['start', '', 'https://fast.com'], shell=True)
-        
+
         # Done
         print_standard('\nDone.')
         pause('Press Enter to exit...')
@@ -84,3 +83,5 @@ if __name__ == '__main__':
         pass
     except:
         major_exception()
+
+# vim: sts=4 sw=4 ts=4

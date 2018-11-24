@@ -14,7 +14,7 @@ from functions.product_keys import *
 from functions.setup import *
 init_global_vars()
 os.system('title {}: System Checklist Tool'.format(KIT_NAME_FULL))
-global_vars['LogFile'] = r'{LogDir}\System Checklist.log'.format(**global_vars)
+set_log_file('System Checklist.log')
 
 if __name__ == '__main__':
     try:
@@ -49,10 +49,13 @@ if __name__ == '__main__':
 
         # Cleanup
         print_info('Cleanup')
-        try_and_print(message='Desktop...',
-            function=cleanup_desktop, cs='Done')
         try_and_print(message='AdwCleaner...',
             function=cleanup_adwcleaner, cs='Done', other_results=other_results)
+        try_and_print(message='Desktop...',
+            function=cleanup_desktop, cs='Done')
+        try_and_print(message='{}...'.format(KIT_NAME_FULL),
+            function=delete_empty_folders, cs='Done',
+            folder_path=global_vars['ClientDir'])
 
         # Export system info
         print_info('Backup System Information')
@@ -107,6 +110,11 @@ if __name__ == '__main__':
         sleep(3)
         try_and_print(message='Running XMPlay...',
             function=run_xmplay, cs='Started', other_results=other_results)
+        try:
+            check_secure_boot_status(show_alert=True)
+        except:
+            # Only trying to open alert message boxes
+            pass
 
         # Done
         print_standard('\nDone.')
@@ -116,3 +124,5 @@ if __name__ == '__main__':
         pass
     except:
         major_exception()
+
+# vim: sts=4 sw=4 ts=4
