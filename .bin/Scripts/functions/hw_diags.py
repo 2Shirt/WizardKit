@@ -8,23 +8,23 @@ from functions.common import *
 # STATIC VARIABLES
 ATTRIBUTES = {
     'NVMe': {
-        'critical_warning': {'Error': 1},
-        'media_errors': {'Error': 1},
-        'power_on_hours': {'Warning': 12000, 'Error': 18000, 'Ignore': True},
+        'critical_warning': {'Error':   1},
+        'media_errors':     {'Error':   1},
+        'power_on_hours':   {'Warning': 12000, 'Error': 18000, 'Ignore': True},
         'unsafe_shutdowns': {'Warning': 1},
         },
     'SMART': {
-        5: {'Error': 1},
-        9: {'Warning': 12000, 'Error': 18000, 'Ignore': True},
-        10: {'Warning': 1},
-        184: {'Error': 1},
-        187: {'Warning': 1},
-        188: {'Warning': 1},
-        196: {'Warning': 1, 'Error': 10, 'Ignore': True},
-        197: {'Error': 1},
-        198: {'Error': 1},
-        199: {'Error': 1, 'Ignore': True},
-        201: {'Warning': 1},
+        5:   {'Hex': '05', 'Error':   1},
+        9:   {'Hex': '09', 'Warning': 12000, 'Error': 18000, 'Ignore': True},
+        10:  {'Hex': '0A', 'Error':   1},
+        184: {'Hex': 'B8', 'Error':   1},
+        187: {'Hex': 'BB', 'Error':   1},
+        188: {'Hex': 'BC', 'Error':   1},
+        196: {'Hex': 'C4', 'Error':   1},
+        197: {'Hex': 'C5', 'Error':   1},
+        198: {'Hex': 'C6', 'Error':   1},
+        199: {'Hex': 'C7', 'Error':   1, 'Ignore': True},
+        201: {'Hex': 'C9', 'Error':   1},
         },
     }
 IO_VARS = {
@@ -37,9 +37,15 @@ IO_VARS = {
     'Scale 8': [2**(0.56*(x+1))+(16*(x+1)) for x in range(8)],
     'Scale 16': [2**(0.56*(x+1))+(16*(x+1)) for x in range(16)],
     'Scale 32': [2**(0.56*(x+1)/2)+(16*(x+1)/2) for x in range(32)],
-    'Threshold Fail': 65*1024**2,
-    'Threshold Warn': 135*1024**2,
-    'Threshold Great': 750*1024**2,
+    'Threshold Graph Fail': 65*1024**2,
+    'Threshold Graph Warn': 135*1024**2,
+    'Threshold Graph Great': 750*1024**2,
+    'Threshold HDD Min': 50*1024**2,
+    'Threshold HDD High Avg': 75*1024**2,
+    'Threshold HDD Low Avg': 65*1024**2,
+    'Threshold SSD Min': 90*1024**2,
+    'Threshold SSD High Avg': 135*1024**2,
+    'Threshold SSD Low Avg': 100*1024**2,
     'Graph Horizontal': ('▁', '▂', '▃', '▄', '▅', '▆', '▇', '█'),
     'Graph Horizontal Width': 40,
     'Graph Vertical': (
@@ -60,6 +66,7 @@ TESTS = {
     'NVMe/SMART': {
         'Enabled': False,
         'Quick':   False,
+        'Short Test': {},
         'Status': {},
         },
     'badblocks': {
@@ -88,11 +95,11 @@ def generate_horizontal_graph(rates, oneline=False):
 
         # Set color
         r_color = COLORS['CLEAR']
-        if r < IO_VARS['Threshold Fail']:
+        if r < IO_VARS['Threshold Graph Fail']:
             r_color = COLORS['RED']
-        elif r < IO_VARS['Threshold Warn']:
+        elif r < IO_VARS['Threshold Graph Warn']:
             r_color = COLORS['YELLOW']
-        elif r > IO_VARS['Threshold Great']:
+        elif r > IO_VARS['Threshold Graph Great']:
             r_color = COLORS['GREEN']
 
         # Build graph
@@ -225,16 +232,21 @@ def menu_diags(*args):
             action_entries = actions,
             spacer = '──────────────────────────')
         if selection.isnumeric():
+            ticket_number = None
             if diag_modes[int(selection)-1]['Name'] != 'Quick drive test':
-                # Save log for non-quick tests
+                clear_screen()
+                print_standard(' ')
                 ticket_number = get_ticket_number()
-                global_vars['LogDir'] = '{}/Logs/{}'.format(
+                # Save log for non-quick tests
+                global_vars['Date-Time'] = time.strftime("%Y-%m-%d_%H%M_%z")
+                global_vars['LogDir'] = '{}/Logs/{}_{}'.format(
                     global_vars['Env']['HOME'],
-                    ticket_number if ticket_number else global_vars['Date-Time'])
+                    ticket_number,
+                    global_vars['Date-Time'])
                 os.makedirs(global_vars['LogDir'], exist_ok=True)
                 global_vars['LogFile'] = '{}/Hardware Diagnostics.log'.format(
                     global_vars['LogDir'])
-            run_tests(diag_modes[int(selection)-1]['Tests'])
+            run_tests(diag_modes[int(selection)-1]['Tests'], ticket_number)
         elif selection == 'A':
             run_program(['hw-diags-audio'], check=False, pipe=False)
             pause('Press Enter to return to main menu... ')
@@ -256,7 +268,7 @@ def menu_diags(*args):
         elif selection == 'Q':
             break
 
-def run_badblocks():
+def run_badblocks(ticket_number):
     """Run a read-only test for all detected disks."""
     aborted = False
     clear_screen()
@@ -318,7 +330,7 @@ def run_badblocks():
     run_program('tmux kill-pane -a'.split(), check=False)
     pass
 
-def run_iobenchmark():
+def run_iobenchmark(ticket_number):
     """Run a read-only test for all detected disks."""
     aborted = False
     clear_screen()
@@ -469,10 +481,25 @@ def run_iobenchmark():
             TESTS['iobenchmark']['Results'][name] = report
 
             # Set CS/NS
-            if min(TESTS['iobenchmark']['Data'][name]['Read Rates']) <= IO_VARS['Threshold Fail']:
+            min_read = min(TESTS['iobenchmark']['Data'][name]['Read Rates'])
+            avg_read = sum(
+                TESTS['iobenchmark']['Data'][name]['Read Rates'])/len(
+                TESTS['iobenchmark']['Data'][name]['Read Rates'])
+            dev_rotational = dev['lsblk'].get('rota', None)
+            if dev_rotational == "0":
+                # Use SSD scale
+                thresh_min = IO_VARS['Threshold SSD Min']
+                thresh_high_avg = IO_VARS['Threshold SSD High Avg']
+                thresh_low_avg = IO_VARS['Threshold SSD Low Avg']
+            else:
+                # Use HDD scale
+                thresh_min = IO_VARS['Threshold HDD Min']
+                thresh_high_avg = IO_VARS['Threshold HDD High Avg']
+                thresh_low_avg = IO_VARS['Threshold HDD Low Avg']
+            if min_read <= thresh_min and avg_read <= thresh_high_avg:
                 TESTS['iobenchmark']['Status'][name] = 'NS'
-            elif min(TESTS['iobenchmark']['Data'][name]['Read Rates']) <= IO_VARS['Threshold Warn']:
-                TESTS['iobenchmark']['Status'][name] = 'Unknown'
+            elif avg_read <= thresh_low_avg:
+                TESTS['iobenchmark']['Status'][name] = 'NS'
             else:
                 TESTS['iobenchmark']['Status'][name] = 'CS'
 
@@ -487,7 +514,7 @@ def run_iobenchmark():
     run_program('tmux kill-pane -a'.split(), check=False)
     pass
 
-def run_mprime():
+def run_mprime(ticket_number):
     """Run Prime95 for MPRIME_LIMIT minutes while showing the temps."""
     aborted = False
     print_log('\nStart Prime95 test')
@@ -501,7 +528,7 @@ def run_mprime():
         TESTS['Progress Out']).split())
     run_program('tmux split-window -bd watch -c -n1 -t hw-sensors'.split())
     run_program('tmux resize-pane -y 3'.split())
-    
+
     # Start test
     run_program(['apple-fans', 'max'])
     try:
@@ -516,6 +543,9 @@ def run_mprime():
     except KeyboardInterrupt:
         # Catch CTRL+C
         aborted = True
+        TESTS['Prime95']['Status'] = 'Aborted'
+        print_warning('\nAborted.')
+        update_progress()
 
     # Save "final" temps
     run_program(
@@ -563,15 +593,7 @@ def run_mprime():
             TESTS['Prime95']['CS'] = bool(r)
 
     # Update status
-    if aborted:
-        TESTS['Prime95']['Status'] = 'Aborted'
-        print_warning('\nAborted.')
-        update_progress()
-        if TESTS['NVMe/SMART']['Enabled'] or TESTS['badblocks']['Enabled']:
-            if not ask('Proceed to next test?'):
-                run_program('tmux kill-pane -a'.split())
-                raise GenericError
-    else:
+    if not aborted:
         if TESTS['Prime95']['NS']:
             TESTS['Prime95']['Status'] = 'NS'
         elif TESTS['Prime95']['CS']:
@@ -580,10 +602,21 @@ def run_mprime():
             TESTS['Prime95']['Status'] = 'Unknown'
     update_progress()
 
+    if aborted:
+        if TESTS['NVMe/SMART']['Enabled'] or TESTS['badblocks']['Enabled']:
+            if not ask('Proceed to next test?'):
+                for name in TESTS['NVMe/SMART']['Devices'].keys():
+                    for t in ['NVMe/SMART', 'badblocks', 'iobenchmark']:
+                        cur_status = TESTS[t]['Status'][name]
+                        if cur_status not in ['CS', 'Denied', 'NS']:
+                            TESTS[t]['Status'][name] = 'Aborted'
+                run_program('tmux kill-pane -a'.split())
+                raise GenericError
+
     # Done
     run_program('tmux kill-pane -a'.split())
 
-def run_nvme_smart():
+def run_nvme_smart(ticket_number):
     """Run the built-in NVMe or SMART test for all detected disks."""
     aborted = False
     clear_screen()
@@ -605,6 +638,7 @@ def run_nvme_smart():
 
     # Run
     for name, dev in sorted(TESTS['NVMe/SMART']['Devices'].items()):
+        TESTS['NVMe/SMART']['Short Test'][name] = None
         cur_status = TESTS['NVMe/SMART']['Status'][name]
         if cur_status == 'OVERRIDE':
             # Skipping test per user request
@@ -635,7 +669,7 @@ def run_nvme_smart():
             run_program(
                 'sudo smartctl -t short /dev/{}'.format(name).split(),
                 check=False)
-            
+
             # Wait and show progress (in 10 second increments)
             for iteration in range(int(test_length*60/10)):
                 # Update SMART data
@@ -670,18 +704,24 @@ def run_nvme_smart():
                 'passed', False)
             if test_passed:
                 TESTS['NVMe/SMART']['Status'][name] = 'CS'
+                TESTS['NVMe/SMART']['Short Test'][name] = 'CS'
             else:
                 TESTS['NVMe/SMART']['Status'][name] = 'NS'
+                TESTS['NVMe/SMART']['Short Test'][name] = 'NS'
             update_progress()
             print_standard('Done', timestamp=False)
 
     # Done
     run_program('tmux kill-pane -a'.split(), check=False)
 
-def run_tests(tests):
+def run_tests(tests, ticket_number=None):
     """Run selected hardware test(s)."""
-    print_log('Starting Hardware Diagnostics')
-    print_log('\nRunning tests: {}'.format(', '.join(tests)))
+    clear_screen()
+    print_standard('Starting Hardware Diagnostics')
+    if ticket_number:
+        print_standard('    For Ticket #{}'.format(ticket_number))
+    print_standard(' ')
+    print_standard('Running tests: {}'.format(', '.join(tests)))
     # Enable selected tests
     for t in ['Prime95', 'NVMe/SMART', 'badblocks', 'iobenchmark']:
         TESTS[t]['Enabled'] = t in tests
@@ -690,7 +730,6 @@ def run_tests(tests):
     # Initialize
     if TESTS['NVMe/SMART']['Enabled'] or TESTS['badblocks']['Enabled'] or TESTS['iobenchmark']['Enabled']:
         print_standard(' ')
-        print_standard('Scanning disks...')
         scan_disks()
     update_progress()
 
@@ -698,22 +737,22 @@ def run_tests(tests):
     mprime_aborted = False
     if TESTS['Prime95']['Enabled']:
         try:
-            run_mprime()
+            run_mprime(ticket_number)
         except GenericError:
             mprime_aborted = True
     if not mprime_aborted:
         if TESTS['NVMe/SMART']['Enabled']:
-            run_nvme_smart()
+            run_nvme_smart(ticket_number)
         if TESTS['badblocks']['Enabled']:
-            run_badblocks()
+            run_badblocks(ticket_number)
         if TESTS['iobenchmark']['Enabled']:
-            run_iobenchmark()
-    
+            run_iobenchmark(ticket_number)
+
     # Show results
     show_results()
 
     # Open log
-    if not TESTS['NVMe/SMART']['Quick']:
+    if not TESTS['NVMe/SMART']['Quick'] and ENABLED_OPEN_LOGS:
         try:
             popen_program(['nohup', 'leafpad', global_vars['LogFile']], pipe=True)
         except Exception:
@@ -723,7 +762,6 @@ def run_tests(tests):
 
 def scan_disks(full_paths=False, only_path=None):
     """Scan for disks eligible for hardware testing."""
-    clear_screen()
 
     # Get eligible disk list
     cmd = ['lsblk', '-J', '-O']
@@ -743,13 +781,18 @@ def scan_disks(full_paths=False, only_path=None):
                 TESTS['iobenchmark']['Status'][d['name']] = 'Pending'
             else:
                 # Skip WizardKit devices
-                wk_label = '{}_LINUX'.format(KIT_NAME_SHORT)
-                if wk_label not in [c.get('label', '') for c in d.get('children', [])]:
+                skip_dev=False
+                wk_label_regex = r'{}_(LINUX|UFD)'.format(KIT_NAME_SHORT)
+                for c in d.get('children', []):
+                    r = re.search(
+                        wk_label_regex, c.get('label', ''), re.IGNORECASE)
+                    skip_dev = bool(r)
+                if not skip_dev:
                     devs[d['name']] = {'lsblk': d}
                     TESTS['NVMe/SMART']['Status'][d['name']] = 'Pending'
                     TESTS['badblocks']['Status'][d['name']] = 'Pending'
                     TESTS['iobenchmark']['Status'][d['name']] = 'Pending'
-    
+
     for dev, data in devs.items():
         # Get SMART attributes
         run_program(
@@ -758,7 +801,7 @@ def scan_disks(full_paths=False, only_path=None):
               dev).split(),
             check = False)
         data['smartctl'] = get_smart_details(dev)
-    
+
         # Get NVMe attributes
         if data['lsblk']['tran'] == 'nvme':
             cmd = 'sudo nvme smart-log /dev/{} -o json'.format(dev).split()
@@ -782,7 +825,12 @@ def scan_disks(full_paths=False, only_path=None):
             ]
         if data.get('NVMe Disk', False):
             crit_warn = data['nvme-cli'].get('critical_warning', 1)
-            data['Quick Health OK'] = True if crit_warn == 0 else False
+            if crit_warn == 0:
+                dev_name = data['lsblk']['name']
+                data['Quick Health OK'] = True
+                TESTS['NVMe/SMART']['Status'][dev_name] = 'CS'
+            else:
+                data['Quick Health OK'] = False
         elif set(wanted_smart_list).issubset(data['smartctl'].keys()):
             data['SMART Pass'] = data['smartctl'].get('smart_status', {}).get(
                 'passed', False)
@@ -791,7 +839,7 @@ def scan_disks(full_paths=False, only_path=None):
         else:
             data['Quick Health OK'] = False
             data['SMART Support'] = False
-            
+
         # Ask for manual overrides if necessary
         if TESTS['badblocks']['Enabled'] or TESTS['iobenchmark']['Enabled']:
             show_disk_details(data)
@@ -989,13 +1037,13 @@ def update_io_progress(percent, rate, progress_file):
     bar_color = COLORS['CLEAR']
     rate_color = COLORS['CLEAR']
     step = get_graph_step(rate, scale=32)
-    if rate < IO_VARS['Threshold Fail']:
+    if rate < IO_VARS['Threshold Graph Fail']:
         bar_color = COLORS['RED']
         rate_color = COLORS['YELLOW']
-    elif rate < IO_VARS['Threshold Warn']:
+    elif rate < IO_VARS['Threshold Graph Warn']:
         bar_color = COLORS['YELLOW']
         rate_color = COLORS['YELLOW']
-    elif rate > IO_VARS['Threshold Great']:
+    elif rate > IO_VARS['Threshold Graph Great']:
         bar_color = COLORS['GREEN']
         rate_color = COLORS['GREEN']
     line = '  {p:5.1f}%  {b_color}{b:<4}  {r_color}{r:6.1f} Mb/s{c}\n'.format(
