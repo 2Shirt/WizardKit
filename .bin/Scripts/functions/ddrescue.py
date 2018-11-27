@@ -323,7 +323,7 @@ class RecoveryState():
             elif not is_writable_filesystem(dest):
                 raise GenericError(
                     'Destination is mounted read-only, refusing to continue.')
-        
+
         # Safety checks passed
         self.block_pairs.append(BlockPair(self.mode, source, dest))
 
@@ -392,7 +392,7 @@ class RecoveryState():
         self.status_percent = get_formatted_status(
             label='Recovered:', data=self.rescued_percent)
         self.status_amount = get_formatted_status(
-            label='', data=human_readable_size(self.rescued))
+            label='', data=human_readable_size(self.rescued, decimals=2))
 
 
 # Functions
@@ -1084,7 +1084,7 @@ def select_path(skip_device=None):
                 except OSError:
                     raise GenericError(
                         'Failed to create folder "{}"'.format(s_path))
-            
+
             # Create DirObj
             selected_path = DirObj(s_path)
 
