@@ -372,12 +372,9 @@ def mount_network_share(server, read_write=False):
         username = server['User']
         password = server['Pass']
     if psutil.WINDOWS:
-        cmd = r'net use \\{ip}\{share} /user:{username} {password}'.format(
-            ip = server['IP'],
-            share = server['Share'],
-            username = username,
-            password = password)
-        cmd = cmd.split(' ')
+        cmd = [
+            'net', 'use', r'\\{IP}\{Share}'.format(**server),
+            '/user:{}'.format(username), password]
         warning = r'Failed to mount \\{Name}\{Share}, {IP} unreachable.'.format(
             **server)
         error = r'Failed to mount \\{Name}\{Share} ({IP})'.format(**server)
