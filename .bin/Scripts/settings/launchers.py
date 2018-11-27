@@ -556,7 +556,8 @@ LAUNCHERS = {
             'L_ITEM': 'IObitUninstallerPortable.exe',
             },
         },
-    }
+    },
+}
 
 if __name__ == '__main__':
     print("This file is not meant to be called directly.")
