@@ -279,9 +279,9 @@ rem Create VB script
 mkdir "%bin%\tmp" 2>nul
 echo Set UAC = CreateObject^("Shell.Application"^) > "%bin%\tmp\Elevate.vbs"
 if defined L_NCMD (
-    echo UAC.ShellExecute "%PYTHON%", """%script%""", "", "runas", 3 >> "%bin%\tmp\Elevate.vbs"
+    echo UAC.ShellExecute "%PYTHON%", """%script%"" %L_ARGS%", "", "runas", 3 >> "%bin%\tmp\Elevate.vbs"
 ) else (
-    echo UAC.ShellExecute "%CON%", "-run ""%PYTHON%"" ""%script%"" -new_console:n", "", "runas", 1 >> "%bin%\tmp\Elevate.vbs"
+    echo UAC.ShellExecute "%CON%", "-run ""%PYTHON%"" ""%script%"" %L_ARGS% -new_console:n", "", "runas", 1 >> "%bin%\tmp\Elevate.vbs"
 )
 
 rem Run
@@ -290,9 +290,9 @@ goto Exit
 
 :LaunchPyScriptUser
 if defined L_NCMD (
-    start "" "%PYTHON%" "%script%" || goto ErrorUnknown
+    start "" "%PYTHON%" "%script%" %L_ARGS% || goto ErrorUnknown
 ) else (
-    start "" "%CON%" -run "%PYTHON%" "%script%" -new_console:n || goto ErrorUnknown
+    start "" "%CON%" -run "%PYTHON%" "%script%" %L_ARGS% -new_console:n || goto ErrorUnknown
 )
 goto Exit
 
@@ -332,7 +332,7 @@ echo.   Executable  Working Dir  Program  Args   [L_7ZIP] [L_ELEV] [L__CLI]
 echo.   Folder      Folder       '.'             [L_7ZIP]
 echo.   Office      Year         Product         [L_7ZIP]
 echo.   PSScript    Scripts      Script          [L_7ZIP] [L_ELEV] [L_NCMD]
-echo.   PyScript    Scripts      Script          [L_7ZIP] [L_ELEV] [L_NCMD]
+echo.   PyScript    Scripts      Script   Args   [L_7ZIP] [L_ELEV] [L_NCMD]
 echo.   QuickBooks  Year         Product         [L_7ZIP]
 echo.
 echo.L_7ZIP:    Extra arguments for 7-Zip (in the :ExtractCBin label)

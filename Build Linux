@@ -229,7 +229,8 @@ function update_live_env() {
     ssh-keygen -b 4096 -C "$username@$hostname" -N "" -f "$SKEL_DIR/.ssh/id_rsa"
     echo 'rm /root/.ssh/id*' >> "$LIVE_DIR/airootfs/root/customize_airootfs.sh"
     echo 'rm /root/.zlogin' >> "$LIVE_DIR/airootfs/root/customize_airootfs.sh"
-    sed -r '/.*PermitRootLogin.*/d' "$LIVE_DIR/airootfs/root/customize_airootfs.sh"
+    sed -i -r '/.*PermitRootLogin.*/d' "$LIVE_DIR/airootfs/root/customize_airootfs.sh"
+    echo "sed -i -r '/.*PermitRootLogin.*/d' /etc/ssh/sshd_config" >> "$LIVE_DIR/airootfs/root/customize_airootfs.sh"
     cp "$ROOT_DIR/.linux_items/authorized_keys" "$SKEL_DIR/.ssh/authorized_keys"
     
     # Root user

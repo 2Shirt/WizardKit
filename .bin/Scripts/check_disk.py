@@ -9,7 +9,7 @@ sys.path.append(os.getcwd())
 from functions.repairs import *
 init_global_vars()
 os.system('title {}: Check Disk Tool'.format(KIT_NAME_FULL))
-global_vars['LogFile'] = r'{LogDir}\Check Disk.log'.format(**global_vars)
+set_log_file('Check Disk.log')
 
 if __name__ == '__main__':
     try:
@@ -45,7 +45,7 @@ if __name__ == '__main__':
                 cs=cs, other_results=other_results, repair=repair)
         else:
             abort()
-        
+
         # Done
         print_success('Done.')
         pause("Press Enter to exit...")

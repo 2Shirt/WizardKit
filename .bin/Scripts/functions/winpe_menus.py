@@ -90,7 +90,7 @@ def menu_backup():
         message = 'Assigning letters...',
         function = assign_volume_letters,
         other_results = other_results)
-    
+
     # Mount backup shares
     mount_backup_shares(read_write=True)
 
@@ -107,12 +107,12 @@ def menu_backup():
     else:
         print_error('ERROR: No disks found.')
         raise GenericAbort
-    
+
     # Select disk to backup
     disk = select_disk('For which disk are we creating backups?', disks)
     if not disk:
         raise GenericAbort
-    
+
     # "Prep" disk
     prep_disk_for_backup(destination, disk, backup_prefix)
 
@@ -150,7 +150,7 @@ def menu_backup():
     # Ask to proceed
     if (not ask('Proceed with backup?')):
         raise GenericAbort
-    
+
     # Backup partition(s)
     print_info('\n\nStarting task.\n')
     for par in disk['Partitions']:
@@ -163,7 +163,7 @@ def menu_backup():
         if not result['CS'] and not isinstance(result['Error'], GenericAbort):
             errors = True
             par['Error'] = result['Error']
-    
+
     # Verify backup(s)
     if disk['Valid Partitions']:
         print_info('\n\nVerifying backup images(s)\n')
@@ -270,7 +270,7 @@ def menu_setup():
 
     # Select the version of Windows to apply
     windows_version = select_windows_version()
-    
+
     # Find Windows image
     # NOTE: Reassign volume letters to ensure all devices are scanned
     try_and_print(
@@ -289,12 +289,12 @@ def menu_setup():
     else:
         print_error('ERROR: No disks found.')
         raise GenericAbort
-    
+
     # Select disk to use as the OS disk
     dest_disk = select_disk('To which disk are we installing Windows?', disks)
     if not dest_disk:
         raise GenericAbort
-    
+
     # "Prep" disk
     prep_disk_for_formatting(dest_disk)
 
@@ -323,10 +323,10 @@ def menu_setup():
             data = par['Display String'],
             warning = True)
     print_warning(dest_disk['Format Warnings'])
-    
+
     if (not ask('Is this correct?')):
         raise GenericAbort
-    
+
     # Safety check
     print_standard('\nSAFETY CHECK')
     print_warning('All data will be DELETED from the '
@@ -342,7 +342,7 @@ def menu_setup():
         function = remove_volume_letters,
         other_results = other_results,
         keep=windows_image['Letter'])
-   
+
     # Assign new letter for local source if necessary
     if windows_image['Local'] and windows_image['Letter'] in ['S', 'T', 'W']:
         new_letter = try_and_print(
@@ -377,13 +377,13 @@ def menu_setup():
         # We need to crash as the disk is in an unknown state
         print_error('ERROR: Failed to apply image.')
         raise GenericAbort
-    
+
     # Create Boot files
     try_and_print(
         message = 'Updating boot files...',
         function = update_boot_partition,
         other_results = other_results)
-    
+
     # Setup WinRE
     try_and_print(
         message = 'Updating recovery tools...',
@@ -392,8 +392,8 @@ def menu_setup():
         windows_version = windows_version)
 
     # Copy WinPE log(s)
-    source = r'{}\Info'.format(global_vars['ClientDir'])
-    dest = r'W:\{}\Info'.format(KIT_NAME_SHORT)
+    source = r'{}\Logs'.format(global_vars['ClientDir'])
+    dest = r'W:\{}\Logs\WinPE'.format(KIT_NAME_SHORT)
     shutil.copytree(source, dest)
 
     # Print summary

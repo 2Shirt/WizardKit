@@ -1,6 +1,6 @@
 #!/bin/env bash
 #
-## Calculate DPI and adjust display settings if necesary
+## Calculate DPI, update settings if necessary, then start desktop apps
 
 REGEX_XRANDR='^.* ([0-9]+)x([0-9]+)\+[0-9]+\+[0-9]+.* ([0-9]+)mm x ([0-9]+)mm.*$'
 REGEX_URXVT='(URxvt.geometry:\s+).*'
@@ -66,3 +66,29 @@ fi
 # Update URxvt (Always)
 urxvt_geometry="${width_urxvt}x${height_urxvt}+${offset_urxvt}+${offset_urxvt}"
 sed -i -r "s/${REGEX_URXVT}/\1${urxvt_geometry}/" "${HOME}/.Xresources"
+
+# Update X
+xset s off
+xset -dpms
+xrdb -merge $HOME/.Xresources
+
+# Start common desktop apps
+feh --bg-fill "$HOME/.wallpaper"
+compton --backend xrender --xrender-sync --xrender-sync-fence &
+sleep 1s
+x0vncserver -display :0 -passwordfile $HOME/.vnc/passwd -AlwaysShared &
+conky &
+nm-applet &
+volumeicon &
+
+# Start WM specific apps
+if fgrep -q "i3" /proc/cmdline; then
+  # i3
+  i3-msg restart
+else
+  # openbox
+  openbox --restart
+  tint2 &
+  cbatticon --hide-notification &
+fi
+

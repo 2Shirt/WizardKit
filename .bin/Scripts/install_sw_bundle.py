@@ -9,7 +9,7 @@ sys.path.append(os.getcwd())
 from functions.setup import *
 init_global_vars()
 os.system('title {}: SW Bundle Tool'.format(KIT_NAME_FULL))
-global_vars['LogFile'] = r'{LogDir}\Install SW Bundle.log'.format(**global_vars)
+set_log_file('Install SW Bundle.log')
 
 if __name__ == '__main__':
     try:
@@ -34,7 +34,7 @@ if __name__ == '__main__':
             answer_mse = ask('Install MSE?')
         else:
             answer_mse = False
-        
+
         print_info('Installing Programs')
         if answer_adobe_reader:
             try_and_print(message='Adobe Reader DC...',
@@ -62,3 +62,5 @@ if __name__ == '__main__':
         pass
     except:
         major_exception()
+
+# vim: sts=4 sw=4 ts=4

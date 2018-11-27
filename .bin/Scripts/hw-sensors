@@ -67,7 +67,11 @@ def get_feature_string(chip, feature):
     
     for sf in sfs:
         name = sf.name[skipname:].decode("utf-8").strip()
-        val = sensors.get_value(chip, sf.number)
+        try:
+            val = sensors.get_value(chip, sf.number)
+        except Exception:
+            # Ignore upstream sensor bugs and lie instead
+            val = -123456789
         if 'alarm' in name:
             # Skip
             continue

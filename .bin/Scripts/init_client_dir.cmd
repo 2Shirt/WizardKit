@@ -33,7 +33,7 @@ for /f "tokens=* usebackq" %%f in (`findstr KIT_NAME_SHORT "%SETTINGS%"`) do (
     set "KIT_NAME_SHORT=!_v:~0,-1!"
 )
 set "client_dir=%systemdrive%\%KIT_NAME_SHORT%"
-set "log_dir=%client_dir%\Info\%iso_date%"
+set "log_dir=%client_dir%\Logs\%iso_date%"
 
 :Flags
 set _backups=
@@ -45,7 +45,7 @@ set _transfer=
 for %%f in (%*) do (
     if /i "%%f" == "/DEBUG" (@echo on)
     if /i "%%f" == "/Backups" set _backups=True
-    if /i "%%f" == "/Info" set _info=True
+    if /i "%%f" == "/Logs" set _logs=True
     if /i "%%f" == "/Office" set _office=True
     if /i "%%f" == "/Quarantine" set _quarantine=True
     if /i "%%f" == "/QuickBooks" set _quickbooks=True
@@ -54,7 +54,9 @@ for %%f in (%*) do (
 
 :CreateDirs
 if defined _backups mkdir "%client_dir%\Backups">nul 2>&1
-if defined _info mkdir "%client_dir%\Info">nul 2>&1
+if defined _logs (
+    mkdir "%log_dir%\%KIT_NAME_FULL%">nul 2>&1
+    mkdir "%log_dir%\Tools">nul 2>&1)
 if defined _office mkdir "%client_dir%\Office">nul 2>&1
 if defined _quarantine mkdir "%client_dir%\Quarantine">nul 2>&1
 if defined _quickbooks mkdir "%client_dir%\QuickBooks">nul 2>&1

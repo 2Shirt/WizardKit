@@ -219,6 +219,7 @@ class DevObj(BaseObj):
                 sep='_' if self.label else '',
                 c_label=self.label)
         self.prefix = self.prefix.strip().replace(' ', '_')
+        self.prefix = self.prefix.strip().replace('/', '_')
 
 
 class DirObj(BaseObj):
@@ -322,7 +323,7 @@ class RecoveryState():
             elif not is_writable_filesystem(dest):
                 raise GenericError(
                     'Destination is mounted read-only, refusing to continue.')
-        
+
         # Safety checks passed
         self.block_pairs.append(BlockPair(self.mode, source, dest))
 
@@ -391,7 +392,7 @@ class RecoveryState():
         self.status_percent = get_formatted_status(
             label='Recovered:', data=self.rescued_percent)
         self.status_amount = get_formatted_status(
-            label='', data=human_readable_size(self.rescued))
+            label='', data=human_readable_size(self.rescued, decimals=2))
 
 
 # Functions
@@ -858,11 +859,14 @@ def run_ddrescue(state, pass_settings):
     height_ddrescue = height - height_smart - height_journal
 
     # Show SMART status
+    smart_dev = state.source_path
+    if state.source.parent:
+        smart_dev = state.source.parent
     smart_pane = tmux_splitw(
         '-bdvl', str(height_smart),
         '-PF', '#D',
         'watch', '--color', '--no-title', '--interval', '300',
-        'ddrescue-tui-smart-display', state.source_path)
+        'ddrescue-tui-smart-display', smart_dev)
 
     # Show systemd journal output
     journal_pane = tmux_splitw(
@@ -1080,7 +1084,7 @@ def select_path(skip_device=None):
                 except OSError:
                     raise GenericError(
                         'Failed to create folder "{}"'.format(s_path))
-            
+
             # Create DirObj
             selected_path = DirObj(s_path)
 

@@ -39,7 +39,7 @@ def extract_keys():
                     keys[product] = []
                 if key not in keys[product]:
                     keys[product].append(key)
-    
+
     # Done
     return keys
 

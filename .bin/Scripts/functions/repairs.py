@@ -24,11 +24,11 @@ def run_chkdsk_scan():
         raise GenericError
 
     # Save stderr
-    with open(r'{LogDir}\CHKDSK.err'.format(**global_vars), 'a') as f:
+    with open(r'{LogDir}\Tools\CHKDSK.err'.format(**global_vars), 'a') as f:
         for line in out.stderr.decode().splitlines():
             f.write(line.strip() + '\n')
     # Save stdout
-    with open(r'{LogDir}\CHKDSK.log'.format(**global_vars), 'a') as f:
+    with open(r'{LogDir}\Tools\CHKDSK.log'.format(**global_vars), 'a') as f:
         for line in out.stdout.decode().splitlines():
             f.write(line.strip() + '\n')
 
@@ -50,7 +50,7 @@ def run_dism(repair=False):
             cmd = [
                 'DISM', '/Online',
                 '/Cleanup-Image', '/RestoreHealth',
-                r'/LogPath:"{LogDir}\DISM_RestoreHealth.log"'.format(
+                r'/LogPath:"{LogDir}\Tools\DISM_RestoreHealth.log"'.format(
                     **global_vars),
                 '-new_console:n', '-new_console:s33V']
         else:
@@ -58,7 +58,7 @@ def run_dism(repair=False):
             cmd = [
                 'DISM', '/Online',
                 '/Cleanup-Image', '/ScanHealth',
-                r'/LogPath:"{LogDir}\DISM_ScanHealth.log"'.format(
+                r'/LogPath:"{LogDir}\Tools\DISM_ScanHealth.log"'.format(
                     **global_vars),
                 '-new_console:n', '-new_console:s33V']
         run_program(cmd, pipe=False, check=False, shell=True)
@@ -67,7 +67,7 @@ def run_dism(repair=False):
         cmd = [
             'DISM', '/Online',
             '/Cleanup-Image', '/CheckHealth',
-            r'/LogPath:"{LogDir}\DISM_CheckHealth.log"'.format(**global_vars)]
+            r'/LogPath:"{LogDir}\Tools\DISM_CheckHealth.log"'.format(**global_vars)]
         result = run_program(cmd, shell=True).stdout.decode()
         # Check result
         if 'no component store corruption detected' not in result.lower():
@@ -93,11 +93,11 @@ def run_sfc_scan():
         '/scannow']
     out = run_program(cmd, check=False)
     # Save stderr
-    with open(r'{LogDir}\SFC.err'.format(**global_vars), 'a') as f:
+    with open(r'{LogDir}\Tools\SFC.err'.format(**global_vars), 'a') as f:
         for line in out.stderr.decode('utf-8', 'ignore').splitlines():
             f.write(line.strip() + '\n')
     # Save stdout
-    with open(r'{LogDir}\SFC.log'.format(**global_vars), 'a') as f:
+    with open(r'{LogDir}\Tools\SFC.log'.format(**global_vars), 'a') as f:
         for line in out.stdout.decode('utf-8', 'ignore').splitlines():
             f.write(line.strip() + '\n')
     # Check result
@@ -116,7 +116,7 @@ def run_tdsskiller():
         **global_vars), exist_ok=True)
     cmd = [
         global_vars['Tools']['TDSSKiller'],
-        '-l', r'{LogDir}\TDSSKiller.log'.format(**global_vars),
+        '-l', r'{LogDir}\Tools\TDSSKiller.log'.format(**global_vars),
         '-qpath', r'{QuarantineDir}\TDSSKiller'.format(**global_vars),
         '-accepteula', '-accepteulaksn',
         '-dcexact', '-tdlfs']

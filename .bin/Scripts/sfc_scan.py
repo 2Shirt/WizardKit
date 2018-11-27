@@ -9,7 +9,7 @@ sys.path.append(os.getcwd())
 from functions.repairs import *
 init_global_vars()
 os.system('title {}: SFC Tool'.format(KIT_NAME_FULL))
-global_vars['LogFile'] = r'{LogDir}\SFC Tool.log'.format(**global_vars)
+set_log_file('SFC Tool.log')
 
 if __name__ == '__main__':
     try:
@@ -28,7 +28,7 @@ if __name__ == '__main__':
                 function=run_sfc_scan, other_results=other_results)
         else:
             abort()
-        
+
         # Done
         print_standard('\nDone.')
         pause('Press Enter to exit...')

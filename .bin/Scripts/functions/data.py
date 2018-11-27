@@ -126,11 +126,11 @@ def cleanup_transfer(dest_path):
     if not os.path.exists(dest_path):
         # Bail if dest_path was empty and removed
         raise Exception
-    
+
     # Fix attributes
     cmd = ['attrib', '-a', '-h', '-r', '-s', dest_path]
     run_program(cmd, check=False)
-    
+
     for root, dirs, files in os.walk(dest_path, topdown=False):
         for name in dirs:
             # Remove empty directories and junction points
@@ -153,7 +153,7 @@ def cleanup_transfer(dest_path):
                 except Exception:
                     pass
 
-def find_core_storage_volumes():
+def find_core_storage_volumes(device_path=None):
     """Try to create block devices for any Apple CoreStorage volumes."""
     corestorage_uuid = '53746f72-6167-11aa-aa11-00306543ecac'
     dmsetup_cmd_file = '{TmpDir}/dmsetup_command'.format(**global_vars)
@@ -162,6 +162,8 @@ def find_core_storage_volumes():
     cmd = [
         'lsblk', '--json', '--list', '--paths',
         '--output', 'NAME,PARTTYPE']
+    if device_path:
+        cmd.append(device_path)
     result = run_program(cmd)
     json_data = json.loads(result.stdout.decode())
     devs = json_data.get('blockdevices', [])
@@ -248,7 +250,9 @@ def get_mounted_volumes():
         mounted_volumes.extend(item.get('children', []))
     return {item['source']: item for item in mounted_volumes}
 
-def mount_volumes(all_devices=True, device_path=None, read_write=False):
+def mount_volumes(
+        all_devices=True, device_path=None,
+        read_write=False, core_storage=True):
     """Mount all detected filesystems."""
     report = {}
     cmd = [
@@ -257,9 +261,10 @@ def mount_volumes(all_devices=True, device_path=None, read_write=False):
     if not all_devices and device_path:
         # Only mount volumes for specific device
         cmd.append(device_path)
-    else:
-        # Check for Apple CoreStorage volumes first
-        find_core_storage_volumes()
+
+    # Check for Apple CoreStorage volumes first
+    if core_storage:
+        find_core_storage_volumes(device_path)
 
     # Get list of block devices
     result = run_program(cmd)
@@ -269,11 +274,14 @@ def mount_volumes(all_devices=True, device_path=None, read_write=False):
     # Get list of volumes
     volumes = {}
     for dev in devs:
+        if not dev.get('children', []):
+            volumes.update({dev['name']: dev})
         for child in dev.get('children', []):
-            volumes.update({child['name']: child})
+            if not child.get('children', []):
+                volumes.update({child['name']: child})
             for grandchild in child.get('children', []):
                 volumes.update({grandchild['name']: grandchild})
-    
+
     # Get list of mounted volumes
     mounted_volumes = get_mounted_volumes()
 
@@ -352,7 +360,7 @@ def mount_backup_shares(read_write=False):
         if server['Mounted']:
             print_warning(mounted_str)
             continue
-        
+
         mount_network_share(server, read_write)
 
 def mount_network_share(server, read_write=False):
@@ -364,12 +372,9 @@ def mount_network_share(server, read_write=False):
         username = server['User']
         password = server['Pass']
     if psutil.WINDOWS:
-        cmd = r'net use \\{ip}\{share} /user:{username} {password}'.format(
-            ip = server['IP'],
-            share = server['Share'],
-            username = username,
-            password = password)
-        cmd = cmd.split(' ')
+        cmd = [
+            'net', 'use', r'\\{IP}\{Share}'.format(**server),
+            '/user:{}'.format(username), password]
         warning = r'Failed to mount \\{Name}\{Share}, {IP} unreachable.'.format(
             **server)
         error = r'Failed to mount \\{Name}\{Share} ({IP})'.format(**server)
@@ -414,12 +419,12 @@ def run_fast_copy(items, dest):
     """Copy items to dest using FastCopy."""
     if not items:
         raise Exception
-    
+
     cmd = [global_vars['Tools']['FastCopy'], *FAST_COPY_ARGS]
-    cmd.append(r'/logfile={}\FastCopy.log'.format(global_vars['LogDir']))
+    cmd.append(r'/logfile={LogDir}\Tools\FastCopy.log'.format(**global_vars))
     cmd.extend(items)
     cmd.append('/to={}\\'.format(dest))
-    
+
     run_program(cmd)
 
 def run_wimextract(source, items, dest):
@@ -486,7 +491,7 @@ def list_source_items(source_obj, rel_path=None):
 
 def scan_source(source_obj, dest_path, rel_path='', interactive=True):
     """Scan source for files/folders to transfer, returns list.
-    
+
     This will scan the root and (recursively) any Windows.old folders."""
     selected_items = []
     win_olds = []
@@ -563,7 +568,7 @@ def scan_source(source_obj, dest_path, rel_path='', interactive=True):
             '{}{}{}'.format(dest_path, os.sep, old.name),
             rel_path=old.name,
             interactive=False))
-    
+
     # Done
     return selected_items
 
@@ -707,7 +712,7 @@ def select_source(backup_prefix):
                         item.name,                      # Image file
                         ),
                     'Source': item})
-    
+
     # Check for local sources
     print_standard('Scanning for local sources...')
     set_thread_error_mode(silent=True) # Prevents "No disk" popups
@@ -747,7 +752,7 @@ def select_source(backup_prefix):
                             '  Local', d.mountpoint, item.name),
                         'Sort': r'{}{}'.format(d.mountpoint, item.name),
                         'Source': item})
-                    
+
     set_thread_error_mode(silent=False) # Return to normal
 
     # Build Menu
@@ -775,7 +780,7 @@ def select_source(backup_prefix):
         umount_backup_shares()
         pause("Press Enter to exit...")
         exit_script()
-    
+
     # Sanity check
     if selected_source.is_file():
         # Image-Based
@@ -783,7 +788,7 @@ def select_source(backup_prefix):
             print_error('ERROR: Unsupported image: {}'.format(
                 selected_source.path))
             raise GenericError
-    
+
     # Done
     return selected_source
 
@@ -791,7 +796,7 @@ def select_volume(title='Select disk', auto_select=True):
     """Select disk from attached disks. returns dict."""
     actions =   [{'Name': 'Quit', 'Letter': 'Q'}]
     disks =     []
-    
+
     # Build list of disks
     set_thread_error_mode(silent=True) # Prevents "No disk" popups
     for d in psutil.disk_partitions():
@@ -812,11 +817,11 @@ def select_volume(title='Select disk', auto_select=True):
             info['Display Name'] = '{}  ({})'.format(info['Name'], free)
             disks.append(info)
     set_thread_error_mode(silent=False) # Return to normal
-    
+
     # Skip menu?
     if len(disks) == 1 and auto_select:
         return disks[0]
-    
+
     # Show menu
     selection = menu_select(title, main_entries=disks, action_entries=actions)
     if selection == 'Q':
@@ -826,12 +831,12 @@ def select_volume(title='Select disk', auto_select=True):
 
 def set_thread_error_mode(silent=True):
     """Disable or Enable Windows error message dialogs.
-    
+
     Disable when scanning for disks to avoid popups for empty cardreaders, etc
     """
     # Code borrowed from: https://stackoverflow.com/a/29075319
     kernel32 = ctypes.WinDLL('kernel32')
-    
+
     if silent:
         kernel32.SetThreadErrorMode(SEM_FAIL, ctypes.byref(SEM_NORMAL))
     else:

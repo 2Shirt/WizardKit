@@ -9,7 +9,7 @@ sys.path.append(os.getcwd())
 from functions.repairs import *
 init_global_vars()
 os.system('title {}: DISM helper Tool'.format(KIT_NAME_FULL))
-global_vars['LogFile'] = r'{LogDir}\DISM helper tool.log'.format(**global_vars)
+set_log_file('DISM Helper.log')
 
 if __name__ == '__main__':
     try:
@@ -46,7 +46,7 @@ if __name__ == '__main__':
                 other_results=other_results, repair=repair)
         else:
             abort()
-        
+
         # Done
         print_success('Done.')
         pause("Press Enter to exit...")

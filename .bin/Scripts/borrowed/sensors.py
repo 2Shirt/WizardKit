@@ -35,7 +35,7 @@ class feature(Structure):
     _fields_ = [("name", c_char_p),
                 ("number", c_int),
                 ("type", c_int)]
-    
+
     # sensors_feature_type
     IN = 0x00
     FAN = 0x01
@@ -71,10 +71,10 @@ COMPUTE_MAPPING = 4
 
 def init(cfg_file = None):
     file = _libc.fopen(cfg_file.encode("utf-8"), "r") if cfg_file is not None else None 
-    
+
     if _hdl.sensors_init(file) != 0:
         raise Exception("sensors_init failed")
-    
+
     if file is not None:
         _libc.fclose(file)
 
@@ -84,10 +84,10 @@ def cleanup():
 def parse_chip_name(orig_name):
     ret = chip_name()
     err= _hdl.sensors_parse_chip_name(orig_name.encode("utf-8"), byref(ret))
-    
+
     if err < 0:
         raise Exception(strerror(err))
-    
+
     return ret
 
 def strerror(errnum):
@@ -101,10 +101,10 @@ def get_detected_chips(match, nr):
     @return: (chip, next nr to query)
     """
     _nr = c_int(nr)
-    
+
     if match is not None:
         match = byref(match)
-    
+
     chip = _hdl.sensors_get_detected_chips(match, byref(_nr))
     chip = chip.contents if bool(chip) else None
     return chip, _nr.value
@@ -115,10 +115,10 @@ def chip_snprintf_name(chip, buffer_size=200):
     """
     ret = create_string_buffer(buffer_size)
     err = _hdl.sensors_snprintf_chip_name(ret, buffer_size, byref(chip))
-    
+
     if err < 0:
         raise Exception(strerror(err))
-        
+
     return ret.value.decode("utf-8")
 
 def do_chip_sets(chip):
@@ -128,7 +128,7 @@ def do_chip_sets(chip):
     err = _hdl.sensors_do_chip_sets(byref(chip))
     if err < 0:
         raise Exception(strerror(err))
-    
+
 def get_adapter_name(bus):
     return _hdl.sensors_get_adapter_name(byref(bus)).decode("utf-8")
 
@@ -177,60 +177,60 @@ class ChipIterator:
     def __init__(self, match = None):
         self.match = parse_chip_name(match) if match is not None else None
         self.nr = 0
-            
+
     def __iter__(self):
         return self
-     
+
     def __next__(self):
         chip, self.nr = get_detected_chips(self.match, self.nr)
-        
+
         if chip is None:
             raise StopIteration
-        
+
         return chip
-    
+
     def __del__(self):
         if self.match is not None:
             free_chip_name(self.match)
-    
+
     def next(self): # python2 compability
         return self.__next__()
-    
+
 class FeatureIterator:
     def __init__(self, chip):
         self.chip = chip
         self.nr = 0
-        
+
     def __iter__(self):
         return self
-        
+
     def __next__(self):
         feature, self.nr = get_features(self.chip, self.nr)
-        
+
         if feature is None:
             raise StopIteration
-        
+
         return feature
 
     def next(self): # python2 compability
         return self.__next__()
-    
+
 class SubFeatureIterator:
     def __init__(self, chip, feature):
         self.chip = chip
         self.feature = feature
         self.nr = 0
-    
+
     def __iter__(self):
         return self
-        
+
     def __next__(self):
         subfeature, self.nr = get_all_subfeatures(self.chip, self.feature, self.nr)
-        
+
         if subfeature is None:
             raise StopIteration
-        
+
         return subfeature
-    
+
     def next(self): # python2 compability
         return self.__next__()

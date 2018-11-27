@@ -14,13 +14,13 @@ REGEX_DISK_RAW = re.compile(r'Disk ID: 00000000', re.IGNORECASE)
 def assign_volume_letters():
     """Assign a volume letter to all available volumes."""
     remove_volume_letters()
-    
+
     # Write script
     script = []
     for vol in get_volumes():
         script.append('select volume {}'.format(vol['Number']))
         script.append('assign')
-    
+
     # Run
     run_diskpart(script)
 
@@ -35,7 +35,7 @@ def get_boot_mode():
             boot_mode = 'UEFI'
     except:
         boot_mode = 'Unknown'
-    
+
     return boot_mode
 
 def get_disk_details(disk):
@@ -44,7 +44,7 @@ def get_disk_details(disk):
     script = [
         'select disk {}'.format(disk['Number']),
         'detail disk']
-    
+
     # Run
     try:
         result = run_diskpart(script)
@@ -60,13 +60,13 @@ def get_disk_details(disk):
         tmp = [s.split(':') for s in tmp if ':' in s]
         # Add key/value pairs to the details variable and return dict
         details.update({key.strip(): value.strip() for (key, value) in tmp})
-    
+
     return details
-    
+
 def get_disks():
     """Get list of attached disks using DiskPart."""
     disks = []
-    
+
     try:
         # Run script
         result = run_diskpart(['list disk'])
@@ -79,7 +79,7 @@ def get_disks():
             num = tmp[0]
             size = human_readable_size(tmp[1])
             disks.append({'Number': num, 'Size': size})
-    
+
     return disks
 
 def get_partition_details(disk, partition):
@@ -89,7 +89,7 @@ def get_partition_details(disk, partition):
         'select disk {}'.format(disk['Number']),
         'select partition {}'.format(partition['Number']),
         'detail partition']
-    
+
     # Diskpart details
     try:
         # Run script
@@ -111,14 +111,14 @@ def get_partition_details(disk, partition):
         tmp = [s.split(':') for s in tmp if ':' in s]
         # Add key/value pairs to the details variable and return dict
         details.update({key.strip(): value.strip() for (key, value) in tmp})
-    
+
     # Get MBR type / GPT GUID for extra details on "Unknown" partitions
     guid = partition_uids.lookup_guid(details.get('Type'))
     if guid:
         details.update({
             'Description':  guid.get('Description', '')[:29],
             'OS':           guid.get('OS', 'Unknown')[:27]})
-    
+
     if 'Letter' in details:
         # Disk usage
         try:
@@ -128,7 +128,7 @@ def get_partition_details(disk, partition):
             details['Error'] = err.strerror
         else:
             details['Used Space'] = human_readable_size(tmp.used)
-        
+
         # fsutil details
         cmd = [
             'fsutil',
@@ -151,14 +151,14 @@ def get_partition_details(disk, partition):
             tmp = [s.split(':') for s in tmp if ':' in s]
             # Add key/value pairs to the details variable and return dict
             details.update({key.strip(): value.strip() for (key, value) in tmp})
-        
+
     # Set Volume Name
     details['Name'] = details.get('Volume Name', '')
-    
+
     # Set FileSystem Type
     if details.get('FileSystem', '') not in ['RAW', 'Unknown']:
         details['FileSystem'] = details.get('File System Name', 'Unknown')
-    
+
     return details
 
 def get_partitions(disk):
@@ -167,7 +167,7 @@ def get_partitions(disk):
     script = [
         'select disk {}'.format(disk['Number']),
         'list partition']
-    
+
     try:
         # Run script
         result = run_diskpart(script)
@@ -181,7 +181,7 @@ def get_partitions(disk):
             num = tmp[0]
             size = human_readable_size(tmp[1])
             partitions.append({'Number': num, 'Size': size})
-    
+
     return partitions
 
 def get_table_type(disk):
@@ -190,7 +190,7 @@ def get_table_type(disk):
     script = [
         'select disk {}'.format(disk['Number']),
         'uniqueid disk']
-    
+
     try:
         result = run_diskpart(script)
     except subprocess.CalledProcessError:
@@ -203,7 +203,7 @@ def get_table_type(disk):
             part_type = 'MBR'
         elif REGEX_DISK_RAW.search(output):
             part_type = 'RAW'
-    
+
     return part_type
 
 def get_volumes():
@@ -218,7 +218,7 @@ def get_volumes():
         output = result.stdout.decode().strip()
         for tmp in re.findall(r'Volume (\d+)\s+([A-Za-z]?)\s+', output):
             vols.append({'Number': tmp[0], 'Letter': tmp[1]})
-    
+
     return vols
 
 def is_bad_partition(par):
@@ -229,7 +229,7 @@ def prep_disk_for_formatting(disk=None):
     """Gather details about the disk and its partitions."""
     disk['Format Warnings'] = '\n'
     width = len(str(len(disk['Partitions'])))
-    
+
     # Bail early
     if disk is None:
         raise Exception('Disk not provided.')
@@ -242,7 +242,7 @@ def prep_disk_for_formatting(disk=None):
     else:
         if (ask("Setup Windows to use BIOS/Legacy booting?")):
             disk['Use GPT'] = False
-    
+
     # Set Display and Warning Strings
     if len(disk['Partitions']) == 0:
         disk['Format Warnings'] += 'No partitions found\n'
@@ -252,7 +252,7 @@ def prep_disk_for_formatting(disk=None):
             width = width,
             size = partition['Size'],
             fs = partition['FileSystem'])
-        
+
         if is_bad_partition(partition):
             # Set display string using partition description & OS type
             display += '\t\t{q}{name}{q}\t{desc} ({os})'.format(
@@ -290,13 +290,13 @@ def remove_volume_letters(keep=None):
     """Remove all assigned volume letters using DiskPart."""
     if not keep:
         keep = ''
-    
+
     script = []
     for vol in get_volumes():
         if vol['Letter'].upper() != keep.upper():
             script.append('select volume {}'.format(vol['Number']))
             script.append('remove noerr')
-    
+
     # Run script
     try:
         run_diskpart(script)
@@ -306,12 +306,12 @@ def remove_volume_letters(keep=None):
 def run_diskpart(script):
     """Run DiskPart script."""
     tempfile = r'{}\diskpart.script'.format(global_vars['Env']['TMP'])
-    
+
     # Write script
     with open(tempfile, 'w') as f:
         for line in script:
             f.write('{}\n'.format(line))
-    
+
     # Run script
     cmd = [
         r'{}\Windows\System32\diskpart.exe'.format(
@@ -335,7 +335,7 @@ def scan_disks():
 
         # Get partition info for disk
         disk['Partitions'] = get_partitions(disk)
-        
+
         for partition in disk['Partitions']:
             # Get partition details
             partition.update(get_partition_details(disk, partition))
@@ -364,12 +364,12 @@ def select_disk(title='Which disk?', disks=[]):
                 fs = partition['FileSystem'])
             if partition['Name']:
                 p_name += '\t"{}"'.format(partition['Name'])
-            
+
             # Show unsupported partition(s)
             if is_bad_partition(partition):
                 p_name = '{YELLOW}{p_name}{CLEAR}'.format(
                     p_name=p_name, **COLORS)
-            
+
             display_name += '\n\t\t\t{}'.format(p_name)
         if not disk['Partitions']:
             display_name += '\n\t\t\t{}No partitions found.{}'.format(

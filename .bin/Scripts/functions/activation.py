@@ -59,7 +59,7 @@ def windows_is_activated():
         ['cscript', '//nologo', SLMGR, '/xpr'], check=False,
         stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     activation_string = activation_string.stdout.decode()
-    
+
     return bool(activation_string and 'permanent' in activation_string)
 
 if __name__ == '__main__':

@@ -54,7 +54,7 @@ LAUNCHERS = {
             'L_PATH': 'FastCopy',
             'L_ITEM': 'FastCopy.exe',
             'L_ARGS': (
-                r' /logfile=%log_dir%\FastCopy.log'
+                r' /logfile=%log_dir%\Tools\FastCopy.log'
                 r' /cmd=noexist_only'
                 r' /utf8'
                 r' /skip_empty_dir'
@@ -94,7 +94,7 @@ LAUNCHERS = {
                 ),
             'L_ELEV': 'True',
             'Extra Code': [
-                r'call "%bin%\Scripts\init_client_dir.cmd" /Info /Transfer',
+                r'call "%bin%\Scripts\init_client_dir.cmd" /Logs /Transfer',
                 ],
             },
         'FastCopy': {
@@ -102,7 +102,7 @@ LAUNCHERS = {
             'L_PATH': 'FastCopy',
             'L_ITEM': 'FastCopy.exe',
             'L_ARGS': (
-                r' /logfile=%log_dir%\FastCopy.log'
+                r' /logfile=%log_dir%\Tools\FastCopy.log'
                 r' /cmd=noexist_only'
                 r' /utf8'
                 r' /skip_empty_dir'
@@ -141,7 +141,7 @@ LAUNCHERS = {
                 r' /to=%client_dir%\Transfer_%iso_date%\ '
                 ),
             'Extra Code': [
-                r'call "%bin%\Scripts\init_client_dir.cmd" /Info /Transfer',
+                r'call "%bin%\Scripts\init_client_dir.cmd" /Logs /Transfer',
                 ],
             },
         'KVRT': {
@@ -212,7 +212,6 @@ LAUNCHERS = {
                 r')',
                 ],
             },
-        },
     r'Diagnostics\Extras': {
         'AIDA64': {
             'L_TYPE': 'Executable',
@@ -251,10 +250,10 @@ LAUNCHERS = {
             'L_TYPE': 'Executable',
             'L_PATH': 'erunt',
             'L_ITEM': 'ERUNT.EXE',
-            'L_ARGS': '%client_dir%\Backups\%iso_date%\Registry sysreg curuser otherusers',
+            'L_ARGS': '%client_dir%\Backups\Registry\%iso_date% sysreg curuser otherusers',
             'L_ELEV': 'True',
             'Extra Code': [
-                r'call "%bin%\Scripts\init_client_dir.cmd" /Info',
+                r'call "%bin%\Scripts\init_client_dir.cmd" /Logs',
                 ],
             },
         'HitmanPro': {
@@ -262,7 +261,7 @@ LAUNCHERS = {
             'L_PATH': 'HitmanPro',
             'L_ITEM': 'HitmanPro.exe',
             'Extra Code': [
-                r'call "%bin%\Scripts\init_client_dir.cmd" /Info',
+                r'call "%bin%\Scripts\init_client_dir.cmd" /Logs',
                 ],
             },
         'HWiNFO (Sensors)': {
@@ -455,11 +454,6 @@ LAUNCHERS = {
             'L_ITEM': 'WizTree.exe',
             'L_ELEV': 'True',
             },
-        'Update Kit': {
-            'L_TYPE': 'PyScript',
-            'L_PATH': 'Scripts',
-            'L_ITEM': 'update_kit.py',
-            },
         'XMPlay': {
             'L_TYPE': 'Executable',
             'L_PATH': 'XMPlay',
@@ -524,8 +518,10 @@ LAUNCHERS = {
             'L_TYPE': 'Executable',
             'L_PATH': 'RKill',
             'L_ITEM': 'RKill.exe',
+            'L_ARGS': '-s -l %log_dir%\Tools\RKill.log',
+            'L_ELEV': 'True',
             'Extra Code': [
-                r'call "%bin%\Scripts\init_client_dir.cmd" /Info',
+                r'call "%bin%\Scripts\init_client_dir.cmd" /Logs',
                 ],
             },
         'SFC Scan': {
@@ -539,7 +535,7 @@ LAUNCHERS = {
             'L_PATH': 'TDSSKiller',
             'L_ITEM': 'TDSSKiller.exe',
             'L_ARGS': (
-                r' -l %log_dir%\TDSSKiller.log'
+                r' -l %log_dir%\Tools\TDSSKiller.log'
                 r' -qpath %q_dir%'
                 r' -accepteula'
                 r' -accepteulaksn'
@@ -560,7 +556,8 @@ LAUNCHERS = {
             'L_ITEM': 'IObitUninstallerPortable.exe',
             },
         },
-    }
+    },
+}
 
 if __name__ == '__main__':
     print("This file is not meant to be called directly.")

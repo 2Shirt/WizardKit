@@ -22,7 +22,7 @@ if __name__ == '__main__':
 
         # Mount
         if is_connected():
-            mount_backup_shares()
+            mount_backup_shares(read_write=True)
         else:
             # Couldn't connect
             print_error('ERROR: No network connectivity.')

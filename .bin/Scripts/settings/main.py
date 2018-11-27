@@ -1,14 +1,15 @@
 # Wizard Kit: Settings - Main / Branding
 
 # Features
-ENABLED_UPLOAD_DATA = False
+ENABLED_OPEN_LOGS = False
 ENABLED_TICKET_NUMBERS = False
+ENABLED_UPLOAD_DATA = False
 
 # STATIC VARIABLES (also used by BASH and BATCH files)
 ## NOTE: There are no spaces around the = for easier parsing in BASH and BATCH
 # Main Kit
 ARCHIVE_PASSWORD='Abracadabra'
-KIT_NAME_FULL='Wizard Kit'
+KIT_NAME_FULL='WizardKit'
 KIT_NAME_SHORT='WK'
 SUPPORT_MESSAGE='Please let 2Shirt know by opening an issue on GitHub'
 # Live Linux
@@ -19,10 +20,10 @@ TECH_PASSWORD='Abracadabra'
 OFFICE_SERVER_IP='10.0.0.10'
 QUICKBOOKS_SERVER_IP='10.0.0.10'
 # Time Zones
-LINUX_TIME_ZONE='America/Los_Angeles'     # See 'timedatectl list-timezones' for valid values
-WINDOWS_TIME_ZONE='Pacific Standard Time' # See 'tzutil /l' for valid values
+LINUX_TIME_ZONE='America/Denver'           # See 'timedatectl list-timezones' for valid values
+WINDOWS_TIME_ZONE='Mountain Standard Time' # See 'tzutil /l' for valid values
 # WiFi
-WIFI_SSID='SomeWifi'
+WIFI_SSID='SomeWiFi'
 WIFI_PASSWORD='Abracadabra'
 
 # SERVER VARIABLES

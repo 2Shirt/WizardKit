@@ -17,7 +17,7 @@ call :SetTitle Launcher
 rem EXTRA_CODE
 
 :DefineLaunch
-:: See %bin%\SCripts\Launch.cmd for details under :Usage label
+:: See %bin%\Scripts\Launch.cmd for details under :Usage label
 set L_TYPE=
 set L_PATH=
 set L_ITEM=

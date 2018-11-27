@@ -2,6 +2,8 @@
 
 from functions.common import *
 
+from operator import itemgetter
+
 # Define other_results for later try_and_print
 browser_data = {}
 other_results = {
@@ -101,16 +103,63 @@ SUPPORTED_BROWSERS = {
         },
     }
 
+def archive_all_users():
+    """Create backups for all browsers for all users."""
+    users_root = r'{}\Users'.format(global_vars['Env']['SYSTEMDRIVE'])
+    user_envs = []
+
+    # Build list of valid users
+    for user_name in os.listdir(users_root):
+        valid_user = True
+        if user_name in ('Default', 'Default User'):
+            # Skip default users
+            continue
+        user_path = os.path.join(users_root, user_name)
+        appdata_local = os.path.join(user_path, r'AppData\Local')
+        appdata_roaming = os.path.join(user_path, r'AppData\Roaming')
+        valid_user &= os.path.exists(appdata_local)
+        valid_user &= os.path.exists(appdata_roaming)
+        if valid_user:
+            user_envs.append({
+                'USERNAME': user_name,
+                'USERPROFILE': user_path,
+                'APPDATA': appdata_roaming,
+                'LOCALAPPDATA': appdata_local})
+
+    # Backup browsers for all valid users
+    print_info('Backing up browsers')
+    for fake_env in sorted(user_envs, key=itemgetter('USERPROFILE')):
+        print_standard('    {}'.format(fake_env['USERNAME']))
+        for b_k, b_v in sorted(SUPPORTED_BROWSERS.items()):
+            if b_k == 'Mozilla Firefox Dev':
+                continue
+            source_path = b_v['user_data_path'].format(**fake_env)
+            if not os.path.exists(source_path):
+                continue
+            source_items = source_path + '*'
+            archive_path = r'{BackupDir}\Browsers ({USERNAME})\{Date}'.format(
+                **global_vars, **fake_env)
+            os.makedirs(archive_path, exist_ok=True)
+            archive_path += r'\{}.7z'.format(b_k)
+            cmd = [
+                global_vars['Tools']['SevenZip'],
+                'a', '-aoa', '-bso0', '-bse0', '-mx=1',
+                archive_path, source_items]
+            try_and_print(message='{}...'.format(b_k),
+                function=run_program, cmd=cmd)
+        print_standard(' ')
+
 def archive_browser(name):
     """Create backup of Browser saved in the BackupDir."""
     source = '{}*'.format(browser_data[name]['user_data_path'])
-    dest = r'{BackupDir}\Browsers ({USERNAME})'.format(
+    dest = r'{BackupDir}\Browsers ({USERNAME})\{Date}'.format(
         **global_vars, **global_vars['Env'])
     archive = r'{}\{}.7z'.format(dest, name)
     os.makedirs(dest, exist_ok=True)
     cmd = [
         global_vars['Tools']['SevenZip'],
         'a', '-aoa', '-bso0', '-bse0', '-mx=1',
+        '-mhe=on', '-p{}'.format(ARCHIVE_PASSWORD),
         archive, source]
     run_program(cmd)
 
@@ -138,7 +187,7 @@ def clean_chromium_profile(profile):
 
 def clean_internet_explorer(**kwargs):
     """Uses the built-in function to reset IE and sets the homepage.
-    
+
     NOTE: kwargs set but unused as a workaround."""
     kill_process('iexplore.exe')
     run_program(['rundll32.exe', 'inetcpl.cpl,ResetIEtoDefaults'], check=False)
@@ -182,11 +231,11 @@ def clean_mozilla_profile(profile):
 def get_browser_details(name):
     """Get installation status and profile details for all supported browsers."""
     browser = SUPPORTED_BROWSERS[name].copy()
-    
+
     # Update user_data_path
     browser['user_data_path'] = browser['user_data_path'].format(
         **global_vars['Env'])
-    
+
     # Find executable (if multiple files are found, the last one is used)
     exe_path = None
     num_installs = 0
@@ -197,7 +246,7 @@ def get_browser_details(name):
         if os.path.exists(test_path):
             num_installs += 1
             exe_path = test_path
-    
+
     # Find profile(s)
     profiles = []
     if browser['base'] == 'ie':
@@ -225,12 +274,12 @@ def get_browser_details(name):
             profiles.extend(
                 get_mozilla_profiles(
                     search_path=browser['user_data_path'], dev=dev))
-            
+
     elif 'Opera' in name:
         if os.path.exists(browser['user_data_path']):
             profiles.append(
                 {'name': 'Default', 'path': browser['user_data_path']})
-    
+
     # Get homepages
     if browser['base'] == 'ie':
         # IE is set to only have one profile above
@@ -239,14 +288,14 @@ def get_browser_details(name):
         for profile in profiles:
             prefs_path = r'{path}\prefs.js'.format(**profile)
             profile['homepages'] = get_mozilla_homepages(prefs_path=prefs_path)
-    
+
     # Add to browser_data
     browser_data[name] = browser
     browser_data[name].update({
         'exe_path': exe_path,
         'profiles': profiles,
         })
-    
+
     # Raise installation warnings (if any)
     if num_installs == 0:
         raise NotInstalledError
@@ -305,7 +354,7 @@ def get_mozilla_homepages(prefs_path):
                 homepages = search.group(1).split('|')
     except Exception:
         pass
-    
+
     return homepages
 
 def get_mozilla_profiles(search_path, dev=False):
@@ -332,9 +381,11 @@ def get_mozilla_profiles(search_path, dev=False):
 
     return profiles
 
-def install_adblock(indent=8, width=32):
+def install_adblock(indent=8, width=32, just_firefox=False):
     """Install adblock for all supported browsers."""
     for browser in sorted(browser_data):
+        if just_firefox and browser_data[browser]['base'] != 'mozilla':
+            continue
         exe_path = browser_data[browser].get('exe_path', None)
         function=run_program
         if not exe_path:
@@ -362,7 +413,7 @@ def install_adblock(indent=8, width=32):
                         winreg.QueryValue(HKLM, UBO_EXTRA_CHROME_REG)
                     except FileNotFoundError:
                         urls.append(UBO_EXTRA_CHROME)
-                    
+
                     if len(urls) == 0:
                         urls = ['chrome://extensions']
                 elif 'Opera' in browser:
@@ -370,7 +421,7 @@ def install_adblock(indent=8, width=32):
                 else:
                     urls.append(UBO_CHROME)
                     urls.append(UBO_EXTRA_CHROME)
-            
+
             elif browser_data[browser]['base'] == 'mozilla':
                 # Check for system extensions
                 try:
@@ -383,11 +434,11 @@ def install_adblock(indent=8, width=32):
                         urls = ['about:addons']
                     else:
                         urls = [UBO_MOZILLA]
-            
+
             elif browser_data[browser]['base'] == 'ie':
                 urls.append(IE_GALLERY)
                 function=popen_program
-            
+
             # By using check=False we're skipping any return codes so
             # it should only fail if the program can't be run
             #   (or can't be found).
@@ -400,7 +451,7 @@ def install_adblock(indent=8, width=32):
 
 def list_homepages(indent=8, width=32):
     """List current homepages for reference."""
-    
+
     for browser in [k for k, v in sorted(browser_data.items()) if v['exe_path']]:
         # Skip Chromium-based browsers
         if browser_data[browser]['base'] == 'chromium':
@@ -410,7 +461,7 @@ def list_homepages(indent=8, width=32):
                 end='', flush=True)
             print_warning('Not implemented', timestamp=False)
             continue
-        
+
         # All other browsers
         print_info('{indent}{browser:<{width}}'.format(
             indent=' '*indent, width=width, browser=browser+'...'))
@@ -444,9 +495,11 @@ def reset_browsers(indent=8, width=32):
                 indent=indent, width=width, function=function,
                 other_results=other_results, profile=profile)
 
-def scan_for_browsers():
+def scan_for_browsers(just_firefox=False):
     """Scan system for any supported browsers."""
-    for name in sorted(SUPPORTED_BROWSERS):
+    for name, details in sorted(SUPPORTED_BROWSERS.items()):
+        if just_firefox and details['base'] != 'mozilla':
+            continue
         try_and_print(message='{}...'.format(name),
             function=get_browser_details, cs='Detected',
             other_results=other_results, name=name)

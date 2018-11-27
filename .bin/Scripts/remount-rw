@@ -18,6 +18,4 @@ if udevil mount $DEVICE; then
 else
     echo "Failed"
 fi
-
-sleep 2s
 exit 0

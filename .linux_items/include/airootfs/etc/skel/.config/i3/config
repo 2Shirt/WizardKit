@@ -319,3 +319,5 @@ bar {
         status_command      i3status
         height              26
 }
+
+exec --no-startup-id /home/tech/.update_x

@@ -23,6 +23,9 @@ SOURCE_URLS = {
     'Intel SSD Toolbox': r'https://downloadmirror.intel.com/27656/eng/Intel%20SSD%20Toolbox%20-%20v3.5.2.exe',
     'IOBit_Uninstaller': 'https://portableapps.duckduckgo.com/IObitUninstallerPortable_7.5.0.7.paf.exe',
     'KVRT': 'http://devbuilds.kaspersky-labs.com/devbuilds/KVRT/latest/full/KVRT.exe',
+    'Macs Fan Control': 'https://www.crystalidea.com/downloads/macsfancontrol_setup.exe',
+    'NirCmd32': 'https://www.nirsoft.net/utils/nircmd.zip',
+    'NirCmd64': 'https://www.nirsoft.net/utils/nircmd-x64.zip',
     'NotepadPlusPlus': 'https://notepad-plus-plus.org/repository/7.x/7.5.8/npp.7.5.8.bin.minimalist.7z',
     'Office Deployment Tool 2016': 'https://download.microsoft.com/download/2/7/A/27AF1BE6-DD20-4CB4-B154-EBAB8A7D4A7E/officedeploymenttool_10810.33603.exe',
     'ProduKey32': 'http://www.nirsoft.net/utils/produkey.zip',
@@ -193,6 +196,7 @@ RST_SOURCES = {
     'SetupRST_16.5.exe': 'https://downloadmirror.intel.com/27984/eng/SetupRST.exe',
     }
 
-
 if __name__ == '__main__':
     print("This file is not meant to be called directly.")
+
+# vim: sts=4 sw=4 ts=4 tw=0 nowrap

@@ -32,7 +32,8 @@ COLORS = {
     'BLUE': '\033[34m'
 }
 try:
-    HKU = winreg.HKEY_USERS
+    HKU =  winreg.HKEY_USERS
+    HKCR = winreg.HKEY_CLASSES_ROOT
     HKCU = winreg.HKEY_CURRENT_USER
     HKLM = winreg.HKEY_LOCAL_MACHINE
 except NameError:
@@ -64,10 +65,22 @@ class NotInstalledError(Exception):
 class NoProfilesError(Exception):
     pass
 
+class OSInstalledLegacyError(Exception):
+    pass
+
 class PathNotFoundError(Exception):
     pass
 
 class UnsupportedOSError(Exception):
+    pass
+
+class SecureBootDisabledError(Exception):
+    pass
+
+class SecureBootNotAvailError(Exception):
+    pass
+
+class SecureBootUnknownError(Exception):
     pass
 
 # General functions
@@ -155,14 +168,13 @@ def exit_script(return_value=0):
     # Remove dirs (if empty)
     for dir in ['BackupDir', 'LogDir', 'TmpDir']:
         try:
-            dir = global_vars[dir]
-            os.rmdir(dir)
+            os.rmdir(global_vars[dir])
         except Exception:
             pass
 
     # Open Log (if it exists)
     log = global_vars.get('LogFile', '')
-    if log and os.path.exists(log) and psutil.WINDOWS:
+    if log and os.path.exists(log) and psutil.WINDOWS and ENABLED_OPEN_LOGS:
         try:
             extract_item('NotepadPlusPlus', silent=True)
             popen_program(
@@ -271,7 +283,7 @@ def human_readable_size(size, decimals=0):
         units = 'Kb'
     else:
         units = ' b'
-    
+
     # Return
     return '{size:>{width}.{decimals}f} {units}'.format(
         size=size, width=width, decimals=decimals, units=units)
@@ -462,7 +474,7 @@ def run_program(cmd, args=[], check=True, pipe=True, shell=False):
 
 def set_title(title='~Some Title~'):
     """Set title.
-    
+
     Used for window title and menu titles."""
     global_vars['Title'] = title
     os.system('title {}'.format(title))
@@ -487,6 +499,8 @@ def sleep(seconds=2):
 
 def stay_awake():
     """Prevent the system from sleeping or hibernating."""
+    # DISABLED due to VCR2008 dependency
+    return
     # Bail if caffeine is already running
     for proc in psutil.process_iter():
         if proc.name() == 'caffeine.exe':
@@ -494,7 +508,7 @@ def stay_awake():
     # Extract and run
     extract_item('Caffeine', silent=True)
     try:
-        popen_program(global_vars['Tools']['Caffeine'])
+        popen_program([global_vars['Tools']['Caffeine']])
     except Exception:
         print_error('ERROR: No caffeine available.')
         print_warning('Please set the power setting to High Performance.')
@@ -566,7 +580,7 @@ def try_and_print(message='Trying...',
 
 def upload_crash_details():
     """Upload log and runtime data to the CRASH_SERVER.
-    
+
     Intended for uploading to a public Nextcloud share."""
     if not ENABLED_UPLOAD_DATA:
         raise GenericError
@@ -589,9 +603,10 @@ global_vars: {}'''.format(f.read(), sys.argv, global_vars)
                     CRASH_SERVER['Url'],
                     global_vars.get('Date-Time', 'Unknown Date-Time'),
                     filename)
-                r = requests.put(url, data=data,
-                    headers = {'X-Requested-With': 'XMLHttpRequest'},
-                    auth = (CRASH_SERVER['User'], CRASH_SERVER['Pass']))
+                r = requests.put(
+                    url, data=data,
+                    headers={'X-Requested-With': 'XMLHttpRequest'},
+                    auth=(CRASH_SERVER['User'], CRASH_SERVER['Pass']))
                 # Raise exception if upload NS
                 if not r.ok:
                     raise Exception
@@ -648,7 +663,7 @@ def init_global_vars():
 def check_os():
     """Set OS specific variables."""
     tmp = {}
-    
+
     # Query registry
     path = r'SOFTWARE\Microsoft\Windows NT\CurrentVersion'
     with winreg.OpenKey(HKLM, path) as key:
@@ -697,7 +712,7 @@ def check_os():
     tmp['DisplayName'] = '{} x{}'.format(tmp['Name'], tmp['Arch'])
     if tmp['Notes']:
         tmp['DisplayName'] += ' ({})'.format(tmp['Notes'])
-    
+
     global_vars['OS'] = tmp
 
 def check_tools():
@@ -714,7 +729,7 @@ def check_tools():
 
 def clean_env_vars():
     """Remove conflicting global_vars and env variables.
-    
+
     This fixes an issue where both global_vars and
     global_vars['Env'] are expanded at the same time."""
     for key in global_vars.keys():
@@ -740,6 +755,9 @@ def make_tmp_dirs():
     """Make temp directories."""
     os.makedirs(global_vars['BackupDir'], exist_ok=True)
     os.makedirs(global_vars['LogDir'], exist_ok=True)
+    os.makedirs(r'{}\{}'.format(
+        global_vars['LogDir'], KIT_NAME_FULL), exist_ok=True)
+    os.makedirs(r'{}\Tools'.format(global_vars['LogDir']), exist_ok=True)
     os.makedirs(global_vars['TmpDir'], exist_ok=True)
 
 def set_common_vars():
@@ -755,11 +773,9 @@ def set_common_vars():
         **global_vars)
     global_vars['ClientDir'] =          r'{SYSTEMDRIVE}\{prefix}'.format(
         prefix=KIT_NAME_SHORT, **global_vars['Env'])
-    global_vars['BackupDir'] =          r'{ClientDir}\Backups\{Date}'.format(
+    global_vars['BackupDir'] =          r'{ClientDir}\Backups'.format(
         **global_vars)
-    global_vars['LogDir'] =             r'{ClientDir}\Info\{Date}'.format(
-        **global_vars)
-    global_vars['ProgBackupDir'] =      r'{ClientDir}\Backups'.format(
+    global_vars['LogDir'] =             r'{ClientDir}\Logs\{Date}'.format(
         **global_vars)
     global_vars['QuarantineDir'] =      r'{ClientDir}\Quarantine'.format(
         **global_vars)
@@ -768,7 +784,7 @@ def set_common_vars():
 
 def set_linux_vars():
     """Set common variables in a Linux environment.
-    
+
     These assume we're running under a WK-Linux build."""
     result = run_program(['mktemp', '-d'])
     global_vars['TmpDir'] =             result.stdout.decode().strip()
@@ -781,6 +797,13 @@ def set_linux_vars():
         'wimlib-imagex': 'wimlib-imagex',
         'SevenZip': '7z',
         }
+
+def set_log_file(log_name):
+    """Sets global var LogFile and creates path as needed."""
+    folder_path = r'{}\{}'.format(global_vars['LogDir'], KIT_NAME_FULL)
+    log_file = r'{}\{}'.format(folder_path, log_name)
+    os.makedirs(folder_path, exist_ok=True)
+    global_vars['LogFile'] = log_file
 
 if __name__ == '__main__':
     print("This file is not meant to be called directly.")

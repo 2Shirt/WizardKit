@@ -119,7 +119,7 @@ There's a `build-ufd` script which does the following:
 * Mount the device(s) or network share(s) that contain the Linux ISO, WinPE ISO, and Main Kit folder.
 * Connect the UFD but don't mount it.
 * Get the device name of the UFD.
-  * You can use $ `inxi -Dxx` or $ `lsblk --fs` to help.
+  * You can use $ `hw-drive-info` to help.
 * $ `sudo build-ufd --ufd-device [device] --linux-iso [path] --main-kit [path] --winpe-iso [path]`
   * **2nd Warning**: All data will be erased from the UFD resulting in **DATA LOSS**.
   * NOTE: The Main Kit folder will be renamed on the UFD using `$KIT_NAME_FULL`
