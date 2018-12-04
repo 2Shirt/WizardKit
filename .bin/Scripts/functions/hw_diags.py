@@ -118,10 +118,10 @@ class State():
     self.progress_out = '{}/progress.out'.format(global_vars['LogDir'])
     self.started = False
     self.tests = {
-      'Prime95':        {'Enabled': False, 'Result': None, 'Status': None},
-      'NVMe / SMART':   {'Enabled': False},
-      'badblocks':      {'Enabled': False},
-      'I/O Benchmark':  {'Enabled': False},
+      'Prime95 & Temps':  {'Enabled': False, 'Result': None, 'Status': None},
+      'NVMe / SMART':     {'Enabled': False},
+      'badblocks':        {'Enabled': False},
+      'I/O Benchmark':    {'Enabled': False},
     }
     self.add_devs()
 
@@ -347,7 +347,18 @@ def menu_diags(state, args):
     elif selection == 'S':
       # Run test(s)
       clear_screen()
-      print('Fake test(s) placeholder for now...')
+      print('Tests:')
+      for opt in main_options[3:]:
+        _nvme_smart = opt['Base Name'] == 'NVMe / SMART'
+        # Update state
+        state.tests[opt['Base Name']]['Enabled'] = opt['Enabled']
+        print('  {:<15}  {}{}{} {}'.format(
+          opt['Base Name'],
+          COLORS['GREEN'] if opt['Enabled'] else COLORS['RED'],
+          'Enabled' if opt['Enabled'] else 'Disabled',
+          COLORS['CLEAR'],
+          quick_label if state.quick_mode and _nvme_smart else ''))
+      print('\nFake test(s) placeholder for now...')
       pause('Press Enter to return to main menu... ')
 
 def run_audio_test():
