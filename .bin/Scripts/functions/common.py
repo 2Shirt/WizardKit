@@ -369,7 +369,6 @@ def menu_select(title='~ Untitled Menu ~',
             letter =    entry['Letter'].upper(),
             width =     len(str(len(action_entries))),
             name =      entry['Name'])
-    menu_splash += '\n'
 
     answer = ''
 
