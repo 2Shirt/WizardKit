@@ -225,8 +225,8 @@ def menu_diags(state, args):
   # NOTE: Changing the order of main_options will break everything
   main_options = [
     {'Base Name': 'Full Diagnostic', 'Enabled': True},
-    {'Base Name': 'Drive Diagnostic', 'Enabled': False},
-    {'Base Name': 'Drive Diagnostic (Quick)', 'Enabled': False},
+    {'Base Name': 'Disk Diagnostic', 'Enabled': False},
+    {'Base Name': 'Disk Diagnostic (Quick)', 'Enabled': False},
     {'Base Name': 'Prime95 & Temps', 'Enabled': True, 'CRLF': True},
     {'Base Name': 'NVMe / SMART', 'Enabled': True},
     {'Base Name': 'badblocks', 'Enabled': True},
@@ -249,7 +249,7 @@ def menu_diags(state, args):
   while True:
     # Set quick mode as necessary
     if main_options[2]['Enabled'] and main_options[4]['Enabled']:
-      # Check if only Drive Diags (Quick) and NVMe/SMART are enabled
+      # Check if only Disk Diags (Quick) and NVMe/SMART are enabled
       # If so, verify no other tests are enabled and set quick_mode
       state.quick_mode = True
       for opt in main_options[3:4] + main_options[5:]:
@@ -273,7 +273,7 @@ def menu_diags(state, args):
       # Full
       main_options[0]['Enabled'] = True
     elif num_tests_selected == 3 and not main_options[3]['Enabled']:
-      # Drive
+      # Disk
       main_options[1]['Enabled'] = True
 
     # Update checkboxes
@@ -309,7 +309,7 @@ def menu_diags(state, args):
           for opt in main_options[3:]:
             opt['Enabled'] = False
       elif index == 1:
-        # Drive
+        # Disk
         if main_options[index]['Enabled']:
           main_options[0]['Enabled'] = False
           for opt in main_options[2:4]:
@@ -320,7 +320,7 @@ def menu_diags(state, args):
           for opt in main_options[4:]:
             opt['Enabled'] = False
       elif index == 2:
-        # Drive (Quick)
+        # Disk (Quick)
         if main_options[index]['Enabled']:
           for opt in main_options[:2] + main_options[3:]:
             opt['Enabled'] = False
