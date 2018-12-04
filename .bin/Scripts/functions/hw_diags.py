@@ -171,7 +171,22 @@ class State():
     result = run_program(cmd, check=False)
     json_data = json.loads(result.stdout.decode())
     for dev in json_data['blockdevices']:
-      self.devs.append(DevObj(dev['name']))
+      skip_dev = False
+      dev_obj = DevObj(dev['name'])
+      
+      # Skip loopback devices
+      if dev_obj.lsblk['tran'] == 'NONE':
+        skip_dev = True
+      
+      # Skip WK devices
+      wk_label_regex = r'{}_(LINUX|UFD)'.format(KIT_NAME_SHORT)
+      for label in dev_obj.labels:
+        if re.search(wk_label_regex, label, re.IGNORECASE):
+          skip_dev = True
+      
+      # Add device
+      if not skip_dev:
+        self.devs.append(DevObj(dev['name']))
 
 # Functions
 def generate_horizontal_graph(rates, oneline=False):
