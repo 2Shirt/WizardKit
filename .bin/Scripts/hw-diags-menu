@@ -17,7 +17,8 @@ if __name__ == '__main__':
         clear_screen()
 
         # Show menu
-        menu_diags(*sys.argv)
+        state = State()
+        menu_diags(state, sys.argv)
         
         # Done
         #print_standard('\nDone.')

@@ -318,7 +318,7 @@ def major_exception():
     exit_script(1)
 
 def menu_select(title='~ Untitled Menu ~',
-    prompt='Please make a selection', secret_exit=False,
+    prompt='Please make a selection', secret_actions=[], secret_exit=False,
     main_entries=[], action_entries=[], disabled_label='DISABLED',
     spacer=''):
     """Display options in a menu and return selected option as a str."""
@@ -334,8 +334,10 @@ def menu_select(title='~ Untitled Menu ~',
     menu_splash =   '{}\n{}\n'.format(title, spacer)
     width =         len(str(len(main_entries)))
     valid_answers = []
-    if (secret_exit):
+    if secret_exit:
         valid_answers.append('Q')
+    if secret_actions:
+        valid_answers.extend(secret_actions)
 
     # Add main entries
     for i in range(len(main_entries)):

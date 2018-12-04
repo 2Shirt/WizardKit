@@ -216,6 +216,174 @@ def get_status_color(s):
     color = COLORS['GREEN']
   return color
 
+def menu_diags(state, args):
+  """Main menu to select and run HW tests."""
+  args = [a.lower() for a in args]
+  quick_label = '{YELLOW}(Quick){CLEAR}'.format(**COLORS)
+  title = '{GREEN}Hardware Diagnostics: Main Menu{CLEAR}'.format(
+    **COLORS)
+  # NOTE: Changing the order of main_options will break everything
+  main_options = [
+    {'Base Name': 'Full Diagnostic', 'Enabled': True},
+    {'Base Name': 'Drive Diagnostic', 'Enabled': False},
+    {'Base Name': 'Drive Diagnostic (Quick)', 'Enabled': False},
+    {'Base Name': 'Prime95 & Temps', 'Enabled': True, 'CRLF': True},
+    {'Base Name': 'NVMe / SMART', 'Enabled': True},
+    {'Base Name': 'badblocks', 'Enabled': True},
+    {'Base Name': 'I/O Benchmark', 'Enabled': True},
+    ]
+  actions = [
+    {'Letter': 'A', 'Name': 'Audio Test'},
+    {'Letter': 'K', 'Name': 'Keyboard Test'},
+    {'Letter': 'N', 'Name': 'Network Test'},
+    {'Letter': 'S', 'Name': 'Start', 'CRLF': True},
+    {'Letter': 'Q', 'Name': 'Quit'},
+    ]
+  secret_actions = ['M', 'T']
+
+  # CLI mode check
+  if '--cli' in args or 'DISPLAY' not in global_vars['Env']:
+    actions.append({'Letter': 'R', 'Name': 'Reboot'})
+    actions.append({'Letter': 'P', 'Name': 'Power Off'})
+
+  while True:
+    # Set quick mode as necessary
+    if main_options[2]['Enabled'] and main_options[4]['Enabled']:
+      # Check if only Drive Diags (Quick) and NVMe/SMART are enabled
+      # If so, verify no other tests are enabled and set quick_mode
+      state.quick_mode = True
+      for opt in main_options[3:4] + main_options[5:]:
+        state.quick_mode &= not opt['Enabled']
+    else:
+      state.quick_mode = False
+
+    # Deselect presets
+    slice_end = 3
+    if state.quick_mode:
+      slice_end = 2
+    for opt in main_options[:slice_end]:
+      opt['Enabled'] = False
+
+    # Verify preset selections
+    num_tests_selected = 0
+    for opt in main_options[3:]:
+      if opt['Enabled']:
+        num_tests_selected += 1
+    if num_tests_selected == 4:
+      # Full
+      main_options[0]['Enabled'] = True
+    elif num_tests_selected == 3 and not main_options[3]['Enabled']:
+      # Drive
+      main_options[1]['Enabled'] = True
+
+    # Update checkboxes
+    for opt in main_options:
+      _nvme_smart = opt['Base Name'] == 'NVMe / SMART'
+      opt['Name'] = '{} {} {}'.format(
+        '[✓]' if opt['Enabled'] else '[ ]',
+        opt['Base Name'],
+        quick_label if state.quick_mode and _nvme_smart else '')
+
+    # Show menu
+    selection = menu_select(
+      title=title,
+      main_entries=main_options,
+      action_entries=actions,
+      secret_actions=secret_actions,
+      spacer='───────────────────────────────')
+
+    if selection.isnumeric():
+      # Toggle selection
+      index = int(selection) - 1
+      main_options[index]['Enabled'] = not main_options[index]['Enabled']
+
+      # Handle presets
+      if index == 0:
+        # Full
+        if main_options[index]['Enabled']:
+          for opt in main_options[1:3]:
+            opt['Enabled'] = False
+          for opt in main_options[3:]:
+            opt['Enabled'] = True
+        else:
+          for opt in main_options[3:]:
+            opt['Enabled'] = False
+      elif index == 1:
+        # Drive
+        if main_options[index]['Enabled']:
+          main_options[0]['Enabled'] = False
+          for opt in main_options[2:4]:
+            opt['Enabled'] = False
+          for opt in main_options[4:]:
+            opt['Enabled'] = True
+        else:
+          for opt in main_options[4:]:
+            opt['Enabled'] = False
+      elif index == 2:
+        # Drive (Quick)
+        if main_options[index]['Enabled']:
+          for opt in main_options[:2] + main_options[3:]:
+            opt['Enabled'] = False
+          main_options[4]['Enabled'] = True
+        else:
+          main_options[4]['Enabled'] = False
+    elif selection == 'A':
+      run_audio_test()
+    elif selection == 'K':
+      run_keyboard_test()
+    elif selection == 'N':
+      run_network_test()
+    elif selection == 'M':
+      secret_screensaver('matrix')
+    elif selection == 'T':
+      # Tubes is close to pipes
+      secret_screensaver('pipes')
+    elif selection == 'R':
+      run_program(['systemctl', 'reboot'])
+    elif selection == 'P':
+      run_program(['systemctl', 'poweroff'])
+    elif selection == 'Q':
+      break
+    elif selection == 'S':
+      # Run test(s)
+      clear_screen()
+      print('Fake test(s) placeholder for now...')
+      pause('Press Enter to return to main menu... ')
+
+def run_audio_test():
+  """Run audio test."""
+  # TODO: Enable real test and remove placeholder
+  clear_screen()
+  print('Fake audio placeholder for now...')
+  #run_program(['hw-diags-audio'], check=False, pipe=False)
+  pause('Press Enter to return to main menu... ')
+
+def run_keyboard_test():
+  """Run keyboard test."""
+  # TODO: Enable real test and remove placeholder
+  clear_screen()
+  print('Fake keyboard placeholder for now...')
+  #run_program(['xev', '-event', 'keyboard'], check=False, pipe=False)
+  pause('Press Enter to return to main menu... ')
+
+def run_network_test():
+  """Run network test."""
+  # TODO: Enable real test and remove placeholder
+  clear_screen()
+  print('Fake network placeholder for now...')
+  #run_program(['hw-diags-network'], check=False, pipe=False)
+  pause('Press Enter to return to main menu... ')
+
+def secret_screensaver(screensaver=None):
+  """Show screensaver."""
+  if screensaver == 'matrix':
+    cmd = 'cmatrix -abs'.split()
+  elif screensaver == 'pipes':
+    cmd = 'pipes -t 0 -t 1 -t 2 -t 3 -p 5 -R -r 4000'.split()
+  else:
+    raise Exception('Invalid screensaver')
+  run_program(cmd, check=False, pipe=False)
+
 def update_io_progress(percent, rate, progress_file):
   """Update I/O progress file."""
   bar_color = COLORS['CLEAR']
