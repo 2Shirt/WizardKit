@@ -68,10 +68,14 @@ class DevObj():
   """Device object for tracking device specific data."""
   def __init__(self, dev_path):
     self.failing = False
+    self.labels = []
+    self.lsblk = {}
+    self.name = re.sub(r'^.*/(.*)', r'\1', dev_path)
     self.nvme_attributes = {}
     self.override = False
     self.path = dev_path
     self.smart_attributes = {}
+    self.smartctl = {}
     self.tests = {
       'NVMe / SMART':   {'Result': None, 'Status': None},
       'badblocks':      {'Result': None, 'Status': None},
@@ -82,18 +86,54 @@ class DevObj():
         'Graph Data': []},
     }
     self.get_details()
+    self.get_smart_details()
 
   def get_details(self):
+    """Get data from lsblk."""
+    cmd = ['lsblk', '--json', '--output-all', '--paths', self.path]
+    try:
+      result = run_program(cmd, check=False)
+      json_data = json.loads(result.stdout.decode())
+      self.lsblk = json_data['blockdevices'][0]
+    except Exception:
+      # Leave self.lsblk empty
+      pass
+
+    # Set necessary details
+    self.lsblk['model'] = self.lsblk.get('model', 'Unknown Model')
+    self.lsblk['name'] = self.lsblk.get('name', self.path)
+    self.lsblk['rota'] = self.lsblk.get('rota', True)
+    self.lsblk['serial'] = self.lsblk.get('serial', 'Unknown Serial')
+    self.lsblk['size'] = self.lsblk.get('size', '???b')
+    self.lsblk['tran'] = self.lsblk.get('tran', '???')
+
+    # Ensure certain attributes are strings
+    for attr in ['model', 'name', 'rota', 'serial', 'size', 'tran']:
+      if not isinstance(self.lsblk[attr], str):
+        self.lsblk[attr] = str(self.lsblk[attr])
+    self.lsblk['tran'] = self.lsblk['tran'].upper().replace('NVME', 'NVMe')
+
+    # Build list of labels
+    for dev in [self.lsblk, *self.lsblk.get('children', [])]:
+      self.labels.append(dev.get('label', ''))
+      self.labels.append(dev.get('partlabel', ''))
+    self.labels = [str(label) for label in self.labels if label]
+
+  def get_smart_details(self):
     """Get data from smartctl."""
     cmd = ['sudo', 'smartctl', '--all', '--json', self.path]
-    result = run_program(cmd, check=False)
-    self.data = json.loads(result.stdout.decode())
+    try:
+      result = run_program(cmd, check=False)
+      self.smartctl = json.loads(result.stdout.decode())
+    except Exception:
+      # Leave self.smartctl empty
+      pass
 
     # Check for attributes
-    if KEY_NVME in self.data:
-      self.nvme_attributes.update(self.data[KEY_NVME])
-    elif KEY_SMART in self.data:
-      for a in self.data[KEY_SMART].get('table', {}):
+    if KEY_NVME in self.smartctl:
+      self.nvme_attributes.update(self.smartctl[KEY_NVME])
+    elif KEY_SMART in self.smartctl:
+      for a in self.smartctl[KEY_SMART].get('table', {}):
         _id = str(a.get('id', 'UNKNOWN'))
         _name = str(a.get('name', 'UNKNOWN'))
         _raw = a.get('raw', {}).get('value', -1)
