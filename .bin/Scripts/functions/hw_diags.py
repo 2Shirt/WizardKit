@@ -61,6 +61,7 @@ IO_VARS = {
   }
 KEY_NVME = 'nvme_smart_health_information_log'
 KEY_SMART = 'ata_smart_attributes'
+QUICK_LABEL = '{YELLOW}(Quick){CLEAR}'.format(**COLORS)
 SIDE_PATH_WIDTH = 21
 
 # Classes
@@ -156,12 +157,14 @@ class State():
     self.devs = []
     self.finished = False
     self.progress_out = '{}/progress.out'.format(global_vars['LogDir'])
+    self.quick_mode = False
     self.started = False
     self.tests = {
-      'Prime95 & Temps':  {'Enabled': False, 'Result': None, 'Status': None},
-      'NVMe / SMART':     {'Enabled': False},
-      'badblocks':        {'Enabled': False},
-      'I/O Benchmark':    {'Enabled': False},
+      'Prime95 & Temps':  {'Enabled': False, 'Order': 1,
+        'Result': None, 'Status': None},
+      'NVMe / SMART':     {'Enabled': False, 'Order': 2},
+      'badblocks':        {'Enabled': False, 'Order': 3},
+      'I/O Benchmark':    {'Enabled': False, 'Order': 4},
     }
     self.add_devs()
 
@@ -274,18 +277,17 @@ def get_status_color(s):
 def menu_diags(state, args):
   """Main menu to select and run HW tests."""
   args = [a.lower() for a in args]
-  quick_label = '{YELLOW}(Quick){CLEAR}'.format(**COLORS)
   title = '{GREEN}Hardware Diagnostics: Main Menu{CLEAR}'.format(
     **COLORS)
   # NOTE: Changing the order of main_options will break everything
   main_options = [
-    {'Base Name': 'Full Diagnostic', 'Enabled': True},
+    {'Base Name': 'Full Diagnostic', 'Enabled': False},
     {'Base Name': 'Disk Diagnostic', 'Enabled': False},
     {'Base Name': 'Disk Diagnostic (Quick)', 'Enabled': False},
-    {'Base Name': 'Prime95 & Temps', 'Enabled': True, 'CRLF': True},
-    {'Base Name': 'NVMe / SMART', 'Enabled': True},
-    {'Base Name': 'badblocks', 'Enabled': True},
-    {'Base Name': 'I/O Benchmark', 'Enabled': True},
+    {'Base Name': 'Prime95 & Temps', 'Enabled': False, 'CRLF': True},
+    {'Base Name': 'NVMe / SMART', 'Enabled': False},
+    {'Base Name': 'badblocks', 'Enabled': False},
+    {'Base Name': 'I/O Benchmark', 'Enabled': False},
     ]
   actions = [
     {'Letter': 'A', 'Name': 'Audio Test'},
@@ -295,11 +297,21 @@ def menu_diags(state, args):
     {'Letter': 'Q', 'Name': 'Quit'},
     ]
   secret_actions = ['M', 'T']
+  
+  # Set initial selections
+  update_main_options(state, '1', main_options)
 
   # CLI mode check
   if '--cli' in args or 'DISPLAY' not in global_vars['Env']:
     actions.append({'Letter': 'R', 'Name': 'Reboot'})
     actions.append({'Letter': 'P', 'Name': 'Power Off'})
+
+  # Skip menu if running quick check
+  if '--quick' in args:
+    update_main_options(state, '3', main_options)
+    state.quick_mode = True
+    run_hw_tests(state)
+    return True
 
   while True:
     # Set quick mode as necessary
@@ -337,7 +349,7 @@ def menu_diags(state, args):
       opt['Name'] = '{} {} {}'.format(
         '[✓]' if opt['Enabled'] else '[ ]',
         opt['Base Name'],
-        quick_label if state.quick_mode and _nvme_smart else '')
+        QUICK_LABEL if state.quick_mode and _nvme_smart else '')
 
     # Show menu
     selection = menu_select(
@@ -348,40 +360,7 @@ def menu_diags(state, args):
       spacer='───────────────────────────────')
 
     if selection.isnumeric():
-      # Toggle selection
-      index = int(selection) - 1
-      main_options[index]['Enabled'] = not main_options[index]['Enabled']
-
-      # Handle presets
-      if index == 0:
-        # Full
-        if main_options[index]['Enabled']:
-          for opt in main_options[1:3]:
-            opt['Enabled'] = False
-          for opt in main_options[3:]:
-            opt['Enabled'] = True
-        else:
-          for opt in main_options[3:]:
-            opt['Enabled'] = False
-      elif index == 1:
-        # Disk
-        if main_options[index]['Enabled']:
-          main_options[0]['Enabled'] = False
-          for opt in main_options[2:4]:
-            opt['Enabled'] = False
-          for opt in main_options[4:]:
-            opt['Enabled'] = True
-        else:
-          for opt in main_options[4:]:
-            opt['Enabled'] = False
-      elif index == 2:
-        # Disk (Quick)
-        if main_options[index]['Enabled']:
-          for opt in main_options[:2] + main_options[3:]:
-            opt['Enabled'] = False
-          main_options[4]['Enabled'] = True
-        else:
-          main_options[4]['Enabled'] = False
+      update_main_options(state, selection, main_options)
     elif selection == 'A':
       run_audio_test()
     elif selection == 'K':
@@ -391,7 +370,7 @@ def menu_diags(state, args):
     elif selection == 'M':
       secret_screensaver('matrix')
     elif selection == 'T':
-      # Tubes is close to pipes
+      # Tubes is close to pipes right?
       secret_screensaver('pipes')
     elif selection == 'R':
       run_program(['systemctl', 'reboot'])
@@ -400,21 +379,7 @@ def menu_diags(state, args):
     elif selection == 'Q':
       break
     elif selection == 'S':
-      # Run test(s)
-      clear_screen()
-      print('Tests:')
-      for opt in main_options[3:]:
-        _nvme_smart = opt['Base Name'] == 'NVMe / SMART'
-        # Update state
-        state.tests[opt['Base Name']]['Enabled'] = opt['Enabled']
-        print('  {:<15}  {}{}{} {}'.format(
-          opt['Base Name'],
-          COLORS['GREEN'] if opt['Enabled'] else COLORS['RED'],
-          'Enabled' if opt['Enabled'] else 'Disabled',
-          COLORS['CLEAR'],
-          quick_label if state.quick_mode and _nvme_smart else ''))
-      print('\nFake test(s) placeholder for now...')
-      pause('Press Enter to return to main menu... ')
+      run_hw_tests(state)
 
 def run_audio_test():
   """Run audio test."""
@@ -422,6 +387,23 @@ def run_audio_test():
   clear_screen()
   print('Fake audio placeholder for now...')
   #run_program(['hw-diags-audio'], check=False, pipe=False)
+  pause('Press Enter to return to main menu... ')
+
+def run_hw_tests(state):
+  """Run enabled hardware tests."""
+  # Run test(s)
+  clear_screen()
+  print('Tests:')
+  for k, v in sorted(
+      state.tests.items(),
+      key=lambda kv: kv[1]['Order']):
+    print_standard('  {:<15} {}{}{} {}'.format(
+      k,
+      COLORS['GREEN'] if v['Enabled'] else COLORS['RED'],
+      'Enabled' if v['Enabled'] else 'Disabled',
+      COLORS['CLEAR'],
+      QUICK_LABEL if state.quick_mode and 'NVMe' in k else ''))
+  print('\nFake test(s) placeholder for now...')
   pause('Press Enter to return to main menu... ')
 
 def run_keyboard_test():
@@ -449,6 +431,49 @@ def secret_screensaver(screensaver=None):
   else:
     raise Exception('Invalid screensaver')
   run_program(cmd, check=False, pipe=False)
+
+def update_main_options(state, selection, main_options):
+  """Update menu and state based on selection."""
+  index = int(selection) - 1
+  main_options[index]['Enabled'] = not main_options[index]['Enabled']
+
+  # Handle presets
+  if index == 0:
+    # Full
+    if main_options[index]['Enabled']:
+      for opt in main_options[1:3]:
+        opt['Enabled'] = False
+      for opt in main_options[3:]:
+        opt['Enabled'] = True
+    else:
+      for opt in main_options[3:]:
+        opt['Enabled'] = False
+  elif index == 1:
+    # Disk
+    if main_options[index]['Enabled']:
+      main_options[0]['Enabled'] = False
+      for opt in main_options[2:4]:
+        opt['Enabled'] = False
+      for opt in main_options[4:]:
+        opt['Enabled'] = True
+    else:
+      for opt in main_options[4:]:
+        opt['Enabled'] = False
+  elif index == 2:
+    # Disk (Quick)
+    if main_options[index]['Enabled']:
+      for opt in main_options[:2] + main_options[3:]:
+        opt['Enabled'] = False
+      main_options[4]['Enabled'] = True
+    else:
+      main_options[4]['Enabled'] = False
+  
+  # Update state
+  for opt in main_options[3:]:
+    state.tests[opt['Base Name']]['Enabled'] = opt['Enabled']
+  
+  # Done
+  return main_options
 
 def update_io_progress(percent, rate, progress_file):
   """Update I/O progress file."""
