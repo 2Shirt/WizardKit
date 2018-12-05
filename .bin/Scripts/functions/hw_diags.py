@@ -204,7 +204,7 @@ def build_outer_panes(state):
   # Top
   state.panes['Top'] = tmux_split_window(
     behind=True, lines=2, vertical=True,
-    text='{GREEN}Hardware Diagnostics{CLEAR}'.format(**COLORS))
+    text=TOP_PANE_TEXT)
 
   # Started
   state.panes['Started'] = tmux_split_window(
@@ -216,9 +216,7 @@ def build_outer_panes(state):
   # Progress
   state.panes['Progress'] = tmux_split_window(
     lines=SIDE_PANE_WIDTH,
-    text='{BLUE}Progress{CLEAR}\nGoes here\n\n{Meh}'.format(
-      Meh=time.strftime('%H:%M:%S %Z'),
-      **COLORS))
+    watch=state.progress_out)
 
 def check_dev_attributes(dev):
   """Check if device should be tested and allow overrides."""
@@ -600,13 +598,13 @@ def tmux_split_window(
     lines=None, percent=None,
     behind=False, vertical=False,
     follow=False, target_pane=None,
-    command=None, text=None):
+    command=None, text=None, watch=None):
   """Run tmux split-window command and return pane_id as str."""
   # Bail early
   if not lines and not percent:
     raise Exception('Neither lines nor percent specified.')
-  if not command and not text:
-    raise Exception('Neither command nor text specified.')
+  if not command and not text and not watch:
+    raise Exception('No command, text, or watch file specified.')
 
   # Build cmd
   cmd = ['tmux', 'split-window', '-PF', '#D']
@@ -628,7 +626,12 @@ def tmux_split_window(
   if command:
     cmd.extend(command)
   elif text:
-    cmd.extend(['echo-and-hold', text])
+    cmd.extend(['echo-and-hold "{}"'.format(text)])
+  elif watch:
+    cmd.extend([
+      'watch', '--color', '--no-title',
+      '--interval', '1',
+      'cat', watch])
 
   # Run and return pane_id
   result = run_program(cmd)
@@ -644,7 +647,7 @@ def tmux_update_pane(pane_id, command=None, text=None):
   if command:
     cmd.extend(command)
   elif text:
-    cmd.extend(['echo-and-hold', text])
+    cmd.extend(['echo-and-hold "{}"'.format(text)])
 
   run_program(cmd)
 
