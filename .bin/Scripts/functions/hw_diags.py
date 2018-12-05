@@ -373,9 +373,15 @@ def menu_diags(state, args):
       # Tubes is close to pipes right?
       secret_screensaver('pipes')
     elif selection == 'R':
-      run_program(['systemctl', 'reboot'])
+      print('(FAKE) reboot...')
+      sleep(1)
+      # TODO uncomment below
+      #run_program(['systemctl', 'reboot'])
     elif selection == 'P':
-      run_program(['systemctl', 'poweroff'])
+      print('(FAKE) poweroff...')
+      sleep(1)
+      # TODO uncomment below
+      #run_program(['systemctl', 'poweroff'])
     elif selection == 'Q':
       break
     elif selection == 'S':
@@ -383,10 +389,8 @@ def menu_diags(state, args):
 
 def run_audio_test():
   """Run audio test."""
-  # TODO: Enable real test and remove placeholder
   clear_screen()
-  print('Fake audio placeholder for now...')
-  #run_program(['hw-diags-audio'], check=False, pipe=False)
+  run_program(['hw-diags-audio'], check=False, pipe=False)
   pause('Press Enter to return to main menu... ')
 
 def run_hw_tests(state):
@@ -403,23 +407,17 @@ def run_hw_tests(state):
       'Enabled' if v['Enabled'] else 'Disabled',
       COLORS['CLEAR'],
       QUICK_LABEL if state.quick_mode and 'NVMe' in k else ''))
-  print('\nFake test(s) placeholder for now...')
-  pause('Press Enter to return to main menu... ')
+  pause('\nPress Enter to return to main menu... ')
 
 def run_keyboard_test():
   """Run keyboard test."""
-  # TODO: Enable real test and remove placeholder
   clear_screen()
-  print('Fake keyboard placeholder for now...')
-  #run_program(['xev', '-event', 'keyboard'], check=False, pipe=False)
-  pause('Press Enter to return to main menu... ')
+  run_program(['xev', '-event', 'keyboard'], check=False, pipe=False)
 
 def run_network_test():
   """Run network test."""
-  # TODO: Enable real test and remove placeholder
   clear_screen()
-  print('Fake network placeholder for now...')
-  #run_program(['hw-diags-network'], check=False, pipe=False)
+  run_program(['hw-diags-network'], check=False, pipe=False)
   pause('Press Enter to return to main menu... ')
 
 def secret_screensaver(screensaver=None):
