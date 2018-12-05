@@ -62,13 +62,13 @@ IO_VARS = {
 KEY_NVME = 'nvme_smart_health_information_log'
 KEY_SMART = 'ata_smart_attributes'
 QUICK_LABEL = '{YELLOW}(Quick){CLEAR}'.format(**COLORS)
-SIDE_PANE_WIDTH = 21
+SIDE_PANE_WIDTH = 20
 TOP_PANE_TEXT = '{GREEN}Hardware Diagnostics{CLEAR}'.format(**COLORS)
 
 # Classes
 class DevObj():
   """Device object for tracking device specific data."""
-  def __init__(self, dev_path):
+  def __init__(self, state, dev_path):
     self.failing = False
     self.labels = []
     self.lsblk = {}
@@ -80,13 +80,17 @@ class DevObj():
     self.smartctl = {}
     self.state = state
     self.tests = {
-      'NVMe / SMART':   {'Result': None, 'Status': None},
-      'badblocks':      {'Result': None, 'Status': None},
+      'NVMe / SMART':   {
+        'Result': '', 'Started': False, 'Status': '', 'Order': 1},
+      'badblocks':      {
+        'Result': '', 'Started': False, 'Status': '', 'Order': 2},
       'I/O Benchmark':  {
-        'Result': None,
-        'Status': None,
+        'Result': '',
+        'Started': False,
+        'Status': '',
         'Read Rates': [],
-        'Graph Data': []},
+        'Graph Data': [],
+        'Order': 3},
     }
     self.get_details()
     self.get_smart_details()
@@ -153,6 +157,21 @@ class DevObj():
         self.smart_attributes[_id] = {
           'name': _name, 'raw': _raw, 'raw_str': _raw_str}
 
+  def update_progress(self):
+    """Update status strings."""
+    for k, v in self.tests.items():
+      if self.state.tests[k]['Enabled']:
+        _status = ''
+        if not v['Status']:
+          _status = 'Pending'
+        if v['Started']:
+          if v['Result']:
+            _status = v['Result']
+          else:
+            _status = 'Working'
+        if _status:
+          v['Status'] = build_status_string(self.name, _status)
+
 class State():
   """Object to track device objects and overall state."""
   def __init__(self):
@@ -165,7 +184,7 @@ class State():
     self.started = False
     self.tests = {
       'Prime95 & Temps':  {'Enabled': False, 'Order': 1,
-        'Result': None, 'Status': None},
+        'Result': '', 'Started': False, 'Status': ''},
       'NVMe / SMART':     {'Enabled': False, 'Order': 2},
       'badblocks':        {'Enabled': False, 'Order': 3},
       'I/O Benchmark':    {'Enabled': False, 'Order': 4},
@@ -199,6 +218,27 @@ class State():
       if not skip_dev:
         self.devs.append(dev_obj)
 
+  def update_progress(self):
+    """Update status strings."""
+    # Prime95
+    p = self.tests['Prime95 & Temps']
+    if p['Enabled']:
+      _status = ''
+      if not p['Status']:
+        _status = 'Pending'
+      if p['Started']:
+        if p['Result']:
+          _status = p['Result']
+        else:
+          _status = 'Working'
+      if _status:
+        p['Status'] = build_status_string(
+          'Prime95', _status, info_label=True)
+
+    # Disks
+    for dev in self.devs:
+      dev.update_progress()
+
 # Functions
 def build_outer_panes(state):
   """Build top and side panes."""
@@ -220,6 +260,24 @@ def build_outer_panes(state):
   state.panes['Progress'] = tmux_split_window(
     lines=SIDE_PANE_WIDTH,
     watch=state.progress_out)
+
+def build_status_string(label, status, info_label=False):
+  """Build status string with appropriate colors."""
+  status_color = COLORS['CLEAR']
+  if status in ['Denied', 'ERROR', 'NS', 'OVERRIDE']:
+    status_color = COLORS['RED']
+  elif status in ['Aborted', 'Unknown', 'Working', 'Skipped']:
+    status_color = COLORS['YELLOW']
+  elif status in ['CS']:
+    status_color = COLORS['GREEN']
+
+  return '{l_c}{l}{CLEAR}{s_c}{s:>{s_w}}{CLEAR}'.format(
+    l_c=COLORS['BLUE'] if info_label else '',
+    l=label,
+    s_c=status_color,
+    s=status,
+    s_w=SIDE_PANE_WIDTH-len(label),
+    **COLORS)
 
 def check_dev_attributes(dev):
   """Check if device should be tested and allow overrides."""
@@ -247,8 +305,9 @@ def check_dev_attributes(dev):
       pass
     else:
       for v in dev.tests.values():
-        v['Enabled'] = False
+        # Started is set to True to fix the status string
         v['Result'] = 'Skipped'
+        v['Started'] = True
         v['Status'] = 'Skipped'
     print_standard('')
 
@@ -457,13 +516,13 @@ def run_badblocks_test(state):
   tmux_update_pane(
     state.panes['Top'], text='{}\n{}'.format(
       TOP_PANE_TEXT, 'badblocks'))
-  tmux_update_pane(
-    state.panes['Progress'],
-    text='{BLUE}Progress{CLEAR}\nGoes here\n\n{Meh}'.format(
-      Meh=time.strftime('%H:%M:%S %Z'),
-      **COLORS))
   print_standard('TODO: run_badblocks_test()')
-  sleep(3)
+  for dev in state.devs:
+    dev.tests['badblocks']['Started'] = True
+    update_progress_pane(state)
+    sleep(3)
+    dev.tests['badblocks']['Result'] = 'OVERRIDE'
+    update_progress_pane(state)
 
 def run_hw_tests(state):
   """Run enabled hardware tests."""
@@ -471,6 +530,7 @@ def run_hw_tests(state):
   state.init()
 
   # Build Panes
+  update_progress_pane(state)
   build_outer_panes(state)
 
   # Run test(s)
@@ -515,13 +575,13 @@ def run_io_benchmark(state):
   tmux_update_pane(
     state.panes['Top'], text='{}\n{}'.format(
       TOP_PANE_TEXT, 'I/O Benchmark'))
-  tmux_update_pane(
-    state.panes['Progress'],
-    text='{BLUE}Progress{CLEAR}\nGoes here\n\n{Meh}'.format(
-      Meh=time.strftime('%H:%M:%S %Z'),
-      **COLORS))
   print_standard('TODO: run_io_benchmark()')
-  sleep(3)
+  for dev in state.devs:
+    dev.tests['I/O Benchmark']['Started'] = True
+    update_progress_pane(state)
+    sleep(3)
+    dev.tests['I/O Benchmark']['Result'] = 'Unknown'
+    update_progress_pane(state)
 
 def run_keyboard_test():
   """Run keyboard test."""
@@ -534,16 +594,18 @@ def run_mprime_test(state):
   tmux_update_pane(
     state.panes['Top'], text='{}\n{}'.format(
       TOP_PANE_TEXT, 'Prime95 & Temps'))
-  tmux_update_pane(
-    state.panes['Progress'],
-    text='{BLUE}Progress{CLEAR}\nGoes here\n\n{Meh}'.format(
-      Meh=time.strftime('%H:%M:%S %Z'),
-      **COLORS))
+  state.tests['Prime95 & Temps']['Started'] = True
+  update_progress_pane(state)
+
   # Get idle temps
   # Stress CPU
   # Get max temp
   # Get cooldown temp
+
+  # Done
   sleep(3)
+  state.tests['Prime95 & Temps']['Result'] = 'Unknown'
+  update_progress_pane(state)
 
 def run_network_test():
   """Run network test."""
@@ -558,11 +620,8 @@ def run_nvme_smart(state):
       state.panes['Top'],
       text='{t}\nDisk Health: {size:>6} ({tran}) {model} {serial}'.format(
         t=TOP_PANE_TEXT, **dev.lsblk))
-    tmux_update_pane(
-      state.panes['Progress'],
-      text='{BLUE}Progress{CLEAR}\nGoes here\n\n{Meh}'.format(
-        Meh=time.strftime('%H:%M:%S %Z'),
-        **COLORS))
+    dev.tests['NVMe / SMART']['Started'] = True
+    update_progress_pane(state)
     if dev.nvme_attributes:
       run_nvme_tests(state, dev)
     elif dev.smart_attributes:
@@ -573,15 +632,24 @@ def run_nvme_smart(state):
       print_warning(
         "  WARNING: Device {} doesn't support NVMe or SMART test".format(
           dev.path))
-  sleep(3)
+      dev.tests['NVMe / SMART']['Status'] = 'N/A'
+      dev.tests['NVMe / SMART']['Result'] = 'N/A'
+      update_progress_pane(state)
+      sleep(3)
 
 def run_nvme_tests(state, dev):
   """TODO"""
   print_standard('TODO: run_nvme_test({})'.format(dev.path))
+  sleep(3)
+  dev.tests['NVMe / SMART']['Result'] = 'CS'
+  update_progress_pane(state)
 
 def run_smart_tests(state, dev):
   """TODO"""
   print_standard('TODO: run_smart_tests({})'.format(dev.path))
+  sleep(3)
+  dev.tests['NVMe / SMART']['Result'] = 'CS'
+  update_progress_pane(state)
 
 def secret_screensaver(screensaver=None):
   """Show screensaver."""
@@ -723,6 +791,32 @@ def update_io_progress(percent, rate, progress_file):
     c=COLORS['CLEAR'])
   with open(progress_file, 'a') as f:
     f.write(line)
+
+def update_progress_pane(state):
+  """Update progress file for side pane."""
+  output = []
+  state.update_progress()
+
+  # Prime95
+  output.append(state.tests['Prime95 & Temps']['Status'])
+  output.append(' ')
+
+  # Disks
+  for k, v in sorted(
+      state.tests.items(),
+      key=lambda kv: kv[1]['Order']):
+    if 'Prime95' not in k and v['Enabled']:
+      output.append('{BLUE}{test_name}{CLEAR}'.format(
+        test_name=k, **COLORS))
+      for dev in state.devs:
+        output.append(dev.tests[k]['Status'])
+      output.append(' ')
+
+  # Add line-endings
+  output = ['{}\n'.format(line) for line in output]
+
+  with open(state.progress_out, 'w') as f:
+    f.writelines(output)
 
 if __name__ == '__main__':
   print("This file is not meant to be called directly.")
