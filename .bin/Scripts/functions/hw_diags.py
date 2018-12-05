@@ -204,8 +204,8 @@ class State():
       skip_dev = False
       dev_obj = DevObj(self, dev['name'])
 
-      # Skip loopback devices
-      if dev_obj.lsblk['tran'] == 'NONE':
+      # Skip loopback and optical devices
+      if dev_obj.lsblk['type'] in ['loop', 'rom']:
         skip_dev = True
 
       # Skip WK devices
