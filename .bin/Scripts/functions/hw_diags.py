@@ -63,6 +63,7 @@ KEY_NVME = 'nvme_smart_health_information_log'
 KEY_SMART = 'ata_smart_attributes'
 QUICK_LABEL = '{YELLOW}(Quick){CLEAR}'.format(**COLORS)
 SIDE_PANE_WIDTH = 21
+TOP_PANE_TEXT = '{GREEN}Hardware Diagnostics{CLEAR}'.format(**COLORS)
 
 # Classes
 class DevObj():
@@ -200,26 +201,24 @@ def build_outer_panes(state):
   """Build top and side panes."""
   clear_screen()
 
-  # Create panes
+  # Top
   state.panes['Top'] = tmux_split_window(
-    behind=True, lines=2, vertical=True)
-  state.panes['Started'] = tmux_split_window(
-    lines=SIDE_PANE_WIDTH, target_pane=state.panes['Top'])
-  state.panes['Progress'] = tmux_split_window(lines=SIDE_PANE_WIDTH)
+    behind=True, lines=2, vertical=True,
+    text='{GREEN}Hardware Diagnostics{CLEAR}'.format(**COLORS))
 
-  # Set text
-  tmux_update_pane_text(
-    state.panes['Top'],
-    text='{GREEN}Hardware Diagnostics{CLEAR}'.format(
-      **COLORS))
-  tmux_update_pane_text(
-    state.panes['Started'],
+  # Started
+  state.panes['Started'] = tmux_split_window(
+    lines=SIDE_PANE_WIDTH, target_pane=state.panes['Top'],
     text='{BLUE}Started{CLEAR}\n{text}'.format(
       text=time.strftime("%Y-%m-%d %H:%M %Z"),
       **COLORS))
-  tmux_update_pane_text(
-    state.panes['Progress'],
-    text='{BLUE}Progress{CLEAR}\nGoes here'.format(**COLORS))
+
+  # Progress
+  state.panes['Progress'] = tmux_split_window(
+    lines=SIDE_PANE_WIDTH,
+    text='{BLUE}Progress{CLEAR}\nGoes here\n\n{Meh}'.format(
+      Meh=time.strftime('%H:%M:%S %Z'),
+      **COLORS))
 
 def check_dev_attributes(dev):
   """Check if device should be tested and allow overrides."""
@@ -337,8 +336,7 @@ def get_status_color(s):
 def menu_diags(state, args):
   """Main menu to select and run HW tests."""
   args = [a.lower() for a in args]
-  title = '{GREEN}Hardware Diagnostics: Main Menu{CLEAR}'.format(
-    **COLORS)
+  title = '{}\nMain Menu'.format(TOP_PANE_TEXT)
   # NOTE: Changing the order of main_options will break everything
   main_options = [
     {'Base Name': 'Full Diagnostic', 'Enabled': False},
@@ -455,7 +453,16 @@ def run_audio_test():
 
 def run_badblocks_test(state):
   """TODO"""
+  tmux_update_pane(
+    state.panes['Top'], text='{}\n{}'.format(
+      TOP_PANE_TEXT, 'badblocks'))
+  tmux_update_pane(
+    state.panes['Progress'],
+    text='{BLUE}Progress{CLEAR}\nGoes here\n\n{Meh}'.format(
+      Meh=time.strftime('%H:%M:%S %Z'),
+      **COLORS))
   print_standard('TODO: run_badblocks_test()')
+  sleep(3)
 
 def run_hw_tests(state):
   """Run enabled hardware tests."""
@@ -501,7 +508,16 @@ def run_hw_tests(state):
 
 def run_io_benchmark(state):
   """TODO"""
+  tmux_update_pane(
+    state.panes['Top'], text='{}\n{}'.format(
+      TOP_PANE_TEXT, 'I/O Benchmark'))
+  tmux_update_pane(
+    state.panes['Progress'],
+    text='{BLUE}Progress{CLEAR}\nGoes here\n\n{Meh}'.format(
+      Meh=time.strftime('%H:%M:%S %Z'),
+      **COLORS))
   print_standard('TODO: run_io_benchmark()')
+  sleep(3)
 
 def run_keyboard_test():
   """Run keyboard test."""
@@ -509,8 +525,21 @@ def run_keyboard_test():
   run_program(['xev', '-event', 'keyboard'], check=False, pipe=False)
 
 def run_mprime_test(state):
-  """TODO"""
-  print_standard('TODO: run_mprime_test()')
+  """Test CPU with Prime95 and track temps."""
+  # Prep
+  tmux_update_pane(
+    state.panes['Top'], text='{}\n{}'.format(
+      TOP_PANE_TEXT, 'Prime95 & Temps'))
+  tmux_update_pane(
+    state.panes['Progress'],
+    text='{BLUE}Progress{CLEAR}\nGoes here\n\n{Meh}'.format(
+      Meh=time.strftime('%H:%M:%S %Z'),
+      **COLORS))
+  # Get idle temps
+  # Stress CPU
+  # Get max temp
+  # Get cooldown temp
+  sleep(3)
 
 def run_network_test():
   """Run network test."""
@@ -521,20 +550,34 @@ def run_network_test():
 def run_nvme_smart(state):
   """TODO"""
   for dev in state.devs:
+    tmux_update_pane(
+      state.panes['Top'],
+      text='{t}\nDisk Health: {size:>6} ({tran}) {model} {serial}'.format(
+        t=TOP_PANE_TEXT, **dev.lsblk))
+    tmux_update_pane(
+      state.panes['Progress'],
+      text='{BLUE}Progress{CLEAR}\nGoes here\n\n{Meh}'.format(
+        Meh=time.strftime('%H:%M:%S %Z'),
+        **COLORS))
     if dev.nvme_attributes:
-      run_nvme_tests(dev)
+      run_nvme_tests(state, dev)
     elif dev.smart_attributes:
-      run_smart_tests(dev)
+      run_smart_tests(state, dev)
     else:
       print_standard('TODO: run_nvme_smart({})'.format(
         dev.path))
       print_warning(
         "  WARNING: Device {} doesn't support NVMe or SMART test".format(
           dev.path))
+  sleep(3)
 
-def run_nvme_tests(dev):
+def run_nvme_tests(state, dev):
   """TODO"""
   print_standard('TODO: run_nvme_test({})'.format(dev.path))
+
+def run_smart_tests(state, dev):
+  """TODO"""
+  print_standard('TODO: run_smart_tests({})'.format(dev.path))
 
 def secret_screensaver(screensaver=None):
   """Show screensaver."""
@@ -546,10 +589,6 @@ def secret_screensaver(screensaver=None):
     raise Exception('Invalid screensaver')
   run_program(cmd, check=False, pipe=False)
 
-def run_smart_tests(dev):
-  """TODO"""
-  print_standard('TODO: run_smart_tests({})'.format(dev.path))
-
 def tmux_kill_pane(*panes):
   """Kill tmux pane by id."""
   cmd = ['tmux', 'kill-pane', '-t']
@@ -560,11 +599,14 @@ def tmux_kill_pane(*panes):
 def tmux_split_window(
     lines=None, percent=None,
     behind=False, vertical=False,
-    follow=False, target_pane=None):
+    follow=False, target_pane=None,
+    command=None, text=None):
   """Run tmux split-window command and return pane_id as str."""
   # Bail early
   if not lines and not percent:
     raise Exception('Neither lines nor percent specified.')
+  if not command and not text:
+    raise Exception('Neither command nor text specified.')
 
   # Build cmd
   cmd = ['tmux', 'split-window', '-PF', '#D']
@@ -583,17 +625,28 @@ def tmux_split_window(
   if target_pane:
     cmd.extend(['-t', str(target_pane)])
 
+  if command:
+    cmd.extend(command)
+  elif text:
+    cmd.extend(['echo-and-hold', text])
+
   # Run and return pane_id
   result = run_program(cmd)
   return result.stdout.decode().strip()
 
-def tmux_update_pane_text(pane_id, text):
-  """Print text to tmux pane."""
-  text = text.replace('\033', r'\e')
-  cmd = ['tmux', 'send-keys', '-t', pane_id]
-  run_program(cmd+['Enter'])
-  run_program(cmd+['clear; echo-and-hold "{}"'.format(text)])
-  run_program(cmd+['Enter'])
+def tmux_update_pane(pane_id, command=None, text=None):
+  """Respawn with either a new command or new text."""
+  # Bail early
+  if not command and not text:
+    raise Exception('Neither command nor text specified.')
+
+  cmd = ['tmux', 'respawn-pane', '-k', '-t', pane_id]
+  if command:
+    cmd.extend(command)
+  elif text:
+    cmd.extend(['echo-and-hold', text])
+
+  run_program(cmd)
 
 def update_main_options(state, selection, main_options):
   """Update menu and state based on selection."""
