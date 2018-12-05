@@ -78,6 +78,7 @@ class DevObj():
     self.path = dev_path
     self.smart_attributes = {}
     self.smartctl = {}
+    self.state = state
     self.tests = {
       'NVMe / SMART':   {'Result': None, 'Status': None},
       'badblocks':      {'Result': None, 'Status': None},
@@ -158,7 +159,8 @@ class State():
     self.devs = []
     self.finished = False
     self.panes = {}
-    self.progress_out = '{}/progress.out'.format(global_vars['LogDir'])
+    # TODO Switch to LogDir
+    self.progress_out = '{}/progress.out'.format(global_vars['TmpDir'])
     self.quick_mode = False
     self.started = False
     self.tests = {
@@ -168,19 +170,20 @@ class State():
       'badblocks':        {'Enabled': False, 'Order': 3},
       'I/O Benchmark':    {'Enabled': False, 'Order': 4},
     }
-    try_and_print(
-      message='Scanning devices...',
-      function=self.add_devs,
-      cs='Done')
 
-  def add_devs(self):
-    """Add all block devices listed by lsblk."""
+  def init(self):
+    """Scan for block devices and reset all tests."""
+    self.devs = []
+    for k in ['Result', 'Started', 'Status']:
+      self.tests['Prime95 & Temps'][k] = False if k == 'Started' else ''
+
+    # Add block devices
     cmd = ['lsblk', '--json', '--nodeps', '--paths']
     result = run_program(cmd, check=False)
     json_data = json.loads(result.stdout.decode())
     for dev in json_data['blockdevices']:
       skip_dev = False
-      dev_obj = DevObj(dev['name'])
+      dev_obj = DevObj(self, dev['name'])
 
       # Skip loopback devices
       if dev_obj.lsblk['tran'] == 'NONE':
@@ -194,7 +197,7 @@ class State():
 
       # Add device
       if not skip_dev:
-        self.devs.append(DevObj(dev['name']))
+        self.devs.append(dev_obj)
 
 # Functions
 def build_outer_panes(state):
@@ -464,6 +467,9 @@ def run_badblocks_test(state):
 
 def run_hw_tests(state):
   """Run enabled hardware tests."""
+  print_standard('Scanning devices...')
+  state.init()
+
   # Build Panes
   build_outer_panes(state)
 
