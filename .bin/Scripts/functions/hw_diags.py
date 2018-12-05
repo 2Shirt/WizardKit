@@ -176,22 +176,53 @@ class State():
     for dev in json_data['blockdevices']:
       skip_dev = False
       dev_obj = DevObj(dev['name'])
-      
+
       # Skip loopback devices
       if dev_obj.lsblk['tran'] == 'NONE':
         skip_dev = True
-      
+
       # Skip WK devices
       wk_label_regex = r'{}_(LINUX|UFD)'.format(KIT_NAME_SHORT)
       for label in dev_obj.labels:
         if re.search(wk_label_regex, label, re.IGNORECASE):
           skip_dev = True
-      
+
       # Add device
       if not skip_dev:
         self.devs.append(DevObj(dev['name']))
 
 # Functions
+def check_dev_attributes(dev):
+  """Check if device should be tested and allow overrides."""
+  needs_override = False
+  print_standard('  {size:>6} ({tran}) {model} {serial}'.format(
+    **dev.lsblk))
+
+  # General checks
+  if not dev.nvme_attributes and not dev.smart_attributes:
+    needs_override = True
+    print_warning(
+      '  WARNING: No NVMe or SMART attributes available for: {}'.format(
+      dev.path))
+
+  # NVMe checks
+  # TODO check all tracked attributes and set dev.failing if needed
+
+  # SMART checks
+  # TODO check all tracked attributes and set dev.failing if needed
+
+  # Ask for override if necessary
+  if needs_override:
+    if ask('  Run tests on this device anyway?'):
+      # TODO Set override for this dev
+      pass
+    else:
+      for v in dev.tests.values():
+        v['Enabled'] = False
+        v['Result'] = 'Skipped'
+        v['Status'] = 'Skipped'
+    print_standard('')
+
 def generate_horizontal_graph(rates, oneline=False):
   """Generate two-line horizontal graph from rates, returns str."""
   line_1 = ''
@@ -297,7 +328,7 @@ def menu_diags(state, args):
     {'Letter': 'Q', 'Name': 'Quit'},
     ]
   secret_actions = ['M', 'T']
-  
+
   # Set initial selections
   update_main_options(state, '1', main_options)
 
@@ -397,7 +428,7 @@ def run_hw_tests(state):
   """Run enabled hardware tests."""
   # Run test(s)
   clear_screen()
-  print('Tests:')
+  print_info('Selected Tests:')
   for k, v in sorted(
       state.tests.items(),
       key=lambda kv: kv[1]['Order']):
@@ -407,7 +438,21 @@ def run_hw_tests(state):
       'Enabled' if v['Enabled'] else 'Disabled',
       COLORS['CLEAR'],
       QUICK_LABEL if state.quick_mode and 'NVMe' in k else ''))
-  pause('\nPress Enter to return to main menu... ')
+  print_standard('')
+
+  # Check devices if necessary
+  if (state.tests['badblocks']['Enabled']
+      or state.tests['I/O Benchmark']['Enabled']):
+    print_info('Selected Disks:')
+    for dev in state.devs:
+      check_dev_attributes(dev)
+    print_standard('')
+
+  # Run tests
+  # TODO
+
+  # Done
+  pause('Press Enter to return to main menu... ')
 
 def run_keyboard_test():
   """Run keyboard test."""
@@ -465,11 +510,11 @@ def update_main_options(state, selection, main_options):
       main_options[4]['Enabled'] = True
     else:
       main_options[4]['Enabled'] = False
-  
+
   # Update state
   for opt in main_options[3:]:
     state.tests[opt['Base Name']]['Enabled'] = opt['Enabled']
-  
+
   # Done
   return main_options
 
