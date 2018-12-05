@@ -62,7 +62,7 @@ IO_VARS = {
 KEY_NVME = 'nvme_smart_health_information_log'
 KEY_SMART = 'ata_smart_attributes'
 QUICK_LABEL = '{YELLOW}(Quick){CLEAR}'.format(**COLORS)
-SIDE_PATH_WIDTH = 21
+SIDE_PANE_WIDTH = 21
 
 # Classes
 class DevObj():
@@ -156,6 +156,7 @@ class State():
   def __init__(self):
     self.devs = []
     self.finished = False
+    self.panes = {}
     self.progress_out = '{}/progress.out'.format(global_vars['LogDir'])
     self.quick_mode = False
     self.started = False
@@ -195,6 +196,31 @@ class State():
         self.devs.append(DevObj(dev['name']))
 
 # Functions
+def build_outer_panes(state):
+  """Build top and side panes."""
+  clear_screen()
+
+  # Create panes
+  state.panes['Top'] = tmux_split_window(
+    behind=True, lines=2, vertical=True)
+  state.panes['Started'] = tmux_split_window(
+    lines=SIDE_PANE_WIDTH, target_pane=state.panes['Top'])
+  state.panes['Progress'] = tmux_split_window(lines=SIDE_PANE_WIDTH)
+
+  # Set text
+  tmux_update_pane_text(
+    state.panes['Top'],
+    text='{GREEN}Hardware Diagnostics{CLEAR}'.format(
+      **COLORS))
+  tmux_update_pane_text(
+    state.panes['Started'],
+    text='{BLUE}Started{CLEAR}\n{text}'.format(
+      text=time.strftime("%Y-%m-%d %H:%M %Z"),
+      **COLORS))
+  tmux_update_pane_text(
+    state.panes['Progress'],
+    text='{BLUE}Progress{CLEAR}\nGoes here'.format(**COLORS))
+
 def check_dev_attributes(dev):
   """Check if device should be tested and allow overrides."""
   needs_override = False
@@ -433,8 +459,10 @@ def run_badblocks_test(state):
 
 def run_hw_tests(state):
   """Run enabled hardware tests."""
+  # Build Panes
+  build_outer_panes(state)
+
   # Run test(s)
-  clear_screen()
   print_info('Selected Tests:')
   for k, v in sorted(
       state.tests.items(),
@@ -467,6 +495,9 @@ def run_hw_tests(state):
 
   # Done
   pause('Press Enter to return to main menu... ')
+
+  # Cleanup
+  tmux_kill_pane(*state.panes.values())
 
 def run_io_benchmark(state):
   """TODO"""
@@ -518,6 +549,51 @@ def secret_screensaver(screensaver=None):
 def run_smart_tests(dev):
   """TODO"""
   print_standard('TODO: run_smart_tests({})'.format(dev.path))
+
+def tmux_kill_pane(*panes):
+  """Kill tmux pane by id."""
+  cmd = ['tmux', 'kill-pane', '-t']
+  for pane_id in panes:
+    print(pane_id)
+    run_program(cmd+[pane_id], check=False)
+
+def tmux_split_window(
+    lines=None, percent=None,
+    behind=False, vertical=False,
+    follow=False, target_pane=None):
+  """Run tmux split-window command and return pane_id as str."""
+  # Bail early
+  if not lines and not percent:
+    raise Exception('Neither lines nor percent specified.')
+
+  # Build cmd
+  cmd = ['tmux', 'split-window', '-PF', '#D']
+  if behind:
+    cmd.append('-b')
+  if vertical:
+    cmd.append('-v')
+  else:
+    cmd.append('-h')
+  if not follow:
+    cmd.append('-d')
+  if lines is not None:
+    cmd.extend(['-l', str(lines)])
+  elif percent is not None:
+    cmd.extend(['-p', str(percent)])
+  if target_pane:
+    cmd.extend(['-t', str(target_pane)])
+
+  # Run and return pane_id
+  result = run_program(cmd)
+  return result.stdout.decode().strip()
+
+def tmux_update_pane_text(pane_id, text):
+  """Print text to tmux pane."""
+  text = text.replace('\033', r'\e')
+  cmd = ['tmux', 'send-keys', '-t', pane_id]
+  run_program(cmd+['Enter'])
+  run_program(cmd+['clear; echo-and-hold "{}"'.format(text)])
+  run_program(cmd+['Enter'])
 
 def update_main_options(state, selection, main_options):
   """Update menu and state based on selection."""
