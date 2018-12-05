@@ -302,7 +302,7 @@ def get_status_color(s):
   color = COLORS['CLEAR']
   if s in ['Denied', 'ERROR', 'NS', 'OVERRIDE']:
     color = COLORS['RED']
-  elif s in ['Aborted', 'Unknown', 'Working', 'Skipped']:
+  elif s in ['Aborted', 'N/A', 'Unknown', 'Working', 'Skipped']:
     color = COLORS['YELLOW']
   elif s in ['CS']:
     color = COLORS['GREEN']
@@ -427,6 +427,10 @@ def run_audio_test():
   run_program(['hw-diags-audio'], check=False, pipe=False)
   pause('Press Enter to return to main menu... ')
 
+def run_badblocks_test(state):
+  """TODO"""
+  print_standard('TODO: run_badblocks_test()')
+
 def run_hw_tests(state):
   """Run enabled hardware tests."""
   # Run test(s)
@@ -452,21 +456,54 @@ def run_hw_tests(state):
     print_standard('')
 
   # Run tests
-  # TODO
+  if state.tests['Prime95 & Temps']['Enabled']:
+    run_mprime_test(state)
+  if state.tests['NVMe / SMART']['Enabled']:
+    run_nvme_smart(state)
+  if state.tests['badblocks']['Enabled']:
+    run_badblocks_test(state)
+  if state.tests['I/O Benchmark']['Enabled']:
+    run_io_benchmark(state)
 
   # Done
   pause('Press Enter to return to main menu... ')
+
+def run_io_benchmark(state):
+  """TODO"""
+  print_standard('TODO: run_io_benchmark()')
 
 def run_keyboard_test():
   """Run keyboard test."""
   clear_screen()
   run_program(['xev', '-event', 'keyboard'], check=False, pipe=False)
 
+def run_mprime_test(state):
+  """TODO"""
+  print_standard('TODO: run_mprime_test()')
+
 def run_network_test():
   """Run network test."""
   clear_screen()
   run_program(['hw-diags-network'], check=False, pipe=False)
   pause('Press Enter to return to main menu... ')
+
+def run_nvme_smart(state):
+  """TODO"""
+  for dev in state.devs:
+    if dev.nvme_attributes:
+      run_nvme_tests(dev)
+    elif dev.smart_attributes:
+      run_smart_tests(dev)
+    else:
+      print_standard('TODO: run_nvme_smart({})'.format(
+        dev.path))
+      print_warning(
+        "  WARNING: Device {} doesn't support NVMe or SMART test".format(
+          dev.path))
+
+def run_nvme_tests(dev):
+  """TODO"""
+  print_standard('TODO: run_nvme_test({})'.format(dev.path))
 
 def secret_screensaver(screensaver=None):
   """Show screensaver."""
@@ -477,6 +514,10 @@ def secret_screensaver(screensaver=None):
   else:
     raise Exception('Invalid screensaver')
   run_program(cmd, check=False, pipe=False)
+
+def run_smart_tests(dev):
+  """TODO"""
+  print_standard('TODO: run_smart_tests({})'.format(dev.path))
 
 def update_main_options(state, selection, main_options):
   """Update menu and state based on selection."""
