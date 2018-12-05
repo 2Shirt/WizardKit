@@ -166,7 +166,10 @@ class State():
       'badblocks':        {'Enabled': False, 'Order': 3},
       'I/O Benchmark':    {'Enabled': False, 'Order': 4},
     }
-    self.add_devs()
+    try_and_print(
+      message='Scanning devices...',
+      function=self.add_devs,
+      cs='Done')
 
   def add_devs(self):
     """Add all block devices listed by lsblk."""

@@ -13,9 +13,6 @@ init_global_vars()
 
 if __name__ == '__main__':
     try:
-        # Prep
-        clear_screen()
-
         # Show menu
         state = State()
         menu_diags(state, sys.argv)
