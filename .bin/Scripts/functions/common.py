@@ -305,13 +305,13 @@ def major_exception():
     except GenericAbort:
         # User declined upload
         print_warning('Upload: Aborted')
-        sleep(30)
+        sleep(10)
     except GenericError:
         # No log file or uploading disabled
-        sleep(30)
+        sleep(10)
     except:
         print_error('Upload: NS')
-        sleep(30)
+        sleep(10)
     else:
         print_success('Upload: CS')
     pause('Press Enter to exit...')
