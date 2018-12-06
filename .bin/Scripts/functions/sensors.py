@@ -3,6 +3,7 @@
 import itertools
 import json
 import re
+import shutil
 
 from functions.common import *
 
@@ -37,7 +38,7 @@ def fix_sensor_str(s):
   return s
 
 def generate_report(sensor_data, *temp_labels, colors=True):
-  """Build report based on temp_labels, returns list if str."""
+  """Generate report based on temp_labels, returns list if str."""
   report = []
   for _section, _adapters in sorted(sensor_data.items()):
     # CoreTemps then Other temps
@@ -48,6 +49,7 @@ def generate_report(sensor_data, *temp_labels, colors=True):
         # Source
         _line = '{:18}  '.format(fix_sensor_str(_source))
         _temps = []
+        # Temps (skip label for Current)
         for _label in temp_labels:
           _temps.append('{}{}{}'.format(
             _label.lower() if _label != 'Current' else '',
@@ -56,6 +58,26 @@ def generate_report(sensor_data, *temp_labels, colors=True):
         _line += ', '.join(_temps)
         report.append(_line)
       report.append(' ')
+
+  # Wrap lines if necessary
+  screen_size = shutil.get_terminal_size()
+  rows = screen_size.lines - 1
+  if len(report) > rows and screen_size.columns > 55*2:
+    report = list(itertools.zip_longest(
+    report[:rows], report[rows:], fillvalue=''))
+    report = [join_columns(a, b) for a, b in report]
+
+  # Handle empty reports (i.e. no sensors detected)
+  if not report:
+    report = [
+      '{}WARNING: No sensors found{}'.format(
+        COLORS['YELLOW'] if colors else '',
+        COLORS['CLEAR'] if colors else ''),
+      ' ',
+      'Please monitor temps manually']
+
+  # Done
+  return report
 
 def get_colored_temp_str(temp):
   """Get colored string based on temp, returns str."""
