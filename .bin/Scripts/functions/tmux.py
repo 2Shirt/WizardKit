@@ -32,7 +32,8 @@ def tmux_split_window(
     lines=None, percent=None,
     behind=False, vertical=False,
     follow=False, target_pane=None,
-    command=None, text=None, watch=None):
+    working_dir=None, command=None,
+    text=None, watch=None):
   """Run tmux split-window command and return pane_id as str."""
   # Bail early
   if not lines and not percent:
@@ -57,6 +58,8 @@ def tmux_split_window(
   if target_pane:
     cmd.extend(['-t', str(target_pane)])
 
+  if working_dir:
+    cmd.extend(['-c', working_dir])
   if command:
     cmd.extend(command)
   elif text:
@@ -71,13 +74,15 @@ def tmux_split_window(
   result = run_program(cmd)
   return result.stdout.decode().strip()
 
-def tmux_update_pane(pane_id, command=None, text=None):
+def tmux_update_pane(pane_id, command=None, text=None, working_dir=None):
   """Respawn with either a new command or new text."""
   # Bail early
   if not command and not text:
     raise Exception('Neither command nor text specified.')
 
   cmd = ['tmux', 'respawn-pane', '-k', '-t', pane_id]
+  if working_dir:
+    cmd.extend(['-c', working_dir])
   if command:
     cmd.extend(command)
   elif text:

@@ -654,7 +654,8 @@ def run_mprime_test(state):
   run_program(['apple-fans', 'max'])
   tmux_update_pane(
     state.panes['mprime'],
-    command=['hw-diags-prime95', global_vars['TmpDir']])
+    command=['hw-diags-prime95', global_vars['TmpDir']],
+    working_dir=global_vars['TmpDir'])
   time_limit = int(MPRIME_LIMIT) * 60
   try:
     for i in range(time_limit):
