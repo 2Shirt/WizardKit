@@ -1,9 +1,7 @@
 # Wizard Kit: Functions - Sensors
 
-import itertools
 import json
 import re
-import shutil
 
 from functions.tmux import *
 
@@ -58,14 +56,6 @@ def generate_report(sensor_data, *temp_labels, colors=True):
         _line += ', '.join(_temps)
         report.append(_line)
       report.append(' ')
-
-  # Wrap lines if necessary
-  screen_size = shutil.get_terminal_size()
-  rows = screen_size.lines - 1
-  if len(report) > rows and screen_size.columns > 55*2:
-    report = list(itertools.zip_longest(
-    report[:rows], report[rows:], fillvalue=''))
-    report = [join_columns(a, b) for a, b in report]
 
   # Handle empty reports (i.e. no sensors detected)
   if not report:
