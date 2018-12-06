@@ -186,7 +186,8 @@ class State():
     self.started = False
     self.tests = {
       'Prime95 & Temps':  {'Enabled': False, 'Order': 1,
-        'Result': '', 'Started': False, 'Status': ''},
+        'Result': '', 'Sensor Data': get_sensor_data(),
+        'Started': False, 'Status': ''},
       'NVMe / SMART':     {'Enabled': False, 'Order': 2},
       'badblocks':        {'Enabled': False, 'Order': 3},
       'I/O Benchmark':    {'Enabled': False, 'Order': 4},
@@ -614,40 +615,105 @@ def run_keyboard_test():
 
 def run_mprime_test(state):
   """Test CPU with Prime95 and track temps."""
-  # Prep
-  _sensors_out = '{}/sensors.out'.format(global_vars['TmpDir'])
-  with open(_sensors_out, 'w') as f:
-    f.write(' ')
-  sleep(1)
-  monitor_proc = popen_program(
-    ['hw-sensors-monitor', _sensors_out],
-    pipe=True)
+  state.tests['Prime95 & Temps']['Started'] = True
+  update_progress_pane(state)
+  _sensor_data = state.tests['Prime95 & Temps']['Sensor Data']
+
+  # Update top pane
   _title = '{}\n{}{}{}'.format(
     TOP_PANE_TEXT, 'Prime95 & Temps',
     ': ' if 'Model name' in state.lscpu else '',
     state.lscpu.get('Model name', ''))
   tmux_update_pane(state.panes['Top'], text=_title)
-  state.tests['Prime95 & Temps']['Started'] = True
-  update_progress_pane(state)
+
+  # Start live sensor monitor
+  _sensors_out = '{}/sensors.out'.format(global_vars['TmpDir'])
+  with open(_sensors_out, 'w') as f:
+    f.write(' ')
+    f.flush()
+    sleep(0.5)
+  monitor_proc = popen_program(
+    ['hw-sensors-monitor', _sensors_out],
+    pipe=True)
+
+  # Create monitor and worker panes
   state.panes['mprime'] = tmux_split_window(
-    lines=10, vertical=True, text='Prime95 output goes here...')
+    lines=10, vertical=True, text=' ')
   state.panes['Temps'] = tmux_split_window(
     behind=True, percent=80, vertical=True, watch=_sensors_out)
   tmux_resize_pane(global_vars['Env']['TMUX_PANE'], y=3)
 
-  # Start live monitor
-  pause()
-  monitor_proc.kill()
-
   # Get idle temps
+  clear_screen()
+  try_and_print(
+    message='Getting idle temps...', indent=0,
+    function=save_average_temp, cs='Done',
+    sensor_data=_sensor_data, temp_label='Idle')
+
   # Stress CPU
-  # Get max temp
+  run_program(['apple-fans', 'max'])
+  tmux_update_pane(
+    state.panes['mprime'],
+    command=['hw-diags-prime95', global_vars['TmpDir']])
+  time_limit = int(MPRIME_LIMIT) * 60
+  try:
+    for i in range(time_limit):
+      clear_screen()
+      sec_left = time_limit - i
+      min_left = int(sec_left / 60)
+      if min_left > 0:
+        print_standard(
+          'Running Prime95 ({} minute{} left)'.format(
+            min_left,
+            's' if min_left != 1 else ''))
+      else:
+        print_standard(
+          'Running Prime95 ({} second{} left)'.format(
+            sec_left,
+            's' if sec_left != 1 else ''))
+      print_warning('If running too hot, press CTRL+c to abort the test')
+      update_sensor_data(_sensor_data)
+      sleep(1)
+  except KeyboardInterrupt:
+    # Catch CTRL+C
+    aborted = True
+    state.tests['Prime95 & Temps']['Result'] = 'Aborted'
+    print_warning('\nAborted.')
+    update_progress_pane(state)
+
+    # Restart live monitor
+    monitor_proc = popen_program(
+      ['hw-sensors-monitor', _sensors_out],
+      pipe=True)
+
+  # Stop Prime95 (twice for good measure)
+  tmux_kill_pane(state.panes['mprime'])
+  run_program(['killall', '-s', 'INT', 'mprime'], check=False)
+
   # Get cooldown temp
+  run_program(['apple-fans', 'auto'])
+  clear_screen()
+  try_and_print(
+    message='Letting CPU cooldown for bit...', indent=0,
+    function=sleep, cs='Done', seconds=10)
+  try_and_print(
+    message='Getting cooldown temps...', indent=0,
+    function=save_average_temp, cs='Done',
+    sensor_data=_sensor_data, temp_label='Cooldown')
+
+  # Check results
+  # TODO
 
   # Done
-  sleep(3)
   state.tests['Prime95 & Temps']['Result'] = 'Unknown'
   update_progress_pane(state)
+
+  # Cleanup
+  tmux_kill_pane(state.panes['mprime'], state.panes['Temps'])
+  monitor_proc.kill()
+
+  # TODO Testing
+  print('\n'.join(generate_report(_sensor_data, 'Idle', 'Max', 'Cooldown')))
 
 def run_network_test():
   """Run network test."""

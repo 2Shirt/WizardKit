@@ -6,7 +6,6 @@ def tmux_kill_pane(*panes):
   """Kill tmux pane by id."""
   cmd = ['tmux', 'kill-pane', '-t']
   for pane_id in panes:
-    print(pane_id)
     run_program(cmd+[pane_id], check=False)
 
 def tmux_poll_pane(pane_id):

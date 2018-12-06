@@ -46,14 +46,12 @@ def generate_report(sensor_data, *temp_labels, colors=True):
       for _source, _data in sorted(_sources.items()):
         # Source
         _line = '{:18}  '.format(fix_sensor_str(_source))
-        _temps = []
         # Temps (skip label for Current)
         for _label in temp_labels:
-          _temps.append('{}{}{}'.format(
+          _line += '{}{}{} '.format(
             _label.lower() if _label != 'Current' else '',
             ': ' if _label != 'Current' else '',
-            get_temp_str(_data.get(_label, '???'), colors=colors)))
-        _line += ', '.join(_temps)
+            get_temp_str(_data.get(_label, '???'), colors=colors))
         report.append(_line)
       report.append(' ')
 
