@@ -25,12 +25,13 @@ global_vars = {}
 
 # STATIC VARIABLES
 COLORS = {
-    'CLEAR': '\033[0m',
-    'RED': '\033[31m',
-    'GREEN': '\033[32m',
+    'CLEAR':  '\033[0m',
+    'RED':    '\033[31m',
+    'GREEN':  '\033[32m',
     'YELLOW': '\033[33m',
-    'BLUE': '\033[34m'
-}
+    'ORANGE': '\033[31;1m',
+    'BLUE':   '\033[34m'
+  }
 try:
     HKU =  winreg.HKEY_USERS
     HKCR = winreg.HKEY_CLASSES_ROOT
