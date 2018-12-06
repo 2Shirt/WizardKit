@@ -175,6 +175,7 @@ class DevObj():
 class State():
   """Object to track device objects and overall state."""
   def __init__(self):
+    self.lscpu = {}
     self.devs = []
     self.finished = False
     self.panes = {}
@@ -189,6 +190,28 @@ class State():
       'badblocks':        {'Enabled': False, 'Order': 3},
       'I/O Benchmark':    {'Enabled': False, 'Order': 4},
     }
+    self.get_cpu_details()
+
+  def get_cpu_details(self):
+    """Get CPU details from lscpu."""
+    cmd = ['lscpu', '--json']
+    try:
+      result = run_program(cmd, check=False)
+      json_data = json.loads(result.stdout.decode())
+    except Exception as err:
+      # Ignore and leave self.cpu empty
+      print_error(err)
+      pause()
+      return
+    for line in json_data.get('lscpu', []):
+      _field = line.get('field', None).replace(':', '')
+      _data = line.get('data', None)
+      if not _field and not _data:
+        # Skip
+        print_warning(_field, _data)
+        pause()
+        continue
+      self.lscpu[_field] = _data
 
   def init(self):
     """Scan for block devices and reset all tests."""
@@ -591,9 +614,11 @@ def run_keyboard_test():
 def run_mprime_test(state):
   """Test CPU with Prime95 and track temps."""
   # Prep
-  tmux_update_pane(
-    state.panes['Top'], text='{}\n{}'.format(
-      TOP_PANE_TEXT, 'Prime95 & Temps'))
+  _title = '{}\n{}{}{}'.format(
+    TOP_PANE_TEXT, 'Prime95 & Temps',
+    ': ' if 'Model name' in state.lscpu else '',
+    state.lscpu.get('Model name', ''))
+  tmux_update_pane(state.panes['Top'], text=_title)
   state.tests['Prime95 & Temps']['Started'] = True
   update_progress_pane(state)
 
