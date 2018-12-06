@@ -23,7 +23,6 @@ def clear_temps(sensor_data):
     for _adapter, _sources in _adapters.items():
       for _source, _data in _sources.items():
         _data['Temps'] = []
-  return sensor_data
 
 def fix_sensor_str(s):
   """Cleanup string and return str."""
@@ -57,7 +56,6 @@ def generate_report(sensor_data, *temp_labels, colors=True):
         _line += ', '.join(_temps)
         report.append(_line)
       report.append(' ')
-  return sensor_data
 
 def get_colored_temp_str(temp):
   """Get colored string based on temp, returns str."""
@@ -139,7 +137,7 @@ def save_average_temp(sensor_data, temp_label, seconds=10):
 
   # Get temps
   for i in range(seconds):
-    sensor_data = update_sensor_data(sensor_data)
+    update_sensor_data(sensor_data)
     sleep(1)
 
   # Calculate averages
@@ -147,9 +145,6 @@ def save_average_temp(sensor_data, temp_label, seconds=10):
     for _adapter, _sources in _adapters.items():
       for _source, _data in _sources.items():
         _data[temp_label] = sum(_data['Temps']) / len(_data['Temps'])
-
-  # Done
-  return sensor_data
 
 def update_sensor_data(sensor_data):
   """Read sensors and update existing sensor_data, returns dict."""
@@ -162,7 +157,6 @@ def update_sensor_data(sensor_data):
         _data['Current'] = _temp
         _data['Max'] = max(_temp, _data['Max'])
         _data['Temps'].append(_temp)
-  return sensor_data
 
 def join_columns(column1, column2, width=55):
   return '{:<{}}{}'.format(
