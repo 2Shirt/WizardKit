@@ -37,8 +37,30 @@ def fix_sensor_str(s):
   s = s.replace('  ', ' ')
   return s
 
-def get_color_temp(temp):
-  """Get colored temp string, returns str."""
+def generate_report(sensor_data, *temp_labels, colors=True):
+  """Build report based on temp_labels, returns list if str."""
+  report = []
+  for _section, _adapters in sorted(sensor_data.items()):
+    # CoreTemps then Other temps
+    for _adapter, _sources in sorted(_adapters.items()):
+      # Adapter
+      report.append(fix_sensor_str(_adapter))
+      for _source, _data in sorted(_sources.items()):
+        # Source
+        _line = '{:18}  '.format(fix_sensor_str(_source))
+        _temps = []
+        for _label in temp_labels:
+          _temps.append('{}{}{}'.format(
+            _label.lower() if _label != 'Current' else '',
+            ': ' if _label != 'Current' else '',
+            get_temp_str(_data[_label], colors=colors)))
+        _line += ', '.join(_temps)
+        report.append(_line)
+      report.append(' ')
+  return sensor_data
+
+def get_colored_temp_str(temp):
+  """Get colored string based on temp, returns str."""
   try:
     temp = float(temp)
   except ValueError:
@@ -85,8 +107,10 @@ def get_sensor_data():
       for _label, _temp in _labels.items():
         if 'input' in _label:
           sensor_data[_section][_adapter][_source] = {
-            'Temps': [_temp],
+            'Current': _temp,
             'Label': _label,
+            'Max': _temp,
+            'Temps': [_temp],
             }
 
   # Remove empty sections
@@ -96,18 +120,21 @@ def get_sensor_data():
   # Done
   return sensor_data
 
-def save_max_temp(sensor_data):
-  """Record max temps seen this session, returns dict."""
-  for _section, _adapters in sensor_data.items():
-    for _adapter, _sources in _adapters.items():
-      for _source, _data in _sources.items():
-        _data['Max'] = max(_data['Temps'])
+def get_temp_str(temp, colors=True):
+  """Get temp string, returns str."""
+  if colors:
+    return get_colored_temp_str(temp)
+  try:
+    temp = float(temp)
+  except ValueError:
+    return '{}°C'.format(temp)
+  else:
+    return '{}{:2.0f}°C'.format(
+      '-' if temp < 0 else '',
+      temp)
 
-  # Done
-  return sensor_data
-
-def save_average_temp(sensor_data, save_label, seconds=10):
-  """Calculate average temps and record under save_label, returns dict."""
+def save_average_temp(sensor_data, temp_label, seconds=10):
+  """Calculate average temps and record under temp_label, returns dict."""
   clear_temps(sensor_data)
 
   # Get temps
@@ -119,7 +146,7 @@ def save_average_temp(sensor_data, save_label, seconds=10):
   for _section, _adapters in sensor_data.items():
     for _adapter, _sources in _adapters.items():
       for _source, _data in _sources.items():
-        _data[save_label] = sum(_data['Temps']) / len(_data['Temps'])
+        _data[temp_label] = sum(_data['Temps']) / len(_data['Temps'])
 
   # Done
   return sensor_data
@@ -132,6 +159,8 @@ def update_sensor_data(sensor_data):
       for _source, _data in _sources.items():
         _label = _data['Label']
         _temp = json_data[_adapter][_source][_label]
+        _data['Current'] = _temp
+        _data['Max'] = max(_temp, _data['Max'])
         _data['Temps'].append(_temp)
   return sensor_data
 
