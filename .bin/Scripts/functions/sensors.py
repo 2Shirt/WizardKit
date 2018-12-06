@@ -162,7 +162,7 @@ def monitor_sensors(monitor_pane, monitor_file):
       report = generate_report(sensor_data, 'Current', 'Max')
       f.write('\n'.join(report))
     sleep(1)
-    if not tmux_poll_pane(monitor_pane):
+    if monitor_pane and not tmux_poll_pane(monitor_pane):
       break
 
 def save_average_temp(sensor_data, temp_label, seconds=10):

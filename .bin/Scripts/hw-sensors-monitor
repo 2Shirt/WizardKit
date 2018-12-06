@@ -13,14 +13,20 @@ from functions.tmux import *
 init_global_vars()
 
 if __name__ == '__main__':
+  background = False
   try:
-    result = run_program(['mktemp'])
-    monitor_file = result.stdout.decode().strip()
-    print(monitor_file)
-    monitor_pane = tmux_split_window(
-      percent=1, vertical=True, watch=monitor_file)
-    cmd = ['tmux', 'resize-pane', '-Z', '-t', monitor_pane]
-    run_program(cmd, check=False)
+    if len(sys.argv) > 1 and os.path.exists(sys.argv[1]):
+      background = True
+      monitor_file = sys.argv[1]
+      monitor_pane=None
+    else:
+      result = run_program(['mktemp'])
+      monitor_file = result.stdout.decode().strip()
+    if not background:
+      monitor_pane = tmux_split_window(
+        percent=1, vertical=True, watch=monitor_file)
+      cmd = ['tmux', 'resize-pane', '-Z', '-t', monitor_pane]
+      run_program(cmd, check=False)
     monitor_sensors(monitor_pane, monitor_file)
     exit_script()
   except SystemExit:
