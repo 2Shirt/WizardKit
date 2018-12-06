@@ -54,7 +54,7 @@ def generate_report(sensor_data, *temp_labels, colors=True):
           _temps.append('{}{}{}'.format(
             _label.lower() if _label != 'Current' else '',
             ': ' if _label != 'Current' else '',
-            get_temp_str(_data[_label], colors=colors)))
+            get_temp_str(_data.get(_label, '???'), colors=colors)))
         _line += ', '.join(_temps)
         report.append(_line)
       report.append(' ')
@@ -147,7 +147,7 @@ def get_temp_str(temp, colors=True):
   try:
     temp = float(temp)
   except ValueError:
-    return '{}°C'.format(temp)
+    return '{}'.format(temp)
   else:
     return '{}{:2.0f}°C'.format(
       '-' if temp < 0 else '',
