@@ -17,6 +17,14 @@ TEMP_LIMITS = {
 # REGEX
 REGEX_COLORS = re.compile(r'\033\[\d+;?1?m')
 
+def clear_temps(sensor_data):
+  """Clear saved temps but keep structure, returns dict."""
+  for _section, _adapters in sensor_data.items():
+    for _adapter, _sources in _adapters.items():
+      for _source, _data in _sources.items():
+        _data['Temps'] = []
+  return sensor_data
+
 def fix_sensor_str(s):
   """Cleanup string and return str."""
   s = re.sub(r'^(\w+)-(\w+)-(\w+)', r'\1 (\2 \3)', s, re.IGNORECASE)
@@ -88,13 +96,41 @@ def get_sensor_data():
   # Done
   return sensor_data
 
+def save_max_temp(sensor_data):
+  """Record max temps seen this session, returns dict."""
+  for _section, _adapters in sensor_data.items():
+    for _adapter, _sources in _adapters.items():
+      for _source, _data in _sources.items():
+        _data['Max'] = max(_data['Temps'])
+
+  # Done
+  return sensor_data
+
+def save_average_temp(sensor_data, save_label, seconds=10):
+  """Calculate average temps and record under save_label, returns dict."""
+  clear_temps(sensor_data)
+
+  # Get temps
+  for i in range(seconds):
+    sensor_data = update_sensor_data(sensor_data)
+    sleep(1)
+
+  # Calculate averages
+  for _section, _adapters in sensor_data.items():
+    for _adapter, _sources in _adapters.items():
+      for _source, _data in _sources.items():
+        _data[save_label] = sum(_data['Temps']) / len(_data['Temps'])
+
+  # Done
+  return sensor_data
+
 def update_sensor_data(sensor_data):
   """Read sensors and update existing sensor_data, returns dict."""
   json_data = get_raw_sensor_data()
   for _section, _adapters in sensor_data.items():
     for _adapter, _sources in _adapters.items():
       for _source, _data in _sources.items():
-        _label = _ddata['Label']
+        _label = _data['Label']
         _temp = json_data[_adapter][_source][_label]
         _data['Temps'].append(_temp)
   return sensor_data
