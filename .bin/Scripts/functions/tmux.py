@@ -16,6 +16,19 @@ def tmux_poll_pane(pane_id):
   panes = result.stdout.decode().splitlines()
   return pane_id in panes
 
+def tmux_resize_pane(pane_id, x=None, y=None):
+  """Resize pane to specific hieght or width."""
+  if not x and not y:
+    raise Exception('Neither height nor width specified.')
+
+  cmd = ['tmux', 'resize-pane', '-t', pane_id]
+  if x:
+    cmd.extend(['-x', str(x)])
+  elif y:
+    cmd.extend(['-y', str(y)])
+
+  run_program(cmd, check=False)
+
 def tmux_split_window(
     lines=None, percent=None,
     behind=False, vertical=False,
