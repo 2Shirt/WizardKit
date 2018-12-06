@@ -9,6 +9,13 @@ def tmux_kill_pane(*panes):
     print(pane_id)
     run_program(cmd+[pane_id], check=False)
 
+def tmux_poll_pane(pane_id):
+  """Check if pane exists, returns bool."""
+  cmd = ['tmux', 'list-panes', '-F', '#D']
+  result = run_program(cmd, check=False)
+  panes = result.stdout.decode().splitlines()
+  return pane_id in panes
+
 def tmux_split_window(
     lines=None, percent=None,
     behind=False, vertical=False,

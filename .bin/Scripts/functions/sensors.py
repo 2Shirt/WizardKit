@@ -5,7 +5,7 @@ import json
 import re
 import shutil
 
-from functions.common import *
+from functions.tmux import *
 
 # STATIC VARIABLES
 TEMP_LIMITS = {
@@ -152,6 +152,18 @@ def get_temp_str(temp, colors=True):
     return '{}{:2.0f}°C'.format(
       '-' if temp < 0 else '',
       temp)
+
+def monitor_sensors(monitor_pane, monitor_file):
+  """Continually update sensor data and report to screen."""
+  sensor_data = get_sensor_data()
+  while True:
+    update_sensor_data(sensor_data)
+    with open(monitor_file, 'w') as f:
+      report = generate_report(sensor_data, 'Current', 'Max')
+      f.write('\n'.join(report))
+    sleep(1)
+    if not tmux_poll_pane(monitor_pane):
+      break
 
 def save_average_temp(sensor_data, temp_label, seconds=10):
   """Calculate average temps and record under temp_label, returns dict."""
