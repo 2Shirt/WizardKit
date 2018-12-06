@@ -4,6 +4,7 @@ import json
 import re
 import time
 
+from functions.sensors import *
 from functions.tmux import *
 
 # STATIC VARIABLES
@@ -614,6 +615,13 @@ def run_keyboard_test():
 def run_mprime_test(state):
   """Test CPU with Prime95 and track temps."""
   # Prep
+  _sensors_out = '{}/sensors.out'.format(global_vars['TmpDir'])
+  with open(_sensors_out, 'w') as f:
+    f.write(' ')
+  sleep(1)
+  monitor_proc = popen_program(
+    ['hw-sensors-monitor', _sensors_out],
+    pipe=True)
   _title = '{}\n{}{}{}'.format(
     TOP_PANE_TEXT, 'Prime95 & Temps',
     ': ' if 'Model name' in state.lscpu else '',
@@ -621,6 +629,15 @@ def run_mprime_test(state):
   tmux_update_pane(state.panes['Top'], text=_title)
   state.tests['Prime95 & Temps']['Started'] = True
   update_progress_pane(state)
+  state.panes['mprime'] = tmux_split_window(
+    lines=10, vertical=True, text='Prime95 output goes here...')
+  state.panes['Temps'] = tmux_split_window(
+    behind=True, percent=80, vertical=True, watch=_sensors_out)
+  tmux_resize_pane(global_vars['Env']['TMUX_PANE'], y=3)
+
+  # Start live monitor
+  pause()
+  monitor_proc.kill()
 
   # Get idle temps
   # Stress CPU

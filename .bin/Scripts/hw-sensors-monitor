@@ -18,7 +18,7 @@ if __name__ == '__main__':
     if len(sys.argv) > 1 and os.path.exists(sys.argv[1]):
       background = True
       monitor_file = sys.argv[1]
-      monitor_pane=None
+      monitor_pane = None
     else:
       result = run_program(['mktemp'])
       monitor_file = result.stdout.decode().strip()
