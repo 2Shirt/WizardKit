@@ -180,8 +180,7 @@ class State():
     self.devs = []
     self.finished = False
     self.panes = {}
-    # TODO Switch to LogDir
-    self.progress_out = '{}/progress.out'.format(global_vars['TmpDir'])
+    self.progress_out = '{}/progress.out'.format(global_vars['LogDir'])
     self.quick_mode = False
     self.started = False
     self.tests = {
@@ -220,6 +219,16 @@ class State():
     self.devs = []
     for k in ['Result', 'Started', 'Status']:
       self.tests['Prime95 & Temps'][k] = False if k == 'Started' else ''
+
+    # Update LogDir
+    if not self.quick_mode:
+      global_vars['LogDir'] = '{}/Logs/{}_{}'.format(
+        global_vars['Env']['HOME'],
+        get_ticket_number(),
+        time.strftime('%Y-%m-%d_%H%M_%z'))
+      os.makedirs(global_vars['LogDir'], exist_ok=True)
+      global_vars['LogFile'] = '{}/Hardware Diagnostics.log'.format(
+        global_vars['LogDir'])
 
     # Add block devices
     cmd = ['lsblk', '--json', '--nodeps', '--paths']
@@ -702,6 +711,15 @@ def run_mprime_test(state):
     message='Getting cooldown temps...', indent=0,
     function=save_average_temp, cs='Done',
     sensor_data=_sensor_data, temp_label='Cooldown')
+
+  # Move logs to Ticket folder
+  for item in os.scandir(global_vars['TmpDir']):
+    try:
+      shutil.move(item.path, global_vars['LogDir'])
+    except Exception:
+      print_error('ERROR: Failed to move "{}" to "{}"'.format(
+        item.path,
+        global_vars['LogDir']))
 
   # Check results
   # TODO
