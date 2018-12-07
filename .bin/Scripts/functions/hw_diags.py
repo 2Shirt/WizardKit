@@ -651,6 +651,8 @@ def run_mprime_test(state):
     sensor_data=_sensor_data, temp_label='Idle')
 
   # Stress CPU
+  print_log('Starting Prime95')
+  _abort_msg = 'If running too hot, press CTRL+c to abort the test'
   run_program(['apple-fans', 'max'])
   tmux_update_pane(
     state.panes['mprime'],
@@ -660,24 +662,23 @@ def run_mprime_test(state):
   try:
     for i in range(time_limit):
       clear_screen()
-      sec_left = time_limit - i
-      min_left = int(sec_left / 60)
+      sec_left = (time_limit - i) % 60
+      min_left = int( (time_limit - i) / 60)
+      _status_str = 'Running Prime95 ('
       if min_left > 0:
-        print_standard(
-          'Running Prime95 ({} minute{} left)'.format(
-            min_left,
-            's' if min_left != 1 else ''))
-      else:
-        print_standard(
-          'Running Prime95 ({} second{} left)'.format(
-            sec_left,
-            's' if sec_left != 1 else ''))
-      print_warning('If running too hot, press CTRL+c to abort the test')
+        _status_str += '{} minute{}, '.format(
+          min_left,
+          's' if min_left != 1 else '')
+      _status_str += '{} second{} left)'.format(
+        sec_left,
+        's' if sec_left != 1 else '')
+      # Not using print wrappers to avoid flooding the log
+      print(_status_str)
+      print('{YELLOW}{msg}{CLEAR}'.format(msg=_abort_msg, **COLORS))
       update_sensor_data(_sensor_data)
       sleep(1)
   except KeyboardInterrupt:
     # Catch CTRL+C
-    aborted = True
     state.tests['Prime95 & Temps']['Result'] = 'Aborted'
     print_warning('\nAborted.')
     update_progress_pane(state)
