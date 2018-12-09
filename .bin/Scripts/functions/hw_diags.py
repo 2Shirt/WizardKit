@@ -65,7 +65,7 @@ KEY_NVME = 'nvme_smart_health_information_log'
 KEY_SMART = 'ata_smart_attributes'
 QUICK_LABEL = '{YELLOW}(Quick){CLEAR}'.format(**COLORS)
 SIDE_PANE_WIDTH = 20
-TESTS_CPU = ['Prime95 & Temps']
+TESTS_CPU = ['Prime95']
 TESTS_DISK = [
   'I/O Benchmark',
   'NVMe / SMART',
@@ -190,7 +190,7 @@ class State():
     self.progress_out = '{}/progress.out'.format(global_vars['LogDir'])
     self.quick_mode = False
     self.tests = OrderedDict({
-      'Prime95 & Temps':  {
+      'Prime95':  {
         'Enabled': False,
         'Function': run_mprime_test,
         'Objects': [],
@@ -216,7 +216,7 @@ class State():
     """Set log and add devices."""
     self.disks = []
     for k in ['Result', 'Started', 'Status']:
-      self.tests['Prime95 & Temps'][k] = False if k == 'Started' else ''
+      self.tests['Prime95'][k] = False if k == 'Started' else ''
 
     # Update LogDir
     if not self.quick_mode:
@@ -443,7 +443,7 @@ def menu_diags(state, args):
     {'Base Name': 'Full Diagnostic', 'Enabled': False},
     {'Base Name': 'Disk Diagnostic', 'Enabled': False},
     {'Base Name': 'Disk Diagnostic (Quick)', 'Enabled': False},
-    {'Base Name': 'Prime95 & Temps', 'Enabled': False, 'CRLF': True},
+    {'Base Name': 'Prime95', 'Enabled': False, 'CRLF': True},
     {'Base Name': 'NVMe / SMART', 'Enabled': False},
     {'Base Name': 'badblocks', 'Enabled': False},
     {'Base Name': 'I/O Benchmark', 'Enabled': False},
@@ -642,13 +642,13 @@ def run_keyboard_test():
 
 def run_mprime_test(state):
   """Test CPU with Prime95 and track temps."""
-  state.tests['Prime95 & Temps']['Started'] = True
+  state.tests['Prime95']['Started'] = True
   update_progress_pane(state)
-  _sensor_data = state.tests['Prime95 & Temps']['Sensor Data']
+  _sensor_data = state.tests['Prime95']['Sensor Data']
 
   # Update top pane
   _title = '{}\n{}{}{}'.format(
-    TOP_PANE_TEXT, 'Prime95 & Temps',
+    TOP_PANE_TEXT, 'Prime95',
     ': ' if 'Model name' in state.lscpu else '',
     state.lscpu.get('Model name', ''))
   tmux_update_pane(state.panes['Top'], text=_title)
@@ -706,7 +706,7 @@ def run_mprime_test(state):
       sleep(1)
   except KeyboardInterrupt:
     # Catch CTRL+C
-    state.tests['Prime95 & Temps']['Result'] = 'Aborted'
+    state.tests['Prime95']['Result'] = 'Aborted'
     print_warning('\nAborted.')
     update_progress_pane(state)
 
@@ -743,7 +743,7 @@ def run_mprime_test(state):
   # TODO
 
   # Done
-  state.tests['Prime95 & Temps']['Result'] = 'Unknown'
+  state.tests['Prime95']['Result'] = 'Unknown'
   update_progress_pane(state)
 
   # Cleanup
@@ -879,7 +879,7 @@ def update_progress_pane(state):
   output = []
 
   # Prime95
-  output.append(state.tests['Prime95 & Temps']['Status'])
+  output.append(state.tests['Prime95']['Status'])
   output.append(' ')
 
   # Disks
