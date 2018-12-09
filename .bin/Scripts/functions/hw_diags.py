@@ -4,6 +4,7 @@ import json
 import re
 import time
 
+from collections import OrderedDict
 from functions.sensors import *
 from functions.tmux import *
 
@@ -109,7 +110,7 @@ class DiskObj():
     self.path = disk_path
     self.smart_attributes = {}
     self.smartctl = {}
-    self.tests = {}
+    self.tests = OrderedDict()
     self.get_details()
     self.get_smart_details()
 
@@ -188,32 +189,28 @@ class State():
     self.panes = {}
     self.progress_out = '{}/progress.out'.format(global_vars['LogDir'])
     self.quick_mode = False
-    self.tests = {
+    self.tests = OrderedDict({
       'Prime95 & Temps':  {
         'Enabled': False,
         'Function': run_mprime_test,
         'Objects': [],
-        'Order': 1,
         },
       'NVMe / SMART':     {
         'Enabled': False,
         'Function': run_nvme_smart_tests,
         'Objects': [],
-        'Order': 2,
         },
       'badblocks':        {
         'Enabled': False,
         'Function': run_badblocks_test,
         'Objects': [],
-        'Order': 3,
         },
       'I/O Benchmark':    {
         'Enabled': False,
         'Function': run_io_benchmark,
         'Objects': [],
-        'Order': 4,
         },
-      }
+      })
 
   def init(self):
     """Set log and add devices."""
@@ -579,9 +576,7 @@ def run_hw_tests(state):
 
   # Show selected tests and create TestObj()s
   print_info('Selected Tests:')
-  for k, v in sorted(
-      state.tests.items(),
-      key=lambda kv: kv[1]['Order']):
+  for k, v in state.tests.items():
     print_standard('  {:<15} {}{}{} {}'.format(
       k,
       COLORS['GREEN'] if v['Enabled'] else COLORS['RED'],
@@ -606,9 +601,7 @@ def run_hw_tests(state):
     disk.safety_check()
 
   # Run tests
-  for k, v in sorted(
-      state.tests.items(),
-      key=lambda kv: kv[1]['Order']):
+  for k, v in state.tests.items():
     if v['Enabled']:
       # TODO
       pass
@@ -890,9 +883,7 @@ def update_progress_pane(state):
   output.append(' ')
 
   # Disks
-  for k, v in sorted(
-      state.tests.items(),
-      key=lambda kv: kv[1]['Order']):
+  for k, v in state.tests.items():
     if 'Prime95' not in k and v['Enabled']:
       output.append('{BLUE}{test_name}{CLEAR}'.format(
         test_name=k, **COLORS))
