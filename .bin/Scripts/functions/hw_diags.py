@@ -80,6 +80,7 @@ class CpuObj():
     self.lscpu = {}
     self.tests = {}
     self.get_details()
+    self.name = self.lscpu.get('Model name', 'Unknown CPU')
 
   def get_details(self):
     """Get CPU details from lscpu."""
@@ -255,15 +256,16 @@ class State():
 
 class TestObj():
   """Object to track test data."""
-  def __init__(self, label, info_label=False):
-    self.started = False
-    self.passed = False
-    self.failed = False
-    self.report = ''
-    self.status = ''
+  def __init__(self, dev, label=None, info_label=False):
+    self.dev = dev
     self.label = label
     self.info_label = info_label
     self.disabled = False
+    self.failed = False
+    self.passed = False
+    self.report = ''
+    self.started = False
+    self.status = ''
     self.update_status()
 
   def update_status(self, new_status=None):
@@ -552,12 +554,13 @@ def run_audio_test():
   run_program(['hw-diags-audio'], check=False, pipe=False)
   pause('Press Enter to return to main menu... ')
 
-def run_badblocks_test(state):
+def run_badblocks_test(state, test_obj):
   """TODO"""
   tmux_update_pane(
     state.panes['Top'], text='{}\n{}'.format(
       TOP_PANE_TEXT, 'badblocks'))
-  print_standard('TODO: run_badblocks_test()')
+  print_standard('TODO: run_badblocks_test({})'.format(
+    test_obj.dev.path))
   for disk in state.disks:
     disk.tests['badblocks']['Started'] = True
     update_progress_pane(state)
@@ -586,12 +589,13 @@ def run_hw_tests(state):
     if v['Enabled']:
       # Create TestObj and track under both CpuObj/DiskObj and State
       if k in TESTS_CPU:
-        test_obj = TestObj(info_label=True)
+        test_obj = TestObj(
+          dev=state.cpu, label='Prime95', info_label=True)
         state.cpu.tests[k] = test_obj
         v['Objects'].append(test_obj)
       elif k in TESTS_DISK:
         for disk in state.disks:
-          test_obj = TestObj()
+          test_obj = TestObj(dev=k)
           disk.tests[k] = test_obj
           v['Objects'].append(test_obj)
   print_standard('')
@@ -601,20 +605,13 @@ def run_hw_tests(state):
     disk.safety_check()
 
   # Run tests
+  ## Because state.tests is an OrderedDict and the disks were added
+  ##   in order, the tests will be run in order.
   for k, v in state.tests.items():
     if v['Enabled']:
-      # TODO
-      pass
-
-  # Run tests
-  if state.tests['Prime95 & Temps']['Enabled']:
-    run_mprime_test(state)
-  if state.tests['NVMe / SMART']['Enabled']:
-    run_nvme_smart_tests(state)
-  if state.tests['badblocks']['Enabled']:
-    run_badblocks_test(state)
-  if state.tests['I/O Benchmark']['Enabled']:
-    run_io_benchmark(state)
+      f = v['Function']
+      for test_obj in v['Objects']:
+        f(state, test_obj)
 
   # Done
   pause('Press Enter to return to main menu... ')
@@ -622,12 +619,13 @@ def run_hw_tests(state):
   # Cleanup
   tmux_kill_pane(*state.panes.values())
 
-def run_io_benchmark(state):
+def run_io_benchmark(state, test_obj):
   """TODO"""
   tmux_update_pane(
     state.panes['Top'], text='{}\n{}'.format(
       TOP_PANE_TEXT, 'I/O Benchmark'))
-  print_standard('TODO: run_io_benchmark()')
+  print_standard('TODO: run_io_benchmark({})'.format(
+    test_obj.dev.path))
   for disk in state.disks:
     disk.tests['I/O Benchmark']['Started'] = True
     update_progress_pane(state)
@@ -640,34 +638,32 @@ def run_keyboard_test():
   clear_screen()
   run_program(['xev', '-event', 'keyboard'], check=False, pipe=False)
 
-def run_mprime_test(state):
+def run_mprime_test(state, test_obj):
   """Test CPU with Prime95 and track temps."""
   state.tests['Prime95']['Started'] = True
   update_progress_pane(state)
-  _sensor_data = state.tests['Prime95']['Sensor Data']
+  test_obj.sensor_data = get_sensor_data()
 
   # Update top pane
-  _title = '{}\n{}{}{}'.format(
-    TOP_PANE_TEXT, 'Prime95',
-    ': ' if 'Model name' in state.lscpu else '',
-    state.lscpu.get('Model name', ''))
-  tmux_update_pane(state.panes['Top'], text=_title)
+  test_obj.title = '{}\nPrime95: {}'.format(
+    TOP_PANE_TEXT, test_obj.dev.name)
+  tmux_update_pane(state.panes['Top'], text=test_obj.title)
 
   # Start live sensor monitor
-  _sensors_out = '{}/sensors.out'.format(global_vars['TmpDir'])
-  with open(_sensors_out, 'w') as f:
+  test_obj.sensors_out = '{}/sensors.out'.format(global_vars['TmpDir'])
+  with open(test_obj.sensors_out, 'w') as f:
     f.write(' ')
     f.flush()
     sleep(0.5)
-  monitor_proc = popen_program(
-    ['hw-sensors-monitor', _sensors_out],
+  test_obj.monitor_proc = popen_program(
+    ['hw-sensors-monitor', test_obj.sensors_out],
     pipe=True)
 
   # Create monitor and worker panes
   state.panes['mprime'] = tmux_split_window(
     lines=10, vertical=True, text=' ')
   state.panes['Temps'] = tmux_split_window(
-    behind=True, percent=80, vertical=True, watch=_sensors_out)
+    behind=True, percent=80, vertical=True, watch=test_obj.sensors_out)
   tmux_resize_pane(global_vars['Env']['TMUX_PANE'], y=3)
 
   # Get idle temps
@@ -675,11 +671,11 @@ def run_mprime_test(state):
   try_and_print(
     message='Getting idle temps...', indent=0,
     function=save_average_temp, cs='Done',
-    sensor_data=_sensor_data, temp_label='Idle')
+    sensor_data=test_obj.sensor_data, temp_label='Idle')
 
   # Stress CPU
   print_log('Starting Prime95')
-  _abort_msg = 'If running too hot, press CTRL+c to abort the test'
+  test_obj.abort_msg = 'If running too hot, press CTRL+c to abort the test'
   run_program(['apple-fans', 'max'])
   tmux_update_pane(
     state.panes['mprime'],
@@ -701,8 +697,8 @@ def run_mprime_test(state):
         's' if sec_left != 1 else '')
       # Not using print wrappers to avoid flooding the log
       print(_status_str)
-      print('{YELLOW}{msg}{CLEAR}'.format(msg=_abort_msg, **COLORS))
-      update_sensor_data(_sensor_data)
+      print('{YELLOW}{msg}{CLEAR}'.format(msg=test_obj.abort_msg, **COLORS))
+      update_sensor_data(test_obj.sensor_data)
       sleep(1)
   except KeyboardInterrupt:
     # Catch CTRL+C
@@ -711,8 +707,8 @@ def run_mprime_test(state):
     update_progress_pane(state)
 
     # Restart live monitor
-    monitor_proc = popen_program(
-      ['hw-sensors-monitor', _sensors_out],
+    test_obj.monitor_proc = popen_program(
+      ['hw-sensors-monitor', test_obj.sensors_out],
       pipe=True)
 
   # Stop Prime95 (twice for good measure)
@@ -728,7 +724,7 @@ def run_mprime_test(state):
   try_and_print(
     message='Getting cooldown temps...', indent=0,
     function=save_average_temp, cs='Done',
-    sensor_data=_sensor_data, temp_label='Cooldown')
+    sensor_data=test_obj.sensor_data, temp_label='Cooldown')
 
   # Move logs to Ticket folder
   for item in os.scandir(global_vars['TmpDir']):
@@ -741,6 +737,12 @@ def run_mprime_test(state):
 
   # Check results
   # TODO
+  _log = '{}/results.txt'.format(global_vars['LogDir'])
+  if os.path.exists(_log):
+    with open(_log, 'r') as f:
+      for line in f.readlines():
+        if re.search(r'(error|fail)', line, re.IGNORECASE):
+          state.tests['Prime95']['Result'] = 'NS'
 
   # Done
   state.tests['Prime95']['Result'] = 'Unknown'
@@ -748,10 +750,11 @@ def run_mprime_test(state):
 
   # Cleanup
   tmux_kill_pane(state.panes['mprime'], state.panes['Temps'])
-  monitor_proc.kill()
+  test_obj.monitor_proc.kill()
 
   # TODO Testing
-  print('\n'.join(generate_report(_sensor_data, 'Idle', 'Max', 'Cooldown')))
+  print('\n'.join(
+    generate_report(test_obj.sensor_data, 'Idle', 'Max', 'Cooldown')))
 
 def run_network_test():
   """Run network test."""
@@ -759,7 +762,7 @@ def run_network_test():
   run_program(['hw-diags-network'], check=False, pipe=False)
   pause('Press Enter to return to main menu... ')
 
-def run_nvme_smart_tests(state):
+def run_nvme_smart_tests(state, test_obj):
   """TODO"""
   for disk in state.disks:
     tmux_update_pane(
