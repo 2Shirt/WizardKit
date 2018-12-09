@@ -2,6 +2,13 @@
 
 from functions.common import *
 
+def tmux_kill_all_panes(pane_id=None):
+  """Kill all tmux panes except the active pane or pane_id if specified."""
+  cmd = ['tmux', 'kill-pane', '-a']
+  if pane_id:
+    cmd.extend(['-t', pane_id])
+  run_program(cmd, check=False)
+
 def tmux_kill_pane(*panes):
   """Kill tmux pane by id."""
   cmd = ['tmux', 'kill-pane', '-t']
