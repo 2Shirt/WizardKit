@@ -64,6 +64,12 @@ KEY_NVME = 'nvme_smart_health_information_log'
 KEY_SMART = 'ata_smart_attributes'
 QUICK_LABEL = '{YELLOW}(Quick){CLEAR}'.format(**COLORS)
 SIDE_PANE_WIDTH = 20
+TESTS_CPU = ['Prime95 & Temps']
+TESTS_DISK = [
+  'I/O Benchmark',
+  'NVMe / SMART',
+  'badblocks',
+  ]
 TOP_PANE_TEXT = '{GREEN}Hardware Diagnostics{CLEAR}'.format(**COLORS)
 
 # Classes
@@ -169,6 +175,10 @@ class DiskObj():
         self.smart_attributes[_id] = {
           'name': _name, 'raw': _raw, 'raw_str': _raw_str}
 
+  def safety_check(self):
+    """Check enabled tests and verify it's safe to run them."""
+    # TODO
+    pass
 
 class State():
   """Object to track device objects and overall state."""
@@ -179,13 +189,31 @@ class State():
     self.progress_out = '{}/progress.out'.format(global_vars['LogDir'])
     self.quick_mode = False
     self.tests = {
-      'Prime95 & Temps':  {'Enabled': False, 'Order': 1,
-        'Result': '', 'Sensor Data': get_sensor_data(),
-        'Started': False, 'Status': ''},
-      'NVMe / SMART':     {'Enabled': False, 'Order': 2},
-      'badblocks':        {'Enabled': False, 'Order': 3},
-      'I/O Benchmark':    {'Enabled': False, 'Order': 4},
-    }
+      'Prime95 & Temps':  {
+        'Enabled': False,
+        'Function': run_mprime_test,
+        'Objects': [],
+        'Order': 1,
+        },
+      'NVMe / SMART':     {
+        'Enabled': False,
+        'Function': run_nvme_smart_tests,
+        'Objects': [],
+        'Order': 2,
+        },
+      'badblocks':        {
+        'Enabled': False,
+        'Function': run_badblocks_test,
+        'Objects': [],
+        'Order': 3,
+        },
+      'I/O Benchmark':    {
+        'Enabled': False,
+        'Function': run_io_benchmark,
+        'Objects': [],
+        'Order': 4,
+        },
+      }
 
   def init(self):
     """Set log and add devices."""
@@ -228,26 +256,32 @@ class State():
       if not skip_disk:
         self.disks.append(disk_obj)
 
-  def update_progress(self):
-    """Update status strings."""
-    # Prime95
-    p = self.tests['Prime95 & Temps']
-    if p['Enabled']:
-      _status = ''
-      if not p['Status']:
-        _status = 'Pending'
-      if p['Started']:
-        if p['Result']:
-          _status = p['Result']
-        else:
-          _status = 'Working'
-      if _status:
-        p['Status'] = build_status_string(
-          'Prime95', _status, info_label=True)
+class TestObj():
+  """Object to track test data."""
+  def __init__(self, label, info_label=False):
+    self.started = False
+    self.passed = False
+    self.failed = False
+    self.report = ''
+    self.status = ''
+    self.label = label
+    self.info_label = info_label
+    self.disabled = False
+    self.update_status()
 
-    # Disks
-    for dev in self.devs:
-      dev.update_progress()
+  def update_status(self, new_status=None):
+    """Update status strings."""
+    if self.disabled:
+      return
+    if new_status:
+        self.status = build_status_string(
+        self.label, new_status, self.info_label)
+    elif not self.status:
+        self.status = build_status_string(
+        self.label, 'Pending', self.info_label)
+    elif self.started and 'Pending' in self.status:
+        self.status = build_status_string(
+        self.label, 'Working', self.info_label)
 
 # Functions
 def build_outer_panes(state):
@@ -543,7 +577,7 @@ def run_hw_tests(state):
   update_progress_pane(state)
   build_outer_panes(state)
 
-  # Run test(s)
+  # Show selected tests and create TestObj()s
   print_info('Selected Tests:')
   for k, v in sorted(
       state.tests.items(),
@@ -554,21 +588,36 @@ def run_hw_tests(state):
       'Enabled' if v['Enabled'] else 'Disabled',
       COLORS['CLEAR'],
       QUICK_LABEL if state.quick_mode and 'NVMe' in k else ''))
+    if v['Enabled']:
+      # Create TestObj and track under both CpuObj/DiskObj and State
+      if k in TESTS_CPU:
+        test_obj = TestObj(info_label=True)
+        state.cpu.tests[k] = test_obj
+        v['Objects'].append(test_obj)
+      elif k in TESTS_DISK:
+        for disk in state.disks:
+          test_obj = TestObj()
+          disk.tests[k] = test_obj
+          v['Objects'].append(test_obj)
   print_standard('')
 
-  # Check devices if necessary
-  if (state.tests['badblocks']['Enabled']
-      or state.tests['I/O Benchmark']['Enabled']):
-    print_info('Selected Disks:')
-    for dev in state.devs:
-      check_dev_attributes(dev)
-    print_standard('')
+  # Run safety checks
+  for disk in state.disks:
+    disk.safety_check()
+
+  # Run tests
+  for k, v in sorted(
+      state.tests.items(),
+      key=lambda kv: kv[1]['Order']):
+    if v['Enabled']:
+      # TODO
+      pass
 
   # Run tests
   if state.tests['Prime95 & Temps']['Enabled']:
     run_mprime_test(state)
   if state.tests['NVMe / SMART']['Enabled']:
-    run_nvme_smart(state)
+    run_nvme_smart_tests(state)
   if state.tests['badblocks']['Enabled']:
     run_badblocks_test(state)
   if state.tests['I/O Benchmark']['Enabled']:
@@ -835,7 +884,6 @@ def update_io_progress(percent, rate, progress_file):
 def update_progress_pane(state):
   """Update progress file for side pane."""
   output = []
-  state.update_progress()
 
   # Prime95
   output.append(state.tests['Prime95 & Temps']['Status'])
