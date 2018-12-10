@@ -214,10 +214,10 @@ class State():
       })
 
   def init(self):
-    """Set log and add devices."""
+    """Remove test objects, set log, and add devices."""
     self.disks = []
-    for k in ['Result', 'Started', 'Status']:
-      self.tests['Prime95'][k] = False if k == 'Started' else ''
+    for k, v in self.tests.items():
+      v['Objects'] = []
 
     # Update LogDir
     if not self.quick_mode:
@@ -596,7 +596,7 @@ def run_hw_tests(state):
         v['Objects'].append(test_obj)
       elif k in TESTS_DISK:
         for disk in state.disks:
-          test_obj = TestObj(dev=k)
+          test_obj = TestObj(dev=k, label=disk.name)
           disk.tests[k] = test_obj
           v['Objects'].append(test_obj)
   print_standard('')
@@ -705,7 +705,7 @@ def run_mprime_test(state, test):
   except KeyboardInterrupt:
     # Catch CTRL+C
     test.aborted = True
-    test.status = 'Aborted'
+    test.update_status('Aborted')
     print_warning('\nAborted.')
     update_progress_pane(state)
 
@@ -757,23 +757,23 @@ def run_mprime_test(state, test):
     if log == 'results.txt':
       if re.search(r'(error|fail)', _data, re.IGNORECASE):
         test.failed = True
-        test.status = 'NS'
+        test.update_status('NS')
 
     # prime.log:    CS check
     if log == 'prime.log':
       if re.search(
           r'completed.*0 errors, 0 warnings', _data, re.IGNORECASE):
         test.passed = True
-        test.status = 'CS'
+        test.update_status('CS')
       elif re.search(
           r'completed.*\d+ errors, \d+ warnings', _data, re.IGNORECASE):
         # If the first re.search does not match and this one does then
         # that means that either errors or warnings, or both, are non-zero
         test.failed = True
         test.passed = False
-        test.status = 'NS'
+        test.update_status('NS')
   if not (test.aborted or test.failed or test.passed):
-    test.status = 'Unknown'
+    test.update_status('Unknown')
 
   # Done
   update_progress_pane(state)
@@ -910,19 +910,23 @@ def update_io_progress(percent, rate, progress_file):
 def update_progress_pane(state):
   """Update progress file for side pane."""
   output = []
-
-  # Prime95
-  output.append(state.tests['Prime95']['Status'])
-  output.append(' ')
-
-  # Disks
   for k, v in state.tests.items():
-    if 'Prime95' not in k and v['Enabled']:
-      output.append('{BLUE}{test_name}{CLEAR}'.format(
-        test_name=k, **COLORS))
-      for disk in state.disks:
-        output.append(disk.tests[k]['Status'])
-      output.append(' ')
+    # Skip disabled sections
+    if not v['Enabled']:
+      continue
+
+    # Add section name
+    if k != 'Prime95':
+      output.append('{BLUE}{name}{CLEAR}'.format(name=k, **COLORS))
+    if 'SMART' in k and state.quick_mode:
+      output.append('   {YELLOW}(Quick Check){CLEAR}'.format(**COLORS))
+
+    # Add status from test object(s)
+    for test in v['Objects']:
+      output.append(test.status)
+
+    # Add spacer before next section
+    output.append(' ')
 
   # Add line-endings
   output = ['{}\n'.format(line) for line in output]
