@@ -2,6 +2,12 @@
 
 from functions.common import *
 
+def create_file(filepath):
+  """Create file if it doesn't exist."""
+  if not os.path.exists(filepath):
+    with open(filepath, 'w') as f:
+      f.write('')
+
 def tmux_kill_all_panes(pane_id=None):
   """Kill all tmux panes except the active pane or pane_id if specified."""
   cmd = ['tmux', 'kill-pane', '-a']
@@ -72,6 +78,7 @@ def tmux_split_window(
   elif text:
     cmd.extend(['echo-and-hold "{}"'.format(text)])
   elif watch:
+    create_file(watch)
     cmd.extend([
       'watch', '--color', '--no-title',
       '--interval', '1',
@@ -98,6 +105,7 @@ def tmux_update_pane(
   elif text:
     cmd.extend(['echo-and-hold "{}"'.format(text)])
   elif watch:
+    create_file(watch)
     cmd.extend([
       'watch', '--color', '--no-title',
       '--interval', '1',
