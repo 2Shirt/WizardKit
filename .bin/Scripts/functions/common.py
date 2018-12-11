@@ -515,6 +515,12 @@ def stay_awake():
         print_error('ERROR: No caffeine available.')
         print_warning('Please set the power setting to High Performance.')
 
+def strip_colors(s):
+    """Remove all ASCII color escapes from string, returns str."""
+    for c in COLORS.values():
+      s = s.replace(c, '')
+    return s
+
 def get_exception(s):
     """Get exception by name, returns Exception object."""
     try:
