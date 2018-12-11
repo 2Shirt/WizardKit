@@ -264,7 +264,7 @@ class TestObj():
     self.disabled = False
     self.failed = False
     self.passed = False
-    self.report = ''
+    self.report = []
     self.started = False
     self.status = ''
     self.update_status()
@@ -615,6 +615,7 @@ def run_hw_tests(state):
         f(state, test_obj)
 
   # Done
+  show_results(state)
   pause('Press Enter to return to main menu... ')
 
   # Cleanup
@@ -738,42 +739,67 @@ def run_mprime_test(state, test):
         item.path,
         global_vars['LogDir']))
 
-  # Check results
+  # Check results and build report
   test.logs = {}
   for log in ['results.txt', 'prime.log']:
-    _data = ''
+    lines = []
     log_path = '{}/{}'.format(global_vars['LogDir'], log)
 
     # Read and save log
     try:
       with open(log_path, 'r') as f:
-        _data = f.read()
-      test.logs[log] = _data.splitlines()
+        lines = f.read().splitlines()
+      test.logs[log] = lines
     except FileNotFoundError:
       # Ignore since files may be missing for slower CPUs
       pass
 
-    # results.txt:  NS check
+    # results.txt (NS check)
     if log == 'results.txt':
-      if re.search(r'(error|fail)', _data, re.IGNORECASE):
-        test.failed = True
-        test.update_status('NS')
+      _tmp = []
+      for line in lines:
+        if re.search(r'(error|fail)', line, re.IGNORECASE):
+          test.failed = True
+          test.update_status('NS')
+          _tmp.append('  {YELLOW}{line}{CLEAR}'.format(**COLORS))
+      if _tmp:
+        test.report.append('{BLUE}Log: results.txt{CLEAR}'.format(**COLORS))
+        test.report.extend(_tmp)
 
-    # prime.log:    CS check
+    # prime.log (CS check)
     if log == 'prime.log':
-      if re.search(
-          r'completed.*0 errors, 0 warnings', _data, re.IGNORECASE):
-        test.passed = True
-        test.update_status('CS')
-      elif re.search(
-          r'completed.*\d+ errors, \d+ warnings', _data, re.IGNORECASE):
-        # If the first re.search does not match and this one does then
-        # that means that either errors or warnings, or both, are non-zero
-        test.failed = True
-        test.passed = False
-        test.update_status('NS')
+      _tmp_pass = []
+      _tmp_warn = []
+      for line in lines:
+        if re.search(
+            r'completed.*0 errors, 0 warnings', line, re.IGNORECASE):
+          _tmp_pass.append(line)
+        elif re.search(
+            r'completed.*\d+ errors, \d+ warnings', line, re.IGNORECASE):
+          # If the first re.search does not match and this one does then
+          # that means that either errors or warnings, or both, are non-zero
+          _tmp_warn.append(line)
+      if len(_tmp_warn) > 0:
+          test.failed = True
+          test.passed = False
+          test.update_status('NS')
+      elif len(_tmp_pass) > 0:
+          test.passed = True
+          test.update_status('CS')
+      if len(_tmp_pass) + len(_tmp_warn) > 0:
+        test.report.append('{BLUE}Log: prime.log{CLEAR}'.format(**COLORS))
+        for line in _tmp_pass:
+          test.report.append('  {}'.format(line))
+        for line in _tmp_warn:
+          test.report.append('  {YELLOW}{line}{CLEAR}'.format(line, **COLORS))
+        test.report.append(' ')
+
+  # Finalize report
   if not (test.aborted or test.failed or test.passed):
     test.update_status('Unknown')
+  test.report.append('{BLUE}Temps{CLEAR}'.format(**COLORS))
+  for line in generate_report(test.sensor_data, 'Idle', 'Max', 'Cooldown'):
+    test.report.append('  {}'.format(line))
 
   # Done
   update_progress_pane(state)
@@ -781,10 +807,6 @@ def run_mprime_test(state, test):
   # Cleanup
   tmux_kill_pane(state.panes['mprime'], state.panes['Temps'])
   test.monitor_proc.kill()
-
-  # TODO Testing
-  print('\n'.join(
-    generate_report(test.sensor_data, 'Idle', 'Max', 'Cooldown')))
 
 def run_network_test():
   """Run network test."""
@@ -839,6 +861,17 @@ def secret_screensaver(screensaver=None):
   else:
     raise Exception('Invalid screensaver')
   run_program(cmd, check=False, pipe=False)
+
+def show_results(state):
+  """Show results for all tests."""
+  for k, v in state.tests.items():
+    print_success('{}:'.format(k))
+    for obj in v['Objects']:
+      for line in obj.report:
+        print(line)
+        print_log(strip_colors(line))
+      print_standard(' ')
+    print_standard(' ')
 
 def update_main_options(state, selection, main_options):
   """Update menu and state based on selection."""
