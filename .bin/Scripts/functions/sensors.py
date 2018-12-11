@@ -29,17 +29,22 @@ def fix_sensor_str(s):
   s = s.title()
   s = s.replace('Coretemp', 'CoreTemp')
   s = s.replace('Acpi', 'ACPI')
+  s = s.replace('ACPItz', 'ACPI TZ')
   s = s.replace('Isa ', 'ISA ')
   s = s.replace('Id ', 'ID ')
   s = re.sub(r'(\D+)(\d+)', r'\1 \2', s, re.IGNORECASE)
   s = s.replace('  ', ' ')
   return s
 
-def generate_report(sensor_data, *temp_labels, colors=True):
+def generate_report(
+    sensor_data, *temp_labels,
+    colors=True, core_only=False):
   """Generate report based on temp_labels, returns list if str."""
   report = []
   for _section, _adapters in sorted(sensor_data.items()):
     # CoreTemps then Other temps
+    if core_only and 'Core' not in _section:
+      continue
     for _adapter, _sources in sorted(_adapters.items()):
       # Adapter
       report.append(fix_sensor_str(_adapter))
@@ -53,7 +58,8 @@ def generate_report(sensor_data, *temp_labels, colors=True):
             ': ' if _label != 'Current' else '',
             get_temp_str(_data.get(_label, '???'), colors=colors))
         report.append(_line)
-      report.append(' ')
+      if not core_only:
+        report.append(' ')
 
   # Handle empty reports (i.e. no sensors detected)
   if not report:

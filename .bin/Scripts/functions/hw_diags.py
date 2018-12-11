@@ -674,7 +674,9 @@ def run_mprime_test(state, test):
   try_and_print(
     message='Getting idle temps...', indent=0,
     function=save_average_temp, cs='Done',
-    sensor_data=test.sensor_data, temp_label='Idle')
+    sensor_data=test.sensor_data, temp_label='Idle',
+    seconds=3)
+  # TODO: Remove seconds kwarg above
 
   # Stress CPU
   print_log('Starting Prime95')
@@ -684,7 +686,9 @@ def run_mprime_test(state, test):
     state.panes['mprime'],
     command=['hw-diags-prime95', global_vars['TmpDir']],
     working_dir=global_vars['TmpDir'])
-  time_limit = int(MPRIME_LIMIT) * 60
+  #time_limit = int(MPRIME_LIMIT) * 60
+  # TODO: restore above line
+  time_limit = 10
   try:
     for i in range(time_limit):
       clear_screen()
@@ -716,19 +720,23 @@ def run_mprime_test(state, test):
       pipe=True)
 
   # Stop Prime95 (twice for good measure)
-  tmux_kill_pane(state.panes['mprime'])
   run_program(['killall', '-s', 'INT', 'mprime'], check=False)
+  sleep(1)
+  tmux_kill_pane(state.panes['mprime'])
 
   # Get cooldown temp
   run_program(['apple-fans', 'auto'])
   clear_screen()
   try_and_print(
     message='Letting CPU cooldown for bit...', indent=0,
-    function=sleep, cs='Done', seconds=10)
+    function=sleep, cs='Done', seconds=3)
+  # TODO: Above seconds should be 10
   try_and_print(
     message='Getting cooldown temps...', indent=0,
     function=save_average_temp, cs='Done',
-    sensor_data=test.sensor_data, temp_label='Cooldown')
+    sensor_data=test.sensor_data, temp_label='Cooldown',
+    seconds=3)
+  # TODO: Remove seconds kwarg above
 
   # Move logs to Ticket folder
   for item in os.scandir(global_vars['TmpDir']):
@@ -761,44 +769,47 @@ def run_mprime_test(state, test):
         if re.search(r'(error|fail)', line, re.IGNORECASE):
           test.failed = True
           test.update_status('NS')
-          _tmp.append('  {YELLOW}{line}{CLEAR}'.format(**COLORS))
+          _tmp.append('  {YELLOW}{line}{CLEAR}'.format(line=line, **COLORS))
       if _tmp:
         test.report.append('{BLUE}Log: results.txt{CLEAR}'.format(**COLORS))
         test.report.extend(_tmp)
 
     # prime.log (CS check)
     if log == 'prime.log':
-      _tmp_pass = []
-      _tmp_warn = []
+      _tmp = {'Pass': {}, 'Warn': {}}
       for line in lines:
-        if re.search(
-            r'completed.*0 errors, 0 warnings', line, re.IGNORECASE):
-          _tmp_pass.append(line)
-        elif re.search(
-            r'completed.*\d+ errors, \d+ warnings', line, re.IGNORECASE):
-          # If the first re.search does not match and this one does then
-          # that means that either errors or warnings, or both, are non-zero
-          _tmp_warn.append(line)
-      if len(_tmp_warn) > 0:
-          test.failed = True
-          test.passed = False
-          test.update_status('NS')
-      elif len(_tmp_pass) > 0:
-          test.passed = True
-          test.update_status('CS')
-      if len(_tmp_pass) + len(_tmp_warn) > 0:
+        _r = re.search(
+          r'(completed.*(\d+) errors, (\d+) warnings)',
+          line,
+          re.IGNORECASE)
+        if _r:
+          if int(_r.group(2)) + int(_r.group(3)) > 0:
+            # Encountered errors and/or warnings
+            _tmp['Warn'][_r.group(1)] = None
+          else:
+            # No errors
+            _tmp['Pass'][_r.group(1)] = None
+      if len(_tmp['Warn']) > 0:
+        # NS
+        test.failed = True
+        test.passed = False
+        test.update_status('NS')
+      elif len(_tmp['Pass']) > 0:
+        test.passed = True
+        test.update_status('CS')
+      if len(_tmp['Pass']) + len(_tmp['Warn']) > 0:
         test.report.append('{BLUE}Log: prime.log{CLEAR}'.format(**COLORS))
-        for line in _tmp_pass:
+        for line in sorted(_tmp['Pass'].keys()):
           test.report.append('  {}'.format(line))
-        for line in _tmp_warn:
-          test.report.append('  {YELLOW}{line}{CLEAR}'.format(line, **COLORS))
-        test.report.append(' ')
+        for line in sorted(_tmp['Warn'].keys()):
+          test.report.append('  {YELLOW}{line}{CLEAR}'.format(line=line, **COLORS))
 
   # Finalize report
   if not (test.aborted or test.failed or test.passed):
     test.update_status('Unknown')
   test.report.append('{BLUE}Temps{CLEAR}'.format(**COLORS))
-  for line in generate_report(test.sensor_data, 'Idle', 'Max', 'Cooldown'):
+  for line in generate_report(
+      test.sensor_data, 'Idle', 'Max', 'Cooldown', core_only=True):
     test.report.append('  {}'.format(line))
 
   # Done
@@ -864,6 +875,7 @@ def secret_screensaver(screensaver=None):
 
 def show_results(state):
   """Show results for all tests."""
+  clear_screen()
   for k, v in state.tests.items():
     print_success('{}:'.format(k))
     for obj in v['Objects']:
@@ -871,7 +883,8 @@ def show_results(state):
         print(line)
         print_log(strip_colors(line))
       print_standard(' ')
-    print_standard(' ')
+    if 'Prime95' not in k:
+      print_standard(' ')
 
 def update_main_options(state, selection, main_options):
   """Update menu and state based on selection."""
