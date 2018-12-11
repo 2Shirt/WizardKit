@@ -405,19 +405,24 @@ def ping(addr='google.com'):
 
 def popen_program(cmd, pipe=False, minimized=False, shell=False, **kwargs):
     """Run program and return a subprocess.Popen object."""
-    startupinfo=None
+    cmd_kwargs = {'args': cmd, 'shell': shell}
+
     if minimized:
         startupinfo = subprocess.STARTUPINFO()
         startupinfo.dwFlags = subprocess.STARTF_USESHOWWINDOW
         startupinfo.wShowWindow = 6
+        cmd_kwargs['startupinfo'] = startupinfo
 
     if pipe:
-        popen_obj = subprocess.Popen(cmd, shell=shell, startupinfo=startupinfo,
-            stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    else:
-        popen_obj = subprocess.Popen(cmd, shell=shell, startupinfo=startupinfo)
+        cmd_kwargs.update({
+            'stdout': subprocess.PIPE,
+            'stderr': subprocess.PIPE,
+            })
 
-    return popen_obj
+    if 'cwd' in kwargs:
+        cmd_kwargs['cwd'] = kwargs['cwd']
+
+    return subprocess.Popen(**cmd_kwargs)
 
 def print_error(*args, **kwargs):
     """Prints message to screen in RED."""
@@ -456,7 +461,7 @@ def print_log(message='', end='\n', timestamp=True):
                     line =      line,
                     end =       end))
 
-def run_program(cmd, args=[], check=True, pipe=True, shell=False):
+def run_program(cmd, args=[], check=True, pipe=True, shell=False, **kwargs):
     """Run program and return a subprocess.CompletedProcess object."""
     if args:
         # Deprecated so let's raise an exception to find & fix all occurances
@@ -466,13 +471,18 @@ def run_program(cmd, args=[], check=True, pipe=True, shell=False):
     if shell:
         cmd = ' '.join(cmd)
 
-    if pipe:
-        process_return = subprocess.run(cmd, check=check, shell=shell,
-            stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    else:
-        process_return = subprocess.run(cmd, check=check, shell=shell)
+    cmd_kwargs = {'args': cmd, 'check': check, 'shell': shell}
 
-    return process_return
+    if pipe:
+        cmd_kwargs.update({
+            'stdout': subprocess.PIPE,
+            'stderr': subprocess.PIPE,
+            })
+
+    if 'cwd' in kwargs:
+        cmd_kwargs['cwd'] = kwargs['cwd']
+
+    return subprocess.run(**cmd_kwargs)
 
 def set_title(title='~Some Title~'):
     """Set title.
