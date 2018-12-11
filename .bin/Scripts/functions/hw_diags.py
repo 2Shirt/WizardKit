@@ -11,23 +11,23 @@ from functions.tmux import *
 # STATIC VARIABLES
 ATTRIBUTES = {
   'NVMe': {
-    'critical_warning': {'Error':   1},
-    'media_errors':     {'Error':   1},
+    'critical_warning': {'Error':   1, 'Critical': True},
+    'media_errors':     {'Error':   1, 'Critical': True},
     'power_on_hours':   {'Warning': 12000, 'Error': 26298, 'Ignore': True},
     'unsafe_shutdowns': {'Warning': 1},
     },
   'SMART': {
-    5:   {'Hex': '05', 'Error':   1},
-    9:   {'Hex': '09', 'Warning': 12000, 'Error': 26298, 'Ignore': True},
-    10:  {'Hex': '0A', 'Error':   1},
-    184: {'Hex': 'B8', 'Error':   1},
-    187: {'Hex': 'BB', 'Error':   1},
-    188: {'Hex': 'BC', 'Error':   1},
-    196: {'Hex': 'C4', 'Error':   1},
-    197: {'Hex': 'C5', 'Error':   1},
-    198: {'Hex': 'C6', 'Error':   1},
-    199: {'Hex': 'C7', 'Error':   1, 'Ignore': True},
-    201: {'Hex': 'C9', 'Error':   1},
+    '5':    {'Hex': '05', 'Error':   1, 'Critical': True},
+    '9':    {'Hex': '09', 'Warning': 12000, 'Error': 26298, 'Ignore': True},
+    '10':   {'Hex': '0A', 'Error':   1},
+    '184':  {'Hex': 'B8', 'Error':   1},
+    '187':  {'Hex': 'BB', 'Error':   1},
+    '188':  {'Hex': 'BC', 'Error':   1},
+    '196':  {'Hex': 'C4', 'Error':   1},
+    '197':  {'Hex': 'C5', 'Error':   1, 'Critical': True},
+    '198':  {'Hex': 'C6', 'Error':   1, 'Critical': True},
+    '199':  {'Hex': 'C7', 'Error':   1, 'Ignore': True},
+    '201':  {'Hex': 'C9', 'Error':   1},
     },
   }
 IO_VARS = {
@@ -284,6 +284,82 @@ class TestObj():
         self.label, 'Working', self.info_label)
 
 # Functions
+def attributes_ok_nvme(disk):
+  """Check NVMe attributes for errors, returns bool."""
+  disk_ok = True
+  override_disabled = False
+  for k, v in disk.nvme_attributes.items():
+    if k in ATTRIBUTES['NVMe']:
+      if 'Error' not in ATTRIBUTES['NVMe'][k]:
+        # Only worried about error thresholds
+        continue
+      if v['raw'] >= ATTRIBUTES['NVMe'][k]['Error']:
+        disk_ok = False
+
+        # Disable override if necessary
+        override_disabled |= ATTRIBUTES['NVMe'][k].get(
+          'Critical', False)
+
+  # Print errors
+  if not disk_ok:
+    show_disk_attributes(disk)
+    if override_disabled:
+      print_error('NVMe error(s) detected.')
+      print_standard('Tests disabled for this device')
+      pause()
+    else:
+      print_warning('NVMe error(s) detected.')
+      disk_ok = ask('Run tests on this device anyway?')
+
+  return disk_ok
+
+def attributes_ok_smart(disk):
+  """Check SMART attributes for errors, returns bool."""
+  disk_ok = True
+  override_disabled = False
+  smart_overall_pass = True
+  for k, v in disk.smart_attributes.items():
+    if k in ATTRIBUTES['SMART']:
+      if 'Error' not in ATTRIBUTES['SMART'][k]:
+        # Only worried about error thresholds
+        continue
+      if v['raw'] >= ATTRIBUTES['SMART'][k]['Error']:
+        disk_ok = False
+
+        # Disable override if necessary
+        override_disabled |= ATTRIBUTES['SMART'][k].get(
+          'Critical', False)
+
+  # SMART overall assessment
+  if not disk.smartctl.get('smart_status', {}).get('passed', False):
+    smart_overall_pass = False
+    disk_ok = False
+    override_disabled = True
+
+  # Print errors
+  if not disk_ok:
+    show_disk_attributes(disk)
+    
+    # 199/C7 warning
+    if disk.smart_attributes.get('199', {}).get('raw', 0) > 0:
+      print_warning('199/C7 error detected')
+      print_standard('  (Have you tried swapping the drive cable?)')
+
+    # Override?
+    if not smart_overall_pass:
+      print_error('SMART overall self-assessment: Failed')
+      print_standard('Tests disabled for this device')
+      pause()
+    elif override_disabled:
+      print_error('SMART error(s) detected.')
+      print_standard('Tests disabled for this device')
+      pause()
+    else:
+      print_warning('SMART error(s) detected.')
+      disk_ok = ask('Run tests on this device anyway?')
+
+  return disk_ok
+
 def build_outer_panes(state):
   """Build top and side panes."""
   clear_screen()
@@ -310,7 +386,7 @@ def build_status_string(label, status, info_label=False):
   status_color = COLORS['CLEAR']
   if status in ['Denied', 'ERROR', 'NS', 'OVERRIDE']:
     status_color = COLORS['RED']
-  elif status in ['Aborted', 'Unknown', 'Working', 'Skipped']:
+  elif status in ['Aborted', 'N/A', 'Skipped', 'Unknown', 'Working']:
     status_color = COLORS['YELLOW']
   elif status in ['CS']:
     status_color = COLORS['GREEN']
@@ -596,7 +672,7 @@ def run_hw_tests(state):
         v['Objects'].append(test_obj)
       elif k in TESTS_DISK:
         for disk in state.disks:
-          test_obj = TestObj(dev=k, label=disk.name)
+          test_obj = TestObj(dev=disk, label=disk.name)
           disk.tests[k] = test_obj
           v['Objects'].append(test_obj)
   print_standard('')
@@ -616,7 +692,10 @@ def run_hw_tests(state):
 
   # Done
   show_results(state)
-  pause('Press Enter to return to main menu... ')
+  if '--quick' in sys.argv:
+    pause('Press Enter to exit...')
+  else:
+    pause('Press Enter to return to main menu... ')
 
   # Cleanup
   tmux_kill_pane(*state.panes.values())
@@ -826,42 +905,32 @@ def run_network_test():
   pause('Press Enter to return to main menu... ')
 
 def run_nvme_smart_tests(state, test):
-  """TODO"""
-  for disk in state.disks:
-    tmux_update_pane(
-      state.panes['Top'],
-      text='{t}\nDisk Health: {size:>6} ({tran}) {model} {serial}'.format(
-        t=TOP_PANE_TEXT, **disk.lsblk))
-    disk.tests['NVMe / SMART']['Started'] = True
-    update_progress_pane(state)
-    if disk.nvme_attributes:
-      run_nvme_tests(state, disk)
-    elif disk.smart_attributes:
-      run_smart_tests(state, disk)
+  """Run NVMe or SMART test for test.dev."""
+  tmux_update_pane(
+    state.panes['Top'],
+    text='{t}\nDisk Health: {size:>6} ({tran}) {model} {serial}'.format(
+      t=TOP_PANE_TEXT, **test.dev.lsblk))
+  if test.dev.nvme_attributes:
+    if attributes_ok_nvme(test.dev):
+      test.passed = True
+      test.update_status('CS')
     else:
-      print_standard('TODO: run_nvme_smart_tests({})'.format(
-        disk.path))
-      print_warning(
-        "  WARNING: Device {} doesn't support NVMe or SMART test".format(
-          disk.path))
-      disk.tests['NVMe / SMART']['Status'] = 'N/A'
-      disk.tests['NVMe / SMART']['Result'] = 'N/A'
-      update_progress_pane(state)
-      sleep(3)
-
-def run_nvme_tests(state, disk):
-  """TODO"""
-  print_standard('TODO: run_nvme_test({})'.format(disk.path))
+      test.failed = True
+      test.update_status('NS')
+  elif test.dev.smart_attributes:
+    if attributes_ok_smart(test.dev):
+      test.passed = True
+      test.update_status('CS')
+    else:
+      test.failed = True
+      test.update_status('NS')
+  else:
+    print_standard('Tests disabled for this device')
+    test.update_status('N/A')
+    if not ask('Run tests on this device anyway?'):
+      test.failed = True
+    update_progress_pane(state)
   sleep(3)
-  disk.tests['NVMe / SMART']['Result'] = 'CS'
-  update_progress_pane(state)
-
-def run_smart_tests(state, disk):
-  """TODO"""
-  print_standard('TODO: run_smart_tests({})'.format(disk.path))
-  sleep(3)
-  disk.tests['NVMe / SMART']['Result'] = 'CS'
-  update_progress_pane(state)
 
 def secret_screensaver(screensaver=None):
   """Show screensaver."""
@@ -873,10 +942,32 @@ def secret_screensaver(screensaver=None):
     raise Exception('Invalid screensaver')
   run_program(cmd, check=False, pipe=False)
 
+def show_disk_attributes(disk):
+  """Show NVMe/SMART attributes for disk."""
+  print_info('Device: {}'.format(disk.path))
+  print_standard(' {size:6} ({tran}) {model} {serial}'.format(**disk.lsblk))
+  print_info('Attributes')
+  if disk.nvme_attributes:
+    for k, v in disk.nvme_attributes.items():
+      if k in ATTRIBUTES['NVMe']:
+        print('TODO: {} {}'.format(k, v))
+  elif disk.smart_attributes:
+    for k, v in disk.smart_attributes.items():
+      if k in ATTRIBUTES['SMART']:
+        print('TODO: {} {}'.format(k, v))
+  else:
+    print_warning('  No NVMe or SMART data available')
+
 def show_results(state):
   """Show results for all tests."""
   clear_screen()
+  tmux_update_pane(
+    state.panes['Top'], text='{}\n{}'.format(
+      TOP_PANE_TEXT, 'Results'))
   for k, v in state.tests.items():
+    # Skip disabled tests
+    if not v['Enabled']:
+      continue
     print_success('{}:'.format(k))
     for obj in v['Objects']:
       for line in obj.report:
@@ -965,7 +1056,7 @@ def update_progress_pane(state):
     if k != 'Prime95':
       output.append('{BLUE}{name}{CLEAR}'.format(name=k, **COLORS))
     if 'SMART' in k and state.quick_mode:
-      output.append('   {YELLOW}(Quick Check){CLEAR}'.format(**COLORS))
+      output[-1] += ' {YELLOW}(Quick){CLEAR}'.format(**COLORS)
 
     # Add status from test object(s)
     for test in v['Objects']:
