@@ -81,11 +81,14 @@ def tmux_split_window(
   result = run_program(cmd)
   return result.stdout.decode().strip()
 
-def tmux_update_pane(pane_id, command=None, text=None, working_dir=None):
+def tmux_update_pane(
+    pane_id, command=None,
+    text=None, watch=None,
+    working_dir=None):
   """Respawn with either a new command or new text."""
   # Bail early
-  if not command and not text:
-    raise Exception('Neither command nor text specified.')
+  if not command and not text and not watch:
+    raise Exception('No command, text, or watch file specified.')
 
   cmd = ['tmux', 'respawn-pane', '-k', '-t', pane_id]
   if working_dir:
@@ -94,6 +97,11 @@ def tmux_update_pane(pane_id, command=None, text=None, working_dir=None):
     cmd.extend(command)
   elif text:
     cmd.extend(['echo-and-hold "{}"'.format(text)])
+  elif watch:
+    cmd.extend([
+      'watch', '--color', '--no-title',
+      '--interval', '1',
+      'cat', watch])
 
   run_program(cmd)
 
