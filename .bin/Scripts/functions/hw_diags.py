@@ -28,10 +28,9 @@ ATTRIBUTES = {
     198:  {'Hex': 'C6', 'Error':   1, 'Critical': True},
     199:  {'Hex': 'C7', 'Error':   1, 'Ignore': True},
     201:  {'Hex': 'C9', 'Error':   1},
-    # TODO: Delete below
-    177: {'Hex': 'FF', 'Error':   1},
     },
   }
+HW_OVERRIDES_FORCED = HW_OVERRIDES_FORCED and not HW_OVERRIDES_LIMITED
 IO_VARS = {
   'Block Size': 512*1024,
   'Chunk Size': 32*1024**2,
@@ -106,6 +105,7 @@ class CpuObj():
 class DiskObj():
   """Object for tracking disk specific data."""
   def __init__(self, disk_path):
+    self.disk_ok = True
     self.labels = []
     self.lsblk = {}
     self.name = re.sub(r'^.*/(.*)', r'\1', disk_path)
@@ -181,10 +181,121 @@ class DiskObj():
         self.smart_attributes[_id] = {
           'name': _name, 'raw': _raw, 'raw_str': _raw_str}
 
-  def safety_check(self):
-    """Check enabled tests and verify it's safe to run them."""
-    # TODO
-    pass
+  def nvme_check(self, silent=False):
+    """Check NVMe attributes for errors."""
+    override_disabled = False
+    for k, v in self.nvme_attributes.items():
+      if k in ATTRIBUTES['NVMe']:
+        if 'Error' not in ATTRIBUTES['NVMe'][k]:
+          # Only worried about error thresholds
+          continue
+        if ATTRIBUTES['NVMe'][k].get('Ignore', False):
+          # Attribute is non-failing, skip
+          continue
+        if v['raw'] >= ATTRIBUTES['NVMe'][k]['Error']:
+          self.disk_ok = False
+
+          # Disable override if necessary
+          override_disabled |= ATTRIBUTES['NVMe'][k].get(
+            'Critical', False)
+
+    # Print errors
+    if not self.disk_ok and not silent:
+      self.show_attributes()
+      print_warning('NVMe error(s) detected.')
+
+      # Override?
+      if override_disabled:
+        print_standard('Tests disabled for this device')
+        pause()
+      elif not (len(self.tests) == 3 and HW_OVERRIDES_LIMITED):
+        self.disk_ok = HW_OVERRIDES_FORCED or ask(
+          'Run tests on this device anyway?')
+
+  def safety_check(self, silent=False):
+    """Check attributes and disable tests if necessary."""
+    if self.nvme_attributes:
+      self.nvme_check(silent)
+    elif self.smart_attributes:
+      self.smart_check(silent)
+    else:
+      # No NVMe/SMART details
+      if silent:
+        self.disk_ok = HW_OVERRIDES_FORCED
+      else:
+        print_warning(
+          '  WARNING: No NVMe or SMART attributes available for: {}'.format(
+            self.path))
+        self.disk_ok = HW_OVERRIDES_FORCED or ask(
+          'Run tests on this device anyway?')
+
+    if not self.disk_ok:
+      for t in ['badblocks', 'I/O Benchmark']:
+        if t in self.tests:
+          self.tests[t].disabled = True
+          self.tests[t].update_status('Denied')
+
+  def show_attributes(self):
+    """Show NVMe/SMART attributes."""
+    print_info('Device: {}'.format(self.path))
+    print_standard(
+      ' {size:>6} ({tran}) {model} {serial}'.format(**self.lsblk))
+    print_info('Attributes')
+    if self.nvme_attributes:
+      for k, v in self.nvme_attributes.items():
+        if k in ATTRIBUTES['NVMe']:
+          print('TODO: {} {}'.format(k, v))
+    elif self.smart_attributes:
+      for k, v in self.smart_attributes.items():
+        # TODO: If k == 199/C7 then append ' (bad cable?)' to line
+        if k in ATTRIBUTES['SMART']:
+          print('TODO: {} {}'.format(k, v))
+      if not self.smartctl.get('smart_status', {}).get('passed', True):
+        print_error('SMART overall self-assessment: Failed')
+    else:
+      print_warning('  No NVMe or SMART data available')
+
+  def smart_check(self, silent=False):
+    """Check SMART attributes for errors."""
+    override_disabled = False
+    for k, v in self.smart_attributes.items():
+      if k in ATTRIBUTES['SMART']:
+        if 'Error' not in ATTRIBUTES['SMART'][k]:
+          # Only worried about error thresholds
+          continue
+        if ATTRIBUTES['SMART'][k].get('Ignore', False):
+          # Attribute is non-failing, skip
+          continue
+        if v['raw'] >= ATTRIBUTES['SMART'][k]['Error']:
+          self.disk_ok = False
+
+          # Disable override if necessary
+          override_disabled |= ATTRIBUTES['SMART'][k].get(
+            'Critical', False)
+
+    # SMART overall assessment
+    ## NOTE: Only fail drives if the overall value exists and reports failed
+    if not self.smartctl.get('smart_status', {}).get('passed', True):
+      self.disk_ok = False
+      override_disabled = True
+
+    # Print errors
+    if not silent:
+      if self.disk_ok:
+        # 199/C7 warning
+        if self.smart_attributes.get(199, {}).get('raw', 0) > 0:
+          print_warning('199/C7 error detected')
+          print_standard('  (Have you tried swapping the disk cable?)')
+      else:
+      # Override?
+        self.show_attributes()
+        print_warning('SMART error(s) detected.')
+        if override_disabled:
+          print_standard('Tests disabled for this device')
+          pause()
+        elif not (len(self.tests) == 3 and HW_OVERRIDES_LIMITED):
+          self.disk_ok = HW_OVERRIDES_FORCED or ask(
+            'Run tests on this device anyway?')
 
 class State():
   """Object to track device objects and overall state."""
@@ -288,82 +399,6 @@ class TestObj():
         self.label, 'Working', self.info_label)
 
 # Functions
-def attributes_ok_nvme(disk):
-  """Check NVMe attributes for errors, returns bool."""
-  disk_ok = True
-  override_disabled = False
-  for k, v in disk.nvme_attributes.items():
-    if k in ATTRIBUTES['NVMe']:
-      if 'Error' not in ATTRIBUTES['NVMe'][k]:
-        # Only worried about error thresholds
-        continue
-      if v['raw'] >= ATTRIBUTES['NVMe'][k]['Error']:
-        disk_ok = False
-
-        # Disable override if necessary
-        override_disabled |= ATTRIBUTES['NVMe'][k].get(
-          'Critical', False)
-
-  # Print errors
-  if not disk_ok:
-    show_disk_attributes(disk)
-    if override_disabled:
-      print_error('NVMe error(s) detected.')
-      print_standard('Tests disabled for this device')
-      pause()
-    else:
-      print_warning('NVMe error(s) detected.')
-      disk_ok = ask('Run tests on this device anyway?')
-
-  return disk_ok
-
-def attributes_ok_smart(disk):
-  """Check SMART attributes for errors, returns bool."""
-  disk_ok = True
-  override_disabled = False
-  smart_overall_pass = True
-  for k, v in disk.smart_attributes.items():
-    if k in ATTRIBUTES['SMART']:
-      if 'Error' not in ATTRIBUTES['SMART'][k]:
-        # Only worried about error thresholds
-        continue
-      if v['raw'] >= ATTRIBUTES['SMART'][k]['Error']:
-        disk_ok = False
-
-        # Disable override if necessary
-        override_disabled |= ATTRIBUTES['SMART'][k].get(
-          'Critical', False)
-
-  # SMART overall assessment
-  if not disk.smartctl.get('smart_status', {}).get('passed', False):
-    smart_overall_pass = False
-    disk_ok = False
-    override_disabled = True
-
-  # Print errors
-  if not disk_ok:
-    show_disk_attributes(disk)
-    
-    # 199/C7 warning
-    if disk.smart_attributes.get('199', {}).get('raw', 0) > 0:
-      print_warning('199/C7 error detected')
-      print_standard('  (Have you tried swapping the drive cable?)')
-
-    # Override?
-    if not smart_overall_pass:
-      print_error('SMART overall self-assessment: Failed')
-      print_standard('Tests disabled for this device')
-      pause()
-    elif override_disabled:
-      print_error('SMART error(s) detected.')
-      print_standard('Tests disabled for this device')
-      pause()
-    else:
-      print_warning('SMART error(s) detected.')
-      disk_ok = ask('Run tests on this device anyway?')
-
-  return disk_ok
-
 def build_outer_panes(state):
   """Build top and side panes."""
   clear_screen()
@@ -915,14 +950,15 @@ def run_nvme_smart_tests(state, test):
     text='{t}\nDisk Health: {size:>6} ({tran}) {model} {serial}'.format(
       t=TOP_PANE_TEXT, **test.dev.lsblk))
   if test.dev.nvme_attributes:
-    if attributes_ok_nvme(test.dev):
+    # NOTE: Pass/Fail is just the attribute check
+    if test.dev.disk_ok:
       test.passed = True
       test.update_status('CS')
     else:
       test.failed = True
       test.update_status('NS')
   elif test.dev.smart_attributes:
-    if attributes_ok_smart(test.dev):
+    if test.dev.disk_ok:
       test.passed = True
       test.update_status('CS')
     else:
@@ -945,22 +981,6 @@ def secret_screensaver(screensaver=None):
   else:
     raise Exception('Invalid screensaver')
   run_program(cmd, check=False, pipe=False)
-
-def show_disk_attributes(disk):
-  """Show NVMe/SMART attributes for disk."""
-  print_info('Device: {}'.format(disk.path))
-  print_standard(' {size:6} ({tran}) {model} {serial}'.format(**disk.lsblk))
-  print_info('Attributes')
-  if disk.nvme_attributes:
-    for k, v in disk.nvme_attributes.items():
-      if k in ATTRIBUTES['NVMe']:
-        print('TODO: {} {}'.format(k, v))
-  elif disk.smart_attributes:
-    for k, v in disk.smart_attributes.items():
-      if k in ATTRIBUTES['SMART']:
-        print('TODO: {} {}'.format(k, v))
-  else:
-    print_warning('  No NVMe or SMART data available')
 
 def show_results(state):
   """Show results for all tests."""
