@@ -117,6 +117,54 @@ class DiskObj():
     self.get_details()
     self.get_smart_details()
 
+  def check_attributes(self, silent=False):
+    """Check NVMe / SMART attributes for errors."""
+    override_disabled = False
+    if self.nvme_attributes:
+      attr_type = 'NVMe'
+      items = self.nvme_attributes.items()
+    elif self.smart_attributes:
+      attr_type = 'SMART'
+      items = self.smar_attributes.items()
+    for k, v in items:
+      if k in ATTRIBUTES[attr_type]:
+        if 'Error' not in ATTRIBUTES[attr_type][k]:
+          # Only worried about error thresholds
+          continue
+        if ATTRIBUTES[attr_type][k].get('Ignore', False):
+          # Attribute is non-failing, skip
+          continue
+        if v['raw'] >= ATTRIBUTES[attr_type][k]['Error']:
+          self.disk_ok = False
+
+          # Disable override if necessary
+          override_disabled |= ATTRIBUTES[attr_type][k].get(
+            'Critical', False)
+
+    # SMART overall assessment
+    ## NOTE: Only fail drives if the overall value exists and reports failed
+    if not self.smartctl.get('smart_status', {}).get('passed', True):
+      self.disk_ok = False
+      override_disabled = True
+
+    # Print errors
+    if not silent:
+      if self.disk_ok:
+        # 199/C7 warning
+        if self.smart_attributes.get(199, {}).get('raw', 0) > 0:
+          print_warning('199/C7 error detected')
+          print_standard('  (Have you tried swapping the disk cable?)')
+      else:
+        # Override?
+        self.show_attributes()
+        print_warning('{} error(s) detected.'.format(attr_type))
+        if override_disabled:
+          print_standard('Tests disabled for this device')
+          pause()
+        elif not (len(self.tests) == 3 and HW_OVERRIDES_LIMITED):
+          self.disk_ok = HW_OVERRIDES_FORCED or ask(
+            'Run tests on this device anyway?')
+
   def get_details(self):
     """Get data from lsblk."""
     cmd = ['lsblk', '--json', '--output-all', '--paths', self.path]
@@ -181,43 +229,10 @@ class DiskObj():
         self.smart_attributes[_id] = {
           'name': _name, 'raw': _raw, 'raw_str': _raw_str}
 
-  def nvme_check(self, silent=False):
-    """Check NVMe attributes for errors."""
-    override_disabled = False
-    for k, v in self.nvme_attributes.items():
-      if k in ATTRIBUTES['NVMe']:
-        if 'Error' not in ATTRIBUTES['NVMe'][k]:
-          # Only worried about error thresholds
-          continue
-        if ATTRIBUTES['NVMe'][k].get('Ignore', False):
-          # Attribute is non-failing, skip
-          continue
-        if v['raw'] >= ATTRIBUTES['NVMe'][k]['Error']:
-          self.disk_ok = False
-
-          # Disable override if necessary
-          override_disabled |= ATTRIBUTES['NVMe'][k].get(
-            'Critical', False)
-
-    # Print errors
-    if not self.disk_ok and not silent:
-      self.show_attributes()
-      print_warning('NVMe error(s) detected.')
-
-      # Override?
-      if override_disabled:
-        print_standard('Tests disabled for this device')
-        pause()
-      elif not (len(self.tests) == 3 and HW_OVERRIDES_LIMITED):
-        self.disk_ok = HW_OVERRIDES_FORCED or ask(
-          'Run tests on this device anyway?')
-
   def safety_check(self, silent=False):
-    """Check attributes and disable tests if necessary."""
-    if self.nvme_attributes:
-      self.nvme_check(silent)
-    elif self.smart_attributes:
-      self.smart_check(silent)
+    """Run safety checks and disable tests if necessary."""
+    if self.nvme_attributes or self.smart_attributes:
+      self.check_attributes(silent)
     else:
       # No NVMe/SMART details
       if silent:
@@ -254,48 +269,6 @@ class DiskObj():
         print_error('SMART overall self-assessment: Failed')
     else:
       print_warning('  No NVMe or SMART data available')
-
-  def smart_check(self, silent=False):
-    """Check SMART attributes for errors."""
-    override_disabled = False
-    for k, v in self.smart_attributes.items():
-      if k in ATTRIBUTES['SMART']:
-        if 'Error' not in ATTRIBUTES['SMART'][k]:
-          # Only worried about error thresholds
-          continue
-        if ATTRIBUTES['SMART'][k].get('Ignore', False):
-          # Attribute is non-failing, skip
-          continue
-        if v['raw'] >= ATTRIBUTES['SMART'][k]['Error']:
-          self.disk_ok = False
-
-          # Disable override if necessary
-          override_disabled |= ATTRIBUTES['SMART'][k].get(
-            'Critical', False)
-
-    # SMART overall assessment
-    ## NOTE: Only fail drives if the overall value exists and reports failed
-    if not self.smartctl.get('smart_status', {}).get('passed', True):
-      self.disk_ok = False
-      override_disabled = True
-
-    # Print errors
-    if not silent:
-      if self.disk_ok:
-        # 199/C7 warning
-        if self.smart_attributes.get(199, {}).get('raw', 0) > 0:
-          print_warning('199/C7 error detected')
-          print_standard('  (Have you tried swapping the disk cable?)')
-      else:
-      # Override?
-        self.show_attributes()
-        print_warning('SMART error(s) detected.')
-        if override_disabled:
-          print_standard('Tests disabled for this device')
-          pause()
-        elif not (len(self.tests) == 3 and HW_OVERRIDES_LIMITED):
-          self.disk_ok = HW_OVERRIDES_FORCED or ask(
-            'Run tests on this device anyway?')
 
 class State():
   """Object to track device objects and overall state."""
