@@ -17,17 +17,19 @@ ATTRIBUTES = {
     'unsafe_shutdowns': {'Warning': 1},
     },
   'SMART': {
-    '5':    {'Hex': '05', 'Error':   1, 'Critical': True},
-    '9':    {'Hex': '09', 'Warning': 12000, 'Error': 26298, 'Ignore': True},
-    '10':   {'Hex': '0A', 'Error':   1},
-    '184':  {'Hex': 'B8', 'Error':   1},
-    '187':  {'Hex': 'BB', 'Error':   1},
-    '188':  {'Hex': 'BC', 'Error':   1},
-    '196':  {'Hex': 'C4', 'Error':   1},
-    '197':  {'Hex': 'C5', 'Error':   1, 'Critical': True},
-    '198':  {'Hex': 'C6', 'Error':   1, 'Critical': True},
-    '199':  {'Hex': 'C7', 'Error':   1, 'Ignore': True},
-    '201':  {'Hex': 'C9', 'Error':   1},
+    5:    {'Hex': '05', 'Error':   1, 'Critical': True},
+    9:    {'Hex': '09', 'Warning': 12000, 'Error': 26298, 'Ignore': True},
+    10:   {'Hex': '0A', 'Error':   1},
+    184:  {'Hex': 'B8', 'Error':   1},
+    187:  {'Hex': 'BB', 'Error':   1},
+    188:  {'Hex': 'BC', 'Error':   1},
+    196:  {'Hex': 'C4', 'Error':   1},
+    197:  {'Hex': 'C5', 'Error':   1, 'Critical': True},
+    198:  {'Hex': 'C6', 'Error':   1, 'Critical': True},
+    199:  {'Hex': 'C7', 'Error':   1, 'Ignore': True},
+    201:  {'Hex': 'C9', 'Error':   1},
+    # TODO: Delete below
+    177: {'Hex': 'FF', 'Error':   1},
     },
   }
 IO_VARS = {
@@ -161,19 +163,21 @@ class DiskObj():
       self.nvme_attributes.update(self.smartctl[KEY_NVME])
     elif KEY_SMART in self.smartctl:
       for a in self.smartctl[KEY_SMART].get('table', {}):
-        _id = str(a.get('id', 'UNKNOWN'))
+        try:
+          _id = int(a.get('id', -1))
+        except ValueError:
+          # Ignoring invalid attribute
+          continue
         _name = str(a.get('name', 'UNKNOWN'))
-        _raw = a.get('raw', {}).get('value', -1)
+        _raw = int(a.get('raw', {}).get('value', -1))
         _raw_str = a.get('raw', {}).get('string', 'UNKNOWN')
 
         # Fix power-on time
         _r = re.match(r'^(\d+)[Hh].*', _raw_str)
-        if _id == '9' and _r:
-          try:
-            _raw = int(_r.group(1))
-          except ValueError:
-            # That's fine
-            pass
+        if _id == 9 and _r:
+          _raw = int(_r.group(1))
+
+        # Add to dict
         self.smart_attributes[_id] = {
           'name': _name, 'raw': _raw, 'raw_str': _raw_str}
 
@@ -1056,7 +1060,7 @@ def update_progress_pane(state):
     if k != 'Prime95':
       output.append('{BLUE}{name}{CLEAR}'.format(name=k, **COLORS))
     if 'SMART' in k and state.quick_mode:
-      output[-1] += ' {YELLOW}(Quick){CLEAR}'.format(**COLORS)
+      output[-1] += ' {}'.format(QUICK_LABEL)
 
     # Add status from test object(s)
     for test in v['Objects']:
