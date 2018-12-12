@@ -125,7 +125,7 @@ class DiskObj():
       items = self.nvme_attributes.items()
     elif self.smart_attributes:
       attr_type = 'SMART'
-      items = self.smar_attributes.items()
+      items = self.smart_attributes.items()
     for k, v in items:
       if k in ATTRIBUTES[attr_type]:
         if 'Error' not in ATTRIBUTES[attr_type][k]:
@@ -359,8 +359,6 @@ class TestObj():
 
   def update_status(self, new_status=None):
     """Update status strings."""
-    if self.disabled:
-      return
     if new_status:
         self.status = build_status_string(
         self.label, new_status, self.info_label)
@@ -650,12 +648,12 @@ def run_badblocks_test(state, test):
       TOP_PANE_TEXT, 'badblocks'))
   print_standard('TODO: run_badblocks_test({})'.format(
     test.dev.path))
-  for disk in state.disks:
-    disk.tests['badblocks']['Started'] = True
-    update_progress_pane(state)
-    sleep(3)
-    disk.tests['badblocks']['Result'] = 'OVERRIDE'
-    update_progress_pane(state)
+  test.started = True
+  test.update_status()
+  update_progress_pane(state)
+  sleep(3)
+  test.update_status('Unknown')
+  update_progress_pane(state)
 
 def run_hw_tests(state):
   """Run enabled hardware tests."""
@@ -691,7 +689,7 @@ def run_hw_tests(state):
 
   # Run safety checks
   for disk in state.disks:
-    disk.safety_check()
+    disk.safety_check(silent=state.quick_mode)
 
   # Run tests
   ## Because state.tests is an OrderedDict and the disks were added
@@ -704,7 +702,7 @@ def run_hw_tests(state):
 
   # Done
   show_results(state)
-  if '--quick' in sys.argv:
+  if state.quick_mode:
     pause('Press Enter to exit...')
   else:
     pause('Press Enter to return to main menu... ')
@@ -719,12 +717,12 @@ def run_io_benchmark(state, test):
       TOP_PANE_TEXT, 'I/O Benchmark'))
   print_standard('TODO: run_io_benchmark({})'.format(
     test.dev.path))
-  for disk in state.disks:
-    disk.tests['I/O Benchmark']['Started'] = True
-    update_progress_pane(state)
-    sleep(3)
-    disk.tests['I/O Benchmark']['Result'] = 'Unknown'
-    update_progress_pane(state)
+  test.started = True
+  test.update_status()
+  update_progress_pane(state)
+  sleep(3)
+  test.update_status('Unknown')
+  update_progress_pane(state)
 
 def run_keyboard_test():
   """Run keyboard test."""
@@ -928,22 +926,42 @@ def run_nvme_smart_tests(state, test):
       test.passed = True
       test.update_status('CS')
     else:
+      # NOTE: Other test(s) should've been disabled by DiskObj.safety_check()
       test.failed = True
       test.update_status('NS')
   elif test.dev.smart_attributes:
+    # NOTE: Pass/Fail based on both attributes and SMART short self-test
     if test.dev.disk_ok:
-      test.passed = True
-      test.update_status('CS')
+      # Run short test
+      pause('TODO: Run SMART short self-test')
+
+      # Check result
+      # TODO
+      short_test_passed = True
+      if short_test_passed:
+        test.passed = True
+        test.update_status('CS')
+      else:
+        for t in ['badblocks', 'I/O Benchmark']:
+          if t in test.dev.tests:
+            test.dev.tests[t].disabled = True
+            test.dev.tests[t].update_status('Denied')
+        # TODO
+        if no_logs:
+          test.update_status('Unknown')
+        else:
+          test.failed = True
+          test.update_status('NS')
     else:
       test.failed = True
       test.update_status('NS')
   else:
-    print_standard('Tests disabled for this device')
+    # NOTE: Pass/Fail not applicable without NVMe/SMART data
+    # Override request earlier disabled other test(s) as appropriate
     test.update_status('N/A')
-    if not ask('Run tests on this device anyway?'):
-      test.failed = True
-    update_progress_pane(state)
-  sleep(3)
+
+  # Done
+  update_progress_pane(state)
 
 def secret_screensaver(screensaver=None):
   """Show screensaver."""
