@@ -112,6 +112,7 @@ class DiskObj():
     self.nvme_attributes = {}
     self.path = disk_path
     self.smart_attributes = {}
+    self.smart_self_test = {}
     self.smartctl = {}
     self.tests = OrderedDict()
     self.get_details()
@@ -156,7 +157,9 @@ class DiskObj():
           print_standard('  (Have you tried swapping the disk cable?)')
       else:
         # Override?
-        self.show_attributes()
+        for line in self.generate_report():
+          print(line)
+          print_log(strip_colors(line))
         print_warning('{} error(s) detected.'.format(attr_type))
         if override_disabled:
           print_standard('Tests disabled for this device')
@@ -167,6 +170,93 @@ class DiskObj():
             if 'NVMe / SMART' in self.tests:
               self.tests['NVMe / SMART'].update_status('OVERRIDE')
               self.tests['NVMe / SMART'].disabled = True
+
+  def generate_report(self, brief=False, short_test=False):
+    """Generate NVMe / SMART report, returns list."""
+    report = []
+    if not brief:
+      report.append('{BLUE}Device: {dev_path}{CLEAR}'.format(
+        dev_path=self.path, **COLORS))
+      report.append('  {size:>6} ({tran}) {model} {serial}'.format(
+        **self.lsblk))
+
+    # Warnings
+    if self.nvme_attributes:
+      attr_type = 'NVMe'
+      report.append(
+        '  {YELLOW}NVMe disk support is still experimental{CLEAR}'.format(
+          **COLORS))
+    elif self.smart_attributes:
+      attr_type = 'SMART'
+    else:
+      # No attribute data available, return short report
+      report.append(
+        '  {YELLOW}No NVMe or SMART data available{CLEAR}'.format(
+          **COLORS))
+      return report
+    if not self.smartctl.get('smart_status', {}).get('passed', True):
+      report.append(
+        '  {RED}SMART overall self-assessment: Failed{CLEAR}'.format(
+          **COLORS))
+
+    # Attributes
+    report.append('{BLUE}{a} Attributes{YELLOW}{u:>23} {t}{CLEAR}'.format(
+      a=attr_type,
+      u='Updated:' if brief else '',
+      t=time.strftime('%Y-%m-%d %H:%M %Z') if brief else '',
+      **COLORS))
+    if self.nvme_attributes:
+      attr_type = 'NVMe'
+      items = self.nvme_attributes.items()
+    elif self.smart_attributes:
+      attr_type = 'SMART'
+      items = self.smart_attributes.items()
+    for k, v in items:
+      if k in ATTRIBUTES[attr_type]:
+        _note = ''
+        _color = COLORS['GREEN']
+
+        # Attribute ID & Name
+        if attr_type == 'NVMe':
+          _line = '  {:38}'.format(k.replace('_', ' ').title())
+        else:
+          _line = '  {i:>3} / {h}: {n:28}'.format(
+            i=k,
+            h=ATTRIBUTES[attr_type][k]['Hex'],
+            n=v['name'][:28])
+
+        # Set color
+        for _t, _c in [['Warning', 'YELLOW'], ['Error', 'RED']]:
+          if _t in ATTRIBUTES[attr_type][k]:
+            if v['raw'] >= ATTRIBUTES[attr_type][k][_t]:
+              _color = COLORS[_c]
+
+        # 199/C7 warning
+        if str(k) == '199':
+          _note = '(bad cable?)'
+
+        # Attribute value
+        _line += '{}{} {}{}'.format(
+          _color,
+          v['raw_str'],
+          _note,
+          COLORS['CLEAR'])
+
+        # Add line to report
+        report.append(_line)
+
+    # SMART short-test
+    if short_test:
+      report.append('{BLUE}SMART Short self-test{CLEAR}'.format(**COLORS))
+      if 'TimedOut' in self.tests['NVMe / SMART'].status:
+        report.append('  {YELLOW}UNKNOWN{CLEAR}: Timed out'.format(**COLORS))
+      else:
+        report.append('  {}'.format(
+          self.smart_self_test['status'].get(
+            'string', 'UNKNOWN').capitalize()))
+
+    # Done
+    return report
 
   def get_details(self):
     """Get data from lsblk."""
@@ -219,7 +309,7 @@ class DiskObj():
         except ValueError:
           # Ignoring invalid attribute
           continue
-        _name = str(a.get('name', 'UNKNOWN'))
+        _name = str(a.get('name', 'UNKNOWN')).replace('_', ' ').title()
         _raw = int(a.get('raw', {}).get('value', -1))
         _raw_str = a.get('raw', {}).get('string', 'UNKNOWN')
 
@@ -231,6 +321,13 @@ class DiskObj():
         # Add to dict
         self.smart_attributes[_id] = {
           'name': _name, 'raw': _raw, 'raw_str': _raw_str}
+
+      # Self-test data
+      for k in ['polling_minutes', 'status']:
+        self.smart_self_test[k] = self.smartctl.get(
+            'ata_smart_data', {}).get(
+            'self_test', {}).get(
+            k, {})
 
   def safety_check(self, silent=False):
     """Run safety checks and disable tests if necessary."""
@@ -251,30 +348,14 @@ class DiskObj():
           'Run tests on this device anyway?')
 
     if not self.disk_ok:
+      if 'NVMe / SMART' in self.tests:
+        # NOTE: This will not overwrite the existing status if set
+        self.tests['NVMe / SMART'].update_status('NS')
+        self.tests['NVMe / SMART'].disabled = True
       for t in ['badblocks', 'I/O Benchmark']:
         if t in self.tests:
           self.tests[t].update_status('Denied')
           self.tests[t].disabled = True
-
-  def show_attributes(self):
-    """Show NVMe/SMART attributes."""
-    print_info('Device: {}'.format(self.path))
-    print_standard(
-      ' {size:>6} ({tran}) {model} {serial}'.format(**self.lsblk))
-    print_info('Attributes')
-    if self.nvme_attributes:
-      for k, v in self.nvme_attributes.items():
-        if k in ATTRIBUTES['NVMe']:
-          print('TODO: {} {}'.format(k, v))
-    elif self.smart_attributes:
-      for k, v in self.smart_attributes.items():
-        # TODO: If k == 199/C7 then append ' (bad cable?)' to line
-        if k in ATTRIBUTES['SMART']:
-          print('TODO: {} {}'.format(k, v))
-      if not self.smartctl.get('smart_status', {}).get('passed', True):
-        print_error('SMART overall self-assessment: Failed')
-    else:
-      print_warning('  No NVMe or SMART data available')
 
 class State():
   """Object to track device objects and overall state."""
@@ -402,7 +483,7 @@ def build_outer_panes(state):
 def build_status_string(label, status, info_label=False):
   """Build status string with appropriate colors."""
   status_color = COLORS['CLEAR']
-  if status in ['Denied', 'ERROR', 'NS', 'OVERRIDE']:
+  if status in ['Denied', 'ERROR', 'NS', 'OVERRIDE', 'TimedOut']:
     status_color = COLORS['RED']
   elif status in ['Aborted', 'N/A', 'Skipped', 'Unknown', 'Working']:
     status_color = COLORS['YELLOW']
@@ -651,6 +732,9 @@ def run_audio_test():
 
 def run_badblocks_test(state, test):
   """TODO"""
+  # Bail early
+  if test.disabled:
+    return
   tmux_update_pane(
     state.panes['Top'], text='{}\n{}'.format(
       TOP_PANE_TEXT, 'badblocks'))
@@ -699,6 +783,15 @@ def run_hw_tests(state):
   for disk in state.disks:
     disk.safety_check(silent=state.quick_mode)
 
+  # TODO Remove
+  clear_screen()
+  print_info('Running tests:')
+  for k, v in state.tests.items():
+    if v['Enabled']:
+      print_standard('  {}'.format(k))
+  update_progress_pane(state)
+  pause()
+
   # Run tests
   ## Because state.tests is an OrderedDict and the disks were added
   ##   in order, the tests will be run in order.
@@ -720,6 +813,9 @@ def run_hw_tests(state):
 
 def run_io_benchmark(state, test):
   """TODO"""
+  # Bail early
+  if test.disabled:
+    return
   tmux_update_pane(
     state.panes['Top'], text='{}\n{}'.format(
       TOP_PANE_TEXT, 'I/O Benchmark'))
@@ -739,6 +835,9 @@ def run_keyboard_test():
 
 def run_mprime_test(state, test):
   """Test CPU with Prime95 and track temps."""
+  # Bail early
+  if test.disabled:
+    return
   test.started = True
   test.update_status()
   update_progress_pane(state)
@@ -924,6 +1023,7 @@ def run_network_test():
 
 def run_nvme_smart_tests(state, test):
   """Run NVMe or SMART test for test.dev."""
+  _include_short_test = False
   tmux_update_pane(
     state.panes['Top'],
     text='{t}\nDisk Health: {size:>6} ({tran}) {model} {serial}'.format(
@@ -941,10 +1041,14 @@ def run_nvme_smart_tests(state, test):
     # NOTE: Pass/Fail based on both attributes and SMART short self-test
     if test.dev.disk_ok:
       # Run short test
-      pause('TODO: Run SMART short self-test')
+      # TODO
+      _include_short_test = True
+      _timeout = test.dev.smart_self_test['polling_minutes'].get('short', 5)
+      _timeout = int(_timeout) + 5
 
       # Check result
       # TODO
+      # if 'remaining_percent' in 'status' then we've started.
       short_test_passed = True
       if short_test_passed:
         test.passed = True
@@ -960,9 +1064,14 @@ def run_nvme_smart_tests(state, test):
         else:
           test.failed = True
           test.update_status('NS')
+
     else:
       test.failed = True
       test.update_status('NS')
+
+  # Save report
+  test.report = test.dev.generate_report(
+    short_test=_include_short_test)
 
   # Done
   update_progress_pane(state)
