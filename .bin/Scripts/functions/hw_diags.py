@@ -162,8 +162,11 @@ class DiskObj():
           print_standard('Tests disabled for this device')
           pause()
         elif not (len(self.tests) == 3 and HW_OVERRIDES_LIMITED):
-          self.disk_ok = HW_OVERRIDES_FORCED or ask(
-            'Run tests on this device anyway?')
+          if HW_OVERRIDES_FORCED or ask('Run tests on this device anyway?'):
+            self.disk_ok = True
+            if 'NVMe / SMART' in self.tests:
+              self.tests['NVMe / SMART'].update_status('OVERRIDE')
+              self.tests['NVMe / SMART'].disabled = True
 
   def get_details(self):
     """Get data from lsblk."""
@@ -235,6 +238,9 @@ class DiskObj():
       self.check_attributes(silent)
     else:
       # No NVMe/SMART details
+      if 'NVMe / SMART' in self.tests:
+        self.tests['NVMe / SMART'].update_status('N/A')
+        self.tests['NVMe / SMART'].disabled = True
       if silent:
         self.disk_ok = HW_OVERRIDES_FORCED
       else:
@@ -247,8 +253,8 @@ class DiskObj():
     if not self.disk_ok:
       for t in ['badblocks', 'I/O Benchmark']:
         if t in self.tests:
-          self.tests[t].disabled = True
           self.tests[t].update_status('Denied')
+          self.tests[t].disabled = True
 
   def show_attributes(self):
     """Show NVMe/SMART attributes."""
@@ -359,6 +365,8 @@ class TestObj():
 
   def update_status(self, new_status=None):
     """Update status strings."""
+    if self.disabled:
+      return
     if new_status:
         self.status = build_status_string(
         self.label, new_status, self.info_label)
@@ -944,8 +952,8 @@ def run_nvme_smart_tests(state, test):
       else:
         for t in ['badblocks', 'I/O Benchmark']:
           if t in test.dev.tests:
-            test.dev.tests[t].disabled = True
             test.dev.tests[t].update_status('Denied')
+            test.dev.tests[t].disabled = True
         # TODO
         if no_logs:
           test.update_status('Unknown')
@@ -955,10 +963,6 @@ def run_nvme_smart_tests(state, test):
     else:
       test.failed = True
       test.update_status('NS')
-  else:
-    # NOTE: Pass/Fail not applicable without NVMe/SMART data
-    # Override request earlier disabled other test(s) as appropriate
-    test.update_status('N/A')
 
   # Done
   update_progress_pane(state)
