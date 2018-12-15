@@ -517,38 +517,6 @@ def build_status_string(label, status, info_label=False):
     s_w=SIDE_PANE_WIDTH-len(label),
     **COLORS)
 
-def check_disk_attributes(disk):
-  """Check if disk should be tested and allow overrides."""
-  needs_override = False
-  print_standard('  {size:>6} ({tran}) {model} {serial}'.format(
-    **disk.lsblk))
-
-  # General checks
-  if not disk.nvme_attributes and not disk.smart_attributes:
-    needs_override = True
-    print_warning(
-      '  WARNING: No NVMe or SMART attributes available for: {}'.format(
-      disk.path))
-
-  # NVMe checks
-  # TODO check all tracked attributes and set disk.failing if needed
-
-  # SMART checks
-  # TODO check all tracked attributes and set disk.failing if needed
-
-  # Ask for override if necessary
-  if needs_override:
-    if ask('  Run tests on this device anyway?'):
-      # TODO Set override for this disk
-      pass
-    else:
-      for v in disk.tests.values():
-        # Started is set to True to fix the status string
-        v['Result'] = 'Skipped'
-        v['Started'] = True
-        v['Status'] = 'Skipped'
-    print_standard('')
-
 def generate_horizontal_graph(rates, oneline=False):
   """Generate two-line horizontal graph from rates, returns str."""
   line_1 = ''
