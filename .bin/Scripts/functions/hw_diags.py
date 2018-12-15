@@ -157,9 +157,7 @@ class DiskObj():
           print_standard('  (Have you tried swapping the disk cable?)')
       else:
         # Override?
-        for line in self.generate_report():
-          print(line)
-          print_log(strip_colors(line))
+        show_report(self.generate_report())
         print_warning('{} error(s) detected.'.format(attr_type))
         if override_disabled:
           print_standard('Tests disabled for this device')
@@ -756,6 +754,7 @@ def run_badblocks_test(state, test):
   # Bail early
   if test.disabled:
     return
+  print_log('Starting badblocks test for {}'.format(test.dev.path))
   tmux_update_pane(
     state.panes['Top'], text='{}\n{}'.format(
       TOP_PANE_TEXT, 'badblocks'))
@@ -837,6 +836,7 @@ def run_io_benchmark(state, test):
   # Bail early
   if test.disabled:
     return
+  print_log('Starting I/O benchmark test for {}'.format(test.dev.path))
   tmux_update_pane(
     state.panes['Top'], text='{}\n{}'.format(
       TOP_PANE_TEXT, 'I/O Benchmark'))
@@ -859,6 +859,7 @@ def run_mprime_test(state, test):
   # Bail early
   if test.disabled:
     return
+  print_log('Starting Prime95 test')
   test.started = True
   test.update_status()
   update_progress_pane(state)
@@ -1047,6 +1048,7 @@ def run_nvme_smart_tests(state, test):
   # Bail early
   if test.disabled:
     return
+  print_log('Starting NVMe/SMART test for {}'.format(test.dev.path))
   _include_short_test = False
   test.started = True
   test.update_status()
@@ -1168,6 +1170,12 @@ def secret_screensaver(screensaver=None):
     raise Exception('Invalid screensaver')
   run_program(cmd, check=False, pipe=False)
 
+def show_report(report):
+  """Show report on screen and save to log w/out color."""
+  for line in report:
+    print(line)
+    print_log(strip_colors(line))
+
 def show_results(state):
   """Show results for all tests."""
   clear_screen()
@@ -1180,11 +1188,7 @@ def show_results(state):
       continue
     print_success('{}:'.format(k))
     for obj in v['Objects']:
-      for line in obj.report:
-        print(line)
-        print_log(strip_colors(line))
-      print_standard(' ')
-    if 'Prime95' not in k:
+      show_report(obj.report)
       print_standard(' ')
 
 def update_main_options(state, selection, main_options):
