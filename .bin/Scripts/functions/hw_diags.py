@@ -169,7 +169,9 @@ class DiskObj():
             self.disk_ok = True
             if 'NVMe / SMART' in self.tests:
               self.tests['NVMe / SMART'].update_status('OVERRIDE')
-              self.tests['NVMe / SMART'].disabled = True
+              if self.nvme_attributes or not self.smart_attributes:
+                # i.e. only leave enabled for SMART short-tests
+                self.tests['NVMe / SMART'].disabled = True
 
   def generate_report(self, brief=False, short_test=False):
     """Generate NVMe / SMART report, returns list."""
@@ -323,6 +325,7 @@ class DiskObj():
           'name': _name, 'raw': _raw, 'raw_str': _raw_str}
 
       # Self-test data
+      self.smart_self_test = {}
       for k in ['polling_minutes', 'status']:
         self.smart_self_test[k] = self.smartctl.get(
             'ata_smart_data', {}).get(
@@ -333,6 +336,22 @@ class DiskObj():
     """Run safety checks and disable tests if necessary."""
     if self.nvme_attributes or self.smart_attributes:
       self.check_attributes(silent)
+
+      # Check if a self-test is currently running
+      if 'remaining_percent' in self.smart_self_test['status']:
+        _msg='SMART self-test in progress, all tests disabled'
+        if not silent:
+          print_warning('WARNING: {}'.format(_msg))
+          print_standard(' ')
+          if ask('Abort HW Diagnostics?'):
+            exit_script()
+        if 'NVMe / SMART' in self.tests:
+          self.tests['NVMe / SMART'].report = self.generate_report()
+          self.tests['NVMe / SMART'].report.append(
+            '{YELLOW}WARNING: {msg}{CLEAR}'.format(msg=_msg, **COLORS))
+        for t in self.tests.values():
+          t.update_status('Denied')
+          t.disabled = True
     else:
       # No NVMe/SMART details
       if 'NVMe / SMART' in self.tests:
@@ -350,6 +369,8 @@ class DiskObj():
     if not self.disk_ok:
       if 'NVMe / SMART' in self.tests:
         # NOTE: This will not overwrite the existing status if set
+        if not self.tests['NVMe / SMART'].report:
+          self.tests['NVMe / SMART'].report = self.generate_report()
         self.tests['NVMe / SMART'].update_status('NS')
         self.tests['NVMe / SMART'].disabled = True
       for t in ['badblocks', 'I/O Benchmark']:
@@ -446,7 +467,7 @@ class TestObj():
 
   def update_status(self, new_status=None):
     """Update status strings."""
-    if self.disabled:
+    if self.disabled or 'OVERRIDE' in self.status:
       return
     if new_status:
         self.status = build_status_string(
@@ -1023,11 +1044,19 @@ def run_network_test():
 
 def run_nvme_smart_tests(state, test):
   """Run NVMe or SMART test for test.dev."""
+  # Bail early
+  if test.disabled:
+    return
   _include_short_test = False
+  test.started = True
+  test.update_status()
   tmux_update_pane(
     state.panes['Top'],
     text='{t}\nDisk Health: {size:>6} ({tran}) {model} {serial}'.format(
       t=TOP_PANE_TEXT, **test.dev.lsblk))
+  update_progress_pane(state)
+
+  # NVMe
   if test.dev.nvme_attributes:
     # NOTE: Pass/Fail is just the attribute check
     if test.dev.disk_ok:
@@ -1037,37 +1066,80 @@ def run_nvme_smart_tests(state, test):
       # NOTE: Other test(s) should've been disabled by DiskObj.safety_check()
       test.failed = True
       test.update_status('NS')
+
+  # SMART
   elif test.dev.smart_attributes:
     # NOTE: Pass/Fail based on both attributes and SMART short self-test
-    if test.dev.disk_ok:
-      # Run short test
-      # TODO
+    if not (test.dev.disk_ok or 'OVERRIDE' in test.status):
+      test.failed = True
+      test.update_status('NS')
+    else:
+      # Prep
+      test.timeout = test.dev.smart_self_test['polling_minutes'].get(
+        'short', 5)
+      # TODO: fix timeout, set to polling + 5
+      test.timeout = int(test.timeout) + 1
       _include_short_test = True
-      _timeout = test.dev.smart_self_test['polling_minutes'].get('short', 5)
-      _timeout = int(_timeout) + 5
+      _self_test_started = False
 
-      # Check result
-      # TODO
-      # if 'remaining_percent' in 'status' then we've started.
-      short_test_passed = True
-      if short_test_passed:
-        test.passed = True
-        test.update_status('CS')
+      # Create monitor pane
+      test.smart_out = '{}/smart.out'.format(global_vars['TmpDir'])
+      with open(test.smart_out, 'w') as f:
+        f.write('SMART self-test status:\n  Pending')
+      state.panes['smart'] = tmux_split_window(
+        lines=3, vertical=True, watch=test.smart_out)
+
+      # Show attributes
+      clear_screen()
+      for line in test.dev.generate_report():
+        # Not saving to log; that will happen after all tests have been run
+        print(line)
+      print(' ')
+
+      # Start short test
+      print_standard('Running self-test...')
+      cmd = ['sudo', 'smartctl', '--test=short', test.dev.path]
+      run_program(cmd, check=False)
+
+      # Monitor progress (in 5 second increments)
+      for iteration in range(int(test.timeout*60/5)):
+        sleep(5)
+
+        # Update SMART data
+        test.dev.get_smart_details()
+
+        if _self_test_started:
+          # Update progress file
+          with open(test.smart_out, 'w') as f:
+            f.write('SMART self-test status:\n  {}'.format(
+              test.dev.smart_self_test['status'].get('string', 'UNKNOWN')))
+
+          # Check if test has finished
+          if 'remaining_percent' not in test.dev.smart_self_test['status']:
+            break
+
+        else:
+          # Check if test has started
+          if 'remaining_percent' in test.dev.smart_self_test['status']:
+            _self_test_started = True
+
+      # Check if timed out
+      if test.dev.smart_self_test['status'].get('passed', False):
+        if 'OVERRIDE' not in test.status:
+          test.passed = True
+          test.update_status('CS')
       else:
+        test.failed = True
+        test.update_status('NS')
+      if not (test.failed or test.passed):
+        test.update_status('TimedOut')
+
+      # Disable other drive tests if necessary
+      if not test.passed:
         for t in ['badblocks', 'I/O Benchmark']:
           if t in test.dev.tests:
             test.dev.tests[t].update_status('Denied')
             test.dev.tests[t].disabled = True
-        # TODO
-        if no_logs:
-          test.update_status('Unknown')
-        else:
-          test.failed = True
-          test.update_status('NS')
-
-    else:
-      test.failed = True
-      test.update_status('NS')
 
   # Save report
   test.report = test.dev.generate_report(
@@ -1075,6 +1147,9 @@ def run_nvme_smart_tests(state, test):
 
   # Done
   update_progress_pane(state)
+
+  # Cleanup
+  tmux_kill_pane(state.panes['smart'])
 
 def secret_screensaver(screensaver=None):
   """Show screensaver."""
