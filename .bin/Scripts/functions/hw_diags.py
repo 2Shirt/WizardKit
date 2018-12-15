@@ -1073,6 +1073,13 @@ def run_nvme_smart_tests(state, test):
     if not (test.dev.disk_ok or 'OVERRIDE' in test.status):
       test.failed = True
       test.update_status('NS')
+    elif state.quick_mode:
+      if test.dev.disk_ok:
+        test.passed = True
+        test.update_status('CS')
+      else:
+        test.failed = True
+        test.update_status('NS')
     else:
       # Prep
       test.timeout = test.dev.smart_self_test['polling_minutes'].get(
@@ -1141,15 +1148,15 @@ def run_nvme_smart_tests(state, test):
             test.dev.tests[t].update_status('Denied')
             test.dev.tests[t].disabled = True
 
+      # Cleanup
+      tmux_kill_pane(state.panes['smart'])
+
   # Save report
   test.report = test.dev.generate_report(
     short_test=_include_short_test)
 
   # Done
   update_progress_pane(state)
-
-  # Cleanup
-  tmux_kill_pane(state.panes['smart'])
 
 def secret_screensaver(screensaver=None):
   """Show screensaver."""
