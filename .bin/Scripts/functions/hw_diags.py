@@ -117,6 +117,8 @@ class DiskObj():
     self.tests = OrderedDict()
     self.get_details()
     self.get_smart_details()
+    self.description = '{size:>6} ({tran}) {model} {serial}'.format(
+      **self.lsblk)
 
   def check_attributes(self, silent=False):
     """Check NVMe / SMART attributes for errors."""
@@ -177,8 +179,7 @@ class DiskObj():
     if not brief:
       report.append('{BLUE}Device: {dev_path}{CLEAR}'.format(
         dev_path=self.path, **COLORS))
-      report.append('  {size:>6} ({tran}) {model} {serial}'.format(
-        **self.lsblk))
+      report.append('  {}'.format(self.description))
 
     # Warnings
     if self.nvme_attributes:
@@ -718,14 +719,14 @@ def run_audio_test():
   pause('Press Enter to return to main menu... ')
 
 def run_badblocks_test(state, test):
-  """TODO"""
+  """Run a read-only surface scan with badblocks."""
   # Bail early
   if test.disabled:
     return
   print_log('Starting badblocks test for {}'.format(test.dev.path))
   tmux_update_pane(
-    state.panes['Top'], text='{}\n{}'.format(
-      TOP_PANE_TEXT, 'badblocks'))
+    state.panes['Top'],
+    text='{}\nbadblocks: {}'.format(TOP_PANE_TEXT, test.dev.description))
   print_standard('TODO: run_badblocks_test({})'.format(
     test.dev.path))
   test.started = True
@@ -1022,8 +1023,7 @@ def run_nvme_smart_tests(state, test):
   test.update_status()
   tmux_update_pane(
     state.panes['Top'],
-    text='{t}\nDisk Health: {size:>6} ({tran}) {model} {serial}'.format(
-      t=TOP_PANE_TEXT, **test.dev.lsblk))
+    text='{}\nDisk Health: {}'.format(TOP_PANE_TEXT, test.dev.description))
   update_progress_pane(state)
 
   # NVMe
@@ -1062,7 +1062,7 @@ def run_nvme_smart_tests(state, test):
       # Create monitor pane
       test.smart_out = '{}/smart.out'.format(global_vars['TmpDir'])
       with open(test.smart_out, 'w') as f:
-        f.write('SMART self-test status:\n  Pending')
+        f.write('SMART self-test status:\n  Starting...')
       state.panes['smart'] = tmux_split_window(
         lines=3, vertical=True, watch=test.smart_out)
 
@@ -1089,7 +1089,8 @@ def run_nvme_smart_tests(state, test):
           # Update progress file
           with open(test.smart_out, 'w') as f:
             f.write('SMART self-test status:\n  {}'.format(
-              test.dev.smart_self_test['status'].get('string', 'UNKNOWN')))
+              test.dev.smart_self_test['status'].get(
+                'string', 'UNKNOWN').capitalize()))
 
           # Check if test has finished
           if 'remaining_percent' not in test.dev.smart_self_test['status']:
