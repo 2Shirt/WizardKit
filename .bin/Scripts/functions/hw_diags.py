@@ -747,10 +747,13 @@ def run_badblocks_test(state, test):
 
   # Start badblocks
   print_standard('Running badblocks test...')
-  test.badblocks_proc = popen_program(
-    ['sudo', 'hw-diags-badblocks', test.dev.path, test.badblocks_out],
-    pipe=True)
-  test.badblocks_proc.wait()
+  try:
+    test.badblocks_proc = popen_program(
+      ['sudo', 'hw-diags-badblocks', test.dev.path, test.badblocks_out],
+      pipe=True)
+    test.badblocks_proc.wait()
+  except KeyboardInterrupt:
+    raise GenericAbort('Aborted')
 
   # Check result and create report
   try:
@@ -833,11 +836,31 @@ def run_hw_tests(state):
   # Run tests
   ## Because state.tests is an OrderedDict and the disks were added
   ##   in order, the tests will be run in order.
-  for k, v in state.tests.items():
-    if v['Enabled']:
-      f = v['Function']
-      for test_obj in v['Objects']:
-        f(state, test_obj)
+  try:
+    for k, v in state.tests.items():
+      if v['Enabled']:
+        f = v['Function']
+        for test_obj in v['Objects']:
+          f(state, test_obj)
+  except GenericAbort:
+    # Cleanup
+    tmux_kill_pane(*state.panes.values())
+
+    # Rebuild panes
+    update_progress_pane(state)
+    build_outer_panes(state)
+
+    # Mark unfinished tests as aborted
+    for k, v in state.tests.items():
+      if v['Enabled']:
+        for test_obj in v['Objects']:
+          if re.search(r'(Pending|Working)', test_obj.status):
+            test_obj.update_status('Aborted')
+            test_obj.report.append('  {YELLOW}Aborted{CLEAR}'.format(
+              **COLORS))
+
+    # Update side pane
+    update_progress_pane(state)
 
   # Done
   show_results(state)
@@ -1130,27 +1153,30 @@ def run_nvme_smart_tests(state, test):
       run_program(cmd, check=False)
 
       # Monitor progress (in 5 second increments)
-      for iteration in range(int(test.timeout*60/5)):
-        sleep(5)
+      try:
+        for iteration in range(int(test.timeout*60/5)):
+          sleep(5)
 
-        # Update SMART data
-        test.dev.get_smart_details()
+          # Update SMART data
+          test.dev.get_smart_details()
 
-        if _self_test_started:
-          # Update progress file
-          with open(test.smart_out, 'w') as f:
-            f.write('SMART self-test status:\n  {}'.format(
-              test.dev.smart_self_test['status'].get(
-                'string', 'UNKNOWN').capitalize()))
+          if _self_test_started:
+            # Update progress file
+            with open(test.smart_out, 'w') as f:
+              f.write('SMART self-test status:\n  {}'.format(
+                test.dev.smart_self_test['status'].get(
+                  'string', 'UNKNOWN').capitalize()))
 
-          # Check if test has finished
-          if 'remaining_percent' not in test.dev.smart_self_test['status']:
-            break
+            # Check if test has finished
+            if 'remaining_percent' not in test.dev.smart_self_test['status']:
+              break
 
-        else:
-          # Check if test has started
-          if 'remaining_percent' in test.dev.smart_self_test['status']:
-            _self_test_started = True
+          else:
+            # Check if test has started
+            if 'remaining_percent' in test.dev.smart_self_test['status']:
+              _self_test_started = True
+      except KeyboardInterrupt:
+        raise GenericAbort('Aborted')
 
       # Check if timed out
       if test.dev.smart_self_test['status'].get('passed', False):
