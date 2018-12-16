@@ -383,7 +383,6 @@ class State():
     self.cpu = None
     self.disks = []
     self.panes = {}
-    self.progress_out = '{}/progress.out'.format(global_vars['LogDir'])
     self.quick_mode = False
     self.tests = OrderedDict({
       'Prime95':  {
@@ -423,6 +422,7 @@ class State():
       os.makedirs(global_vars['LogDir'], exist_ok=True)
       global_vars['LogFile'] = '{}/Hardware Diagnostics.log'.format(
         global_vars['LogDir'])
+    self.progress_out = '{}/progress.out'.format(global_vars['LogDir'])
 
     # Add CPU
     self.cpu = CpuObj()
@@ -723,18 +723,67 @@ def run_badblocks_test(state, test):
   # Bail early
   if test.disabled:
     return
+
+  # Prep
   print_log('Starting badblocks test for {}'.format(test.dev.path))
-  tmux_update_pane(
-    state.panes['Top'],
-    text='{}\nbadblocks: {}'.format(TOP_PANE_TEXT, test.dev.description))
-  print_standard('TODO: run_badblocks_test({})'.format(
-    test.dev.path))
   test.started = True
   test.update_status()
   update_progress_pane(state)
-  sleep(3)
-  test.update_status('Unknown')
+
+  # Update top pane
+  tmux_update_pane(
+    state.panes['Top'],
+    text='{}\nbadblocks: {}'.format(TOP_PANE_TEXT, test.dev.description))
+
+  # Create monitor pane
+  test.badblocks_out = '{}/badblocks.out'.format(global_vars['LogDir'])
+  state.panes['badblocks'] = tmux_split_window(
+    lines=5, vertical=True, watch=test.badblocks_out, watch_cmd='tail')
+
+  # Show disk details
+  clear_screen()
+  show_report(test.dev.generate_report())
+  print_standard(' ')
+
+  # Start badblocks
+  print_standard('Running badblocks test...')
+  test.badblocks_proc = popen_program(
+    ['sudo', 'hw-diags-badblocks', test.dev.path, test.badblocks_out],
+    pipe=True)
+  test.badblocks_proc.wait()
+
+  # Check result and create report
+  try:
+    test.badblocks_out = test.badblocks_proc.stdout.read().decode()
+  except Exception as err:
+    test.badblocks_out = 'Error: {}'.format(err)
+  for line in test.badblocks_out.splitlines():
+    line = line.strip()
+    if not line or re.search(r'^Checking', line, re.IGNORECASE):
+      # Skip empty and progress lines
+      continue
+    if re.search(r'^Pass completed.*0.*0/0/0', line, re.IGNORECASE):
+      test.report.append('  {}'.format(line))
+      test.passed = True
+    else:
+      test.report.append('  {YELLOW}{line}{CLEAR}'.format(
+        line=line, **COLORS))
+      test.failed = True
+
+  # Update status
+  if test.failed:
+    test.update_status('NS')
+  elif test.passed:
+    test.update_status('CS')
+  else:
+    test.update_status('Unknown')
+
+  # Done
   update_progress_pane(state)
+
+  # Cleanup
+  tmux_kill_pane(state.panes['badblocks'])
+  pause()
 
 def run_hw_tests(state):
   """Run enabled hardware tests."""
@@ -828,6 +877,8 @@ def run_mprime_test(state, test):
   # Bail early
   if test.disabled:
     return
+
+  # Prep
   print_log('Starting Prime95 test')
   test.started = True
   test.update_status()
@@ -835,9 +886,9 @@ def run_mprime_test(state, test):
   test.sensor_data = get_sensor_data()
 
   # Update top pane
-  test.title = '{}\nPrime95: {}'.format(
-    TOP_PANE_TEXT, test.dev.name)
-  tmux_update_pane(state.panes['Top'], text=test.title)
+  tmux_update_pane(
+    state.panes['Top'],
+    text='{}\nPrime95: {}'.format(TOP_PANE_TEXT, test.dev.name))
 
   # Start live sensor monitor
   test.sensors_out = '{}/sensors.out'.format(global_vars['TmpDir'])
