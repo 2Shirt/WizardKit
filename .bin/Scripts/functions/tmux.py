@@ -46,7 +46,7 @@ def tmux_split_window(
     behind=False, vertical=False,
     follow=False, target_pane=None,
     working_dir=None, command=None,
-    text=None, watch=None):
+    text=None, watch=None, watch_cmd='cat'):
   """Run tmux split-window command and return pane_id as str."""
   # Bail early
   if not lines and not percent:
@@ -79,19 +79,21 @@ def tmux_split_window(
     cmd.extend(['echo-and-hold "{}"'.format(text)])
   elif watch:
     create_file(watch)
-    cmd.extend([
-      'watch', '--color', '--no-title',
-      '--interval', '1',
-      'cat', watch])
+    if watch_cmd == 'cat':
+      cmd.extend([
+        'watch', '--color', '--no-title',
+        '--interval', '1',
+        'cat', watch])
+    elif watch_cmd == 'tail':
+      cmd.extend(['tail', '-f', watch])
 
   # Run and return pane_id
   result = run_program(cmd)
   return result.stdout.decode().strip()
 
 def tmux_update_pane(
-    pane_id, command=None,
-    text=None, watch=None,
-    working_dir=None):
+    pane_id, command=None, working_dir=None,
+    text=None, watch=None, watch_cmd='cat'):
   """Respawn with either a new command or new text."""
   # Bail early
   if not command and not text and not watch:
@@ -106,10 +108,13 @@ def tmux_update_pane(
     cmd.extend(['echo-and-hold "{}"'.format(text)])
   elif watch:
     create_file(watch)
-    cmd.extend([
-      'watch', '--color', '--no-title',
-      '--interval', '1',
-      'cat', watch])
+    if watch_cmd == 'cat':
+      cmd.extend([
+        'watch', '--color', '--no-title',
+        '--interval', '1',
+        'cat', watch])
+    elif watch_cmd == 'tail':
+      cmd.extend(['tail', '-f', watch])
 
   run_program(cmd)
 
