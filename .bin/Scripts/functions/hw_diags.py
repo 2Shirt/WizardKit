@@ -79,7 +79,7 @@ class CpuObj():
   """Object for tracking CPU specific data."""
   def __init__(self):
     self.lscpu = {}
-    self.tests = {}
+    self.tests = OrderedDict()
     self.get_details()
     self.name = self.lscpu.get('Model name', 'Unknown CPU')
 
@@ -102,6 +102,18 @@ class CpuObj():
         continue
       self.lscpu[_field] = _data
 
+  def generate_cpu_report(self):
+    """Generate CPU report with data from all tests."""
+    report = []
+    report.append('{BLUE}Device{CLEAR}'.format(**COLORS))
+    report.append('  {}'.format(self.name))
+
+    # Tests
+    for test in self.tests.values():
+      report.extend(test.report)
+
+    return report
+
 class DiskObj():
   """Object for tracking disk specific data."""
   def __init__(self, disk_path):
@@ -115,9 +127,10 @@ class DiskObj():
     self.smart_self_test = {}
     self.smartctl = {}
     self.tests = OrderedDict()
+    self.warnings = []
     self.get_details()
     self.get_smart_details()
-    self.description = '{size:>6} ({tran}) {model} {serial}'.format(
+    self.description = '{size} ({tran}) {model} {serial}'.format(
       **self.lsblk)
 
   def check_attributes(self, silent=False):
@@ -159,8 +172,8 @@ class DiskObj():
           print_standard('  (Have you tried swapping the disk cable?)')
       else:
         # Override?
-        show_report(self.generate_report())
-        print_warning('{} error(s) detected.'.format(attr_type))
+        show_report(self.generate_attribute_report(description=True))
+        print_warning('  {} error(s) detected.'.format(attr_type))
         if override_disabled:
           print_standard('Tests disabled for this device')
           pause()
@@ -172,13 +185,15 @@ class DiskObj():
               if self.nvme_attributes or not self.smart_attributes:
                 # i.e. only leave enabled for SMART short-tests
                 self.tests['NVMe / SMART'].disabled = True
+            print_standard(' ')
 
-  def generate_report(self, brief=False, short_test=False):
+  def generate_attribute_report(
+      self, description=False, short_test=False, timestamp=False):
     """Generate NVMe / SMART report, returns list."""
     report = []
-    if not brief:
-      report.append('{BLUE}Device: {dev_path}{CLEAR}'.format(
-        dev_path=self.path, **COLORS))
+    if description:
+      report.append('{BLUE}Device ({name}){CLEAR}'.format(
+        name=self.name, **COLORS))
       report.append('  {}'.format(self.description))
 
     # Warnings
@@ -203,8 +218,8 @@ class DiskObj():
     # Attributes
     report.append('{BLUE}{a} Attributes{YELLOW}{u:>23} {t}{CLEAR}'.format(
       a=attr_type,
-      u='Updated:' if brief else '',
-      t=time.strftime('%Y-%m-%d %H:%M %Z') if brief else '',
+      u='Updated:' if timestamp else '',
+      t=time.strftime('%Y-%m-%d %H:%M %Z') if timestamp else '',
       **COLORS))
     if self.nvme_attributes:
       attr_type = 'NVMe'
@@ -257,6 +272,21 @@ class DiskObj():
             'string', 'UNKNOWN').capitalize()))
 
     # Done
+    return report
+
+  def generate_disk_report(self):
+    """Generate disk report with data from all tests."""
+    report = []
+    report.append('{BLUE}Device ({name}){CLEAR}'.format(
+      name=self.name, **COLORS))
+    report.append('  {}'.format(self.description))
+    for w in self.warnings:
+      report.append('  {YELLOW}{w}{CLEAR}'.format(w=w, **COLORS))
+
+    # Tests
+    for test in self.tests.values():
+      report.extend(test.report)
+
     return report
 
   def get_details(self):
@@ -338,14 +368,14 @@ class DiskObj():
 
       # Check if a self-test is currently running
       if 'remaining_percent' in self.smart_self_test['status']:
-        _msg='SMART self-test in progress, all tests disabled'
+        _msg = 'SMART self-test in progress, all tests disabled'
         if not silent:
           print_warning('WARNING: {}'.format(_msg))
           print_standard(' ')
           if ask('Abort HW Diagnostics?'):
             exit_script()
         if 'NVMe / SMART' in self.tests:
-          self.tests['NVMe / SMART'].report = self.generate_report()
+          self.tests['NVMe / SMART'].report = self.generate_attribute_report()
           self.tests['NVMe / SMART'].report.append(
             '{YELLOW}WARNING: {msg}{CLEAR}'.format(msg=_msg, **COLORS))
         for t in self.tests.values():
@@ -359,17 +389,20 @@ class DiskObj():
       if silent:
         self.disk_ok = HW_OVERRIDES_FORCED
       else:
-        print_warning(
-          '  WARNING: No NVMe or SMART attributes available for: {}'.format(
-            self.path))
+        _msg = 'No NVMe or SMART data available'
+        self.warnings.append(_msg)
+        print_info('Device ({})'.format(self.name))
+        print_standard('  {}'.format(self.description))
+        print_warning('  {}'.format(_msg))
         self.disk_ok = HW_OVERRIDES_FORCED or ask(
           'Run tests on this device anyway?')
+        print_standard(' ')
 
     if not self.disk_ok:
       if 'NVMe / SMART' in self.tests:
         # NOTE: This will not overwrite the existing status if set
         if not self.tests['NVMe / SMART'].report:
-          self.tests['NVMe / SMART'].report = self.generate_report()
+          self.tests['NVMe / SMART'].report = self.generate_attribute_report()
         self.tests['NVMe / SMART'].update_status('NS')
         self.tests['NVMe / SMART'].disabled = True
       for t in ['badblocks', 'I/O Benchmark']:
@@ -743,7 +776,7 @@ def run_badblocks_test(state, test):
 
   # Show disk details
   clear_screen()
-  show_report(test.dev.generate_report())
+  show_report(test.dev.generate_attribute_report())
   print_standard(' ')
 
   # Start badblocks
@@ -757,6 +790,7 @@ def run_badblocks_test(state, test):
     raise GenericAbort('Aborted')
 
   # Check result and create report
+  test.report.append('{BLUE}badblocks{CLEAR}'.format(**COLORS))
   try:
     test.badblocks_out = test.badblocks_proc.stdout.read().decode()
   except Exception as err:
@@ -787,7 +821,6 @@ def run_badblocks_test(state, test):
 
   # Cleanup
   tmux_kill_pane(state.panes['badblocks'])
-  pause()
 
 def run_hw_tests(state):
   """Run enabled hardware tests."""
@@ -824,15 +857,6 @@ def run_hw_tests(state):
   # Run safety checks
   for disk in state.disks:
     disk.safety_check(silent=state.quick_mode)
-
-  # TODO Remove
-  clear_screen()
-  print_info('Running tests:')
-  for k, v in state.tests.items():
-    if v['Enabled']:
-      print_standard('  {}'.format(k))
-  update_progress_pane(state)
-  pause()
 
   # Run tests
   ## Because state.tests is an OrderedDict and the disks were added
@@ -1010,6 +1034,7 @@ def run_mprime_test(state, test):
         global_vars['LogDir']))
 
   # Check results and build report
+  test.report.append('{BLUE}Prime95{CLEAR}'.format(**COLORS))
   test.logs = {}
   for log in ['results.txt', 'prime.log']:
     lines = []
@@ -1026,20 +1051,18 @@ def run_mprime_test(state, test):
 
     # results.txt (NS check)
     if log == 'results.txt':
-      _tmp = []
       for line in lines:
+        line = line.strip()
         if re.search(r'(error|fail)', line, re.IGNORECASE):
           test.failed = True
           test.update_status('NS')
-          _tmp.append('  {YELLOW}{line}{CLEAR}'.format(line=line, **COLORS))
-      if _tmp:
-        test.report.append('{BLUE}Log: results.txt{CLEAR}'.format(**COLORS))
-        test.report.extend(_tmp)
+          test.report.append('  {YELLOW}{line}{CLEAR}'.format(line=line, **COLORS))
 
     # prime.log (CS check)
     if log == 'prime.log':
       _tmp = {'Pass': {}, 'Warn': {}}
       for line in lines:
+        line = line.strip()
         _r = re.search(
           r'(completed.*(\d+) errors, (\d+) warnings)',
           line,
@@ -1059,18 +1082,19 @@ def run_mprime_test(state, test):
       elif len(_tmp['Pass']) > 0:
         test.passed = True
         test.update_status('CS')
-      if len(_tmp['Pass']) + len(_tmp['Warn']) > 0:
-        test.report.append('{BLUE}Log: prime.log{CLEAR}'.format(**COLORS))
-        for line in sorted(_tmp['Pass'].keys()):
-          test.report.append('  {}'.format(line))
-        for line in sorted(_tmp['Warn'].keys()):
-          test.report.append('  {YELLOW}{line}{CLEAR}'.format(line=line, **COLORS))
+      for line in sorted(_tmp['Pass'].keys()):
+        test.report.append('  {}'.format(line))
+      for line in sorted(_tmp['Warn'].keys()):
+        test.report.append('  {YELLOW}{line}{CLEAR}'.format(line=line, **COLORS))
 
-  # Finalize report
+  # Unknown result
   if not (test.aborted or test.failed or test.passed):
+    test.report.append('  {YELLOW}Unknown result{CLEAR}'.format(**COLORS))
     test.update_status('Unknown')
+
+  # Add temps to report
   test.report.append('{BLUE}Temps{CLEAR}'.format(**COLORS))
-  for line in generate_report(
+  for line in generate_sensor_report(
       test.sensor_data, 'Idle', 'Max', 'Cooldown', core_only=True):
     test.report.append('  {}'.format(line))
 
@@ -1144,10 +1168,10 @@ def run_nvme_smart_tests(state, test):
 
       # Show attributes
       clear_screen()
-      for line in test.dev.generate_report():
-        # Not saving to log; that will happen after all tests have been run
-        print(line)
-      print(' ')
+      print_info('Device ({})'.format(test.dev.name))
+      print_standard('  {}'.format(test.dev.description))
+      show_report(test.dev.generate_attribute_report())
+      print_standard(' ')
 
       # Start short test
       print_standard('Running self-test...')
@@ -1203,7 +1227,7 @@ def run_nvme_smart_tests(state, test):
       tmux_kill_pane(state.panes['smart'])
 
   # Save report
-  test.report = test.dev.generate_report(
+  test.report = test.dev.generate_attribute_report(
     short_test=_include_short_test)
 
   # Done
@@ -1231,13 +1255,24 @@ def show_results(state):
   tmux_update_pane(
     state.panes['Top'], text='{}\n{}'.format(
       TOP_PANE_TEXT, 'Results'))
-  for k, v in state.tests.items():
-    # Skip disabled tests
-    if not v['Enabled']:
-      continue
-    print_success('{}:'.format(k))
-    for obj in v['Objects']:
-      show_report(obj.report)
+
+  # CPU tests
+  _enabled = False
+  for k in TESTS_CPU:
+    _enabled |= state.tests[k]['Enabled']
+  if _enabled:
+    print_success('CPU:'.format(k))
+    show_report(state.cpu.generate_cpu_report())
+    print_standard(' ')
+
+  # Disk tests
+  for k in TESTS_DISK:
+    _enabled |= state.tests[k]['Enabled']
+  if _enabled:
+    print_success('Disk{}:'.format(
+      '' if len(state.disks) == 1 else 's'))
+    for disk in state.disks:
+      show_report(disk.generate_disk_report())
       print_standard(' ')
 
 def update_main_options(state, selection, main_options):
