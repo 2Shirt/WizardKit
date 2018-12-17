@@ -736,7 +736,8 @@ def run_badblocks_test(state, test):
     text='{}\nbadblocks: {}'.format(TOP_PANE_TEXT, test.dev.description))
 
   # Create monitor pane
-  test.badblocks_out = '{}/badblocks.out'.format(global_vars['LogDir'])
+  test.badblocks_out = '{}/badblocks_{}.out'.format(
+    global_vars['LogDir'], test.dev.name)
   state.panes['badblocks'] = tmux_split_window(
     lines=5, vertical=True, watch=test.badblocks_out, watch_cmd='tail')
 
@@ -1134,7 +1135,8 @@ def run_nvme_smart_tests(state, test):
       _self_test_started = False
 
       # Create monitor pane
-      test.smart_out = '{}/smart.out'.format(global_vars['TmpDir'])
+      test.smart_out = '{}/smart_{}.out'.format(
+        global_vars['LogDir'], test.dev.name)
       with open(test.smart_out, 'w') as f:
         f.write('SMART self-test status:\n  Starting...')
       state.panes['smart'] = tmux_split_window(
