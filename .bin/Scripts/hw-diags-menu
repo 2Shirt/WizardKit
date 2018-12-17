@@ -13,20 +13,25 @@ from functions.tmux import *
 init_global_vars()
 
 if __name__ == '__main__':
+  # Show menu
   try:
-    # Show menu
     state = State()
     menu_diags(state, sys.argv)
-
-    # Done
-    #print_standard('\nDone.')
-    #pause("Press Enter to exit...")
-    exit_script()
+  except KeyboardInterrupt:
+    print_standard(' ')
+    print_warning('Aborted')
+    print_standard(' ')
+    sleep(1)
+    pause('Press Enter to exit...')
   except SystemExit:
-    tmux_kill_all_panes()
+    # Normal exit
     pass
   except:
     tmux_kill_all_panes()
     major_exception()
+
+  # Done
+  tmux_kill_all_panes()
+  exit_script()
 
 # vim: sts=2 sw=2 ts=2
