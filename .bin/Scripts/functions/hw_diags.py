@@ -854,9 +854,13 @@ def run_hw_tests(state):
           v['Objects'].append(test_obj)
   print_standard('')
 
-  # Run safety checks
-  for disk in state.disks:
-    disk.safety_check(silent=state.quick_mode)
+  # Run disk safety checks (if necessary)
+  _disk_tests_enabled = False
+  for k in TESTS_DISK:
+    _disk_tests_enabled |= state.tests[k]['Enabled']
+  if _disk_tests_enabled:
+    for disk in state.disks:
+      disk.safety_check(silent=state.quick_mode)
 
   # Run tests
   ## Because state.tests is an OrderedDict and the disks were added
@@ -1266,6 +1270,7 @@ def show_results(state):
     print_standard(' ')
 
   # Disk tests
+  _enabled = False
   for k in TESTS_DISK:
     _enabled |= state.tests[k]['Enabled']
   if _enabled:
