@@ -36,7 +36,7 @@ def fix_sensor_str(s):
   s = s.replace('  ', ' ')
   return s
 
-def generate_report(
+def generate_sensor_report(
     sensor_data, *temp_labels,
     colors=True, core_only=False):
   """Generate report based on temp_labels, returns list if str."""
@@ -153,7 +153,7 @@ def monitor_sensors(monitor_pane, monitor_file):
   while True:
     update_sensor_data(sensor_data)
     with open(monitor_file, 'w') as f:
-      report = generate_report(sensor_data, 'Current', 'Max')
+      report = generate_sensor_report(sensor_data, 'Current', 'Max')
       f.write('\n'.join(report))
     sleep(1)
     if monitor_pane and not tmux_poll_pane(monitor_pane):
