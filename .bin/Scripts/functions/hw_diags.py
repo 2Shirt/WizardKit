@@ -233,15 +233,15 @@ class DiskObj():
               _color = COLORS[_c]
 
         # 199/C7 warning
-        if str(k) == '199':
+        if str(k) == '199' and v['raw'] > 0:
           _note = '(bad cable?)'
 
         # Attribute value
-        _line += '{}{} {}{}'.format(
-          _color,
-          v['raw_str'],
-          _note,
-          COLORS['CLEAR'])
+        _line += '{c}{v} {YELLOW}{n}{CLEAR}'.format(
+          c=_color,
+          v=v['raw_str'],
+          n=_note,
+          **COLORS)
 
         # Add line to report
         report.append(_line)
