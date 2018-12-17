@@ -127,7 +127,6 @@ class DiskObj():
     self.smart_self_test = {}
     self.smartctl = {}
     self.tests = OrderedDict()
-    self.warnings = []
     self.get_details()
     self.get_smart_details()
     self.description = '{size} ({tran}) {model} {serial}'.format(
@@ -280,8 +279,10 @@ class DiskObj():
     report.append('{BLUE}Device ({name}){CLEAR}'.format(
       name=self.name, **COLORS))
     report.append('  {}'.format(self.description))
-    for w in self.warnings:
-      report.append('  {YELLOW}{w}{CLEAR}'.format(w=w, **COLORS))
+
+    # Attributes
+    if 'NVMe / SMART' not in self.tests:
+      report.extend(self.generate_attribute_report())
 
     # Tests
     for test in self.tests.values():
@@ -389,11 +390,9 @@ class DiskObj():
       if silent:
         self.disk_ok = HW_OVERRIDES_FORCED
       else:
-        _msg = 'No NVMe or SMART data available'
-        self.warnings.append(_msg)
         print_info('Device ({})'.format(self.name))
         print_standard('  {}'.format(self.description))
-        print_warning('  {}'.format(_msg))
+        print_warning('  No NVMe or SMART data available')
         self.disk_ok = HW_OVERRIDES_FORCED or ask(
           'Run tests on this device anyway?')
         print_standard(' ')
@@ -787,9 +786,9 @@ def run_badblocks_test(state, test):
       pipe=True)
     test.badblocks_proc.wait()
   except KeyboardInterrupt:
-    raise GenericAbort('Aborted')
+    test.aborted = True
 
-  # Check result and create report
+  # Check result and build report
   test.report.append('{BLUE}badblocks{CLEAR}'.format(**COLORS))
   try:
     test.badblocks_out = test.badblocks_proc.stdout.read().decode()
@@ -802,11 +801,16 @@ def run_badblocks_test(state, test):
       continue
     if re.search(r'^Pass completed.*0.*0/0/0', line, re.IGNORECASE):
       test.report.append('  {}'.format(line))
-      test.passed = True
+      if not test.aborted:
+        test.passed = True
     else:
       test.report.append('  {YELLOW}{line}{CLEAR}'.format(
         line=line, **COLORS))
       test.failed = True
+  if test.aborted:
+    test.report.append('  {YELLOW}Aborted{CLEAR}'.format(**COLORS))
+    test.update_status('Aborted')
+    raise GenericAbort('Aborted')
 
   # Update status
   if test.failed:
@@ -885,8 +889,6 @@ def run_hw_tests(state):
         for test_obj in v['Objects']:
           if re.search(r'(Pending|Working)', test_obj.status):
             test_obj.update_status('Aborted')
-            test_obj.report.append('  {YELLOW}Aborted{CLEAR}'.format(
-              **COLORS))
 
     # Update side pane
     update_progress_pane(state)
@@ -1206,6 +1208,12 @@ def run_nvme_smart_tests(state, test):
             if 'remaining_percent' in test.dev.smart_self_test['status']:
               _self_test_started = True
       except KeyboardInterrupt:
+        test.aborted = True
+        test.report = test.dev.generate_attribute_report()
+        test.report.append('{BLUE}SMART Short self-test{CLEAR}'.format(
+          **COLORS))
+        test.report.append('  {YELLOW}Aborted{CLEAR}'.format(**COLORS))
+        test.update_status('Aborted')
         raise GenericAbort('Aborted')
 
       # Check if timed out
