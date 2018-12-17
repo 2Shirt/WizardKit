@@ -1181,13 +1181,14 @@ def run_nvme_smart_tests(state, test):
         raise GenericAbort('Aborted')
 
       # Check if timed out
-      if test.dev.smart_self_test['status'].get('passed', False):
-        if 'OVERRIDE' not in test.status:
-          test.passed = True
-          test.update_status('CS')
-      else:
-        test.failed = True
-        test.update_status('NS')
+      if 'passed' in test.dev.smart_self_test['status']:
+        if test.dev.smart_self_test['status']['passed']:
+          if 'OVERRIDE' not in test.status:
+            test.passed = True
+            test.update_status('CS')
+        else:
+          test.failed = True
+          test.update_status('NS')
       if not (test.failed or test.passed):
         test.update_status('TimedOut')
 
