@@ -1083,7 +1083,7 @@ def run_mprime_test(state, test):
         test.failed = True
         test.passed = False
         test.update_status('NS')
-      elif len(_tmp['Pass']) > 0:
+      elif len(_tmp['Pass']) > 0 and not test.aborted:
         test.passed = True
         test.update_status('CS')
       for line in sorted(_tmp['Pass'].keys()):
