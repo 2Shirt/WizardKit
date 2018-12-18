@@ -34,7 +34,6 @@ HW_OVERRIDES_FORCED = HW_OVERRIDES_FORCED and not HW_OVERRIDES_LIMITED
 IO_VARS = {
   'Block Size': 512*1024,
   'Chunk Size': 32*1024**2,
-  'Minimum Dev Size': 8*1024**3,
   'Minimum Test Size': 10*1024**3,
   'Alt Test Size Factor': 0.01,
   'Progress Refresh Rate': 5,
@@ -73,6 +72,10 @@ TESTS_DISK = [
   'badblocks',
   ]
 TOP_PANE_TEXT = '{GREEN}Hardware Diagnostics{CLEAR}'.format(**COLORS)
+
+# Error Classe
+class DeviceTooSmallError(Exception):
+  pass
 
 # Classes
 class CpuObj():
@@ -131,6 +134,60 @@ class DiskObj():
     self.get_smart_details()
     self.description = '{size} ({tran}) {model} {serial}'.format(
       **self.lsblk)
+
+  def calc_io_dd_values(self):
+    """Calcualte I/O benchmark dd values."""
+    # Get real disk size
+    cmd = ['lsblk',
+      '--bytes', '--nodeps', '--noheadings',
+      '--output', 'size', self.path]
+    result = run_program(cmd)
+    self.size_bytes = int(result.stdout.decode().strip())
+
+    # dd calculations
+    ## The minimum dev size is 'Graph Horizontal Width' * 'Chunk Size'
+    ##   (e.g. 1.25 GB for a width of 40 and a chunk size of 32MB)
+    ##   If the device is smaller than the minimum dd_chunks would be set
+    ##   to zero which would cause a divide by zero error.
+    ##   If the device is below the minimum size an Exception will be raised
+    ##
+    ## dd_size is the area to be read in bytes
+    ##   If the dev is < 10Gb then it's the whole dev
+    ##   Otherwise it's the larger of 10Gb or 1% of the dev
+    ##
+    ## dd_chunks is the number of groups of "Chunk Size" in self.dd_size
+    ##   This number is reduced to a multiple of the graph width in
+    ##   order to allow for the data to be condensed cleanly
+    ##
+    ## dd_chunk_blocks is the chunk size in number of blocks
+    ##   (e.g. 64 if block size is 512KB and chunk size is 32MB
+    ##
+    ## dd_skip_blocks is the number of "Block Size" groups not tested
+    ## dd_skip_count is the number of blocks to skip per self.dd_chunk
+    ## dd_skip_extra is how often to add an additional skip block
+    ##   This is needed to ensure an even testing across the dev
+    ##   This is calculated by using the fractional amount left off
+    ##   of the dd_skip_count variable
+    self.dd_size = min(IO_VARS['Minimum Test Size'], self.size_bytes)
+    self.dd_size = max(
+      self.dd_size,
+      self.size_bytes * IO_VARS['Alt Test Size Factor'])
+    self.dd_chunks = int(self.dd_size // IO_VARS['Chunk Size'])
+    self.dd_chunks -= self.dd_chunks % IO_VARS['Graph Horizontal Width']
+    if self.dd_chunks < IO_VARS['Graph Horizontal Width']:
+      raise DeviceTooSmallError
+    self.dd_chunk_blocks = int(IO_VARS['Chunk Size'] / IO_VARS['Block Size'])
+    self.dd_size = self.dd_chunks * IO_VARS['Chunk Size']
+    self.dd_skip_blocks = int(
+      (self.size_bytes - self.dd_size) // IO_VARS['Block Size'])
+    self.dd_skip_count = int((self.dd_skip_blocks / self.dd_chunks) // 1)
+    self.dd_skip_extra = 0
+    try:
+      self.dd_skip_extra = 1 + int(
+        1 / ((self.dd_skip_blocks / self.dd_chunks) % 1))
+    except ZeroDivisionError:
+      # self.dd_skip_extra == 0 is fine
+      pass
 
   def check_attributes(self, silent=False):
     """Check NVMe / SMART attributes for errors."""
@@ -498,7 +555,7 @@ class TestObj():
 
   def update_status(self, new_status=None):
     """Update status strings."""
-    if self.disabled or 'OVERRIDE' in self.status:
+    if self.disabled or re.search(r'ERROR|OVERRIDE', self.status):
       return
     if new_status:
         self.status = build_status_string(
@@ -904,22 +961,162 @@ def run_hw_tests(state):
   tmux_kill_pane(*state.panes.values())
 
 def run_io_benchmark(state, test):
-  """TODO"""
+  """Run a read-only I/O benchmark using dd."""
   # Bail early
   if test.disabled:
     return
+
+  # Prep
   print_log('Starting I/O benchmark test for {}'.format(test.dev.path))
-  tmux_update_pane(
-    state.panes['Top'], text='{}\n{}'.format(
-      TOP_PANE_TEXT, 'I/O Benchmark'))
-  print_standard('TODO: run_io_benchmark({})'.format(
-    test.dev.path))
   test.started = True
   test.update_status()
   update_progress_pane(state)
-  sleep(3)
-  test.update_status('Unknown')
+
+  # Update top pane
+  tmux_update_pane(
+    state.panes['Top'],
+      text='{}\nI/O Benchmark: {}'.format(
+        TOP_PANE_TEXT, test.dev.description))
+
+  # Create monitor pane
+  test.io_benchmark_out = '{}/io_benchmark_{}.out'.format(
+    global_vars['LogDir'], test.dev.name)
+  state.panes['io_benchmark'] = tmux_split_window(
+    percent=75, vertical=True,
+    watch=test.io_benchmark_out, watch_cmd='tail')
+  tmux_resize_pane(y=15)
+
+  # Show disk details
+  clear_screen()
+  show_report(test.dev.generate_attribute_report())
+  print_standard(' ')
+
+  # Start I/O Benchmark
+  print_standard('Running I/O benchmark test...')
+  try:
+    test.merged_rates = []
+    test.read_rates = []
+    test.vertical_graph = []
+    test.dev.calc_io_dd_values()
+
+    # Run dd read tests
+    offset = 0
+    for i in range(test.dev.dd_chunks):
+      # Build cmd
+      i += 1
+      skip = test.dev.dd_skip_count
+      if test.dev.dd_skip_extra and i % test.dev.dd_skip_extra == 0:
+        skip += 1
+      cmd = [
+        'sudo', 'dd',
+        'bs={}'.format(IO_VARS['Block Size']),
+        'skip={}'.format(offset+skip),
+        'count={}'.format(test.dev.dd_chunk_blocks),
+        'iflag=direct',
+        'if={}'.format(test.dev.path),
+        'of=/dev/null']
+
+      # Run cmd and get read rate
+      result = run_program(cmd)
+      result_str = result.stderr.decode().replace('\n', '')
+      cur_rate = get_read_rate(result_str)
+
+      # Add rate to lists
+      test.read_rates.append(cur_rate)
+      test.vertical_graph.append(
+        '{percent:0.1f} {rate}'.format(
+          percent=(i/test.dev.dd_chunks)*100,
+          rate=int(cur_rate/(1024**2))))
+
+      # Show progress
+      if i % IO_VARS['Progress Refresh Rate'] == 0:
+        update_io_progress(
+          percent=(i/test.dev.dd_chunks)*100,
+          rate=cur_rate,
+          progress_file=test.io_benchmark_out)
+
+      # Update offset
+      offset += test.dev.dd_chunk_blocks + skip
+
+  except DeviceTooSmallError:
+    # Device too small, skipping test
+    test.update_status('N/A')
+  except KeyboardInterrupt:
+    test.aborted = True
+  except (subprocess.CalledProcessError, TypeError, ValueError):
+    # Something went wrong, results unknown
+    test.update_status('ERROR')
+
+  # Check result and build report
+  test.report.append('{BLUE}I/O Benchmark{CLEAR}'.format(**COLORS))
+  if test.aborted:
+    test.report.append('  {YELLOW}Aborted{CLEAR}'.format(**COLORS))
+    raise GenericAbort('Aborted')
+  elif not test.read_rates:
+    if 'ERROR' in test.status:
+      test.report.append('  {RED}Unknown error{CLEAR}'.format(**COLORS))
+    elif 'N/A' in test.status:
+      # Device too small
+      test.report.append('  {YELLOW}Disk too small to test{CLEAR}'.format(
+        **COLORS))
+  else:
+    # Merge rates for horizontal graph
+    offset = 0
+    width = int(test.dev.dd_chunks / IO_VARS['Graph Horizontal Width'])
+    for i in range(IO_VARS['Graph Horizontal Width']):
+      test.merged_rates.append(
+        sum(test.read_rates[offset:offset+width])/width)
+      offset += width
+
+    # Add horizontal graph to report
+    for line in generate_horizontal_graph(test.merged_rates):
+      if not re.match(r'^\s+$', line):
+        test.report.append(line)
+
+    # Add read speeds to report
+    avg_read = sum(test.read_rates) / len(test.read_rates)
+    min_read = min(test.read_rates)
+    max_read = max(test.read_rates)
+    avg_min_max = 'Read speeds    avg: {:3.1f}'.format(avg_read/(1024**2))
+    avg_min_max += ' min: {:3.1f}'.format(min_read/(1024**2))
+    avg_min_max += ' max: {:3.1f}'.format(max_read/(1024**2))
+    test.report.append(avg_min_max)
+
+    # Compare read speeds to thresholds
+    if test.dev.lsblk['rota']:
+      # Use HDD scale
+      thresh_min = IO_VARS['Threshold HDD Min']
+      thresh_high_avg = IO_VARS['Threshold HDD High Avg']
+      thresh_low_avg = IO_VARS['Threshold HDD Low Avg']
+    else:
+      # Use SSD scale
+      thresh_min = IO_VARS['Threshold SSD Min']
+      thresh_high_avg = IO_VARS['Threshold SSD High Avg']
+      thresh_low_avg = IO_VARS['Threshold SSD Low Avg']
+    if min_read <= thresh_min and avg_read <= thresh_high_avg:
+      test.failed = True
+    elif avg_read <= thresh_low_avg:
+      test.failed = True
+    else:
+      test.passed = True
+
+  # Update status
+  if test.failed:
+    test.update_status('NS')
+  elif test.passed:
+    test.update_status('CS')
+  elif not 'N/A' in test.status:
+    test.update_status('Unknown')
+
+  # Save log
+  with open(test.io_benchmark_out.replace('.', '-raw.'), 'a') as f:
+    f.write('\n'.join(test.vertical_graph))
+
+  # Done
   update_progress_pane(state)
+
+  # Cleanup
+  tmux_kill_pane(state.panes['io_benchmark'])
 
 def run_keyboard_test():
   """Run keyboard test."""
@@ -1122,14 +1319,18 @@ def run_nvme_smart_tests(state, test):
   # Bail early
   if test.disabled:
     return
+
+  # Prep
   print_log('Starting NVMe/SMART test for {}'.format(test.dev.path))
   _include_short_test = False
   test.started = True
   test.update_status()
+  update_progress_pane(state)
+
+  # Update top pane
   tmux_update_pane(
     state.panes['Top'],
     text='{}\nDisk Health: {}'.format(TOP_PANE_TEXT, test.dev.description))
-  update_progress_pane(state)
 
   # NVMe
   if test.dev.nvme_attributes:
