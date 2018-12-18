@@ -237,11 +237,17 @@ class DiskObj():
           if HW_OVERRIDES_FORCED or ask('Run tests on this device anyway?'):
             self.disk_ok = True
             if 'NVMe / SMART' in self.tests:
-              self.tests['NVMe / SMART'].update_status('OVERRIDE')
-              if self.nvme_attributes or not self.smart_attributes:
-                # i.e. only leave enabled for SMART short-tests
-                self.tests['NVMe / SMART'].disabled = True
+              self.disable_test('NVMe / SMART', 'OVERRIDE')
+              if not self.nvme_attributes and self.smart_attributes:
+                # Re-enable for SMART short-tests
+                self.tests['NVMe / SMART'].disabled = False
             print_standard(' ')
+
+  def disable_test(self, name, status):
+    """Disable test by name and update status."""
+    if name in self.tests:
+      self.tests[name].update_status(status)
+      self.tests[name].disabled = True
 
   def generate_attribute_report(
       self, description=False, short_test=False, timestamp=False):
@@ -427,23 +433,26 @@ class DiskObj():
       # Check if a self-test is currently running
       if 'remaining_percent' in self.smart_self_test['status']:
         _msg = 'SMART self-test in progress, all tests disabled'
+
+        # Ask to abort
         if not silent:
           print_warning('WARNING: {}'.format(_msg))
           print_standard(' ')
           if ask('Abort HW Diagnostics?'):
             exit_script()
+
+        # Add warning to report
         if 'NVMe / SMART' in self.tests:
           self.tests['NVMe / SMART'].report = self.generate_attribute_report()
           self.tests['NVMe / SMART'].report.append(
             '{YELLOW}WARNING: {msg}{CLEAR}'.format(msg=_msg, **COLORS))
-        for t in self.tests.values():
-          t.update_status('Denied')
-          t.disabled = True
+
+        # Disable all tests for this disk
+        for t in self.tests.keys():
+          self.disable_test(k, 'Denied')
     else:
       # No NVMe/SMART details
-      if 'NVMe / SMART' in self.tests:
-        self.tests['NVMe / SMART'].update_status('N/A')
-        self.tests['NVMe / SMART'].disabled = True
+      self.disable_test('NVMe / SMART', 'N/A')
       if silent:
         self.disk_ok = HW_OVERRIDES_FORCED
       else:
@@ -457,14 +466,11 @@ class DiskObj():
     if not self.disk_ok:
       if 'NVMe / SMART' in self.tests:
         # NOTE: This will not overwrite the existing status if set
+        self.disable_test('NVMe / SMART', 'NS')
         if not self.tests['NVMe / SMART'].report:
           self.tests['NVMe / SMART'].report = self.generate_attribute_report()
-        self.tests['NVMe / SMART'].update_status('NS')
-        self.tests['NVMe / SMART'].disabled = True
       for t in ['badblocks', 'I/O Benchmark']:
-        if t in self.tests:
-          self.tests[t].update_status('Denied')
-          self.tests[t].disabled = True
+        self.disable_test(t, 'Denied')
 
 class State():
   """Object to track device objects and overall state."""
@@ -862,6 +868,10 @@ def run_badblocks_test(state, test):
     test.report.append('  {YELLOW}Aborted{CLEAR}'.format(**COLORS))
     test.update_status('Aborted')
     raise GenericAbort('Aborted')
+
+  # Disable other drive tests if necessary
+  if not test.passed:
+    test.dev.disable_test('I/O Benchmark', 'Denied')
 
   # Update status
   if test.failed:
@@ -1426,9 +1436,7 @@ def run_nvme_smart_tests(state, test):
       # Disable other drive tests if necessary
       if not test.passed:
         for t in ['badblocks', 'I/O Benchmark']:
-          if t in test.dev.tests:
-            test.dev.tests[t].update_status('Denied')
-            test.dev.tests[t].disabled = True
+          test.dev.disable_test(t, 'Denied')
 
       # Cleanup
       tmux_kill_pane(state.panes['smart'])
