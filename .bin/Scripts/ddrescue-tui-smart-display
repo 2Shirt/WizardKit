@@ -10,30 +10,34 @@ import time
 os.chdir(os.path.dirname(os.path.realpath(__file__)))
 sys.path.append(os.getcwd())
 from functions.hw_diags import *
-#init_global_vars()
+init_global_vars()
 
 if __name__ == '__main__':
-    try:
-        # Prep
-        clear_screen()
-        dev_path = sys.argv[1]
-        devs = scan_disks(True, dev_path)
-        
-        # Warn if SMART unavailable
-        if dev_path not in devs:
-            print_error('SMART data not available')
-            exit_script()
-        
-        # Initial screen
-        dev = devs[dev_path]
-        clear_screen()
-        show_disk_details(dev, only_attributes=True)
-        
-        # Done
-        exit_script()
-    except SystemExit:
-        pass
-    except:
-        major_exception()
+  try:
+    # Prep
+    clear_screen()
+    state = State()
+    state.init()
 
-# vim: sts=4 sw=4 ts=4
+    # Find disk
+    disk = None
+    for d in state.disks:
+      if d.path == sys.argv[1]:
+        disk = d
+
+    # Show details
+    clear_screen()
+    if disk:
+      for line in disk.generate_attribute_report(timestamp=True):
+        print(line)
+    else:
+      print_error('Disk "{}" not found'.format(sys.argv[1]))
+
+    # Done
+    exit_script()
+  except SystemExit:
+    pass
+  except:
+    major_exception()
+
+# vim: sts=2 sw=2 ts=2
