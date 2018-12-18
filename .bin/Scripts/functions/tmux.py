@@ -8,6 +8,24 @@ def create_file(filepath):
     with open(filepath, 'w') as f:
       f.write('')
 
+def tmux_get_pane_size(pane_id=None):
+  """Get target, or current, pane size, returns tuple."""
+  x = -1
+  y = -1
+  cmd = ['tmux', 'display', '-p', '#{pane_width}x#{pane_height}']
+  if pane_id:
+    cmd.extend(['-t', pane_id])
+
+  # Run cmd and set x & y
+  result = run_program(cmd, check=False)
+  try:
+    x, y = result.stdout.decode().strip().split()
+  except Exception:
+    # Ignore and return unrealistic values
+    pass
+
+  return (x, y)
+
 def tmux_kill_all_panes(pane_id=None):
   """Kill all tmux panes except the active pane or pane_id if specified."""
   cmd = ['tmux', 'kill-pane', '-a']
@@ -28,7 +46,7 @@ def tmux_poll_pane(pane_id):
   panes = result.stdout.decode().splitlines()
   return pane_id in panes
 
-def tmux_resize_pane(pane_id=None, x=None, y=None):
+def tmux_resize_pane(pane_id=None, x=None, y=None, **kwargs):
   """Resize pane to specific hieght or width."""
   if not x and not y:
     raise Exception('Neither height nor width specified.')

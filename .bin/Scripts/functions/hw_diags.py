@@ -72,6 +72,11 @@ TESTS_DISK = [
   'badblocks',
   ]
 TOP_PANE_TEXT = '{GREEN}Hardware Diagnostics{CLEAR}'.format(**COLORS)
+TMUX_LAYOUT = OrderedDict({
+  'Top':      {'y': 2,               'Check': True},
+  'Started':  {'x': SIDE_PANE_WIDTH, 'Check': True},
+  'Progress': {'x': SIDE_PANE_WIDTH, 'Check': True},
+})
 
 # Error Classe
 class DeviceTooSmallError(Exception):
@@ -449,7 +454,7 @@ class DiskObj():
 
         # Disable all tests for this disk
         for t in self.tests.keys():
-          self.disable_test(k, 'Denied')
+          self.disable_test(t, 'Denied')
     else:
       # No NVMe/SMART details
       self.disable_test('NVMe / SMART', 'N/A')
@@ -612,6 +617,49 @@ def build_status_string(label, status, info_label=False):
     s=status,
     s_w=SIDE_PANE_WIDTH-len(label),
     **COLORS)
+
+def fix_tmux_panes(state, tmux_layout):
+  """Fix pane sizes in case the window has been resized."""
+  needs_fixed = False
+
+  # Check layout
+  for k, v in tmux_layout.items():
+    if not  v.get('Check'):
+      # Not concerned with the size of this pane
+      continue
+    # Get target
+    target = None
+    if k != 'Current':
+      if k not in state.panes:
+        # Skip missing panes
+        continue
+      else:
+        target = state.panes[k]
+
+    # Get pane size
+    x, y = tmux_get_pane_size(pane_id=target)
+    if v.get('x', False) and v.get['x'] != x:
+      needs_fixed = True
+    if v.get('y', False) and v.get['y'] != y:
+      needs_fixed = True
+
+  # Bail?
+  if not needs_fixed:
+    return
+
+  # Update layout
+  for k, v in tmux_layout.items():
+    # Get target
+    target = None
+    if k != 'Current':
+      if k not in state.panes:
+        # Skip missing panes
+        continue
+      else:
+        target = state.panes[k]
+
+    # Resize pane
+    tmux_resize_pane(pane_id=target, **v)
 
 def generate_horizontal_graph(rates, oneline=False):
   """Generate horizontal graph from rates, returns list."""
@@ -819,10 +867,14 @@ def run_badblocks_test(state, test):
   test.update_status()
   update_progress_pane(state)
 
-  # Update top pane
+  # Update tmux layout
   tmux_update_pane(
     state.panes['Top'],
     text='{}\nbadblocks: {}'.format(TOP_PANE_TEXT, test.dev.description))
+  test.tmux_layout = TMUX_LAYOUT.copy()
+  test.tmux_layout.update({
+    'badblocks': {'y': 5, 'Check': True},
+    })
 
   # Create monitor pane
   test.badblocks_out = '{}/badblocks_{}.out'.format(
@@ -841,7 +893,15 @@ def run_badblocks_test(state, test):
     test.badblocks_proc = popen_program(
       ['sudo', 'hw-diags-badblocks', test.dev.path, test.badblocks_out],
       pipe=True)
-    test.badblocks_proc.wait()
+    while True:
+      try:
+        test.badblocks_proc.wait(timeout=10)
+      except subprocess.TimeoutExpired:
+        fix_tmux_panes(state, test.tmux_layout)
+      else:
+        # badblocks finished, exit loop
+        break
+
   except KeyboardInterrupt:
     test.aborted = True
 
@@ -976,11 +1036,16 @@ def run_io_benchmark(state, test):
   test.update_status()
   update_progress_pane(state)
 
-  # Update top pane
+  # Update tmux layout
   tmux_update_pane(
     state.panes['Top'],
       text='{}\nI/O Benchmark: {}'.format(
         TOP_PANE_TEXT, test.dev.description))
+  test.tmux_layout = TMUX_LAYOUT.copy()
+  test.tmux_layout.update({
+    'io_benchmark': {'y': 1000, 'Check': False},
+    'Current': {'y': 15, 'Check': True},
+    })
 
   # Create monitor pane
   test.io_benchmark_out = '{}/io_benchmark_{}.out'.format(
@@ -1041,6 +1106,10 @@ def run_io_benchmark(state, test):
 
       # Update offset
       offset += test.dev.dd_chunk_blocks + skip
+
+      # Fix panes
+      if i % 5 == 0:
+        fix_tmux_panes(state, test.tmux_layout)
 
   except DeviceTooSmallError:
     # Device too small, skipping test
@@ -1140,10 +1209,16 @@ def run_mprime_test(state, test):
   update_progress_pane(state)
   test.sensor_data = get_sensor_data()
 
-  # Update top pane
+  # Update tmux layout
   tmux_update_pane(
     state.panes['Top'],
     text='{}\nPrime95: {}'.format(TOP_PANE_TEXT, test.dev.name))
+  test.tmux_layout = TMUX_LAYOUT.copy()
+  test.tmux_layout.update({
+    'Temps': {'y': 1000, 'Check': False},
+    'mprime': {'y': 11, 'Check': False},
+    'Current': {'y': 3, 'Check': True},
+    })
 
   # Start live sensor monitor
   test.sensors_out = '{}/sensors.out'.format(global_vars['TmpDir'])
@@ -1181,7 +1256,7 @@ def run_mprime_test(state, test):
     working_dir=global_vars['TmpDir'])
   #time_limit = int(MPRIME_LIMIT) * 60
   # TODO: restore above line
-  time_limit = 10
+  time_limit = 30
   try:
     for i in range(time_limit):
       clear_screen()
@@ -1199,6 +1274,12 @@ def run_mprime_test(state, test):
       print(_status_str)
       print('{YELLOW}{msg}{CLEAR}'.format(msg=test.abort_msg, **COLORS))
       update_sensor_data(test.sensor_data)
+
+      # Fix panes
+      if i % 10 == 0:
+        fix_tmux_panes(state, test.tmux_layout)
+
+      # Wait
       sleep(1)
   except KeyboardInterrupt:
     # Catch CTRL+C
@@ -1331,10 +1412,14 @@ def run_nvme_smart_tests(state, test):
   test.update_status()
   update_progress_pane(state)
 
-  # Update top pane
+  # Update tmux layout
   tmux_update_pane(
     state.panes['Top'],
     text='{}\nDisk Health: {}'.format(TOP_PANE_TEXT, test.dev.description))
+  test.tmux_layout = TMUX_LAYOUT.copy()
+  test.tmux_layout.update({
+    'smart': {'y': 3, 'Check': True},
+    })
 
   # NVMe
   if test.dev.nvme_attributes:
@@ -1391,7 +1476,7 @@ def run_nvme_smart_tests(state, test):
 
       # Monitor progress (in 5 second increments)
       try:
-        for iteration in range(int(test.timeout*60/5)):
+        for i in range(int(test.timeout*60/5)):
           sleep(5)
 
           # Update SMART data
@@ -1412,6 +1497,11 @@ def run_nvme_smart_tests(state, test):
             # Check if test has started
             if 'remaining_percent' in test.dev.smart_self_test['status']:
               _self_test_started = True
+
+          # Fix panes
+          if i % 2 == 0:
+            fix_tmux_panes(state, test.tmux_layout)
+
       except KeyboardInterrupt:
         test.aborted = True
         test.report = test.dev.generate_attribute_report()
