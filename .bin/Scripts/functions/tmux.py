@@ -12,14 +12,17 @@ def tmux_get_pane_size(pane_id=None):
   """Get target, or current, pane size, returns tuple."""
   x = -1
   y = -1
-  cmd = ['tmux', 'display', '-p', '#{pane_width}x#{pane_height}']
+  cmd = ['tmux', 'display', '-p']
   if pane_id:
     cmd.extend(['-t', pane_id])
+  cmd.append('#{pane_width} #{pane_height}')
 
   # Run cmd and set x & y
   result = run_program(cmd, check=False)
   try:
     x, y = result.stdout.decode().strip().split()
+    x = int(x)
+    y = int(y)
   except Exception:
     # Ignore and return unrealistic values
     pass

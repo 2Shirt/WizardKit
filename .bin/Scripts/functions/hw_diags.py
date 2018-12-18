@@ -638,9 +638,9 @@ def fix_tmux_panes(state, tmux_layout):
 
     # Get pane size
     x, y = tmux_get_pane_size(pane_id=target)
-    if v.get('x', False) and v.get['x'] != x:
+    if v.get('x', False) and v['x'] != x:
       needs_fixed = True
-    if v.get('y', False) and v.get['y'] != y:
+    if v.get('y', False) and v['y'] != y:
       needs_fixed = True
 
   # Bail?
@@ -895,7 +895,7 @@ def run_badblocks_test(state, test):
       pipe=True)
     while True:
       try:
-        test.badblocks_proc.wait(timeout=10)
+        test.badblocks_proc.wait(timeout=1)
       except subprocess.TimeoutExpired:
         fix_tmux_panes(state, test.tmux_layout)
       else:
@@ -1108,8 +1108,7 @@ def run_io_benchmark(state, test):
       offset += test.dev.dd_chunk_blocks + skip
 
       # Fix panes
-      if i % 5 == 0:
-        fix_tmux_panes(state, test.tmux_layout)
+      fix_tmux_panes(state, test.tmux_layout)
 
   except DeviceTooSmallError:
     # Device too small, skipping test
@@ -1276,8 +1275,7 @@ def run_mprime_test(state, test):
       update_sensor_data(test.sensor_data)
 
       # Fix panes
-      if i % 10 == 0:
-        fix_tmux_panes(state, test.tmux_layout)
+      fix_tmux_panes(state, test.tmux_layout)
 
       # Wait
       sleep(1)
@@ -1474,10 +1472,17 @@ def run_nvme_smart_tests(state, test):
       cmd = ['sudo', 'smartctl', '--test=short', test.dev.path]
       run_program(cmd, check=False)
 
-      # Monitor progress (in 5 second increments)
+      # Monitor progress
       try:
-        for i in range(int(test.timeout*60/5)):
-          sleep(5)
+        for i in range(int(test.timeout*60)):
+          sleep(1)
+
+          # Fix panes
+          fix_tmux_panes(state, test.tmux_layout)
+
+          # Only update SMART progress every 5 seconds
+          if i % 5 != 0:
+            continue
 
           # Update SMART data
           test.dev.get_smart_details()
@@ -1497,10 +1502,6 @@ def run_nvme_smart_tests(state, test):
             # Check if test has started
             if 'remaining_percent' in test.dev.smart_self_test['status']:
               _self_test_started = True
-
-          # Fix panes
-          if i % 2 == 0:
-            fix_tmux_panes(state, test.tmux_layout)
 
       except KeyboardInterrupt:
         test.aborted = True
