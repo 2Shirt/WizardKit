@@ -591,8 +591,8 @@ def build_outer_panes(state):
   # Started
   state.panes['Started'] = tmux_split_window(
     lines=SIDE_PANE_WIDTH, target_pane=state.panes['Top'],
-    text='{BLUE}Started{CLEAR}\n{text}'.format(
-      text=time.strftime("%Y-%m-%d %H:%M %Z"),
+    text='{BLUE}Started{CLEAR}\n{s}'.format(
+      s=time.strftime("%Y-%m-%d %H:%M %Z"),
       **COLORS))
 
   # Progress
@@ -868,7 +868,8 @@ def run_badblocks_test(state, test):
   # Update tmux layout
   tmux_update_pane(
     state.panes['Top'],
-    text='{}\nbadblocks: {}'.format(TOP_PANE_TEXT, test.dev.description))
+    text='{}\nbadblocks: {}'.format(
+      TOP_PANE_TEXT, test.dev.description))
   test.tmux_layout = TMUX_LAYOUT.copy()
   test.tmux_layout.update({
     'badblocks': {'y': 5, 'Check': True},
@@ -1037,8 +1038,8 @@ def run_io_benchmark(state, test):
   # Update tmux layout
   tmux_update_pane(
     state.panes['Top'],
-      text='{}\nI/O Benchmark: {}'.format(
-        TOP_PANE_TEXT, test.dev.description))
+    text='{}\nI/O Benchmark: {}'.format(
+      TOP_PANE_TEXT, test.dev.description))
   test.tmux_layout = TMUX_LAYOUT.copy()
   test.tmux_layout.update({
     'io_benchmark': {'y': 1000, 'Check': False},
@@ -1406,7 +1407,8 @@ def run_nvme_smart_tests(state, test):
   # Update tmux layout
   tmux_update_pane(
     state.panes['Top'],
-    text='{}\nDisk Health: {}'.format(TOP_PANE_TEXT, test.dev.description))
+    text='{}\nDisk Health: {}'.format(
+      TOP_PANE_TEXT, test.dev.description))
   test.tmux_layout = TMUX_LAYOUT.copy()
   test.tmux_layout.update({
     'smart': {'y': 3, 'Check': True},
@@ -1554,8 +1556,8 @@ def show_results(state):
   """Show results for all tests."""
   clear_screen()
   tmux_update_pane(
-    state.panes['Top'], text='{}\n{}'.format(
-      TOP_PANE_TEXT, 'Results'))
+    state.panes['Top'],
+    text='{}\nResults'.format(TOP_PANE_TEXT))
 
   # CPU tests
   _enabled = False
