@@ -1064,7 +1064,7 @@ def run_io_benchmark(state, test):
 
     # Add horizontal graph to report
     for line in generate_horizontal_graph(test.merged_rates):
-      if not re.match(r'^\s+$', line):
+      if not re.match(r'^\s+$', strip_colors(line)):
         test.report.append(line)
 
     # Add read speeds to report
