@@ -15,7 +15,7 @@ KIT_NAME_FULL='WizardKit'
 KIT_NAME_SHORT='WK'
 SUPPORT_MESSAGE='Please let 2Shirt know by opening an issue on GitHub'
 # Live Linux
-MPRIME_LIMIT='7'                          # of minutes to run Prime95 during hw-diags
+MPRIME_LIMIT='7'                           # of minutes to run Prime95 during hw-diags
 ROOT_PASSWORD='Abracadabra'
 TECH_PASSWORD='Abracadabra'
 # Server IP addresses

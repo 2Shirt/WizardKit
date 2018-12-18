@@ -837,13 +837,11 @@ def menu_diags(state, args):
     elif selection == 'R':
       print('(FAKE) reboot...')
       sleep(1)
-      # TODO uncomment below
-      #run_program(['systemctl', 'reboot'])
+      run_program(['systemctl', 'reboot'])
     elif selection == 'P':
       print('(FAKE) poweroff...')
       sleep(1)
-      # TODO uncomment below
-      #run_program(['systemctl', 'poweroff'])
+      run_program(['systemctl', 'poweroff'])
     elif selection == 'Q':
       break
     elif selection == 'S':
@@ -1242,8 +1240,7 @@ def run_mprime_test(state, test):
     message='Getting idle temps...', indent=0,
     function=save_average_temp, cs='Done',
     sensor_data=test.sensor_data, temp_label='Idle',
-    seconds=3)
-  # TODO: Remove seconds kwarg above
+    seconds=5)
 
   # Stress CPU
   print_log('Starting Prime95')
@@ -1253,9 +1250,7 @@ def run_mprime_test(state, test):
     state.panes['mprime'],
     command=['hw-diags-prime95', global_vars['TmpDir']],
     working_dir=global_vars['TmpDir'])
-  #time_limit = int(MPRIME_LIMIT) * 60
-  # TODO: restore above line
-  time_limit = 30
+  time_limit = int(MPRIME_LIMIT) * 60
   try:
     for i in range(time_limit):
       clear_screen()
@@ -1301,14 +1296,12 @@ def run_mprime_test(state, test):
   clear_screen()
   try_and_print(
     message='Letting CPU cooldown for bit...', indent=0,
-    function=sleep, cs='Done', seconds=3)
-  # TODO: Above seconds should be 10
+    function=sleep, cs='Done', seconds=10)
   try_and_print(
     message='Getting cooldown temps...', indent=0,
     function=save_average_temp, cs='Done',
     sensor_data=test.sensor_data, temp_label='Cooldown',
-    seconds=3)
-  # TODO: Remove seconds kwarg above
+    seconds=5)
 
   # Move logs to Ticket folder
   for item in os.scandir(global_vars['TmpDir']):
@@ -1447,8 +1440,7 @@ def run_nvme_smart_tests(state, test):
       # Prep
       test.timeout = test.dev.smart_self_test['polling_minutes'].get(
         'short', 5)
-      # TODO: fix timeout, set to polling + 5
-      test.timeout = int(test.timeout) + 1
+      test.timeout = int(test.timeout) + 5
       _include_short_test = True
       _self_test_started = False
 
