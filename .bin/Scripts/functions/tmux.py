@@ -28,12 +28,15 @@ def tmux_poll_pane(pane_id):
   panes = result.stdout.decode().splitlines()
   return pane_id in panes
 
-def tmux_resize_pane(pane_id, x=None, y=None):
+def tmux_resize_pane(pane_id=None, x=None, y=None):
   """Resize pane to specific hieght or width."""
   if not x and not y:
     raise Exception('Neither height nor width specified.')
 
-  cmd = ['tmux', 'resize-pane', '-t', pane_id]
+  cmd = ['tmux', 'resize-pane']
+  if pane_id:
+    # NOTE: If pane_id not specified then the current pane will be resized
+    cmd.extend(['-t', pane_id])
   if x:
     cmd.extend(['-x', str(x)])
   elif y:
