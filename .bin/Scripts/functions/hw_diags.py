@@ -132,6 +132,7 @@ class DiskObj():
     self.nvme_attributes = {}
     self.path = disk_path
     self.smart_attributes = {}
+    self.smart_timeout = False
     self.smart_self_test = {}
     self.smartctl = {}
     self.tests = OrderedDict()
@@ -331,12 +332,11 @@ class DiskObj():
     # SMART short-test
     if short_test:
       report.append('{BLUE}SMART Short self-test{CLEAR}'.format(**COLORS))
-      if 'TimedOut' in self.tests['NVMe / SMART'].status:
-        report.append('  {YELLOW}UNKNOWN{CLEAR}: Timed out'.format(**COLORS))
-      else:
-        report.append('  {}'.format(
-          self.smart_self_test['status'].get(
-            'string', 'UNKNOWN').capitalize()))
+      report.append('  {}'.format(
+        self.smart_self_test['status'].get(
+          'string', 'UNKNOWN').capitalize()))
+      if self.smart_timeout:
+        report.append('  {YELLOW}Timed out{CLEAR}'.format(**COLORS))
 
     # Done
     return report
@@ -1443,6 +1443,7 @@ def run_nvme_smart_tests(state, test):
       test.timeout = int(test.timeout) + 5
       _include_short_test = True
       _self_test_started = False
+      _self_test_finished = False
 
       # Create monitor pane
       test.smart_out = '{}/smart_{}.out'.format(
@@ -1488,6 +1489,7 @@ def run_nvme_smart_tests(state, test):
 
             # Check if test has finished
             if 'remaining_percent' not in test.dev.smart_self_test['status']:
+              _self_test_finished = True
               break
 
           else:
@@ -1505,15 +1507,16 @@ def run_nvme_smart_tests(state, test):
         raise GenericAbort('Aborted')
 
       # Check if timed out
-      if 'passed' in test.dev.smart_self_test['status']:
-        if test.dev.smart_self_test['status']['passed']:
+      if _self_test_finished:
+        if test.dev.smart_self_test['status'].get('passed', False):
           if 'OVERRIDE' not in test.status:
             test.passed = True
             test.update_status('CS')
         else:
           test.failed = True
           test.update_status('NS')
-      if not (test.failed or test.passed):
+      else:
+        test.dev.smart_timeout = True
         test.update_status('TimedOut')
 
       # Disable other drive tests if necessary
