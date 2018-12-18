@@ -9,22 +9,29 @@ import sys
 os.chdir(os.path.dirname(os.path.realpath(__file__)))
 sys.path.append(os.getcwd())
 from functions.hw_diags import *
+from functions.tmux import *
 init_global_vars()
 
 if __name__ == '__main__':
-    try:
-        # Prep
-        clear_screen()
+  # Show menu
+  try:
+    state = State()
+    menu_diags(state, sys.argv)
+  except KeyboardInterrupt:
+    print_standard(' ')
+    print_warning('Aborted')
+    print_standard(' ')
+    sleep(1)
+    pause('Press Enter to exit...')
+  except SystemExit:
+    # Normal exit
+    pass
+  except:
+    tmux_kill_all_panes()
+    major_exception()
 
-        # Show menu
-        menu_diags(*sys.argv)
-        
-        # Done
-        #print_standard('\nDone.')
-        #pause("Press Enter to exit...")
-        exit_script()
-    except SystemExit:
-        pass
-    except:
-        major_exception()
+  # Done
+  tmux_kill_all_panes()
+  exit_script()
 
+# vim: sts=2 sw=2 ts=2

@@ -25,12 +25,14 @@ global_vars = {}
 
 # STATIC VARIABLES
 COLORS = {
-    'CLEAR': '\033[0m',
-    'RED': '\033[31m',
-    'GREEN': '\033[32m',
+    'CLEAR':  '\033[0m',
+    'RED':    '\033[31m',
+    'ORANGE': '\033[31;1m',
+    'GREEN':  '\033[32m',
     'YELLOW': '\033[33m',
-    'BLUE': '\033[34m'
-}
+    'BLUE':   '\033[34m',
+    'CYAN':   '\033[36m',
+  }
 try:
     HKU =  winreg.HKEY_USERS
     HKCR = winreg.HKEY_CLASSES_ROOT
@@ -305,20 +307,20 @@ def major_exception():
     except GenericAbort:
         # User declined upload
         print_warning('Upload: Aborted')
-        sleep(30)
+        sleep(10)
     except GenericError:
         # No log file or uploading disabled
-        sleep(30)
+        sleep(10)
     except:
         print_error('Upload: NS')
-        sleep(30)
+        sleep(10)
     else:
         print_success('Upload: CS')
     pause('Press Enter to exit...')
     exit_script(1)
 
 def menu_select(title='~ Untitled Menu ~',
-    prompt='Please make a selection', secret_exit=False,
+    prompt='Please make a selection', secret_actions=[], secret_exit=False,
     main_entries=[], action_entries=[], disabled_label='DISABLED',
     spacer=''):
     """Display options in a menu and return selected option as a str."""
@@ -334,8 +336,10 @@ def menu_select(title='~ Untitled Menu ~',
     menu_splash =   '{}\n{}\n'.format(title, spacer)
     width =         len(str(len(main_entries)))
     valid_answers = []
-    if (secret_exit):
+    if secret_exit:
         valid_answers.append('Q')
+    if secret_actions:
+        valid_answers.extend(secret_actions)
 
     # Add main entries
     for i in range(len(main_entries)):
@@ -367,7 +371,6 @@ def menu_select(title='~ Untitled Menu ~',
             letter =    entry['Letter'].upper(),
             width =     len(str(len(action_entries))),
             name =      entry['Name'])
-    menu_splash += '\n'
 
     answer = ''
 
@@ -403,19 +406,24 @@ def ping(addr='google.com'):
 
 def popen_program(cmd, pipe=False, minimized=False, shell=False, **kwargs):
     """Run program and return a subprocess.Popen object."""
-    startupinfo=None
+    cmd_kwargs = {'args': cmd, 'shell': shell}
+
     if minimized:
         startupinfo = subprocess.STARTUPINFO()
         startupinfo.dwFlags = subprocess.STARTF_USESHOWWINDOW
         startupinfo.wShowWindow = 6
+        cmd_kwargs['startupinfo'] = startupinfo
 
     if pipe:
-        popen_obj = subprocess.Popen(cmd, shell=shell, startupinfo=startupinfo,
-            stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    else:
-        popen_obj = subprocess.Popen(cmd, shell=shell, startupinfo=startupinfo)
+        cmd_kwargs.update({
+            'stdout': subprocess.PIPE,
+            'stderr': subprocess.PIPE,
+            })
 
-    return popen_obj
+    if 'cwd' in kwargs:
+        cmd_kwargs['cwd'] = kwargs['cwd']
+
+    return subprocess.Popen(**cmd_kwargs)
 
 def print_error(*args, **kwargs):
     """Prints message to screen in RED."""
@@ -454,7 +462,7 @@ def print_log(message='', end='\n', timestamp=True):
                     line =      line,
                     end =       end))
 
-def run_program(cmd, args=[], check=True, pipe=True, shell=False):
+def run_program(cmd, args=[], check=True, pipe=True, shell=False, **kwargs):
     """Run program and return a subprocess.CompletedProcess object."""
     if args:
         # Deprecated so let's raise an exception to find & fix all occurances
@@ -464,13 +472,18 @@ def run_program(cmd, args=[], check=True, pipe=True, shell=False):
     if shell:
         cmd = ' '.join(cmd)
 
-    if pipe:
-        process_return = subprocess.run(cmd, check=check, shell=shell,
-            stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    else:
-        process_return = subprocess.run(cmd, check=check, shell=shell)
+    cmd_kwargs = {'args': cmd, 'check': check, 'shell': shell}
 
-    return process_return
+    if pipe:
+        cmd_kwargs.update({
+            'stdout': subprocess.PIPE,
+            'stderr': subprocess.PIPE,
+            })
+
+    if 'cwd' in kwargs:
+        cmd_kwargs['cwd'] = kwargs['cwd']
+
+    return subprocess.run(**cmd_kwargs)
 
 def set_title(title='~Some Title~'):
     """Set title.
@@ -512,6 +525,12 @@ def stay_awake():
     except Exception:
         print_error('ERROR: No caffeine available.')
         print_warning('Please set the power setting to High Performance.')
+
+def strip_colors(s):
+    """Remove all ASCII color escapes from string, returns str."""
+    for c in COLORS.values():
+      s = s.replace(c, '')
+    return s
 
 def get_exception(s):
     """Get exception by name, returns Exception object."""

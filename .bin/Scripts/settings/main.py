@@ -4,6 +4,8 @@
 ENABLED_OPEN_LOGS = False
 ENABLED_TICKET_NUMBERS = False
 ENABLED_UPLOAD_DATA = False
+HW_OVERRIDES_FORCED = False
+HW_OVERRIDES_LIMITED = True                # If True this disables HW_OVERRIDE_FORCED
 
 # STATIC VARIABLES (also used by BASH and BATCH files)
 ## NOTE: There are no spaces around the = for easier parsing in BASH and BATCH
@@ -13,7 +15,7 @@ KIT_NAME_FULL='WizardKit'
 KIT_NAME_SHORT='WK'
 SUPPORT_MESSAGE='Please let 2Shirt know by opening an issue on GitHub'
 # Live Linux
-MPRIME_LIMIT='7'                          # of minutes to run Prime95 during hw-diags
+MPRIME_LIMIT='7'                           # of minutes to run Prime95 during hw-diags
 ROOT_PASSWORD='Abracadabra'
 TECH_PASSWORD='Abracadabra'
 # Server IP addresses
