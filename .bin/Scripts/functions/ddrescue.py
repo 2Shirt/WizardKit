@@ -11,6 +11,7 @@ import time
 from collections import OrderedDict
 from functions.common import *
 from functions.data import *
+from functions.hw_diags import *
 from functions.tmux import *
 from operator import itemgetter
 
@@ -291,6 +292,7 @@ class RecoveryState():
         self.total_size = 0
         if mode not in ('clone', 'image'):
             raise GenericError('Unsupported mode')
+        self.get_smart_source()
 
     def add_block_pair(self, source, dest):
         """Run safety checks and append new BlockPair to internal list."""
@@ -348,6 +350,14 @@ class RecoveryState():
         for bp in self.block_pairs:
             min_percent = min(min_percent, bp.rescued_percent)
         return min_percent
+
+    def get_smart_source(self):
+        """Get source for SMART dispay."""
+        disk_path = self.source.path
+        if self.source.parent:
+            disk_path = self.source.parent
+
+        self.smart_source = DiskObj(disk_path)
 
     def retry_all_passes(self):
         """Mark all passes as pending for all block-pairs."""
@@ -951,16 +961,13 @@ def run_ddrescue(state, pass_settings):
         pause('Press Enter to return to main menu...')
         return
 
-    # Show SMART status
-    smart_dev = state.source_path
-    if state.source.parent:
-        smart_dev = state.source.parent
-    smart_cmd = [
-        'watch', '--color', '--no-title', '--interval', '5',
-        'ddrescue-tui-smart-display', smart_dev,
-        ]
+    # Create SMART monitor pane
+    state.smart_out = '{}/smart_{}.out'.format(
+        global_vars['TmpDir'], state.smart_source.name)
+    with open(state.smart_out, 'w') as f:
+        f.write('Initializing...')
     state.panes['SMART'] = tmux_split_window(
-        behind=True, lines=12, vertical=True, command=smart_cmd)
+        behind=True, lines=12, vertical=True, watch=state.smart_out)
 
     # Show systemd journal output
     state.panes['Journal'] = tmux_split_window(
@@ -997,10 +1004,26 @@ def run_ddrescue(state, pass_settings):
             clear_screen()
             print_info('Current dev: {}'.format(bp.source_path))
             ddrescue_proc = popen_program(cmd)
+            i = 0
             while True:
+                # Update SMART display (every 30 seconds)
+                i += 1
+                if i % 30 == 0:
+                    state.smart_source.get_smart_details()
+                    with open(state.smart_out, 'w') as f:
+                        report = state.smart_source.generate_attribute_report(
+                                timestamp=True)
+                        for line in report:
+                            f.write('{}\n'.format(line))
+
+                # Update progress
                 bp.update_progress(state.current_pass)
                 update_sidepane(state)
+
+                # Fix panes
                 fix_tmux_panes(state)
+
+                # Check if ddrescue has finished
                 try:
                     ddrescue_proc.wait(timeout=1)
                     sleep(2)
@@ -1008,8 +1031,9 @@ def run_ddrescue(state, pass_settings):
                     update_sidepane(state)
                     break
                 except subprocess.TimeoutExpired:
-                    # Catch to update bp/sidepane
+                    # Catch to update smart/bp/sidepane
                     pass
+
         except KeyboardInterrupt:
             # Catch user abort
             pass
