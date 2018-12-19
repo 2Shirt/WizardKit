@@ -8,8 +8,10 @@ import signal
 import stat
 import time
 
+from collections import OrderedDict
 from functions.common import *
 from functions.data import *
+from functions.tmux import *
 from operator import itemgetter
 
 # STATIC VARIABLES
@@ -30,6 +32,11 @@ DDRESCUE_SETTINGS = {
     }
 RECOMMENDED_FSTYPES = ['ext3', 'ext4', 'xfs']
 SIDE_PANE_WIDTH = 21
+TMUX_LAYOUT = OrderedDict({
+  'Source':   {'y': 2,               'Check': True},
+  'Started':  {'x': SIDE_PANE_WIDTH, 'Check': True},
+  'Progress': {'x': SIDE_PANE_WIDTH, 'Check': True},
+})
 USAGE = """    {script_name} clone [source [destination]]
     {script_name} image [source [destination]]
     (e.g. {script_name} clone /dev/sda /dev/sdb)
@@ -276,6 +283,7 @@ class RecoveryState():
         self.current_pass_str = '0: Initializing'
         self.settings = DDRESCUE_SETTINGS.copy()
         self.finished = False
+        self.panes = {}
         self.progress_out = '{}/progress.out'.format(global_vars['LogDir'])
         self.rescued = 0
         self.resumed = False
@@ -425,46 +433,22 @@ class RecoveryState():
 # Functions
 def build_outer_panes(state):
     """Build top and side panes."""
-    clear_screen()
-    result = run_program(['tput', 'cols'])
-    width = int(
-        (int(result.stdout.decode().strip()) - SIDE_PANE_WIDTH) / 2) - 2
-
-    # Top panes
-    source_str = state.source.name
-    if len(source_str) > width:
-        source_str = '{}...'.format(source_str[:width-3])
-    dest_str = state.dest.name
-    if len(dest_str) > width:
-        if state.mode == 'clone':
-            dest_str = '{}...'.format(dest_str[:width-3])
-        else:
-            dest_str = '...{}'.format(dest_str[-width+3:])
-    source_pane = tmux_splitw(
-        '-bdvl', '2',
-        '-PF', '#D',
-        'echo-and-hold "{BLUE}Source{CLEAR}\n{text}"'.format(
-            text=source_str,
+    state.panes['Source'] = tmux_split_window(
+        behind=True, vertical=True, lines=2,
+        text='{BLUE}Source{CLEAR}'.format(**COLORS))
+    state.panes['Started'] = tmux_split_window(
+        lines=SIDE_PANE_WIDTH, target_pane=state.panes['Source'],
+        text='{BLUE}Started{CLEAR}\n{s}'.format(
+            s=time.strftime("%Y-%m-%d %H:%M %Z"),
             **COLORS))
-    tmux_splitw(
-        '-t', source_pane,
-        '-dhl', '{}'.format(SIDE_PANE_WIDTH),
-        'echo-and-hold "{BLUE}Started{CLEAR}\n{text}"'.format(
-            text=time.strftime("%Y-%m-%d %H:%M %Z"),
-            **COLORS))
-    tmux_splitw(
-        '-t', source_pane,
-        '-dhp', '50',
-        'echo-and-hold "{BLUE}Destination{CLEAR}\n{text}"'.format(
-            text=dest_str,
-            **COLORS))
+    state.panes['Destination'] = tmux_split_window(
+        percent=50, target_pane=state.panes['Source'],
+        text='{BLUE}Destination{CLEAR}'.format(**COLORS))
 
     # Side pane
     update_sidepane(state)
-    tmux_splitw(
-        '-dhl', str(SIDE_PANE_WIDTH),
-        'watch', '--color', '--no-title', '--interval', '1',
-        'cat', state.progress_out)
+    state.panes['Progress'] = tmux_split_window(
+        lines=SIDE_PANE_WIDTH, watch=state.progress_out)
 
 
 def create_path_obj(path):
@@ -489,6 +473,94 @@ def double_confirm_clone():
     print_warning('This is irreversible and will lead '
                   'to {CLEAR}{RED}DATA LOSS.'.format(**COLORS))
     return ask('Asking again to confirm, is this correct?')
+
+
+def fix_tmux_panes(state, forced=False):
+    """Fix pane sizes if the winodw has been resized."""
+    needs_fixed = False
+
+    # Check layout
+    for k, v in TMUX_LAYOUT.items():
+        if not    v.get('Check'):
+            # Not concerned with the size of this pane
+            continue
+        # Get target
+        target = None
+        if k != 'Current':
+            if k not in state.panes:
+                # Skip missing panes
+                continue
+            else:
+                target = state.panes[k]
+
+        # Check pane size
+        x, y = tmux_get_pane_size(pane_id=target)
+        if v.get('x', False) and v['x'] != x:
+            needs_fixed = True
+        if v.get('y', False) and v['y'] != y:
+            needs_fixed = True
+
+    # Bail?
+    if not needs_fixed and not forced:
+        return
+
+    # Remove Destination pane (temporarily)
+    tmux_kill_pane(state.panes['Destination'])
+
+    # Update layout
+    for k, v in TMUX_LAYOUT.items():
+        # Get target
+        target = None
+        if k != 'Current':
+            if k not in state.panes:
+                # Skip missing panes
+                continue
+            else:
+                target = state.panes[k]
+
+        # Resize pane
+        tmux_resize_pane(pane_id=target, **v)
+
+    # Calc Source/Destination pane sizes
+    width, height = tmux_get_pane_size()
+    width = int(width / 2) - 1
+
+    # Update Source string
+    source_str = state.source.name
+    if len(source_str) > width:
+        source_str = '{}...'.format(source_str[:width-3])
+
+    # Update Destination string
+    dest_str = state.dest.name
+    if len(dest_str) > width:
+        if state.mode == 'clone':
+            dest_str = '{}...'.format(dest_str[:width-3])
+        else:
+            dest_str = '...{}'.format(dest_str[-width+3:])
+
+    # Rebuild Source/Destination panes
+    tmux_update_pane(
+        pane_id=state.panes['Source'],
+        text='{BLUE}Source{CLEAR}\n{s}'.format(
+            s=source_str, **COLORS))
+    state.panes['Destination'] = tmux_split_window(
+        percent=50, target_pane=state.panes['Source'],
+        text='{BLUE}Destination{CLEAR}\n{s}'.format(
+            s=dest_str, **COLORS))
+
+    if 'SMART' in state.panes:
+        # Calc SMART/ddrescue/Journal panes sizes
+        ratio = [12, 22, 4]
+        width, height = tmux_get_pane_size(pane_id=state.panes['Progress'])
+        height -= 2
+        total = sum(ratio)
+        p_ratio = [int((x/total) * height) for x in ratio]
+        p_ratio[1] = height - p_ratio[0] - p_ratio[2]
+
+        # Resize SMART/Journal panes
+        tmux_resize_pane(state.panes['SMART'], y=ratio[0])
+        tmux_resize_pane(y=ratio[1])
+        tmux_resize_pane(state.panes['Journal'], y=ratio[2])
 
 
 def get_device_details(dev_path):
@@ -687,7 +759,9 @@ def menu_ddrescue(source_path, dest_path, run_mode):
         raise GenericAbort()
 
     # Main menu
+    clear_screen()
     build_outer_panes(state)
+    fix_tmux_panes(state, forced=True)
     menu_main(state)
 
     # Done
@@ -877,29 +951,24 @@ def run_ddrescue(state, pass_settings):
         pause('Press Enter to return to main menu...')
         return
 
-    # Set heights
-    # NOTE: 12/33 is based on min heights for SMART/ddrescue panes (12+22+1sep)
-    result = run_program(['tput', 'lines'])
-    height = int(result.stdout.decode().strip())
-    height_smart = int(height * (8 / 33))
-    height_journal = int(height * (4 / 33))
-    height_ddrescue = height - height_smart - height_journal
-
     # Show SMART status
     smart_dev = state.source_path
     if state.source.parent:
         smart_dev = state.source.parent
-    smart_pane = tmux_splitw(
-        '-bdvl', str(height_smart),
-        '-PF', '#D',
-        'watch', '--color', '--no-title', '--interval', '300',
-        'ddrescue-tui-smart-display', smart_dev)
+    smart_cmd = [
+        'watch', '--color', '--no-title', '--interval', '5',
+        'ddrescue-tui-smart-display', smart_dev,
+        ]
+    state.panes['SMART'] = tmux_split_window(
+        behind=True, lines=12, vertical=True, command=smart_cmd)
 
     # Show systemd journal output
-    journal_pane = tmux_splitw(
-        '-dvl', str(height_journal),
-        '-PF', '#D',
-        'journalctl', '-f')
+    state.panes['Journal'] = tmux_split_window(
+        lines=4, vertical=True,
+        command=['sudo', 'journalctl', '-f'])
+
+    # Fix layout
+    fix_tmux_panes(state, forced=True)
 
     # Run pass for each block-pair
     for bp in state.block_pairs:
@@ -931,8 +1000,9 @@ def run_ddrescue(state, pass_settings):
             while True:
                 bp.update_progress(state.current_pass)
                 update_sidepane(state)
+                fix_tmux_panes(state)
                 try:
-                    ddrescue_proc.wait(timeout=10)
+                    ddrescue_proc.wait(timeout=1)
                     sleep(2)
                     bp.update_progress(state.current_pass)
                     update_sidepane(state)
@@ -967,8 +1037,9 @@ def run_ddrescue(state, pass_settings):
     if str(return_code) != '0':
         # Pause on errors
         pause('Press Enter to return to main menu... ')
-    run_program(['tmux', 'kill-pane', '-t', smart_pane])
-    run_program(['tmux', 'kill-pane', '-t', journal_pane])
+
+    # Cleanup
+    tmux_kill_pane(state.panes['SMART'], state.panes['Journal'])
 
 
 def select_parts(source_device):
@@ -1217,13 +1288,6 @@ def show_usage(script_name):
     print_info('Usage:')
     print_standard(USAGE.format(script_name=script_name))
     pause()
-
-
-def tmux_splitw(*args):
-    """Run tmux split-window command and return output as str."""
-    cmd = ['tmux', 'split-window', *args]
-    result = run_program(cmd)
-    return result.stdout.decode().strip()
 
 
 def update_sidepane(state):

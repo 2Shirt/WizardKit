@@ -69,7 +69,7 @@ def tmux_split_window(
     lines=None, percent=None,
     behind=False, vertical=False,
     follow=False, target_pane=None,
-    working_dir=None, command=None,
+    command=None, working_dir=None,
     text=None, watch=None, watch_cmd='cat'):
   """Run tmux split-window command and return pane_id as str."""
   # Bail early

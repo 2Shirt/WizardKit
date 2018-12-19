@@ -619,7 +619,7 @@ def build_status_string(label, status, info_label=False):
     **COLORS)
 
 def fix_tmux_panes(state, tmux_layout):
-  """Fix pane sizes in case the window has been resized."""
+  """Fix pane sizes if the window has been resized."""
   needs_fixed = False
 
   # Check layout
@@ -636,7 +636,7 @@ def fix_tmux_panes(state, tmux_layout):
       else:
         target = state.panes[k]
 
-    # Get pane size
+    # Check pane size
     x, y = tmux_get_pane_size(pane_id=target)
     if v.get('x', False) and v['x'] != x:
       needs_fixed = True
