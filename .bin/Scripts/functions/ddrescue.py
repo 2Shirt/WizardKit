@@ -351,7 +351,34 @@ class RecoveryState():
         self.set_pass_num()
 
     def self_checks(self):
-        """Run self-checks for each BlockPair and update state values."""
+        """Run self-checks and update state values."""
+        cmd = ['findmnt', '--json', '--target', os.getcwd()]
+        map_allowed_fstypes = RECOMMENDED_FSTYPES.copy()
+        map_allowed_fstypes.extend(['cifs', 'ext2', 'vfat'])
+        map_allowed_fstypes.sort()
+        json_data = {}
+
+        # Avoid saving map to non-persistent filesystem
+        try:
+            result = run_program(cmd)
+            json_data = json.loads(result.stdout.decode())
+        except Exception:
+            print_error('ERROR: Failed to verify map path')
+            raise GenericAbort()
+        fstype = json_data.get(
+            'filesystems', [{}])[0].get(
+            'fstype', 'unknown')
+        if fstype not in map_allowed_fstypes:
+            print_error(
+                "Map isn't being saved to a recommended filesystem ({})".format(
+                    fstype.upper()))
+            print_info('Recommended types are: {}'.format(
+                ' / '.join(map_allowed_fstypes).upper()))
+            print_standard(' ')
+            if not ask('Proceed anyways? (Strongly discouraged)'):
+                raise GenericAbort()
+
+        # Run BlockPair self checks and get total size
         self.total_size = 0
         for bp in self.block_pairs:
             bp.self_check()
