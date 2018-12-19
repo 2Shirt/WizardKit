@@ -953,7 +953,8 @@ def read_map_file(map_path):
 
 def run_ddrescue(state, pass_settings):
     """Run ddrescue pass."""
-    return_code = None
+    return_code = -1
+    aborted = False
 
     if state.finished:
         clear_screen()
@@ -1007,7 +1008,6 @@ def run_ddrescue(state, pass_settings):
             i = 0
             while True:
                 # Update SMART display (every 30 seconds)
-                i += 1
                 if i % 30 == 0:
                     state.smart_source.get_smart_details()
                     with open(state.smart_out, 'w') as f:
@@ -1015,6 +1015,7 @@ def run_ddrescue(state, pass_settings):
                                 timestamp=True)
                         for line in report:
                             f.write('{}\n'.format(line))
+                i += 1
 
                 # Update progress
                 bp.update_progress(state.current_pass)
@@ -1036,7 +1037,8 @@ def run_ddrescue(state, pass_settings):
 
         except KeyboardInterrupt:
             # Catch user abort
-            pass
+            aborted = True
+            ddrescue_proc.wait(timeout=10)
 
         # Update progress/sidepane again
         bp.update_progress(state.current_pass)
@@ -1044,12 +1046,19 @@ def run_ddrescue(state, pass_settings):
 
         # Was ddrescue aborted?
         return_code = ddrescue_proc.poll()
-        if return_code is None or return_code is 130:
-            clear_screen()
+        if aborted:
+            print_standard(' ')
+            print_standard(' ')
+            print_error('DDRESCUE PROCESS HALTED')
+            print_standard(' ')
             print_warning('Aborted')
             break
         elif return_code:
-            # i.e. not None and not 0
+            # i.e. True when non-zero
+            print_standard(' ')
+            print_standard(' ')
+            print_error('DDRESCUE PROCESS HALTED')
+            print_standard(' ')
             print_error('Error(s) encountered, see message above.')
             break
         else:
