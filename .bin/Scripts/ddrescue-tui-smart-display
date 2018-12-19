@@ -10,12 +10,11 @@ import time
 os.chdir(os.path.dirname(os.path.realpath(__file__)))
 sys.path.append(os.getcwd())
 from functions.hw_diags import *
-init_global_vars()
+init_global_vars(silent=True)
 
 if __name__ == '__main__':
   try:
     # Prep
-    clear_screen()
     state = State()
     state.init()
 
@@ -26,7 +25,6 @@ if __name__ == '__main__':
         disk = d
 
     # Show details
-    clear_screen()
     if disk:
       for line in disk.generate_attribute_report(timestamp=True):
         print(line)
