@@ -652,9 +652,10 @@ def wait_for_process(name, poll_rate=3):
     sleep(1)
 
 # global_vars functions
-def init_global_vars():
+def init_global_vars(silent=False):
     """Sets global variables based on system info."""
-    print_info('Initializing')
+    if not silent:
+        print_info('Initializing')
     if psutil.WINDOWS:
         os.system('title Wizard Kit')
     if psutil.LINUX:
@@ -672,10 +673,14 @@ def init_global_vars():
             ['Clearing collisions...',  clean_env_vars],
             ]
     try:
-        for f in init_functions:
-            try_and_print(
-                message=f[0], function=f[1],
-                cs='Done', ns='Error', catch_all=False)
+        if silent:
+            for f in init_functions:
+                f[1]()
+        else:
+            for f in init_functions:
+                try_and_print(
+                    message=f[0], function=f[1],
+                    cs='Done', ns='Error', catch_all=False)
     except:
         major_exception()
 
