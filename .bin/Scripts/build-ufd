@@ -533,6 +533,9 @@ echo -e "${GREEN}Building Kit${CLEAR}"
 touch "${LOG_FILE}"
 tmux split-window -dl 10 tail -f "${LOG_FILE}"
 
+# Zero beginning of device
+dd bs=4M count=16 if=/dev/zero of="${DEST_DEV}" >> "${LOG_FILE}" 2>&1
+
 # Format
 echo "Formatting drive..."
 if [[ "${USE_MBR}" == "True" ]]; then
