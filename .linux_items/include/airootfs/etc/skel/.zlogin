@@ -14,7 +14,18 @@ if [ "$(fgconsole 2>/dev/null)" -eq "1" ]; then
 
     # Start X or HW-diags
     if ! fgrep -q "nox" /proc/cmdline; then
+        # Kill Xorg after 30 seconds if it doesn't fully initialize
+        (sleep 30s; if ! [[ -f "/tmp/x_ok" ]]; then pkill '(Xorg|startx)'; fi) &
+
+        # Try starting X
         startx >/dev/null
+
+        # Run Hw-Diags CLI if necessary
+        if ! [[ -f "/tmp/x_ok" ]]; then
+            echo "There was an issue starting Xorg, starting CLI interface..."
+            sleep 2s
+            hw-diags cli
+        fi
     else
         hw-diags cli
     fi

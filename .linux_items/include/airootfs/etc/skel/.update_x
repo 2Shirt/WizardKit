@@ -92,3 +92,6 @@ else
   cbatticon --hide-notification &
 fi
 
+# Prevent Xorg from being killed by .zlogin
+touch "/tmp/x_ok"
+
