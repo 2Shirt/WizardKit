@@ -835,13 +835,9 @@ def menu_diags(state, args):
       # Tubes is close to pipes right?
       secret_screensaver('pipes')
     elif selection == 'R':
-      print('(FAKE) reboot...')
-      sleep(1)
-      run_program(['systemctl', 'reboot'])
+      run_program(['/usr/local/bin/wk-power-command', 'reboot'])
     elif selection == 'P':
-      print('(FAKE) poweroff...')
-      sleep(1)
-      run_program(['systemctl', 'poweroff'])
+      run_program(['/usr/local/bin/wk-power-command', 'poweroff'])
     elif selection == 'Q':
       break
     elif selection == 'S':
