@@ -24,9 +24,9 @@ if [ "$(fgconsole 2>/dev/null)" -eq "1" ]; then
         if ! [[ -f "/tmp/x_ok" ]]; then
             echo "There was an issue starting Xorg, starting CLI interface..."
             sleep 2s
-            hw-diags cli
+            hw-diags --cli
         fi
     else
-        hw-diags cli
+        hw-diags --cli
     fi
 fi
