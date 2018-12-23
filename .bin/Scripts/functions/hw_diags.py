@@ -67,7 +67,7 @@ QUICK_LABEL = '{YELLOW}(Quick){CLEAR}'.format(**COLORS)
 SIDE_PANE_WIDTH = 20
 STATUSES = {
   'RED':    ['Denied', 'ERROR', 'NS', 'OVERRIDE', 'TimedOut'],
-  'YELLOW': ['Aborted', 'N/A', 'Skipped', 'Unknown', 'Working'],
+  'YELLOW': ['Aborted', 'N/A', 'Unknown', 'Working'],
   'GREEN':  ['CS'],
 }
 TESTS_CPU = ['Prime95']
@@ -731,17 +731,6 @@ def get_read_rate(s):
     human_rate = re.sub(r'^.*\s+(\d+\.?\d*)\s+(.B)/s\s*$', r'\1 \2', s)
     real_rate = convert_to_bytes(human_rate)
   return real_rate
-
-def get_status_color(s):
-  """Get color based on status, returns str."""
-  color = COLORS['CLEAR']
-  if s in ['Denied', 'ERROR', 'NS', 'OVERRIDE']:
-    color = COLORS['RED']
-  elif s in ['Aborted', 'N/A', 'Unknown', 'Working', 'Skipped']:
-    color = COLORS['YELLOW']
-  elif s in ['CS']:
-    color = COLORS['GREEN']
-  return color
 
 def menu_diags(state, args):
   """Main menu to select and run HW tests."""
