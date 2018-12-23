@@ -65,6 +65,11 @@ KEY_NVME = 'nvme_smart_health_information_log'
 KEY_SMART = 'ata_smart_attributes'
 QUICK_LABEL = '{YELLOW}(Quick){CLEAR}'.format(**COLORS)
 SIDE_PANE_WIDTH = 20
+STATUSES = {
+  'RED':    ['Denied', 'ERROR', 'NS', 'OVERRIDE', 'TimedOut'],
+  'YELLOW': ['Aborted', 'N/A', 'Skipped', 'Unknown', 'Working'],
+  'GREEN':  ['CS'],
+}
 TESTS_CPU = ['Prime95']
 TESTS_DISK = [
   'I/O Benchmark',
@@ -78,7 +83,10 @@ TMUX_LAYOUT = OrderedDict({
   'Progress': {'x': SIDE_PANE_WIDTH, 'Check': True},
 })
 
-# Error Classe
+# Regex
+REGEX_ERROR_STATUS = re.compile('|'.join(STATUSES['RED']))
+
+# Error Classes
 class DeviceTooSmallError(Exception):
   pass
 
@@ -566,7 +574,8 @@ class TestObj():
 
   def update_status(self, new_status=None):
     """Update status strings."""
-    if self.disabled or re.search(r'ERROR|OVERRIDE', self.status):
+    if self.disabled or REGEX_ERROR_STATUS.search(self.status):
+      # Don't update error statuses if test is enabled
       return
     if new_status:
         self.status = build_status_string(
@@ -603,12 +612,9 @@ def build_outer_panes(state):
 def build_status_string(label, status, info_label=False):
   """Build status string with appropriate colors."""
   status_color = COLORS['CLEAR']
-  if status in ['Denied', 'ERROR', 'NS', 'OVERRIDE', 'TimedOut']:
-    status_color = COLORS['RED']
-  elif status in ['Aborted', 'N/A', 'Skipped', 'Unknown', 'Working']:
-    status_color = COLORS['YELLOW']
-  elif status in ['CS']:
-    status_color = COLORS['GREEN']
+  for k, v in STATUSES.items():
+    if status in v:
+      status_color = COLORS[k]
 
   return '{l_c}{l}{CLEAR}{s_c}{s:>{s_w}}{CLEAR}'.format(
     l_c=COLORS['BLUE'] if info_label else '',
