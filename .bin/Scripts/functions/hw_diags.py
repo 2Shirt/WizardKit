@@ -66,8 +66,8 @@ KEY_SMART = 'ata_smart_attributes'
 QUICK_LABEL = '{YELLOW}(Quick){CLEAR}'.format(**COLORS)
 SIDE_PANE_WIDTH = 20
 STATUSES = {
-  'RED':    ['Denied', 'ERROR', 'NS', 'OVERRIDE', 'TimedOut'],
-  'YELLOW': ['Aborted', 'N/A', 'Unknown', 'Working'],
+  'RED':    ['Denied', 'ERROR', 'NS', 'TimedOut'],
+  'YELLOW': ['Aborted', 'N/A', 'OVERRIDE', 'Unknown', 'Working'],
   'GREEN':  ['CS'],
 }
 TESTS_CPU = ['Prime95']
@@ -1513,7 +1513,7 @@ def run_nvme_smart_tests(state, test):
         test.update_status('TimedOut')
 
       # Disable other drive tests if necessary
-      if not test.passed:
+      if test.failed:
         for t in ['badblocks', 'I/O Benchmark']:
           test.dev.disable_test(t, 'Denied')
 
