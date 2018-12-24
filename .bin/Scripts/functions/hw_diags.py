@@ -242,7 +242,9 @@ class DiskObj():
           print_standard('  (Have you tried swapping the disk cable?)')
       else:
         # Override?
-        show_report(self.generate_attribute_report(description=True))
+        show_report(
+          self.generate_attribute_report(description=True),
+          log_report=True)
         print_warning('  {} error(s) detected.'.format(attr_type))
         if override_disabled:
           print_standard('Tests disabled for this device')
@@ -1448,8 +1450,6 @@ def run_nvme_smart_tests(state, test):
 
       # Show attributes
       clear_screen()
-      print_info('Device ({})'.format(test.dev.name))
-      print_standard('  {}'.format(test.dev.description))
       show_report(test.dev.generate_attribute_report())
       print_standard(' ')
 
@@ -1537,11 +1537,12 @@ def secret_screensaver(screensaver=None):
     raise Exception('Invalid screensaver')
   run_program(cmd, check=False, pipe=False)
 
-def show_report(report):
-  """Show report on screen and save to log w/out color."""
+def show_report(report, log_report=False):
+  """Show report on screen and optionally save to log w/out color."""
   for line in report:
     print(line)
-    print_log(strip_colors(line))
+    if log_report:
+      print_log(strip_colors(line))
 
 def show_results(state):
   """Show results for all tests."""
@@ -1556,7 +1557,7 @@ def show_results(state):
     _enabled |= state.tests[k]['Enabled']
   if _enabled:
     print_success('CPU:'.format(k))
-    show_report(state.cpu.generate_cpu_report())
+    show_report(state.cpu.generate_cpu_report(), log_report=True)
     print_standard(' ')
 
   # Disk tests
@@ -1567,7 +1568,7 @@ def show_results(state):
     print_success('Disk{}:'.format(
       '' if len(state.disks) == 1 else 's'))
     for disk in state.disks:
-      show_report(disk.generate_disk_report())
+      show_report(disk.generate_disk_report(), log_report=True)
       print_standard(' ')
 
 def update_main_options(state, selection, main_options):
