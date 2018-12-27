@@ -861,7 +861,7 @@ def run_badblocks_test(state, test):
   # Update tmux layout
   tmux_update_pane(
     state.panes['Top'],
-    text='{}\nbadblocks: {}'.format(
+    text='{}\n{}'.format(
       TOP_PANE_TEXT, test.dev.description))
   test.tmux_layout = TMUX_LAYOUT.copy()
   test.tmux_layout.update({
@@ -1031,7 +1031,7 @@ def run_io_benchmark(state, test):
   # Update tmux layout
   tmux_update_pane(
     state.panes['Top'],
-    text='{}\nI/O Benchmark: {}'.format(
+    text='{}\n{}'.format(
       TOP_PANE_TEXT, test.dev.description))
   test.tmux_layout = TMUX_LAYOUT.copy()
   test.tmux_layout.update({
@@ -1194,7 +1194,7 @@ def run_mprime_test(state, test):
   # Update tmux layout
   tmux_update_pane(
     state.panes['Top'],
-    text='{}\nPrime95: {}'.format(TOP_PANE_TEXT, test.dev.name))
+    text='{}\n{}'.format(TOP_PANE_TEXT, test.dev.name))
   test.tmux_layout = TMUX_LAYOUT.copy()
   test.tmux_layout.update({
     'Temps': {'y': 1000, 'Check': False},
@@ -1391,7 +1391,7 @@ def run_nvme_smart_tests(state, test):
   # Update tmux layout
   tmux_update_pane(
     state.panes['Top'],
-    text='{}\nDisk Health: {}'.format(
+    text='{}\n{}'.format(
       TOP_PANE_TEXT, test.dev.description))
   test.tmux_layout = TMUX_LAYOUT.copy()
   test.tmux_layout.update({
