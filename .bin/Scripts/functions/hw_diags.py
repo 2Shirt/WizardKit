@@ -1057,7 +1057,6 @@ def run_io_benchmark(state, test):
   try:
     test.merged_rates = []
     test.read_rates = []
-    test.vertical_graph = []
     test.dev.calc_io_dd_values()
 
     # Run dd read tests
@@ -1084,10 +1083,6 @@ def run_io_benchmark(state, test):
 
       # Add rate to lists
       test.read_rates.append(cur_rate)
-      test.vertical_graph.append(
-        '{percent:0.1f} {rate}'.format(
-          percent=(i/test.dev.dd_chunks)*100,
-          rate=int(cur_rate/(1024**2))))
 
       # Show progress
       if i % IO_VARS['Progress Refresh Rate'] == 0:
@@ -1171,10 +1166,6 @@ def run_io_benchmark(state, test):
     test.update_status('CS')
   elif not 'N/A' in test.status:
     test.update_status('Unknown')
-
-  # Save log
-  with open(test.io_benchmark_out.replace('.', '-raw.'), 'a') as f:
-    f.write('\n'.join(test.vertical_graph))
 
   # Done
   update_progress_pane(state)
