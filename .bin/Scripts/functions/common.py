@@ -490,12 +490,8 @@ def print_log(message='', end='\n', timestamp=True):
           end =     end))
 
 
-def run_program(cmd, args=[], check=True, pipe=True, shell=False, **kwargs):
+def run_program(cmd, check=True, pipe=True, shell=False, **kwargs):
   """Run program and return a subprocess.CompletedProcess object."""
-  if args:
-    # Deprecated so let's raise an exception to find & fix all occurances
-    print_error('ERROR: Using args is no longer supported.')
-    raise Exception
   cmd = [c for c in cmd if c]
   if shell:
     cmd = ' '.join(cmd)
