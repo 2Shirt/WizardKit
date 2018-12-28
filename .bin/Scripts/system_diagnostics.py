@@ -7,10 +7,10 @@ import sys
 os.chdir(os.path.dirname(os.path.realpath(__file__)))
 sys.path.append(os.getcwd())
 from functions.browsers import *
-from functions.diags import *
 from functions.info import *
 from functions.product_keys import *
 from functions.repairs import *
+from functions.sw_diags import *
 init_global_vars()
 os.system('title {}: System Diagnostics Tool'.format(KIT_NAME_FULL))
 set_log_file('System Diagnostics.log')

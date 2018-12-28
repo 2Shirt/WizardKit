@@ -8,10 +8,10 @@ os.chdir(os.path.dirname(os.path.realpath(__file__)))
 sys.path.append(os.getcwd())
 from functions.activation import *
 from functions.cleanup import *
-from functions.diags import *
 from functions.info import *
 from functions.product_keys import *
 from functions.setup import *
+from functions.sw_diags import *
 init_global_vars()
 os.system('title {}: System Checklist Tool'.format(KIT_NAME_FULL))
 set_log_file('System Checklist.log')
