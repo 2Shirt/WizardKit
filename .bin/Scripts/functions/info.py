@@ -164,7 +164,7 @@ def get_installed_office():
   return programs
 
 def get_shell_path(folder, user='current'):
-  """Get shell path using SHGetKnownFolderPath via knownpaths, returns str.
+  """Get shell path using knownpaths, returns str.
 
   NOTE: Only works for the current user.
   Code based on https://gist.github.com/mkropat/7550097

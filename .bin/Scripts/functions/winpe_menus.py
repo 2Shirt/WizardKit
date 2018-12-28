@@ -250,7 +250,7 @@ def menu_root():
       sys.exit()
 
 def menu_setup():
-  """Format a disk (MBR/GPT), apply a Windows image, and setup boot files."""
+  """Format a disk, apply a Windows image, and create boot files."""
   errors = False
   other_results = {
     'Error': {

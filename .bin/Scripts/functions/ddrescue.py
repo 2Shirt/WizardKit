@@ -255,7 +255,7 @@ class ImageObj(BaseObj):
         self.path))
 
   def set_details(self):
-    """Setup loopback device, set details via lsblk, then detach device."""
+    """Set details using a temp loopback device."""
     self.type = 'image'
     self.loop_dev = setup_loopback_device(self.path)
     self.details = get_device_details(self.loop_dev)

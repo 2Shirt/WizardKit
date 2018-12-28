@@ -181,11 +181,11 @@ def config_classicstart():
   popen_program(cs_exe)
 
 def config_explorer_system():
-  """Configure Windows Explorer for all users via Registry settings."""
+  """Configure Windows Explorer for all users."""
   write_registry_settings(SETTINGS_EXPLORER_SYSTEM, all_users=True)
 
 def config_explorer_user():
-  """Configure Windows Explorer for current user via Registry settings."""
+  """Configure Windows Explorer for current user."""
   write_registry_settings(SETTINGS_EXPLORER_USER, all_users=False)
 
 def disable_windows_telemetry():
@@ -241,7 +241,7 @@ def install_adobe_reader():
   run_program(cmd)
 
 def install_chrome_extensions():
-  """Update registry to install Google Chrome extensions for all users."""
+  """Install Google Chrome extensions for all users."""
   write_registry_settings(SETTINGS_GOOGLE_CHROME, all_users=True)
 
 def install_classicstart_skin():
@@ -258,7 +258,7 @@ def install_classicstart_skin():
   shutil.copy(source, dest)
 
 def install_firefox_extensions():
-  """Update registry to install Firefox extensions for all users."""
+  """Install Firefox extensions for all users."""
   dist_path = r'{PROGRAMFILES}\Mozilla Firefox\distribution\extensions'.format(
     **global_vars['Env'])
   source_path = r'{CBinDir}\FirefoxExtensions.7z'.format(**global_vars)

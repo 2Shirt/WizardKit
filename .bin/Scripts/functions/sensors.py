@@ -167,7 +167,7 @@ def monitor_sensors(monitor_pane, monitor_file):
       break
 
 def save_average_temp(sensor_data, temp_label, seconds=10):
-  """Calculate average temps and record under temp_label, returns dict."""
+  """Save average temps under temp_label, returns dict."""
   clear_temps(sensor_data)
 
   # Get temps

@@ -94,7 +94,7 @@ def abort():
   exit_script()
 
 def ask(prompt='Kotaero!'):
-  """Prompt the user with a Y/N question, log answer, and return a bool."""
+  """Prompt the user with a Y/N question, returns bool."""
   answer = None
   prompt = '{} [Y/N]: '.format(prompt)
   while answer is None:
@@ -110,7 +110,7 @@ def ask(prompt='Kotaero!'):
   return answer
 
 def choice(choices, prompt='Kotaero!'):
-  """Prompt the user with a choice question, log answer, and returns str."""
+  """Prompt the user with a choice question, returns str."""
   answer = None
   choices = [str(c) for c in choices]
   choices_short = {c[:1].upper(): c for c in choices}
@@ -252,7 +252,7 @@ def get_ticket_number():
   return ticket_number
 
 def human_readable_size(size, decimals=0):
-  """Convert size in bytes to a human-readable format and return a str."""
+  """Convert size from bytes to a human-readable format, returns str."""
   # Prep string formatting
   width = 3+decimals
   if decimals > 0:

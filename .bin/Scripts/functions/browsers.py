@@ -170,7 +170,13 @@ def backup_browsers():
     function=archive_browser, name=name)
 
 def clean_chromium_profile(profile):
-  """Renames profile, creates a new folder, and copies the user data to it."""
+  """Recreate profile with only the essential user data.
+
+  This is done by renaming the existing profile, creating a new folder
+  with the original name, then copying the essential files from the
+  backup folder. This way the original state is preserved in case
+  something goes wrong.
+  """
   if profile is None:
     raise Exception
   backup_path = '{path}_{Date}.bak'.format(
@@ -203,7 +209,13 @@ def clean_internet_explorer(**kwargs):
       pass
 
 def clean_mozilla_profile(profile):
-  """Renames profile, creates a new folder, and copies the user data to it."""
+  """Recreate profile with only the essential user data.
+
+  This is done by renaming the existing profile, creating a new folder
+  with the original name, then copying the essential files from the
+  backup folder. This way the original state is preserved in case
+  something goes wrong.
+  """
   if profile is None:
     raise Exception
   backup_path = '{path}_{Date}.bak'.format(
@@ -229,7 +241,7 @@ def clean_mozilla_profile(profile):
       f.write('user_pref("{}", {});\n'.format(k, v))
 
 def get_browser_details(name):
-  """Get install status and profile details for all supported browsers."""
+  """Get installation and profile details for all supported browsers."""
   browser = SUPPORTED_BROWSERS[name].copy()
 
   # Update user_data_path

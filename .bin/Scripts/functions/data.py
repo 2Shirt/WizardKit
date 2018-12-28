@@ -117,7 +117,7 @@ SEM_NOOPENFILEERRORBOX = 0x8000
 SEM_FAIL = SEM_NOOPENFILEERRORBOX | SEM_FAILCRITICALERRORS
 
 def cleanup_transfer(dest_path):
-  """Fix attributes and move extraneous items outside the Transfer folder."""
+  """Fix attributes and move excluded items to separate folder."""
   try:
     # Remove dest_path if empty
     os.rmdir(dest_path)
@@ -221,7 +221,7 @@ def fix_path_sep(path_str):
   return re.sub(r'(\\|/)+', lambda s: os.sep, path_str)
 
 def is_valid_wim_file(item):
-  """Checks if the provided os.DirEntry is a valid WIM file, returns bool."""
+  """Checks if the item is a valid WIM file, returns bool."""
   valid = bool(item.is_file() and REGEX_WIM_FILE.search(item.name))
   if valid:
     extract_item('wimlib', silent=True)

@@ -43,7 +43,7 @@ def run_chkdsk_offline():
     raise GenericError
 
 def run_dism(repair=False):
-  """Run DISM /RestoreHealth, then /CheckHealth, and then report errors."""
+  """Run DISM to either scan or repair component store health."""
   if global_vars['OS']['Version'] in ('8', '8.1', '10'):
     if repair:
       # Restore Health
