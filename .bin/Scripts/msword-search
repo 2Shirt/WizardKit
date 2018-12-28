@@ -44,7 +44,7 @@ def scan_file(file_path, search):
   except Exception:
     # Ignore errors since files may be corrupted
     pass
-  
+
   return entry.path if match else None
 
 
@@ -72,7 +72,7 @@ if __name__ == '__main__':
           print_standard(match)
       else:
         print_error('No matches found.')
-    
+
     # Done
     print_standard('\nDone.')
     #pause("Press Enter to exit...")

@@ -36,7 +36,7 @@ if __name__ == '__main__':
     try_and_print(message='DNS Resolution:', function=ping, cs='OK')
     try_and_print(message='Speedtest:', function=speedtest,
       print_return=True)
-    
+
     # Done
     print_standard('\nDone.')
     #pause("Press Enter to exit...")

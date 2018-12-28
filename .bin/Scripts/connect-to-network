@@ -18,7 +18,7 @@ if __name__ == '__main__':
 
     # Connect
     connect_to_network()
-    
+
     # Done
     print_standard('\nDone.')
     #pause("Press Enter to exit...")

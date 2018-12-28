@@ -26,7 +26,7 @@ if __name__ == '__main__':
     else:
       # Couldn't connect
       print_error('ERROR: No network connectivity.')
-    
+
     # Done
     print_standard('\nDone.')
     #pause("Press Enter to exit...")

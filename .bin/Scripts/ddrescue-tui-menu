@@ -42,7 +42,7 @@ if __name__ == '__main__':
     else:
       if not re.search(r'^-*(h|help\?)', run_mode, re.IGNORECASE):
         print_error('Invalid mode.')
-    
+
     # Done
     print_standard('\nDone.')
     pause("Press Enter to exit...")
