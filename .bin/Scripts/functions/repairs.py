@@ -2,12 +2,14 @@
 
 from functions.common import *
 
+
 def run_chkdsk(repair=False):
   """Run CHKDSK scan or schedule offline repairs."""
   if repair:
     run_chkdsk_offline()
   else:
     run_chkdsk_scan()
+
 
 def run_chkdsk_scan():
   """Run CHKDSK in a "split window" and report errors."""
@@ -32,6 +34,7 @@ def run_chkdsk_scan():
     for line in out.stdout.decode().splitlines():
       f.write(line.strip() + '\n')
 
+
 def run_chkdsk_offline():
   """Set filesystem 'dirty bit' to force a chkdsk during next boot."""
   cmd = [
@@ -41,6 +44,7 @@ def run_chkdsk_offline():
   out = run_program(cmd, check=False)
   if int(out.returncode) > 0:
     raise GenericError
+
 
 def run_dism(repair=False):
   """Run DISM to either scan or repair component store health."""
@@ -75,6 +79,7 @@ def run_dism(repair=False):
   else:
     raise UnsupportedOSError
 
+
 def run_kvrt():
   """Run KVRT."""
   extract_item('KVRT', silent=True)
@@ -85,6 +90,7 @@ def run_kvrt():
     '-d', global_vars['QuarantineDir'],
     '-processlevel', '3']
   popen_program(cmd, pipe=False)
+
 
 def run_sfc_scan():
   """Run SFC in a "split window" and report errors."""
@@ -109,6 +115,7 @@ def run_sfc_scan():
   else:
     raise GenericError
 
+
 def run_tdsskiller():
   """Run TDSSKiller."""
   extract_item('TDSSKiller', silent=True)
@@ -121,6 +128,7 @@ def run_tdsskiller():
     '-accepteula', '-accepteulaksn',
     '-dcexact', '-tdlfs']
   run_program(cmd, pipe=False)
+
 
 if __name__ == '__main__':
   print("This file is not meant to be called directly.")

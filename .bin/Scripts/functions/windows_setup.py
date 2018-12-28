@@ -3,6 +3,7 @@
 from functions.data import *
 from functions.disk import *
 
+
 # STATIC VARIABLES
 WINDOWS_VERSIONS = [
   {'Name': 'Windows 7 Home Basic',
@@ -34,6 +35,7 @@ WINDOWS_VERSIONS = [
     'Image File': 'Win10', 
     'Image Name': 'Windows 10 Pro'},
   ]
+
 
 def find_windows_image(windows_version):
   """Search for a Windows source image file, returns dict.
@@ -85,12 +87,14 @@ def find_windows_image(windows_version):
       windows_version['Name']))
     raise GenericAbort
 
+
 def format_disk(disk, use_gpt):
   """Format disk for use as a Windows OS disk."""
   if use_gpt:
     format_gpt(disk)
   else:
     format_mbr(disk)
+
 
 def format_gpt(disk):
   """Format disk for use as a Windows OS disk using the GPT layout."""
@@ -126,6 +130,7 @@ def format_gpt(disk):
   # Run
   run_diskpart(script)
 
+
 def format_mbr(disk):
   """Format disk for use as a Windows OS disk using the MBR layout."""
   script = [
@@ -155,6 +160,7 @@ def format_mbr(disk):
   # Run
   run_diskpart(script)
 
+
 def mount_windows_share():
   """Mount the Windows images share unless already mounted."""
   if not WINDOWS_SERVER['Mounted']:
@@ -162,6 +168,7 @@ def mount_windows_share():
     # and the server was left mounted read-write. This avoids throwing an
     # error by trying to mount the same server with multiple credentials.
     mount_network_share(WINDOWS_SERVER, read_write=True)
+
 
 def select_windows_version():
   """Select Windows version from a menu, returns dict."""
@@ -180,6 +187,7 @@ def select_windows_version():
   elif selection == 'M':
     raise GenericAbort
 
+
 def setup_windows(windows_image, windows_version):
   """Apply a Windows image to W:"""
   cmd = [
@@ -191,6 +199,7 @@ def setup_windows(windows_image, windows_version):
   if 'Glob' in windows_image:
     cmd.extend(windows_image['Glob'])
   run_program(cmd)
+
 
 def setup_windows_re(windows_version, windows_letter='W', tools_letter='T'):
   """Setup the WinRE partition."""
@@ -210,6 +219,7 @@ def setup_windows_re(windows_version, windows_letter='W', tools_letter='T'):
     '/target', win]
   run_program(cmd)
 
+
 def update_boot_partition(system_letter='S', windows_letter='W', mode='ALL'):
   """Setup the Windows boot partition."""
   cmd = [
@@ -219,6 +229,7 @@ def update_boot_partition(system_letter='S', windows_letter='W', mode='ALL'):
     '/s', '{}:'.format(system_letter),
     '/f', mode]
   run_program(cmd)
+
 
 def wim_contains_image(filename, imagename):
   """Check if an ESD/WIM contains the specified image, returns bool."""
@@ -233,6 +244,7 @@ def wim_contains_image(filename, imagename):
     return False
 
   return True
+
 
 if __name__ == '__main__':
   print("This file is not meant to be called directly.")

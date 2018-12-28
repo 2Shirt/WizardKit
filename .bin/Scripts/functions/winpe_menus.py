@@ -4,6 +4,7 @@ from functions.backup import *
 from functions.disk import *
 from functions.windows_setup import *
 
+
 # STATIC VARIABLES
 FAST_COPY_PE_ARGS = [
   '/cmd=noexist_only',
@@ -50,6 +51,7 @@ PE_TOOLS = {
     },
   }
 
+
 def check_pe_tools():
   """Fix tool paths for WinPE layout."""
   for k in PE_TOOLS.keys():
@@ -60,6 +62,7 @@ def check_pe_tools():
     r'',
     global_vars['Tools']['wimlib-imagex'],
     re.IGNORECASE)
+
 
 def menu_backup():
   """Take backup images of partition(s) in the WIM format."""
@@ -211,6 +214,7 @@ def menu_backup():
       sleep(30)
   pause('\nPress Enter to return to main menu... ')
 
+
 def menu_root():
   """Main WinPE menu."""
   check_pe_tools()
@@ -248,6 +252,7 @@ def menu_root():
       run_program(['wpeutil', 'shutdown'])
     else:
       sys.exit()
+
 
 def menu_setup():
   """Format a disk, apply a Windows image, and create boot files."""
@@ -409,6 +414,7 @@ def menu_setup():
       sleep(30)
   pause('\nPress Enter to return to main menu... ')
 
+
 def menu_tools():
   """Tool launcher menu."""
   tools = [{'Name': k} for k in sorted(PE_TOOLS.keys())]
@@ -438,6 +444,7 @@ def menu_tools():
     elif (selection == 'M'):
       break
 
+
 def select_minidump_path():
   """Select BSOD minidump path from a menu."""
   dumps = []
@@ -466,6 +473,7 @@ def select_minidump_path():
     title = 'Which BSoD / MiniDump path are we scanning?',
     main_entries = dumps)
   return dumps[int(selection) - 1]['Name']
+
 
 if __name__ == '__main__':
   print("This file is not meant to be called directly.")

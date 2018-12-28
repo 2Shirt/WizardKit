@@ -2,11 +2,13 @@
 
 from functions.common import *
 
+
 # Regex
 REGEX_REGISTRY_DIRS = re.compile(
   r'^(config$|RegBack$|System32$|Transfer|Win)',
   re.IGNORECASE)
 REGEX_SOFTWARE_HIVE = re.compile(r'^Software$', re.IGNORECASE)
+
 
 def extract_keys():
   """Extract keys from provided hives and return a dict."""
@@ -43,6 +45,7 @@ def extract_keys():
   # Done
   return keys
 
+
 def list_clientdir_keys():
   """List product keys found in hives inside the ClientDir."""
   keys = extract_keys()
@@ -56,6 +59,7 @@ def list_clientdir_keys():
     key_list.append('No keys found.')
 
   return key_list
+
 
 def find_software_hives():
   """Search for transferred SW hives and return a list."""
@@ -71,6 +75,7 @@ def find_software_hives():
 
   return hives
 
+
 def get_product_keys():
   """List product keys from saved report."""
   keys = []
@@ -85,6 +90,7 @@ def get_product_keys():
     return keys
   else:
     return ['No product keys found']
+
 
 def run_produkey():
   """Run ProduKey and save report in the ClientDir."""
@@ -106,6 +112,7 @@ def run_produkey():
       '/stext',
       log_file]
     run_program(cmd, check=False)
+
 
 if __name__ == '__main__':
   print("This file is not meant to be called directly.")

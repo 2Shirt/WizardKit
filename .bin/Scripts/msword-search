@@ -22,12 +22,14 @@ init_global_vars()
 
 REGEX_DOC_FILES = re.compile(r'\.docx?$', re.IGNORECASE)
 
+
 def scan_for_docs(path):
   for entry in os.scandir(path):
     if entry.is_dir(follow_symlinks=False):
       yield from scan_for_docs(entry.path)
     elif entry.is_file and REGEX_DOC_FILES.search(entry.name):
       yield entry
+
 
 def scan_file(file_path, search):
   match = False
@@ -44,6 +46,7 @@ def scan_file(file_path, search):
     pass
   
   return entry.path if match else None
+
 
 if __name__ == '__main__':
   try:

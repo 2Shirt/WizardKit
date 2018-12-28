@@ -8,6 +8,7 @@ from settings.launchers import *
 from settings.music import *
 from settings.sources import *
 
+
 def compress_and_remove_item(item):
   """Compress and delete an item unless an error is encountered."""
   try:
@@ -16,6 +17,7 @@ def compress_and_remove_item(item):
     raise GenericError
   else:
     remove_item(item.path)
+
 
 def compress_item(item):
   """Compress an item in a 7-Zip archive using the ARCHIVE_PASSWORD."""
@@ -42,6 +44,7 @@ def compress_item(item):
   # Done
   os.chdir(prev_dir)
 
+
 def download_generic(out_dir, out_name, source_url):
   """Downloads a file using requests."""
   ## Code based on this Q&A: https://stackoverflow.com/q/16694907
@@ -59,9 +62,11 @@ def download_generic(out_dir, out_name, source_url):
   except:
     raise GenericError('Failed to download file.')
 
+
 def download_to_temp(out_name, source_url):
   """Download a file to the TmpDir."""
   download_generic(global_vars['TmpDir'], out_name, source_url)
+
 
 def extract_generic(source, dest, mode='x', sz_args=[]):
   """Extract a file to a destination."""
@@ -73,11 +78,13 @@ def extract_generic(source, dest, mode='x', sz_args=[]):
   cmd.extend(sz_args)
   run_program(cmd)
 
+
 def extract_temp_to_bin(source, item, mode='x', sz_args=[]):
   """Extract a file to the .bin folder."""
   source = r'{}\{}'.format(global_vars['TmpDir'], source)
   dest = r'{}\{}'.format(global_vars['BinDir'], item)
   extract_generic(source, dest, mode, sz_args)
+
 
 def extract_temp_to_cbin(source, item, mode='x', sz_args=[]):
   """Extract a file to the .cbin folder."""
@@ -87,6 +94,7 @@ def extract_temp_to_cbin(source, item, mode='x', sz_args=[]):
   if os.path.exists(include_path):
     shutil.copytree(include_path, dest)
   extract_generic(source, dest, mode, sz_args)
+
 
 def generate_launcher(section, name, options):
   """Generate a launcher script."""
@@ -125,6 +133,7 @@ def generate_launcher(section, name, options):
     # f.writelines(out_text)
     f.write('\n'.join(out_text))
 
+
 def remove_item(item_path):
   """Delete a file or folder."""
   if os.path.exists(item_path):
@@ -132,6 +141,7 @@ def remove_item(item_path):
       shutil.rmtree(item_path, ignore_errors=True)
     else:
       os.remove(item_path)
+
 
 def remove_from_kit(item):
   """Delete a file or folder from the .bin/.cbin folders."""
@@ -144,10 +154,12 @@ def remove_from_kit(item):
   for item_path in item_locations:
     remove_item(item_path)
 
+
 def remove_from_temp(item):
   """Delete a file or folder from the TmpDir folder."""
   item_path = r'{}\{}'.format(global_vars['TmpDir'], item)
   remove_item(item_path)
+
 
 def resolve_dynamic_url(source_url, regex):
   """Scan source_url for a url using the regex provided; returns str."""
@@ -169,6 +181,7 @@ def resolve_dynamic_url(source_url, regex):
 
   # Return
   return url
+
 
 def scan_for_net_installers(server, family_name, min_year):
   """Scan network shares for installers."""
@@ -200,7 +213,8 @@ def scan_for_net_installers(server, family_name, min_year):
             }
     umount_network_share(server)
 
-## Data Recovery ##
+
+# Data Recovery
 def update_testdisk():
   # Stop running processes
   for exe in ['fidentify_win.exe', 'photorec_win.exe',
@@ -226,7 +240,8 @@ def update_testdisk():
   # Cleanup
   remove_from_temp('testdisk_wip.zip')
 
-## Data Transfers ##
+
+# Data Transfers
 def update_fastcopy():
   ## NOTE: Lives in .bin uncompressed
   # Stop running processes
@@ -266,6 +281,7 @@ def update_fastcopy():
   os.remove(r'{}\setup.exe'.format(_path, _installer))
   remove_from_temp('FastCopy.zip')
 
+
 def update_wimlib():
   # Stop running processes
   kill_process('wimlib-imagex.exe')
@@ -289,6 +305,7 @@ def update_wimlib():
   remove_from_temp('wimlib32.zip')
   remove_from_temp('wimlib64.zip')
 
+
 def update_xyplorer():
   # Stop running processes
   kill_process('XYplorerFree.exe')
@@ -305,7 +322,8 @@ def update_xyplorer():
   # Cleanup
   remove_from_temp('xyplorer_free.zip')
 
-## Diagnostics ##
+
+# Diagnostics
 def update_aida64():
   # Stop running processes
   kill_process('notepadplusplus.exe')
@@ -321,6 +339,7 @@ def update_aida64():
 
   # Cleanup
   remove_from_temp('aida64.zip')
+
 
 def update_autoruns():
   # Stop running processes
@@ -338,6 +357,7 @@ def update_autoruns():
 
   # Cleanup
   remove_from_temp('Autoruns.zip')
+
 
 def update_bleachbit():
   # Stop running processes
@@ -370,6 +390,7 @@ def update_bleachbit():
   remove_from_temp('bleachbit.zip')
   remove_from_temp('Winapp2.zip')
 
+
 def update_bluescreenview():
   # Stop running processes
   for exe in ['BlueScreenView.exe', 'BlueScreenView64.exe']:
@@ -394,6 +415,7 @@ def update_bluescreenview():
   remove_from_temp('bluescreenview32.zip')
   remove_from_temp('bluescreenview64.zip')
 
+
 def update_erunt():
   # Stop running processes
   kill_process('ERUNT.EXE')
@@ -410,6 +432,7 @@ def update_erunt():
   # Cleanup
   remove_from_temp('erunt.zip')
 
+
 def update_hitmanpro():
   # Stop running processes
   for exe in ['HitmanPro.exe', 'HitmanPro64.exe']:
@@ -422,6 +445,7 @@ def update_hitmanpro():
   dest = r'{}\HitmanPro'.format(global_vars['CBinDir'])
   download_generic(dest, 'HitmanPro.exe', SOURCE_URLS['HitmanPro32'])
   download_generic(dest, 'HitmanPro64.exe', SOURCE_URLS['HitmanPro64'])
+
 
 def update_hwinfo():
   ## NOTE: Lives in .bin uncompressed
@@ -437,6 +461,7 @@ def update_hwinfo():
 
   # Cleanup
   remove_from_temp('HWiNFO.zip')
+
 
 def update_nircmd():
   # Stop running processes
@@ -461,6 +486,7 @@ def update_nircmd():
   remove_from_temp('nircmd32.zip')
   remove_from_temp('nircmd64.zip')
 
+
 def update_produkey():
   # Stop running processes
   for exe in ['ProduKey.exe', 'ProduKey64.exe']:
@@ -484,7 +510,8 @@ def update_produkey():
   remove_from_temp('produkey32.zip')
   remove_from_temp('produkey64.zip')
 
-## Drivers ##
+
+# Drivers
 def update_intel_rst():
   # Remove existing folders
   remove_from_kit('Intel RST')
@@ -500,6 +527,7 @@ def update_intel_rst():
   for name, url in RST_SOURCES.items():
     download_generic(dest, name, url)
 
+
 def update_intel_ssd_toolbox():
   # Remove existing folders
   remove_from_kit('Intel SSD Toolbox.exe')
@@ -509,6 +537,7 @@ def update_intel_ssd_toolbox():
     r'{}\_Drivers\Intel SSD Toolbox'.format(global_vars['CBinDir']),
     'Intel SSD Toolbox.exe',
     SOURCE_URLS['Intel SSD Toolbox'])
+
 
 def update_samsung_magician():
   # Remove existing folders
@@ -527,6 +556,7 @@ def update_samsung_magician():
 
   # Cleanup
   remove_from_temp('Samsung Magician.zip')
+
 
 def update_sdi_origin():
   # Download aria2
@@ -585,7 +615,8 @@ def update_sdi_origin():
   remove_from_temp('sdio.torrent')
   remove_from_temp('sdio_themes.zip')
 
-## Installers ##
+
+# Installers
 def update_adobe_reader_dc():
   # Prep
   dest = r'{}\Installers\Extras\Office'.format(
@@ -601,6 +632,7 @@ def update_adobe_reader_dc():
   download_generic(
     dest, 'Adobe Reader DC.exe', SOURCE_URLS['Adobe Reader DC'])
 
+
 def update_macs_fan_control():
   # Prep
   dest = r'{}\Installers'.format(
@@ -615,6 +647,7 @@ def update_macs_fan_control():
   # Download
   download_generic(
     dest, 'Macs Fan Control.exe', SOURCE_URLS['Macs Fan Control'])
+
 
 def update_office():
   # Remove existing folders
@@ -644,6 +677,7 @@ def update_office():
     # Cleanup
     remove_from_temp('odt{}.exe'.format(year))
 
+
 def update_classic_start_skin():
   # Remove existing folders
   remove_from_kit('ClassicStartSkin')
@@ -653,6 +687,7 @@ def update_classic_start_skin():
     r'{}\ClassicStartSkin'.format(global_vars['CBinDir']),
     'Metro-Win10-Black.skin7',
     SOURCE_URLS['ClassicStartSkin'])
+
 
 def update_vcredists():
   # Remove existing folders
@@ -674,6 +709,7 @@ def update_vcredists():
         'vcredist.exe',
         VCREDIST_SOURCES[year][bit])
 
+
 def update_one_ninite(section, dest, name, url, indent=8, width=40):
   # Prep
   url = 'https://ninite.com/{}/ninite.exe'.format(url)
@@ -690,6 +726,7 @@ def update_one_ninite(section, dest, name, url, indent=8, width=40):
     remove_item(installer_dest)
   shutil.copy(r'{}\{}'.format(dest, name), installer_dest)
 
+
 def update_all_ninite(indent=8, width=40, other_results={}):
   print_info('{}Ninite'.format(' '*int(indent/2)))
   for section in sorted(NINITE_SOURCES.keys()):
@@ -700,7 +737,8 @@ def update_all_ninite(indent=8, width=40, other_results={}):
         other_results=other_results, indent=indent, width=width,
         section=section, dest=dest, name=name, url=url)
 
-## Misc ##
+
+# Misc
 def update_caffeine():
   # Stop running processes
   kill_process('caffeine.exe')
@@ -716,6 +754,7 @@ def update_caffeine():
 
   # Cleanup
   remove_from_temp('caffeine.zip')
+
 
 def update_du():
   # Stop running processes
@@ -733,6 +772,7 @@ def update_du():
 
   # Cleanup
   remove_from_temp('du.zip')
+
 
 def update_everything():
   # Stop running processes
@@ -758,6 +798,7 @@ def update_everything():
   remove_from_temp('everything32.zip')
   remove_from_temp('everything64.zip')
 
+
 def update_firefox_ublock_origin():
   # Remove existing folders
   remove_from_kit('FirefoxExtensions')
@@ -767,6 +808,7 @@ def update_firefox_ublock_origin():
     r'{}\FirefoxExtensions'.format(global_vars['CBinDir']),
     'ublock_origin.xpi',
     SOURCE_URLS['Firefox uBO'])
+
 
 def update_notepadplusplus():
   # Stop running processes
@@ -788,6 +830,7 @@ def update_notepadplusplus():
   # Cleanup
   remove_from_temp('npp.7z')
 
+
 def update_putty():
   # Stop running processes
   kill_process('PUTTY.EXE')
@@ -803,6 +846,7 @@ def update_putty():
 
   # Cleanup
   remove_from_temp('putty.zip')
+
 
 def update_wiztree():
   # Stop running processes
@@ -821,6 +865,7 @@ def update_wiztree():
 
   # Cleanup
   remove_from_temp('wiztree.zip')
+
 
 def update_xmplay():
   # Stop running processes
@@ -877,7 +922,8 @@ def update_xmplay():
   remove_from_temp('xmp-rar.zip')
   remove_from_temp('WAModern.zip')
 
-## Repairs ##
+
+# Repairs
 def update_adwcleaner():
   # Stop running processes
   kill_process('AdwCleaner.exe')
@@ -891,6 +937,7 @@ def update_adwcleaner():
     'AdwCleaner.exe',
     SOURCE_URLS['AdwCleaner'])
 
+
 def update_kvrt():
   # Stop running processes
   kill_process('KVRT.exe')
@@ -903,6 +950,7 @@ def update_kvrt():
     r'{}\KVRT'.format(global_vars['CBinDir']),
     'KVRT.exe',
     SOURCE_URLS['KVRT'])
+
 
 def update_rkill():
   # Stop running processes
@@ -918,6 +966,7 @@ def update_rkill():
   download_generic(
     r'{}\RKill'.format(global_vars['CBinDir']), 'RKill.exe', url)
 
+
 def update_tdsskiller():
   # Stop running processes
   kill_process('TDSSKiller.exe')
@@ -931,7 +980,8 @@ def update_tdsskiller():
     'TDSSKiller.exe',
     SOURCE_URLS['TDSSKiller'])
 
-## Uninstallers ##
+
+# Uninstallers
 def update_iobit_uninstaller():
   # Stop running processes
   kill_process('IObitUninstallerPortable.exe')
@@ -953,6 +1003,7 @@ def update_iobit_uninstaller():
 
   # Cleanup
   remove_from_kit('IObitUninstallerPortable.exe')
+
 
 if __name__ == '__main__':
   print("This file is not meant to be called directly.")

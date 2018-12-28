@@ -6,8 +6,10 @@ from borrowed import acpi
 from functions.common import *
 from os import environ
 
-# Variables
+
+# STATIC VARIABLES
 SLMGR = r'{}\System32\slmgr.vbs'.format(environ.get('SYSTEMROOT'))
+
 
 def activate_with_bios():
   """Attempt to activate Windows with a key stored in the BIOS."""
@@ -43,6 +45,7 @@ def activate_with_bios():
   if not windows_is_activated():
     raise Exception('Activation Failed')
 
+
 def get_activation_string():
   """Get activation status, returns str."""
   act_str = subprocess.run(
@@ -53,6 +56,7 @@ def get_activation_string():
   act_str = act_str[1].strip()
   return act_str
 
+
 def windows_is_activated():
   """Check if Windows is activated via slmgr.vbs and return bool."""
   activation_string = subprocess.run(
@@ -61,6 +65,7 @@ def windows_is_activated():
   activation_string = activation_string.stdout.decode()
 
   return bool(activation_string and 'permanent' in activation_string)
+
 
 if __name__ == '__main__':
   print("This file is not meant to be called directly.")

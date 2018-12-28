@@ -6,15 +6,6 @@ from operator import itemgetter
 from functions.common import *
 from functions.activation import *
 
-# Regex
-REGEX_OFFICE = re.compile(
-  r'(Microsoft (Office\s+'
-    r'(365|Enterprise|Home|Pro(\s|fessional)'
-    r'|Single|Small|Standard|Starter|Ultimate|system)'
-    r'|Works[-\s\d]+\d)'
-  r'|(Libre|Open|Star)\s*Office'
-  r'|WordPerfect|Gnumeric|Abiword)',
-  re.IGNORECASE)
 
 # STATIC VARIABLES
 REG_PROFILE_LIST = r'SOFTWARE\Microsoft\Windows NT\CurrentVersion\ProfileList'
@@ -55,6 +46,18 @@ SHELL_FOLDERS = {
     ),
 }
 
+
+# Regex
+REGEX_OFFICE = re.compile(
+  r'(Microsoft (Office\s+'
+    r'(365|Enterprise|Home|Pro(\s|fessional)'
+    r'|Single|Small|Standard|Starter|Ultimate|system)'
+    r'|Works[-\s\d]+\d)'
+  r'|(Libre|Open|Star)\s*Office'
+  r'|WordPerfect|Gnumeric|Abiword)',
+  re.IGNORECASE)
+
+
 def backup_file_list():
   """Export current file listing for the system."""
   extract_item('Everything', silent=True)
@@ -65,6 +68,7 @@ def backup_file_list():
     r'{LogDir}\File List.txt'.format(**global_vars),
     global_vars['Env']['SYSTEMDRIVE']]
   run_program(cmd)
+
 
 def backup_power_plans():
   """Export current power plans."""
@@ -83,6 +87,7 @@ def backup_power_plans():
       cmd = ['powercfg', '-export', out, guid]
       run_program(cmd, check=False)
 
+
 def backup_registry(overwrite=False):
   """Backup registry including user hives."""
   extract_item('erunt', silent=True)
@@ -96,6 +101,7 @@ def backup_registry(overwrite=False):
   if overwrite:
     cmd.append('/noconfirmdelete')
   run_program(cmd)
+
 
 def get_folder_size(path):
   """Get (human-readable) size of folder passed, returns str."""
@@ -118,6 +124,7 @@ def get_folder_size(path):
     else:
       size = human_readable_size(size)
   return size
+
 
 def get_installed_antivirus():
   """Get list of installed Antivirus programs."""
@@ -149,6 +156,7 @@ def get_installed_antivirus():
     programs = ['No programs found']
   return programs
 
+
 def get_installed_office():
   """Get list of installed Office programs."""
   programs = []
@@ -162,6 +170,7 @@ def get_installed_office():
   if len(programs) == 0:
     programs = ['No programs found']
   return programs
+
 
 def get_shell_path(folder, user='current'):
   """Get shell path using knownpaths, returns str.
@@ -188,6 +197,7 @@ def get_shell_path(folder, user='current'):
       pass
 
   return path
+
 
 def get_user_data_paths(user):
   """Get user data paths for provided user, returns dict."""
@@ -273,6 +283,7 @@ def get_user_data_paths(user):
   # Done
   return paths
 
+
 def get_user_folder_sizes(users):
   """Update list(users) to include folder paths and sizes."""
   extract_item('du', filter='du*', silent=True)
@@ -292,6 +303,7 @@ def get_user_folder_sizes(users):
       for folder in u['Extra Folders'].keys():
         u['Extra Folders'][folder]['Size'] = get_folder_size(
           u['Extra Folders'][folder]['Path'])
+
 
 def get_user_list():
   """Get user list via WMIC, returns list of dicts."""
@@ -325,6 +337,7 @@ def get_user_list():
   # Done
   return users
 
+
 def reg_path_exists(hive, path):
   """Test if specified path exists, returns bool."""
   try:
@@ -333,6 +346,7 @@ def reg_path_exists(hive, path):
     return False
   else:
     return True
+
 
 def run_aida64():
   """Run AIDA64 to save system reports."""
@@ -372,6 +386,7 @@ def run_aida64():
       '/TEXT', '/SILENT', '/SAFEST']
     run_program(cmd, check=False)
 
+
 def run_bleachbit(cleaners=None, preview=True):
   """Run BleachBit preview and save log.
 
@@ -404,6 +419,7 @@ def run_bleachbit(cleaners=None, preview=True):
     for line in out.stdout.decode().splitlines():
       f.write(line.strip() + '\n')
 
+
 def show_disk_usage(disk):
   """Show free and used space for a specified disk."""
   print_standard('{:5}'.format(disk.device.replace('/', ' ')),
@@ -423,6 +439,7 @@ def show_disk_usage(disk):
   except Exception:
     print_warning('Unknown', timestamp=False)
 
+
 def show_free_space(indent=8, width=32):
   """Show free space info for all fixed disks."""
   message = 'Free Space:'
@@ -436,6 +453,7 @@ def show_free_space(indent=8, width=32):
     except Exception:
       pass
 
+
 def show_installed_ram():
   """Show installed RAM."""
   mem = psutil.virtual_memory()
@@ -448,6 +466,7 @@ def show_installed_ram():
   else:
     print_error(human_readable_size(mem.total).strip(), timestamp=False)
 
+
 def show_os_activation():
   """Show OS activation info."""
   act_str = get_activation_string()
@@ -457,6 +476,7 @@ def show_os_activation():
     print_warning(act_str, timestamp=False)
   else:
     print_error(act_str, timestamp=False)
+
 
 def show_os_name():
   """Show extended OS name (including warnings)."""
@@ -475,6 +495,7 @@ def show_os_name():
     else:
       print_standard(os_name, timestamp=False)
 
+
 def show_temp_files_size():
   """Show total size of temp files identified by BleachBit."""
   size = None
@@ -487,6 +508,7 @@ def show_temp_files_size():
     print_warning(size, timestamp=False)
   else:
     print_standard(size, timestamp=False)
+
 
 def show_user_data_summary(indent=8, width=32):
   """Print user data folder sizes for all users."""
@@ -519,6 +541,7 @@ def show_user_data_summary(indent=8, width=32):
             folder =  folder,
             size =    folders[folder].get('Size', 'Unknown'),
             path =    folders[folder].get('Path', 'Unknown')))
+
 
 if __name__ == '__main__':
   print("This file is not meant to be called directly.")

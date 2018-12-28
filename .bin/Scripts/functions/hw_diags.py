@@ -8,6 +8,7 @@ from collections import OrderedDict
 from functions.sensors import *
 from functions.tmux import *
 
+
 # STATIC VARIABLES
 ATTRIBUTES = {
   'NVMe': {
@@ -83,12 +84,15 @@ TMUX_LAYOUT = OrderedDict({
   'Progress': {'x': SIDE_PANE_WIDTH, 'Check': True},
 })
 
+
 # Regex
 REGEX_ERROR_STATUS = re.compile('|'.join(STATUSES['RED']))
+
 
 # Error Classes
 class DeviceTooSmallError(Exception):
   pass
+
 
 # Classes
 class CpuObj():
@@ -129,6 +133,7 @@ class CpuObj():
       report.extend(test.report)
 
     return report
+
 
 class DiskObj():
   """Object for tracking disk specific data."""
@@ -487,6 +492,7 @@ class DiskObj():
       for t in ['badblocks', 'I/O Benchmark']:
         self.disable_test(t, 'Denied')
 
+
 class State():
   """Object to track device objects and overall state."""
   def __init__(self):
@@ -559,6 +565,7 @@ class State():
       if not skip_disk:
         self.disks.append(disk_obj)
 
+
 class TestObj():
   """Object to track test data."""
   def __init__(self, dev, label=None, info_label=False):
@@ -589,6 +596,7 @@ class TestObj():
         self.status = build_status_string(
         self.label, 'Working', self.info_label)
 
+
 # Functions
 def build_outer_panes(state):
   """Build top and side panes."""
@@ -611,6 +619,7 @@ def build_outer_panes(state):
     lines=SIDE_PANE_WIDTH,
     watch=state.progress_out)
 
+
 def build_status_string(label, status, info_label=False):
   """Build status string with appropriate colors."""
   status_color = COLORS['CLEAR']
@@ -625,6 +634,7 @@ def build_status_string(label, status, info_label=False):
     s=status,
     s_w=SIDE_PANE_WIDTH-len(label),
     **COLORS)
+
 
 def fix_tmux_panes(state, tmux_layout):
   """Fix pane sizes if the window has been resized."""
@@ -668,6 +678,7 @@ def fix_tmux_panes(state, tmux_layout):
 
     # Resize pane
     tmux_resize_pane(pane_id=target, **v)
+
 
 def generate_horizontal_graph(rates, oneline=False):
   """Generate horizontal graph from rates, returns list."""
@@ -714,6 +725,7 @@ def generate_horizontal_graph(rates, oneline=False):
   else:
     return graph
 
+
 def get_graph_step(rate, scale=16):
   """Get graph step based on rate and scale, returns int."""
   m_rate = rate / (1024**2)
@@ -726,6 +738,7 @@ def get_graph_step(rate, scale=16):
       break
   return step
 
+
 def get_read_rate(s):
   """Get read rate in bytes/s from dd progress output."""
   real_rate = None
@@ -733,6 +746,7 @@ def get_read_rate(s):
     human_rate = re.sub(r'^.*\s+(\d+\.?\d*)\s+(.B)/s\s*$', r'\1 \2', s)
     real_rate = convert_to_bytes(human_rate)
   return real_rate
+
 
 def menu_diags(state, args):
   """Main menu to select and run HW tests."""
@@ -840,11 +854,13 @@ def menu_diags(state, args):
     elif selection == 'S':
       run_hw_tests(state)
 
+
 def run_audio_test():
   """Run audio test."""
   clear_screen()
   run_program(['hw-diags-audio'], check=False, pipe=False)
   pause('Press Enter to return to main menu... ')
+
 
 def run_badblocks_test(state, test):
   """Run a read-only surface scan with badblocks."""
@@ -939,6 +955,7 @@ def run_badblocks_test(state, test):
   # Cleanup
   tmux_kill_pane(state.panes['badblocks'])
 
+
 def run_hw_tests(state):
   """Run enabled hardware tests."""
   print_standard('Scanning devices...')
@@ -1015,6 +1032,7 @@ def run_hw_tests(state):
 
   # Cleanup
   tmux_kill_pane(*state.panes.values())
+
 
 def run_io_benchmark(state, test):
   """Run a read-only I/O benchmark using dd."""
@@ -1173,10 +1191,12 @@ def run_io_benchmark(state, test):
   # Cleanup
   tmux_kill_pane(state.panes['io_benchmark'])
 
+
 def run_keyboard_test():
   """Run keyboard test."""
   clear_screen()
   run_program(['xev', '-event', 'keyboard'], check=False, pipe=False)
+
 
 def run_mprime_test(state, test):
   """Test CPU with Prime95 and track temps."""
@@ -1371,11 +1391,13 @@ def run_mprime_test(state, test):
   tmux_kill_pane(state.panes['mprime'], state.panes['Temps'])
   test.monitor_proc.kill()
 
+
 def run_network_test():
   """Run network test."""
   clear_screen()
   run_program(['hw-diags-network'], check=False, pipe=False)
   pause('Press Enter to return to main menu... ')
+
 
 def run_nvme_smart_tests(state, test):
   """Run NVMe or SMART test for test.dev."""
@@ -1520,6 +1542,7 @@ def run_nvme_smart_tests(state, test):
   # Done
   update_progress_pane(state)
 
+
 def secret_screensaver(screensaver=None):
   """Show screensaver."""
   if screensaver == 'matrix':
@@ -1530,12 +1553,14 @@ def secret_screensaver(screensaver=None):
     raise Exception('Invalid screensaver')
   run_program(cmd, check=False, pipe=False)
 
+
 def show_report(report, log_report=False):
   """Show report on screen and optionally save to log w/out color."""
   for line in report:
     print(line)
     if log_report:
       print_log(strip_colors(line))
+
 
 def show_results(state):
   """Show results for all tests."""
@@ -1563,6 +1588,7 @@ def show_results(state):
     for disk in state.disks:
       show_report(disk.generate_disk_report(), log_report=True)
       print_standard(' ')
+
 
 def update_main_options(state, selection, main_options):
   """Update menu and state based on selection."""
@@ -1607,6 +1633,7 @@ def update_main_options(state, selection, main_options):
   # Done
   return main_options
 
+
 def update_io_progress(percent, rate, progress_file):
   """Update I/O progress file."""
   bar_color = COLORS['CLEAR']
@@ -1630,6 +1657,7 @@ def update_io_progress(percent, rate, progress_file):
     c=COLORS['CLEAR'])
   with open(progress_file, 'a') as f:
     f.write(line)
+
 
 def update_progress_pane(state):
   """Update progress file for side pane."""
@@ -1657,6 +1685,7 @@ def update_progress_pane(state):
 
   with open(state.progress_out, 'w') as f:
     f.writelines(output)
+
 
 if __name__ == '__main__':
   print("This file is not meant to be called directly.")

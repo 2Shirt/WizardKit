@@ -3,6 +3,7 @@
 from functions.common import *
 from functions.update import *
 
+
 # STATIC VARIABLES
 HKU =  winreg.HKEY_USERS
 HKCR = winreg.HKEY_CLASSES_ROOT
@@ -128,6 +129,7 @@ VCR_REDISTS = [
       '/passive', '/norestart']},
   ]
 
+
 def config_classicstart():
   """Configure ClassicStart."""
   # User level, not system level
@@ -180,13 +182,16 @@ def config_classicstart():
   sleep(1)
   popen_program(cs_exe)
 
+
 def config_explorer_system():
   """Configure Windows Explorer for all users."""
   write_registry_settings(SETTINGS_EXPLORER_SYSTEM, all_users=True)
 
+
 def config_explorer_user():
   """Configure Windows Explorer for current user."""
   write_registry_settings(SETTINGS_EXPLORER_USER, all_users=False)
+
 
 def disable_windows_telemetry():
   """Disable Windows 10 telemetry settings with O&O ShutUp10."""
@@ -196,6 +201,7 @@ def disable_windows_telemetry():
     r'{BinDir}\ShutUp10\1201.cfg'.format(**global_vars),
     '/quiet']
   run_program(cmd)
+
 
 def update_clock():
   """Set Timezone and sync clock."""
@@ -208,6 +214,7 @@ def update_clock():
     check=False)
   run_program(['net', 'start', 'w32ime'], check=False)
   run_program(['w32tm', '/resync', '/nowait'], check=False)
+
 
 def write_registry_settings(settings, all_users=False):
   """Write registry values from custom dict of dicts."""
@@ -228,6 +235,7 @@ def write_registry_settings(settings, all_users=False):
       for name, value in v.get('SZ Items', {}).items():
         winreg.SetValueEx(key, name, 0, winreg.REG_SZ, value)
 
+
 # Installations
 def install_adobe_reader():
   """Install Adobe Reader."""
@@ -240,9 +248,11 @@ def install_adobe_reader():
     'EULA_ACCEPT=YES']
   run_program(cmd)
 
+
 def install_chrome_extensions():
   """Install Google Chrome extensions for all users."""
   write_registry_settings(SETTINGS_GOOGLE_CHROME, all_users=True)
+
 
 def install_classicstart_skin():
   """Extract ClassicStart skin to installation folder."""
@@ -256,6 +266,7 @@ def install_classicstart_skin():
   dest = r'{}\Metro-Win10-Black.skin7'.format(dest_path)
   os.makedirs(dest_path, exist_ok=True)
   shutil.copy(source, dest)
+
 
 def install_firefox_extensions():
   """Install Firefox extensions for all users."""
@@ -277,6 +288,7 @@ def install_firefox_extensions():
     source_path]
   run_program(cmd)
 
+
 def install_ninite_bundle(mse=False):
   """Run Ninite file(s) based on OS version."""
   if global_vars['OS']['Version'] in ('8', '8.1', '10'):
@@ -291,6 +303,7 @@ def install_ninite_bundle(mse=False):
       popen_program(cmd)
     popen_program(r'{BaseDir}\Installers\Extras\Bundles\Legacy.exe'.format(
       **global_vars))
+
 
 def install_vcredists():
   """Install all supported Visual C++ runtimes."""
@@ -307,15 +320,19 @@ def install_vcredists():
 
   os.chdir(prev_dir)
 
+
 # Misc
 def open_device_manager():
   popen_program(['mmc', 'devmgmt.msc'])
 
+
 def open_windows_activation():
   popen_program(['slui'])
 
+
 def open_windows_updates():
   popen_program(['control', '/name', 'Microsoft.WindowsUpdate'])
+
 
 if __name__ == '__main__':
   print("This file is not meant to be called directly.")

@@ -11,12 +11,14 @@ os.chdir(os.path.dirname(os.path.realpath(__file__)))
 sys.path.append(os.getcwd())
 from functions.common import *
 
+
 # REGEX
 REGEX_VALID_IP = re.compile(
   r'(10.\d+.\d+.\d+'
   r'|172.(1[6-9]|2\d|3[0-1])'
   r'|192.168.\d+.\d+)',
   re.IGNORECASE)
+
 
 def connect_to_network():
   """Connect to network if not already connected."""
@@ -38,6 +40,7 @@ def connect_to_network():
       function = run_program,
       cmd = cmd)
 
+
 def is_connected():
   """Check for a valid private IP."""
   devs = psutil.net_if_addrs()
@@ -49,6 +52,7 @@ def is_connected():
   # Else
   return False
 
+
 def show_valid_addresses():
   """Show all valid private IP addresses assigned to the system."""
   devs = psutil.net_if_addrs()
@@ -58,6 +62,7 @@ def show_valid_addresses():
         # Valid IP found
         show_data(message=dev, data=family.address)
 
+
 def speedtest():
   """Run a network speedtest using speedtest-cli."""
   result = run_program(['speedtest-cli', '--simple'])
@@ -66,6 +71,7 @@ def speedtest():
   output = [line.split() for line in output]
   output = [(a, float(b), c) for a, b, c in output]
   return ['{:10}{:6.2f} {}'.format(*line) for line in output]
+
 
 if __name__ == '__main__':
   print("This file is not meant to be called directly.")

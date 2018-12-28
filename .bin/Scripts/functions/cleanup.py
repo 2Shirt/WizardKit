@@ -2,6 +2,7 @@
 
 from functions.common import *
 
+
 def cleanup_adwcleaner():
   """Move AdwCleaner folders into the ClientDir."""
   source_path = r'{SYSTEMDRIVE}\AdwCleaner'.format(**global_vars['Env'])
@@ -25,6 +26,7 @@ def cleanup_adwcleaner():
       **global_vars)
     dest_name = non_clobber_rename(dest_name)
     shutil.move(source_path, dest_name)
+
 
 def cleanup_cbs(dest_folder):
   """Safely cleanup a known CBS archive bug under Windows 7.
@@ -65,6 +67,7 @@ def cleanup_cbs(dest_folder):
     r'{}\CbsPersist*'.format(temp_folder)]
   run_program(cmd)
 
+
 def cleanup_desktop():
   """Move known backup files and reports into the ClientDir."""
   dest_folder = r'{LogDir}\Tools'.format(**global_vars)
@@ -80,6 +83,7 @@ def cleanup_desktop():
 
   # Remove dir if empty
   delete_empty_folders(dest_folder)
+
 
 def delete_empty_folders(folder_path):
   """Delete all empty folders in path (depth first)."""
@@ -97,6 +101,7 @@ def delete_empty_folders(folder_path):
     os.rmdir(folder_path)
   except OSError:
     pass
+
 
 def delete_registry_key(hive, key, recurse=False):
   """Delete a registry key and all it's subkeys."""
@@ -117,11 +122,13 @@ def delete_registry_key(hive, key, recurse=False):
     # Ignore
     pass
 
+
 def delete_registry_value(hive, key, value):
   """Delete a registry value."""
   access = winreg.KEY_ALL_ACCESS
   with winreg.OpenKeyEx(hive, key, 0, access) as k:
     winreg.DeleteValue(k, value)
+
 
 if __name__ == '__main__':
   print("This file is not meant to be called directly.")

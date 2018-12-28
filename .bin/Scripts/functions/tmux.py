@@ -2,11 +2,13 @@
 
 from functions.common import *
 
+
 def create_file(filepath):
   """Create file if it doesn't exist."""
   if not os.path.exists(filepath):
     with open(filepath, 'w') as f:
       f.write('')
+
 
 def tmux_get_pane_size(pane_id=None):
   """Get target, or current, pane size, returns tuple."""
@@ -29,6 +31,7 @@ def tmux_get_pane_size(pane_id=None):
 
   return (x, y)
 
+
 def tmux_kill_all_panes(pane_id=None):
   """Kill all tmux panes except the active pane or pane_id if specified."""
   cmd = ['tmux', 'kill-pane', '-a']
@@ -36,11 +39,13 @@ def tmux_kill_all_panes(pane_id=None):
     cmd.extend(['-t', pane_id])
   run_program(cmd, check=False)
 
+
 def tmux_kill_pane(*panes):
   """Kill tmux pane by id."""
   cmd = ['tmux', 'kill-pane', '-t']
   for pane_id in panes:
     run_program(cmd+[pane_id], check=False)
+
 
 def tmux_poll_pane(pane_id):
   """Check if pane exists, returns bool."""
@@ -48,6 +53,7 @@ def tmux_poll_pane(pane_id):
   result = run_program(cmd, check=False)
   panes = result.stdout.decode().splitlines()
   return pane_id in panes
+
 
 def tmux_resize_pane(pane_id=None, x=None, y=None, **kwargs):
   """Resize pane to specific hieght or width."""
@@ -64,6 +70,7 @@ def tmux_resize_pane(pane_id=None, x=None, y=None, **kwargs):
     cmd.extend(['-y', str(y)])
 
   run_program(cmd, check=False)
+
 
 def tmux_split_window(
     lines=None, percent=None,
@@ -115,6 +122,7 @@ def tmux_split_window(
   result = run_program(cmd)
   return result.stdout.decode().strip()
 
+
 def tmux_update_pane(
     pane_id, command=None, working_dir=None,
     text=None, watch=None, watch_cmd='cat'):
@@ -141,6 +149,7 @@ def tmux_update_pane(
       cmd.extend(['tail', '-f', watch])
 
   run_program(cmd)
+
 
 if __name__ == '__main__':
   print("This file is not meant to be called directly.")

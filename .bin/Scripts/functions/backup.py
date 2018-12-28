@@ -4,6 +4,7 @@ import ctypes
 
 from functions.disk import *
 
+
 # Regex
 REGEX_BAD_PATH_NAMES = re.compile(
   r'([<>:"/\|\?\*]'
@@ -11,6 +12,7 @@ REGEX_BAD_PATH_NAMES = re.compile(
   r'|^\s+'
   r'|[\s\.]+$',
   re.IGNORECASE)
+
 
 def backup_partition(disk, par):
   """Create a backup image of a partition."""
@@ -31,6 +33,7 @@ def backup_partition(disk, par):
   os.makedirs(dest_dir, exist_ok=True)
   run_program(cmd)
 
+
 def fix_path(path):
   """Replace invalid filename characters with underscores."""
   local_drive = path[1:2] == ':'
@@ -38,6 +41,7 @@ def fix_path(path):
   if local_drive:
     new_path = '{}:{}'.format(new_path[0:1], new_path[2:])
   return new_path
+
 
 def get_volume_display_name(mountpoint):
   """Get display name from volume mountpoint and label, returns str."""
@@ -66,6 +70,7 @@ def get_volume_display_name(mountpoint):
     pass
 
   return name
+
 
 def prep_disk_for_backup(destination, disk, backup_prefix):
   """Gather details about the disk and its partitions.
@@ -143,6 +148,7 @@ def prep_disk_for_backup(destination, disk, backup_prefix):
       COLORS['YELLOW'], COLORS['CLEAR'])
   disk['Backup Warnings'] = warnings
 
+
 def select_backup_destination(auto_select=True):
   """Select a backup destination from a menu, returns server dict."""
   destinations = [s for s in BACKUP_SERVERS if s['Mounted']]
@@ -193,6 +199,7 @@ def select_backup_destination(auto_select=True):
   else:
     return destinations[int(selection)-1]
 
+
 def verify_wim_backup(partition):
   """Verify WIM integrity."""
   if not os.path.exists(partition['Image Path']):
@@ -204,6 +211,7 @@ def verify_wim_backup(partition):
     '--nocheck',
     ]
   run_program(cmd)
+
 
 if __name__ == '__main__':
   print("This file is not meant to be called directly.")

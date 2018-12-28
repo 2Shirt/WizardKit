@@ -20,8 +20,10 @@ from settings.main import *
 from settings.tools import *
 from settings.windows_builds import *
 
+
 # Global variables
 global_vars = {}
+
 
 # STATIC VARIABLES
 COLORS = {
@@ -41,6 +43,7 @@ try:
 except NameError:
   if psutil.WINDOWS:
     raise
+
 
 # Error Classes
 class BIOSKeyNotFoundError(Exception):
@@ -85,6 +88,7 @@ class SecureBootNotAvailError(Exception):
 class SecureBootUnknownError(Exception):
   pass
 
+
 # General functions
 def abort():
   """Abort script."""
@@ -92,6 +96,7 @@ def abort():
   sleep(1)
   pause(prompt='Press Enter to exit... ')
   exit_script()
+
 
 def ask(prompt='Kotaero!'):
   """Prompt the user with a Y/N question, returns bool."""
@@ -108,6 +113,7 @@ def ask(prompt='Kotaero!'):
     answer_text = 'Yes' if answer else 'No')
   print_log(message=message)
   return answer
+
 
 def choice(choices, prompt='Kotaero!'):
   """Prompt the user with a choice question, returns str."""
@@ -137,12 +143,14 @@ def choice(choices, prompt='Kotaero!'):
   # Done
   return answer
 
+
 def clear_screen():
   """Simple wrapper for cls/clear."""
   if psutil.WINDOWS:
     os.system('cls')
   else:
     os.system('clear')
+
 
 def convert_to_bytes(size):
   """Convert human-readable size str to bytes and return an int."""
@@ -164,6 +172,7 @@ def convert_to_bytes(size):
     return -1
 
   return size
+
 
 def exit_script(return_value=0):
   """Exits the script after some cleanup and opens the log (if set)."""
@@ -192,6 +201,7 @@ def exit_script(return_value=0):
   # Exit
   sys.exit(return_value)
 
+
 def extract_item(item, filter='', silent=False):
   """Extract item from .cbin into .bin."""
   cmd = [
@@ -211,6 +221,7 @@ def extract_item(item, filter='', silent=False):
     if not silent:
       print_warning('WARNING: Errors encountered while exctracting data')
 
+
 def get_process(name=None):
   """Get process by name, returns psutil.Process obj."""
   proc = None
@@ -226,6 +237,7 @@ def get_process(name=None):
       pass
   return proc
 
+
 def get_simple_string(prompt='Enter string'):
   """Get string from user (restricted character set), returns str."""
   simple_string = None
@@ -234,6 +246,7 @@ def get_simple_string(prompt='Enter string'):
     if re.match(r"^(\w|-| |\.|')+$", _input, re.ASCII):
       simple_string = _input.strip()
   return simple_string
+
 
 def get_ticket_number():
   """Get TicketNumber from user, save in LogDir, and return as str."""
@@ -250,6 +263,7 @@ def get_ticket_number():
       with open(out_file, 'w', encoding='utf-8') as f:
         f.write(ticket_number)
   return ticket_number
+
 
 def human_readable_size(size, decimals=0):
   """Convert size from bytes to a human-readable format, returns str."""
@@ -290,11 +304,13 @@ def human_readable_size(size, decimals=0):
   return '{size:>{width}.{decimals}f} {units}'.format(
     size=size, width=width, decimals=decimals, units=units)
 
+
 def kill_process(name):
   """Kill any running caffeine.exe processes."""
   for proc in psutil.process_iter():
     if proc.name() == name:
       proc.kill()
+
 
 def major_exception():
   """Display traceback and exit"""
@@ -318,6 +334,7 @@ def major_exception():
     print_success('Upload: CS')
   pause('Press Enter to exit...')
   exit_script(1)
+
 
 def menu_select(
     title='[Untitled Menu]',
@@ -382,6 +399,7 @@ def menu_select(
 
   return answer.upper()
 
+
 def non_clobber_rename(full_path):
   """Append suffix to path, if necessary, to avoid clobbering path"""
   new_path = full_path
@@ -392,9 +410,11 @@ def non_clobber_rename(full_path):
 
   return new_path
 
+
 def pause(prompt='Press Enter to continue... '):
   """Simple pause implementation."""
   input(prompt)
+
 
 def ping(addr='google.com'):
   """Attempt to ping addr."""
@@ -404,6 +424,7 @@ def ping(addr='google.com'):
     '2',
     addr]
   run_program(cmd)
+
 
 def popen_program(cmd, pipe=False, minimized=False, shell=False, **kwargs):
   """Run program and return a subprocess.Popen object."""
@@ -426,13 +447,16 @@ def popen_program(cmd, pipe=False, minimized=False, shell=False, **kwargs):
 
   return subprocess.Popen(**cmd_kwargs)
 
+
 def print_error(*args, **kwargs):
   """Prints message to screen in RED."""
   print_standard(*args, color=COLORS['RED'], **kwargs)
 
+
 def print_info(*args, **kwargs):
   """Prints message to screen in BLUE."""
   print_standard(*args, color=COLORS['BLUE'], **kwargs)
+
 
 def print_standard(message='Generic info',
   color=None, end='\n', timestamp=True, **kwargs):
@@ -444,13 +468,16 @@ def print_standard(message='Generic info',
   print(display_message.format(**COLORS), end=end, **kwargs)
   print_log(message, end, timestamp)
 
+
 def print_success(*args, **kwargs):
   """Prints message to screen in GREEN."""
   print_standard(*args, color=COLORS['GREEN'], **kwargs)
 
+
 def print_warning(*args, **kwargs):
   """Prints message to screen in YELLOW."""
   print_standard(*args, color=COLORS['YELLOW'], **kwargs)
+
 
 def print_log(message='', end='\n', timestamp=True):
   """Writes message to a log if LogFile is set."""
@@ -462,6 +489,7 @@ def print_log(message='', end='\n', timestamp=True):
           timestamp = time_str,
           line =    line,
           end =     end))
+
 
 def run_program(cmd, args=[], check=True, pipe=True, shell=False, **kwargs):
   """Run program and return a subprocess.CompletedProcess object."""
@@ -486,12 +514,14 @@ def run_program(cmd, args=[], check=True, pipe=True, shell=False, **kwargs):
 
   return subprocess.run(**cmd_kwargs)
 
+
 def set_title(title='[Some Title]'):
   """Set title.
 
   Used for window title and menu titles."""
   global_vars['Title'] = title
   os.system('title {}'.format(title))
+
 
 def show_data(
     message='[Some message]', data='[Some data]',
@@ -509,9 +539,11 @@ def show_data(
   else:
     print_standard(message)
 
+
 def sleep(seconds=2):
   """Wait for a while."""
   time.sleep(seconds)
+
 
 def stay_awake():
   """Prevent the system from sleeping or hibernating."""
@@ -529,11 +561,13 @@ def stay_awake():
     print_error('ERROR: No caffeine available.')
     print_warning('Please set the power setting to High Performance.')
 
+
 def strip_colors(s):
   """Remove all ASCII color escapes from string, returns str."""
   for c in COLORS.values():
     s = s.replace(c, '')
   return s
+
 
 def get_exception(s):
   """Get exception by name, returns Exception object."""
@@ -543,6 +577,7 @@ def get_exception(s):
     # Try builtin classes
     obj = getattr(sys.modules['builtins'], s)
   return obj
+
 
 def try_and_print(message='Trying...',
   function=None, cs='CS', ns='NS', other_results={},
@@ -600,6 +635,7 @@ def try_and_print(message='Trying...',
   else:
     return {'CS': not bool(err), 'Error': err, 'Out': out}
 
+
 def upload_crash_details():
   """Upload log and runtime data to the CRASH_SERVER.
 
@@ -611,13 +647,11 @@ def upload_crash_details():
   if 'LogFile' in global_vars and global_vars['LogFile']:
     if ask('Upload crash details to {}?'.format(CRASH_SERVER['Name'])):
       with open(global_vars['LogFile']) as f:
-        data = '''{}
-#############################
-Runtime Details:
-
-sys.argv: {}
-
-global_vars: {}'''.format(f.read(), sys.argv, global_vars)
+        data = '{}\n'.format(f.read())
+        data += '#############################\n'
+        data += 'Runtime Details:\n\n'
+        data += 'sys.argv: {}\n\n'.format(sys.argv)
+        data += 'global_vars: {}\n'.format(global_vars)
         filename = global_vars.get('LogFile', 'Unknown')
         filename = re.sub(r'.*(\\|/)', '', filename)
         filename += '.txt'
@@ -639,6 +673,7 @@ global_vars: {}'''.format(f.read(), sys.argv, global_vars)
     # No LogFile defined (or invalid LogFile)
     raise GenericError
 
+
 def wait_for_process(name, poll_rate=3):
   """Wait for process by name."""
   running = True
@@ -653,6 +688,7 @@ def wait_for_process(name, poll_rate=3):
         # Assuming process closed during iteration
         pass
   sleep(1)
+
 
 # global_vars functions
 def init_global_vars(silent=False):
@@ -686,6 +722,7 @@ def init_global_vars(silent=False):
           cs='Done', ns='Error', catch_all=False)
   except:
     major_exception()
+
 
 def check_os():
   """Set OS specific variables."""
@@ -749,6 +786,7 @@ def check_os():
 
   global_vars['OS'] = tmp
 
+
 def check_tools():
   """Set tool variables based on OS bit-depth and tool availability."""
   if global_vars['OS'].get('Arch', 32) == 64:
@@ -761,6 +799,7 @@ def check_tools():
   global_vars['Tools'] = {k: os.path.join(global_vars['BinDir'], v)
     for (k, v) in global_vars['Tools'].items()}
 
+
 def clean_env_vars():
   """Remove conflicting global_vars and env variables.
 
@@ -768,6 +807,7 @@ def clean_env_vars():
   global_vars['Env'] are expanded at the same time."""
   for key in global_vars.keys():
     global_vars['Env'].pop(key, None)
+
 
 def find_bin():
   """Find .bin folder in the cwd or it's parents."""
@@ -785,6 +825,7 @@ def find_bin():
     raise BinNotFoundError
   global_vars['BaseDir'] = base
 
+
 def make_tmp_dirs():
   """Make temp directories."""
   os.makedirs(global_vars['BackupDir'], exist_ok=True)
@@ -793,6 +834,7 @@ def make_tmp_dirs():
     global_vars['LogDir'], KIT_NAME_FULL), exist_ok=True)
   os.makedirs(r'{}\Tools'.format(global_vars['LogDir']), exist_ok=True)
   os.makedirs(global_vars['TmpDir'], exist_ok=True)
+
 
 def set_common_vars():
   """Set common variables."""
@@ -816,6 +858,7 @@ def set_common_vars():
   global_vars['TmpDir'] =       r'{BinDir}\tmp'.format(
     **global_vars)
 
+
 def set_linux_vars():
   """Set common variables in a Linux environment.
 
@@ -832,12 +875,14 @@ def set_linux_vars():
     'SevenZip': '7z',
     }
 
+
 def set_log_file(log_name):
   """Sets global var LogFile and creates path as needed."""
   folder_path = r'{}\{}'.format(global_vars['LogDir'], KIT_NAME_FULL)
   log_file = r'{}\{}'.format(folder_path, log_name)
   os.makedirs(folder_path, exist_ok=True)
   global_vars['LogFile'] = log_file
+
 
 if __name__ == '__main__':
   print("This file is not meant to be called directly.")

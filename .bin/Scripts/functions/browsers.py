@@ -4,6 +4,7 @@ from functions.common import *
 
 from operator import itemgetter
 
+
 # Define other_results for later try_and_print
 browser_data = {}
 other_results = {
@@ -16,22 +17,6 @@ other_results = {
     }
   }
 
-# Regex
-REGEX_BACKUP = re.compile(
-  r'\.\w*bak.*',
-  re.IGNORECASE)
-REGEX_CHROMIUM_PROFILE = re.compile(
-  r'^(Default|Profile)',
-  re.IGNORECASE)
-REGEX_CHROMIUM_ITEMS = re.compile(
-  r'^(Bookmarks|Cookies|Favicons|Google Profile'
-  r'|History|Login Data|Top Sites|TransportSecurity'
-  r'|Visited Links|Web Data)',
-  re.IGNORECASE)
-REGEX_MOZILLA = re.compile(
-  r'^(bookmarkbackups|(cookies|formhistory|places).sqlite'
-  r'|key3.db|logins.json|persdict.dat)$',
-  re.IGNORECASE)
 
 # STATIC VARIABLES
 DEFAULT_HOMEPAGE =      'https://www.google.com/'
@@ -103,6 +88,25 @@ SUPPORTED_BROWSERS = {
     },
   }
 
+
+# Regex
+REGEX_BACKUP = re.compile(
+  r'\.\w*bak.*',
+  re.IGNORECASE)
+REGEX_CHROMIUM_PROFILE = re.compile(
+  r'^(Default|Profile)',
+  re.IGNORECASE)
+REGEX_CHROMIUM_ITEMS = re.compile(
+  r'^(Bookmarks|Cookies|Favicons|Google Profile'
+  r'|History|Login Data|Top Sites|TransportSecurity'
+  r'|Visited Links|Web Data)',
+  re.IGNORECASE)
+REGEX_MOZILLA = re.compile(
+  r'^(bookmarkbackups|(cookies|formhistory|places).sqlite'
+  r'|key3.db|logins.json|persdict.dat)$',
+  re.IGNORECASE)
+
+
 def archive_all_users():
   """Create backups for all browsers for all users."""
   users_root = r'{}\Users'.format(global_vars['Env']['SYSTEMDRIVE'])
@@ -149,6 +153,7 @@ def archive_all_users():
         function=run_program, cmd=cmd)
     print_standard(' ')
 
+
 def archive_browser(name):
   """Create backup of Browser saved in the BackupDir."""
   source = '{}*'.format(browser_data[name]['user_data_path'])
@@ -163,11 +168,13 @@ def archive_browser(name):
     archive, source]
   run_program(cmd)
 
+
 def backup_browsers():
   """Create backup of all detected browser profiles."""
   for name in [k for k, v in sorted(browser_data.items()) if v['profiles']]:
     try_and_print(message='{}...'.format(name),
     function=archive_browser, name=name)
+
 
 def clean_chromium_profile(profile):
   """Recreate profile with only the essential user data.
@@ -191,6 +198,7 @@ def clean_chromium_profile(profile):
       shutil.copy(entry.path, r'{}\{}'.format(
         profile['path'], entry.name))
 
+
 def clean_internet_explorer(**kwargs):
   """Uses the built-in function to reset IE and sets the homepage.
 
@@ -207,6 +215,7 @@ def clean_internet_explorer(**kwargs):
       winreg.DeleteValue(_key, 'Secondary Start Pages')
     except FileNotFoundError:
       pass
+
 
 def clean_mozilla_profile(profile):
   """Recreate profile with only the essential user data.
@@ -239,6 +248,7 @@ def clean_mozilla_profile(profile):
   with open(r'{path}\prefs.js'.format(**profile), 'a', encoding='ascii') as f:
     for k, v in MOZILLA_PREFS.items():
       f.write('user_pref("{}", {});\n'.format(k, v))
+
 
 def get_browser_details(name):
   """Get installation and profile details for all supported browsers."""
@@ -314,6 +324,7 @@ def get_browser_details(name):
   elif num_installs > 1 and browser['base'] != 'ie':
     raise MultipleInstallationsError
 
+
 def get_chromium_profiles(search_path):
   """Find any chromium-style profiles and return as a list of dicts."""
   profiles = []
@@ -329,6 +340,7 @@ def get_chromium_profiles(search_path):
     pass
 
   return profiles
+
 
 def get_ie_homepages():
   """Read homepages from the registry and return as a list."""
@@ -354,6 +366,7 @@ def get_ie_homepages():
   homepages = [h.replace('{', '').replace('}', '') for h in homepages]
   return homepages
 
+
 def get_mozilla_homepages(prefs_path):
   """Read homepages from prefs.js and return as a list."""
   homepages = []
@@ -368,6 +381,7 @@ def get_mozilla_homepages(prefs_path):
     pass
 
   return homepages
+
 
 def get_mozilla_profiles(search_path, dev=False):
   """Find any mozilla-style profiles and return as a list of dicts."""
@@ -392,6 +406,7 @@ def get_mozilla_profiles(search_path, dev=False):
     pass
 
   return profiles
+
 
 def install_adblock(indent=8, width=32, just_firefox=False):
   """Install adblock for all supported browsers."""
@@ -461,6 +476,7 @@ def install_adblock(indent=8, width=32, just_firefox=False):
         cs='Done', function=function,
         cmd=[exe_path, *urls], check=False)
 
+
 def list_homepages(indent=8, width=32):
   """List current homepages for reference."""
   browser_list = [k for k, v in sorted(browser_data.items()) if v['exe_path']]
@@ -491,6 +507,7 @@ def list_homepages(indent=8, width=32):
           print_standard('{indent}{name:<{width}}{page}'.format(
             indent=' '*indent, width=width, name=name, page=page))
 
+
 def reset_browsers(indent=8, width=32):
   """Reset all detected browsers to safe defaults."""
   browser_list = [k for k, v in sorted(browser_data.items()) if v['profiles']]
@@ -508,6 +525,7 @@ def reset_browsers(indent=8, width=32):
         indent=indent, width=width, function=function,
         other_results=other_results, profile=profile)
 
+
 def scan_for_browsers(just_firefox=False):
   """Scan system for any supported browsers."""
   for name, details in sorted(SUPPORTED_BROWSERS.items()):
@@ -516,6 +534,7 @@ def scan_for_browsers(just_firefox=False):
     try_and_print(message='{}...'.format(name),
       function=get_browser_details, cs='Detected',
       other_results=other_results, name=name)
+
 
 if __name__ == '__main__':
   print("This file is not meant to be called directly.")

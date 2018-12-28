@@ -7,57 +7,6 @@ from operator import itemgetter
 
 from functions.common import *
 
-# Classes
-class LocalDisk():
-  def __init__(self, disk):
-    self.disk = disk
-    self.name = disk.mountpoint.upper()
-    self.path = self.name
-  def is_dir(self):
-    # Should always be true
-    return True
-  def is_file(self):
-    # Should always be false
-    return False
-
-class SourceItem():
-  def __init__(self, name, path):
-    self.name = name
-    self.path = path
-
-# Regex
-REGEX_EXCL_ITEMS = re.compile(
-  r'^(\.(AppleDB|AppleDesktop|AppleDouble'
-  r'|com\.apple\.timemachine\.supported|dbfseventsd'
-  r'|DocumentRevisions-V100.*|DS_Store|fseventsd|PKInstallSandboxManager'
-  r'|Spotlight.*|SymAV.*|symSchedScanLockxz|TemporaryItems|Trash.*'
-  r'|vol|VolumeIcon\.icns)|desktop\.(ini|.*DB|.*DF)'
-  r'|(hiberfil|pagefile)\.sys|lost\+found|Network\.*Trash\.*Folder'
-  r'|Recycle[dr]|System\.*Volume\.*Information|Temporary\.*Items'
-  r'|Thumbs\.db)$',
-  re.IGNORECASE)
-REGEX_EXCL_ROOT_ITEMS = re.compile(
-  r'^(boot(mgr|nxt)$|Config.msi'
-  r'|(eula|globdata|install|vc_?red)'
-  r'|.*.sys$|System Volume Information|RECYCLER?|\$Recycle\.bin'
-  r'|\$?Win(dows(.old.*|\.  BT|)$|RE_)|\$GetCurrent|Windows10Upgrade'
-  r'|PerfLogs|Program Files|SYSTEM.SAV'
-  r'|.*\.(esd|swm|wim|dd|map|dmg|image)$)',
-  re.IGNORECASE)
-REGEX_INCL_ROOT_ITEMS = re.compile(
-  r'^(AdwCleaner|(My\s*|)(Doc(uments?( and Settings|)|s?)|Downloads'
-  r'|Media|Music|Pic(ture|)s?|Vid(eo|)s?)'
-  r'|{prefix}(-?Info|-?Transfer|)'
-  r'|(ProgramData|Recovery|Temp.*|Users)$'
-  r'|.*\.(log|txt|rtf|qb\w*|avi|m4a|m4v|mp4|mkv|jpg|png|tiff?)$)'
-  r''.format(prefix=KIT_NAME_SHORT),
-  re.IGNORECASE)
-REGEX_WIM_FILE = re.compile(
-  r'\.wim$',
-  re.IGNORECASE)
-REGEX_WINDOWS_OLD = re.compile(
-  r'^Win(dows|)\.old',
-  re.IGNORECASE)
 
 # STATIC VARIABLES
 FAST_COPY_EXCLUDES = [
@@ -116,6 +65,63 @@ SEM_FAILCRITICALERRORS = 1
 SEM_NOOPENFILEERRORBOX = 0x8000
 SEM_FAIL = SEM_NOOPENFILEERRORBOX | SEM_FAILCRITICALERRORS
 
+
+# Regex
+REGEX_EXCL_ITEMS = re.compile(
+  r'^(\.(AppleDB|AppleDesktop|AppleDouble'
+  r'|com\.apple\.timemachine\.supported|dbfseventsd'
+  r'|DocumentRevisions-V100.*|DS_Store|fseventsd|PKInstallSandboxManager'
+  r'|Spotlight.*|SymAV.*|symSchedScanLockxz|TemporaryItems|Trash.*'
+  r'|vol|VolumeIcon\.icns)|desktop\.(ini|.*DB|.*DF)'
+  r'|(hiberfil|pagefile)\.sys|lost\+found|Network\.*Trash\.*Folder'
+  r'|Recycle[dr]|System\.*Volume\.*Information|Temporary\.*Items'
+  r'|Thumbs\.db)$',
+  re.IGNORECASE)
+REGEX_EXCL_ROOT_ITEMS = re.compile(
+  r'^(boot(mgr|nxt)$|Config.msi'
+  r'|(eula|globdata|install|vc_?red)'
+  r'|.*.sys$|System Volume Information|RECYCLER?|\$Recycle\.bin'
+  r'|\$?Win(dows(.old.*|\.  BT|)$|RE_)|\$GetCurrent|Windows10Upgrade'
+  r'|PerfLogs|Program Files|SYSTEM.SAV'
+  r'|.*\.(esd|swm|wim|dd|map|dmg|image)$)',
+  re.IGNORECASE)
+REGEX_INCL_ROOT_ITEMS = re.compile(
+  r'^(AdwCleaner|(My\s*|)(Doc(uments?( and Settings|)|s?)|Downloads'
+  r'|Media|Music|Pic(ture|)s?|Vid(eo|)s?)'
+  r'|{prefix}(-?Info|-?Transfer|)'
+  r'|(ProgramData|Recovery|Temp.*|Users)$'
+  r'|.*\.(log|txt|rtf|qb\w*|avi|m4a|m4v|mp4|mkv|jpg|png|tiff?)$)'
+  r''.format(prefix=KIT_NAME_SHORT),
+  re.IGNORECASE)
+REGEX_WIM_FILE = re.compile(
+  r'\.wim$',
+  re.IGNORECASE)
+REGEX_WINDOWS_OLD = re.compile(
+  r'^Win(dows|)\.old',
+  re.IGNORECASE)
+
+
+# Classes
+class LocalDisk():
+  def __init__(self, disk):
+    self.disk = disk
+    self.name = disk.mountpoint.upper()
+    self.path = self.name
+  def is_dir(self):
+    # Should always be true
+    return True
+  def is_file(self):
+    # Should always be false
+    return False
+
+
+class SourceItem():
+  def __init__(self, name, path):
+    self.name = name
+    self.path = path
+
+
+# Functions
 def cleanup_transfer(dest_path):
   """Fix attributes and move excluded items to separate folder."""
   try:
@@ -152,6 +158,7 @@ def cleanup_transfer(dest_path):
           shutil.move(source_name, dest_name)
         except Exception:
           pass
+
 
 def find_core_storage_volumes(device_path=None):
   """Try to create block devices for any Apple CoreStorage volumes."""
@@ -216,9 +223,11 @@ def find_core_storage_volumes(device_path=None):
       cmd = ['sudo', 'dmsetup', 'create', name, dmsetup_cmd_file]
       run_program(cmd, check=False)
 
+
 def fix_path_sep(path_str):
   """Replace non-native and duplicate dir separators, returns str."""
   return re.sub(r'(\\|/)+', lambda s: os.sep, path_str)
+
 
 def is_valid_wim_file(item):
   """Checks if the item is a valid WIM file, returns bool."""
@@ -232,6 +241,7 @@ def is_valid_wim_file(item):
       valid = False
       print_log('WARNING: Image "{}" damaged.'.format(item.name))
   return valid
+
 
 def get_mounted_volumes():
   """Get mounted volumes, returns dict."""
@@ -249,6 +259,7 @@ def get_mounted_volumes():
     mounted_volumes.append(item)
     mounted_volumes.extend(item.get('children', []))
   return {item['source']: item for item in mounted_volumes}
+
 
 def mount_volumes(
     all_devices=True, device_path=None,
@@ -342,6 +353,7 @@ def mount_volumes(
 
   return report
 
+
 def mount_backup_shares(read_write=False):
   """Mount the backup shares unless labeled as already mounted."""
   if psutil.LINUX:
@@ -362,6 +374,7 @@ def mount_backup_shares(read_write=False):
       continue
 
     mount_network_share(server, read_write)
+
 
 def mount_network_share(server, read_write=False):
   """Mount a network share defined by server."""
@@ -415,6 +428,7 @@ def mount_network_share(server, read_write=False):
     print_info(success)
     server['Mounted'] = True
 
+
 def run_fast_copy(items, dest):
   """Copy items to dest using FastCopy."""
   if not items:
@@ -426,6 +440,7 @@ def run_fast_copy(items, dest):
   cmd.append('/to={}\\'.format(dest))
 
   run_program(cmd)
+
 
 def run_wimextract(source, items, dest):
   """Extract items from source WIM to dest folder."""
@@ -451,6 +466,7 @@ def run_wimextract(source, items, dest):
     '--no-acls',
     '--nullglob']
   run_program(cmd)
+
 
 def list_source_items(source_obj, rel_path=None):
   """List items in a dir or WIM, returns list of SourceItem objects."""
@@ -488,6 +504,7 @@ def list_source_items(source_obj, rel_path=None):
 
   # Done
   return items
+
 
 def scan_source(source_obj, dest_path, rel_path='', interactive=True):
   """Scan source for files/folders to transfer, returns list.
@@ -572,6 +589,7 @@ def scan_source(source_obj, dest_path, rel_path='', interactive=True):
   # Done
   return selected_items
 
+
 def get_source_item_obj(source_obj, rel_path, item_path):
   """Check if the item exists, returns SourceItem object or None."""
   item_obj = None
@@ -611,6 +629,7 @@ def get_source_item_obj(source_obj, rel_path, item_path):
           item_path))
   return item_obj
 
+
 def select_destination(folder_path, prompt='Select destination'):
   """Select destination drive, returns path as string."""
   disk = select_volume(prompt)
@@ -626,6 +645,7 @@ def select_destination(folder_path, prompt='Select destination'):
   os.makedirs(path, exist_ok=True)
 
   return path
+
 
 def select_source(backup_prefix):
   """Select matching backup from BACKUP_SERVERS, returns obj."""
@@ -792,6 +812,7 @@ def select_source(backup_prefix):
   # Done
   return selected_source
 
+
 def select_volume(title='Select disk', auto_select=True):
   """Select disk from attached disks. returns dict."""
   actions =   [{'Name': 'Quit', 'Letter': 'Q'}]
@@ -829,6 +850,7 @@ def select_volume(title='Select disk', auto_select=True):
   else:
     return disks[int(selection)-1]
 
+
 def set_thread_error_mode(silent=True):
   """Disable or Enable Windows error message dialogs.
 
@@ -841,6 +863,7 @@ def set_thread_error_mode(silent=True):
     kernel32.SetThreadErrorMode(SEM_FAIL, ctypes.byref(SEM_NORMAL))
   else:
     kernel32.SetThreadErrorMode(SEM_NORMAL, ctypes.byref(SEM_NORMAL))
+
 
 def transfer_source(source_obj, dest_path, selected_items):
   """Transfer, or extract, files/folders from source to destination."""
@@ -864,10 +887,12 @@ def transfer_source(source_obj, dest_path, selected_items):
       print_error('ERROR: Unsupported image: {}'.format(source_obj.path))
       raise GenericError
 
+
 def umount_backup_shares():
   """Unmount the backup shares regardless of current status."""
   for server in BACKUP_SERVERS:
     umount_network_share(server)
+
 
 def umount_network_share(server):
   """Unmount a network share defined by server."""
@@ -881,6 +906,7 @@ def umount_network_share(server):
   else:
     print_info('Umounted {Name}'.format(**server))
     server['Mounted'] = False
+
 
 if __name__ == '__main__':
   print("This file is not meant to be called directly.")

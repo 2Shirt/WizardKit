@@ -3,6 +3,7 @@
 from functions.common import *
 from settings.partition_uids import *
 
+
 # Regex
 REGEX_BAD_PARTITION = re.compile(r'(RAW|Unknown)', re.IGNORECASE)
 REGEX_DISK_GPT = re.compile(
@@ -10,6 +11,7 @@ REGEX_DISK_GPT = re.compile(
   re.IGNORECASE)
 REGEX_DISK_MBR = re.compile(r'Disk ID: [A-Z0-9]+', re.IGNORECASE)
 REGEX_DISK_RAW = re.compile(r'Disk ID: 00000000', re.IGNORECASE)
+
 
 def assign_volume_letters():
   """Assign a volume letter to all available volumes."""
@@ -24,6 +26,7 @@ def assign_volume_letters():
   # Run
   run_diskpart(script)
 
+
 def get_boot_mode():
   """Check if the boot mode was UEFI or legacy."""
   boot_mode = 'Legacy'
@@ -37,6 +40,7 @@ def get_boot_mode():
     boot_mode = 'Unknown'
 
   return boot_mode
+
 
 def get_disk_details(disk):
   """Get disk details using DiskPart."""
@@ -63,6 +67,7 @@ def get_disk_details(disk):
 
   return details
 
+
 def get_disks():
   """Get list of attached disks using DiskPart."""
   disks = []
@@ -81,6 +86,7 @@ def get_disks():
       disks.append({'Number': num, 'Size': size})
 
   return disks
+
 
 def get_partition_details(disk, partition):
   """Get partition details using DiskPart and fsutil."""
@@ -161,6 +167,7 @@ def get_partition_details(disk, partition):
 
   return details
 
+
 def get_partitions(disk):
   """Get list of partition using DiskPart."""
   partitions = []
@@ -184,6 +191,7 @@ def get_partitions(disk):
 
   return partitions
 
+
 def get_table_type(disk):
   """Get disk partition table type using DiskPart."""
   part_type = 'Unknown'
@@ -206,6 +214,7 @@ def get_table_type(disk):
 
   return part_type
 
+
 def get_volumes():
   """Get list of volumes using DiskPart."""
   vols = []
@@ -221,9 +230,11 @@ def get_volumes():
 
   return vols
 
+
 def is_bad_partition(par):
   """Check if the partition is accessible."""
   return 'Letter' not in par or REGEX_BAD_PARTITION.search(par['FileSystem'])
+
 
 def prep_disk_for_formatting(disk=None):
   """Gather details about the disk and its partitions."""
@@ -270,6 +281,7 @@ def prep_disk_for_formatting(disk=None):
     # For all partitions
     partition['Display String'] = display
 
+
 def reassign_volume_letter(letter, new_letter='I'):
   """Assign a new letter to a volume using DiskPart."""
   if not letter:
@@ -285,6 +297,7 @@ def reassign_volume_letter(letter, new_letter='I'):
     pass
   else:
     return new_letter
+
 
 def remove_volume_letters(keep=None):
   """Remove all assigned volume letters using DiskPart."""
@@ -303,6 +316,7 @@ def remove_volume_letters(keep=None):
   except subprocess.CalledProcessError:
     pass
 
+
 def run_diskpart(script):
   """Run DiskPart script."""
   tempfile = r'{}\diskpart.script'.format(global_vars['Env']['TMP'])
@@ -320,6 +334,7 @@ def run_diskpart(script):
   result = run_program(cmd)
   sleep(2)
   return result
+
 
 def scan_disks():
   """Get details about the attached disks"""
@@ -342,6 +357,7 @@ def scan_disks():
 
   # Done
   return disks
+
 
 def select_disk(title='Which disk?', disks=[]):
   """Select a disk from the attached disks"""
@@ -390,6 +406,7 @@ def select_disk(title='Which disk?', disks=[]):
     return disk_options[int(selection)-1]['Disk']
   elif (selection == 'M'):
     raise GenericAbort
+
 
 if __name__ == '__main__':
   print("This file is not meant to be called directly.")

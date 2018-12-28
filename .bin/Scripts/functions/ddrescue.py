@@ -15,6 +15,7 @@ from functions.hw_diags import *
 from functions.tmux import *
 from operator import itemgetter
 
+
 # STATIC VARIABLES
 AUTO_PASS_1_THRESHOLD = 95
 AUTO_PASS_2_THRESHOLD = 98
@@ -777,6 +778,7 @@ def menu_ddrescue(source_path, dest_path, run_mode):
   # Done
   run_program(['tmux', 'kill-window'])
   exit_script()
+
 
 def menu_main(state):
   """Main menu is used to set ddrescue settings."""

@@ -4,6 +4,7 @@ import ctypes
 
 from functions.common import *
 
+
 # STATIC VARIABLES
 AUTORUNS_SETTINGS = {
   r'Software\Sysinternals\AutoRuns': {
@@ -26,6 +27,7 @@ AUTORUNS_SETTINGS = {
     },
   }
 
+
 def check_connection():
   """Check if the system is online and optionally abort the script."""
   while True:
@@ -37,6 +39,7 @@ def check_connection():
         break
       else:
         abort()
+
 
 def check_secure_boot_status(show_alert=False):
   """Checks UEFI Secure Boot status via PowerShell."""
@@ -77,6 +80,7 @@ def check_secure_boot_status(show_alert=False):
           show_alert_box('Secure Boot ERROR')
         raise GenericError
 
+
 def get_boot_mode():
   """Check if Windows is booted in UEFI or Legacy mode, returns str."""
   kernel = ctypes.windll.kernel32
@@ -98,6 +102,7 @@ def get_boot_mode():
 
   return type_str
 
+
 def run_autoruns():
   """Run AutoRuns in the background with VirusTotal checks enabled."""
   extract_item('Autoruns', filter='autoruns*', silent=True)
@@ -108,6 +113,7 @@ def run_autoruns():
       for name, value in settings.items():
         winreg.SetValueEx(key, name, 0, winreg.REG_DWORD, value)
   popen_program(global_vars['Tools']['AutoRuns'], minimized=True)
+
 
 def run_hwinfo_sensors():
   """Run HWiNFO sensors."""
@@ -122,11 +128,13 @@ def run_hwinfo_sensors():
       f.write('SummaryOnly=0\n')
   popen_program(global_vars['Tools']['HWiNFO'])
 
+
 def run_nircmd(*cmd):
   """Run custom NirCmd."""
   extract_item('NirCmd', silent=True)
   cmd = [global_vars['Tools']['NirCmd'], *cmd]
   run_program(cmd, check=False)
+
 
 def run_xmplay():
   """Run XMPlay to test audio."""
@@ -141,6 +149,7 @@ def run_xmplay():
   # Open XMPlay
   popen_program(cmd)
 
+
 def run_hitmanpro():
   """Run HitmanPro in the background."""
   extract_item('HitmanPro', silent=True)
@@ -149,6 +158,7 @@ def run_hitmanpro():
     '/quiet', '/noinstall', '/noupload',
     r'/log={LogDir}\Tools\HitmanPro.txt'.format(**global_vars)]
   popen_program(cmd)
+
 
 def run_process_killer():
   """Kill most running processes skipping those in the whitelist.txt."""
@@ -159,6 +169,7 @@ def run_process_killer():
   os.chdir(r'{BinDir}\ProcessKiller'.format(**global_vars))
   run_program(['ProcessKiller.exe', '/silent'], check=False)
   os.chdir(prev_dir)
+
 
 def run_rkill():
   """Run RKill and cleanup afterwards."""
@@ -180,10 +191,12 @@ def run_rkill():
         dest = non_clobber_rename(dest)
         shutil.move(item.path, dest)
 
+
 def show_alert_box(message, title='Wizard Kit Warning'):
   """Show Windows alert box with message."""
   message_box = ctypes.windll.user32.MessageBoxW
   message_box(None, message, title, 0x00001030)
+
 
 if __name__ == '__main__':
   print("This file is not meant to be called directly.")
