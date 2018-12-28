@@ -1,6 +1,4 @@
-#!/bin/python3
-#
-## Wizard Kit: Functions - Network
+# Wizard Kit: Functions - Network
 
 import os
 import shutil
