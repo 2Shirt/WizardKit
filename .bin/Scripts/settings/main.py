@@ -30,10 +30,10 @@ WIFI_PASSWORD='Abracadabra'
 
 # SERVER VARIABLES
 ## NOTE: Windows can only use one user per server. This means that if
-##     one server serves multiple shares then you have to use the same
-##     user/password for all of those shares.
+##       one server serves multiple shares then you have to use the same
+##       user/password for all of those shares.
 BACKUP_SERVERS = [
-  {   'IP':     '10.0.0.10',
+  { 'IP':      '10.0.0.10',
     'Name':     'ServerOne',
     'Mounted':  False,
     'Share':    'Backups',
@@ -41,8 +41,8 @@ BACKUP_SERVERS = [
     'Pass':     'Abracadabra',
     'RW-User':  'backup',
     'RW-Pass':  'Abracadabra',
-  },
-  {   'IP':     '10.0.0.11',
+    },
+  { 'IP':       '10.0.0.11',
     'Name':     'ServerTwo',
     'Mounted':  False,
     'Share':    'Backups',
@@ -50,14 +50,14 @@ BACKUP_SERVERS = [
     'Pass':     'Abracadabra',
     'RW-User':  'backup',
     'RW-Pass':  'Abracadabra',
-  },
-]
+    },
+  ]
 CRASH_SERVER = {
   'Name':       'CrashServer',
   'Url':        '',
   'User':       '',
   'Pass':       '',
-}
+  }
 OFFICE_SERVER = {
   'IP':         OFFICE_SERVER_IP,
   'Name':       'ServerOne',
@@ -67,7 +67,7 @@ OFFICE_SERVER = {
   'Pass':       'Abracadabra',
   'RW-User':    'backup',
   'RW-Pass':    'Abracadabra',
-}
+  }
 QUICKBOOKS_SERVER = {
   'IP':         QUICKBOOKS_SERVER_IP,
   'Name':       'ServerOne',
@@ -77,7 +77,7 @@ QUICKBOOKS_SERVER = {
   'Pass':       'Abracadabra',
   'RW-User':    'backup',
   'RW-Pass':    'Abracadabra',
-}
+  }
 WINDOWS_SERVER = {
   'IP':         '10.0.0.10',
   'Name':       'ServerOne',
@@ -87,7 +87,7 @@ WINDOWS_SERVER = {
   'Pass':       'Abracadabra',
   'RW-User':    'backup',
   'RW-Pass':    'Abracadabra',
-}
+  }
 
 if __name__ == '__main__':
   print("This file is not meant to be called directly.")
