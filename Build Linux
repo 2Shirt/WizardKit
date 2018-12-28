@@ -174,11 +174,11 @@ function update_live_env() {
     7z e "$TEMP_DIR/memtest86/memtest86-usb.zip" -o"$TEMP_DIR/memtest86" "memtest86-usb.img"
     7z e "$TEMP_DIR/memtest86/memtest86-usb.img" -o"$TEMP_DIR/memtest86" "MemTest86.img"
     7z x "$TEMP_DIR/memtest86/MemTest86.img" -o"$TEMP_DIR/memtest86"
-    rm "$TEMP_DIR/memtest86/EFI/BOOT/BOOTIA32.EFI"
-    mv "$TEMP_DIR/memtest86/EFI/BOOT/BOOTX64.EFI" "$LIVE_DIR/EFI/memtest86/memtestx64.efi"
-    for f in "$TEMP_DIR/memtest86/EFI/BOOT"/* "help"/* license.rtf; do
-      mv "$f" "$LIVE_DIR/EFI/memtest86"/
-    done
+    rm "$TEMP_DIR/memtest86/EFI/BOOT/BOOTIA32.efi"
+    mv "$TEMP_DIR/memtest86/EFI/BOOT/BOOTX64.efi" "$LIVE_DIR/EFI/memtest86/memtestx64.efi"
+    mv "$TEMP_DIR/memtest86/EFI/BOOT"/* "$LIVE_DIR/EFI/memtest86"/
+    mv "$TEMP_DIR/memtest86/help"/* "$LIVE_DIR/EFI/memtest86"/
+    mv "$TEMP_DIR/memtest86/license.rtf" "$LIVE_DIR/EFI/memtest86"/
 
     # build.sh
     if ! grep -iq 'wizardkit additions' "$LIVE_DIR/build.sh"; then
