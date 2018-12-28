@@ -751,6 +751,9 @@ def get_read_rate(s):
 def menu_diags(state, args):
   """Main menu to select and run HW tests."""
   args = [a.lower() for a in args]
+  checkmark = '*'
+  if 'DISPLAY' in global_vars['Env']:
+    checkmark = '✓'
   title = '{}\nMain Menu'.format(TOP_PANE_TEXT)
   # NOTE: Changing the order of main_options will break everything
   main_options = [
@@ -819,8 +822,8 @@ def menu_diags(state, args):
     # Update checkboxes
     for opt in main_options:
       _nvme_smart = opt['Base Name'] == 'NVMe / SMART'
-      opt['Name'] = '{} {} {}'.format(
-        '[✓]' if opt['Enabled'] else '[ ]',
+      opt['Name'] = '[{}] {} {}'.format(
+        checkmark if opt['Enabled'] else ' ',
         opt['Base Name'],
         QUICK_LABEL if state.quick_mode and _nvme_smart else '')
 

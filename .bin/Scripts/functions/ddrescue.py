@@ -781,6 +781,9 @@ def menu_ddrescue(source_path, dest_path, run_mode):
 
 def menu_main(state):
   """Main menu is used to set ddrescue settings."""
+  checkmark = '*'
+  if 'DISPLAY' in global_vars['Env']:
+    checkmark = '✓'
   title = '{GREEN}ddrescue TUI: Main Menu{CLEAR}\n\n'.format(**COLORS)
   title += '{BLUE}Current pass: {CLEAR}'.format(**COLORS)
 
@@ -804,8 +807,8 @@ def menu_main(state):
   while True:
     # Update entries
     for opt in main_options:
-      opt['Name'] = '{} {}'.format(
-        '[✓]' if opt['Enabled'] else '[ ]',
+      opt['Name'] = '[{}] {}'.format(
+        checkmark if opt['Enabled'] else ' ',
         opt['Base Name'])
 
     selection = menu_select(
