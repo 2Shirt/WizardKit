@@ -883,7 +883,7 @@ def update_xmplay():
   # Extract files
   extract_temp_to_cbin('xmplay.zip', 'XMPlay',
     mode='e', sz_args=['xmplay.exe', 'xmplay.txt'])
-  for item in ['xmp-7z', 'xmp-gme', 'xmp-rar', 'WAModern']:  
+  for item in ['xmp-7z', 'xmp-gme', 'xmp-rar', 'WAModern']:
     filter = []
     if item == 'WAModern':
       filter.append('WAModern NightVision.xmpskin')
