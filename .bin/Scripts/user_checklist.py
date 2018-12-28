@@ -14,74 +14,74 @@ os.system('title {}: User Checklist Tool'.format(KIT_NAME_FULL))
 set_log_file('User Checklist ({USERNAME}).log'.format(**global_vars['Env']))
 
 if __name__ == '__main__':
-    try:
-        stay_awake()
-        clear_screen()
-        print_info('{}: User Checklist\n'.format(KIT_NAME_FULL))
-        other_results = {
-            'Warning': {
-                'NotInstalledError': 'Not installed',
-                'NoProfilesError': 'No profiles found',
-            }}
-        answer_config_browsers = ask('Install adblock?')
-        if answer_config_browsers:
-            answer_reset_browsers = ask(
-                'Reset browsers to safe defaults first?')
-        if global_vars['OS']['Version'] == '10':
-            answer_config_classicshell = ask('Configure ClassicShell?')
-            answer_config_explorer_user = ask('Configure Explorer?')
+  try:
+    stay_awake()
+    clear_screen()
+    print_info('{}: User Checklist\n'.format(KIT_NAME_FULL))
+    other_results = {
+      'Warning': {
+        'NotInstalledError': 'Not installed',
+        'NoProfilesError': 'No profiles found',
+      }}
+    answer_config_browsers = ask('Install adblock?')
+    if answer_config_browsers:
+      answer_reset_browsers = ask(
+        'Reset browsers to safe defaults first?')
+    if global_vars['OS']['Version'] == '10':
+      answer_config_classicshell = ask('Configure ClassicShell?')
+      answer_config_explorer_user = ask('Configure Explorer?')
 
-        # Cleanup
-        print_info('Cleanup')
-        try_and_print(message='Desktop...',
-            function=cleanup_desktop, cs='Done')
+    # Cleanup
+    print_info('Cleanup')
+    try_and_print(message='Desktop...',
+      function=cleanup_desktop, cs='Done')
 
-        # Scan for supported browsers
-        print_info('Scanning for browsers')
-        scan_for_browsers()
+    # Scan for supported browsers
+    print_info('Scanning for browsers')
+    scan_for_browsers()
 
-        # Homepages
-        print_info('Current homepages')
-        list_homepages()
+    # Homepages
+    print_info('Current homepages')
+    list_homepages()
 
-        # Backup
-        print_info('Backing up browsers')
-        backup_browsers()
+    # Backup
+    print_info('Backing up browsers')
+    backup_browsers()
 
-        # Reset
-        if answer_config_browsers and answer_reset_browsers:
-            print_info('Resetting browsers')
-            reset_browsers()
+    # Reset
+    if answer_config_browsers and answer_reset_browsers:
+      print_info('Resetting browsers')
+      reset_browsers()
 
-        # Configure
-        print_info('Configuring programs')
-        if answer_config_browsers:
-            install_adblock()
-        if global_vars['OS']['Version'] == '10':
-            if answer_config_classicshell:
-                try_and_print(message='ClassicStart...',
-                    function=config_classicstart, cs='Done')
-            if answer_config_explorer_user:
-                try_and_print(message='Explorer...',
-                    function=config_explorer_user, cs='Done')
-            if (not answer_config_browsers
-                and not answer_config_classicshell
-                and not answer_config_explorer_user):
-                print_warning('        Skipped')
-        else:
-            if not answer_config_browsers:
-                print_warning('        Skipped')
+    # Configure
+    print_info('Configuring programs')
+    if answer_config_browsers:
+      install_adblock()
+    if global_vars['OS']['Version'] == '10':
+      if answer_config_classicshell:
+        try_and_print(message='ClassicStart...',
+          function=config_classicstart, cs='Done')
+      if answer_config_explorer_user:
+        try_and_print(message='Explorer...',
+          function=config_explorer_user, cs='Done')
+      if (not answer_config_browsers
+        and not answer_config_classicshell
+        and not answer_config_explorer_user):
+        print_warning('    Skipped')
+    else:
+      if not answer_config_browsers:
+        print_warning('    Skipped')
 
-        # Run speedtest
-        popen_program(['start', '', 'https://fast.com'], shell=True)
+    # Run speedtest
+    popen_program(['start', '', 'https://fast.com'], shell=True)
 
-        # Done
-        print_standard('\nDone.')
-        pause('Press Enter to exit...')
-        exit_script()
-    except SystemExit:
-        pass
-    except:
-        major_exception()
+    # Done
+    print_standard('\nDone.')
+    pause('Press Enter to exit...')
+    exit_script()
+  except SystemExit:
+    pass
+  except:
+    major_exception()
 
-# vim: sts=4 sw=4 ts=4
+# vim: sts=2 sw=2 ts=2

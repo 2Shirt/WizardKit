@@ -14,9 +14,11 @@ set_title('{}: Root Menu'.format(KIT_NAME_FULL))
 set_log_file('WinPE.log')
 
 if __name__ == '__main__':
-    try:
-        menu_root()
-    except SystemExit:
-        pass
-    except:
-        major_exception()
+  try:
+    menu_root()
+  except SystemExit:
+    pass
+  except:
+    major_exception()
+
+# vim: sts=2 sw=2 ts=2
