@@ -1320,7 +1320,8 @@ def run_mprime_test(state, test):
         if re.search(r'(error|fail)', line, re.IGNORECASE):
           test.failed = True
           test.update_status('NS')
-          test.report.append('  {YELLOW}{line}{CLEAR}'.format(line=line, **COLORS))
+          test.report.append(
+            '  {YELLOW}{line}{CLEAR}'.format(line=line, **COLORS))
 
     # prime.log (CS check)
     if log == 'prime.log':
@@ -1349,7 +1350,8 @@ def run_mprime_test(state, test):
       for line in sorted(_tmp['Pass'].keys()):
         test.report.append('  {}'.format(line))
       for line in sorted(_tmp['Warn'].keys()):
-        test.report.append('  {YELLOW}{line}{CLEAR}'.format(line=line, **COLORS))
+        test.report.append(
+          '  {YELLOW}{line}{CLEAR}'.format(line=line, **COLORS))
 
   # Unknown result
   if not (test.aborted or test.failed or test.passed):
