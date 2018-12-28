@@ -1,7 +1,7 @@
 # Wizard Kit: Functions - Disk
 
 from functions.common import *
-from functions import partition_uids
+from settings.partition_uids import *
 
 # Regex
 REGEX_BAD_PARTITION = re.compile(r'(RAW|Unknown)', re.IGNORECASE)
@@ -113,7 +113,7 @@ def get_partition_details(disk, partition):
         details.update({key.strip(): value.strip() for (key, value) in tmp})
 
     # Get MBR type / GPT GUID for extra details on "Unknown" partitions
-    guid = partition_uids.lookup_guid(details.get('Type'))
+    guid = PARTITION_UIDS.get(details.get('Type').upper(), {})
     if guid:
         details.update({
             'Description':  guid.get('Description', '')[:29],
