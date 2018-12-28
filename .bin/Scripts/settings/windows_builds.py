@@ -170,7 +170,7 @@ WINDOWS_BUILDS = {
     '17755': (  '10',       None,       'Redstone 5',   None,                   'preview build'),
     '17758': (  '10',       None,       'Redstone 5',   None,                   'preview build'),
     '17760': (  '10',       None,       'Redstone 5',   None,                   'preview build'),
-    '17763': (  '10',       'v1809',    'Redstone 5',   'October 2018 Update',  'preview build'),
+    '17763': (  '10',       'v1809',    'Redstone 5',   'October 2018 Update',  None),
     '18204': (  '10',       None,       '19H1',         None,                   'preview build'),
     '18214': (  '10',       None,       '19H1',         None,                   'preview build'),
     '18219': (  '10',       None,       '19H1',         None,                   'preview build'),
@@ -179,6 +179,14 @@ WINDOWS_BUILDS = {
     '18242': (  '10',       None,       '19H1',         None,                   'preview build'),
     '18247': (  '10',       None,       '19H1',         None,                   'preview build'),
     '18252': (  '10',       None,       '19H1',         None,                   'preview build'),
+    '18262': (  '10',       None,       '19H1',         None,                   'preview build'),
+    '18267': (  '10',       None,       '19H1',         None,                   'preview build'),
+    '18272': (  '10',       None,       '19H1',         None,                   'preview build'),
+    '18277': (  '10',       None,       '19H1',         None,                   'preview build'),
+    '18282': (  '10',       None,       '19H1',         None,                   'preview build'),
+    '18290': (  '10',       None,       '19H1',         None,                   'preview build'),
+    '18298': (  '10',       None,       '19H1',         None,                   'preview build'),
+    '18305': (  '10',       None,       '19H1',         None,                   'preview build'),
 }
 
 if __name__ == '__main__':
