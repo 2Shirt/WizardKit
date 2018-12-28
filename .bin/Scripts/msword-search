@@ -9,10 +9,10 @@ import sys
 # STATIC VARIABLES
 SCANDIR = os.getcwd()
 USAGE = '''Usage: {script} <search-terms>...
-    e.g.  {script} "Book Title" "Keyword" "etc"
+  e.g.  {script} "Book Title" "Keyword" "etc"
 
-    This script will search all doc/docx files below the current directory for
-    the search-terms provided (case-insensitive).'''.format(script=__file__)
+  This script will search all doc/docx files below the current directory for
+  the search-terms provided (case-insensitive).'''.format(script=__file__)
 
 # Init
 os.chdir(os.path.dirname(os.path.realpath(__file__)))
@@ -22,60 +22,64 @@ init_global_vars()
 
 REGEX_DOC_FILES = re.compile(r'\.docx?$', re.IGNORECASE)
 
+
 def scan_for_docs(path):
-    for entry in os.scandir(path):
-        if entry.is_dir(follow_symlinks=False):
-            yield from scantree(entry.path)
-        elif entry.is_file and REGEX_DOC_FILES.search(entry.name):
-            yield entry
+  for entry in os.scandir(path):
+    if entry.is_dir(follow_symlinks=False):
+      yield from scan_for_docs(entry.path)
+    elif entry.is_file and REGEX_DOC_FILES.search(entry.name):
+      yield entry
+
 
 def scan_file(file_path, search):
-    match = False
-    try:
-        if entry.name.lower().endswith('.docx'):
-            result = run_program(['unzip', '-p', entry.path])
-        else:
-            # Assuming .doc
-            result = run_program(['antiword', entry.path])
-        out = result.stdout.decode()
-        match = re.search(search, out, re.IGNORECASE)
-    except Exception:
-        # Ignore errors since files may be corrupted
-        pass
-    
-    return entry.path if match else None
+  match = False
+  try:
+    if entry.name.lower().endswith('.docx'):
+      result = run_program(['unzip', '-p', entry.path])
+    else:
+      # Assuming .doc
+      result = run_program(['antiword', entry.path])
+    out = result.stdout.decode()
+    match = re.search(search, out, re.IGNORECASE)
+  except Exception:
+    # Ignore errors since files may be corrupted
+    pass
+
+  return entry.path if match else None
+
 
 if __name__ == '__main__':
-    try:
-        # Prep
-        clear_screen()
-        terms = [re.sub(r'\s+', r'\s*', t) for t in sys.argv[1:]]
-        search = '({})'.format('|'.join(terms))
+  try:
+    # Prep
+    clear_screen()
+    terms = [re.sub(r'\s+', r'\s*', t) for t in sys.argv[1:]]
+    search = '({})'.format('|'.join(terms))
 
-        if len(sys.argv) == 1:
-            # Print usage
-            print_standard(USAGE)
-        else:
-            matches = []
-            for entry in scan_for_docs(SCANDIR):
-                matches.append(scan_file(entry.path, search))
-            # Strip None values (i.e. non-matching entries)
-            matches = [m for m in matches if m]
-            if matches:
-                print_success('Found {} {}:'.format(
-                    len(matches),
-                    'Matches' if len(matches) > 1 else 'Match'))
-                for match in matches:
-                    print_standard(match)
-            else:
-                print_error('No matches found.')
-        
-        # Done
-        print_standard('\nDone.')
-        #pause("Press Enter to exit...")
-        exit_script()
-    except SystemExit:
-        pass
-    except:
-        major_exception()
+    if len(sys.argv) == 1:
+      # Print usage
+      print_standard(USAGE)
+    else:
+      matches = []
+      for entry in scan_for_docs(SCANDIR):
+        matches.append(scan_file(entry.path, search))
+      # Strip None values (i.e. non-matching entries)
+      matches = [m for m in matches if m]
+      if matches:
+        print_success('Found {} {}:'.format(
+          len(matches),
+          'Matches' if len(matches) > 1 else 'Match'))
+        for match in matches:
+          print_standard(match)
+      else:
+        print_error('No matches found.')
 
+    # Done
+    print_standard('\nDone.')
+    #pause("Press Enter to exit...")
+    exit_script()
+  except SystemExit:
+    pass
+  except:
+    major_exception()
+
+# vim: sts=2 sw=2 ts=2

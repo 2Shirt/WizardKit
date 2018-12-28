@@ -5,6 +5,7 @@ import re
 
 from functions.tmux import *
 
+
 # STATIC VARIABLES
 TEMP_LIMITS = {
   'GREEN':  60,
@@ -13,8 +14,10 @@ TEMP_LIMITS = {
   'RED':    90,
   }
 
+
 # REGEX
 REGEX_COLORS = re.compile(r'\033\[\d+;?1?m')
+
 
 def clear_temps(sensor_data):
   """Clear saved temps but keep structure, returns dict."""
@@ -22,6 +25,7 @@ def clear_temps(sensor_data):
     for _adapter, _sources in _adapters.items():
       for _source, _data in _sources.items():
         _data['Temps'] = []
+
 
 def fix_sensor_str(s):
   """Cleanup string and return str."""
@@ -35,6 +39,7 @@ def fix_sensor_str(s):
   s = re.sub(r'(\D+)(\d+)', r'\1 \2', s, re.IGNORECASE)
   s = s.replace('  ', ' ')
   return s
+
 
 def generate_sensor_report(
     sensor_data, *temp_labels,
@@ -73,6 +78,7 @@ def generate_sensor_report(
   # Done
   return report
 
+
 def get_colored_temp_str(temp):
   """Get colored string based on temp, returns str."""
   try:
@@ -97,6 +103,7 @@ def get_colored_temp_str(temp):
     temp = temp,
     **COLORS)
 
+
 def get_raw_sensor_data():
   """Read sensor data and return dict."""
   data = {}
@@ -109,6 +116,7 @@ def get_raw_sensor_data():
     pass
 
   return data
+
 
 def get_sensor_data():
   """Parse raw sensor data and return new dict."""
@@ -141,6 +149,7 @@ def get_sensor_data():
   # Done
   return sensor_data
 
+
 def get_temp_str(temp, colors=True):
   """Get temp string, returns str."""
   if colors:
@@ -154,6 +163,7 @@ def get_temp_str(temp, colors=True):
       '-' if temp < 0 else '',
       temp)
 
+
 def monitor_sensors(monitor_pane, monitor_file):
   """Continually update sensor data and report to screen."""
   sensor_data = get_sensor_data()
@@ -166,8 +176,9 @@ def monitor_sensors(monitor_pane, monitor_file):
     if monitor_pane and not tmux_poll_pane(monitor_pane):
       break
 
+
 def save_average_temp(sensor_data, temp_label, seconds=10):
-  """Calculate average temps and record under temp_label, returns dict."""
+  """Save average temps under temp_label, returns dict."""
   clear_temps(sensor_data)
 
   # Get temps
@@ -181,6 +192,7 @@ def save_average_temp(sensor_data, temp_label, seconds=10):
       for _source, _data in _sources.items():
         _data[temp_label] = sum(_data['Temps']) / len(_data['Temps'])
 
+
 def update_sensor_data(sensor_data):
   """Read sensors and update existing sensor_data, returns dict."""
   json_data = get_raw_sensor_data()
@@ -193,11 +205,13 @@ def update_sensor_data(sensor_data):
         _data['Max'] = max(_temp, _data['Max'])
         _data['Temps'].append(_temp)
 
+
 def join_columns(column1, column2, width=55):
   return '{:<{}}{}'.format(
     column1,
     55+len(column1)-len(REGEX_COLORS.sub('', column1)),
     column2)
+
 
 if __name__ == '__main__':
   print("This file is not meant to be called directly.")

@@ -13,26 +13,27 @@ from functions.network import *
 init_global_vars()
 
 if __name__ == '__main__':
-    try:
-        # Prep
-        clear_screen()
+  try:
+    # Prep
+    clear_screen()
 
-        # Connect
-        connect_to_network()
+    # Connect
+    connect_to_network()
 
-        # Mount
-        if is_connected():
-            mount_backup_shares(read_write=True)
-        else:
-            # Couldn't connect
-            print_error('ERROR: No network connectivity.')
-        
-        # Done
-        print_standard('\nDone.')
-        #pause("Press Enter to exit...")
-        exit_script()
-    except SystemExit:
-        pass
-    except:
-        major_exception()
+    # Mount
+    if is_connected():
+      mount_backup_shares(read_write=True)
+    else:
+      # Couldn't connect
+      print_error('ERROR: No network connectivity.')
 
+    # Done
+    print_standard('\nDone.')
+    #pause("Press Enter to exit...")
+    exit_script()
+  except SystemExit:
+    pass
+  except:
+    major_exception()
+
+# vim: sts=2 sw=2 ts=2
