@@ -1,10 +1,8 @@
 # Wizard Kit: Functions - Information
 
 from borrowed import knownpaths
-from operator import itemgetter
-
-from functions.common import *
 from functions.activation import *
+from operator import itemgetter
 
 
 # STATIC VARIABLES

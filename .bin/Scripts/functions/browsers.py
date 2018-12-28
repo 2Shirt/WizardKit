@@ -1,7 +1,6 @@
 # Wizard Kit: Functions - Browsers
 
 from functions.common import *
-
 from operator import itemgetter
 
 

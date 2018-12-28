@@ -14,11 +14,10 @@ except ModuleNotFoundError:
   if psutil.WINDOWS:
     raise
 
-from subprocess import CalledProcessError
-
 from settings.main import *
 from settings.tools import *
 from settings.windows_builds import *
+from subprocess import CalledProcessError
 
 
 # Global variables

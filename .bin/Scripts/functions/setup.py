@@ -1,6 +1,5 @@
 # Wizard Kit: Functions - Setup
 
-from functions.common import *
 from functions.update import *
 
 

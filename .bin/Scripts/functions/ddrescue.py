@@ -9,7 +9,6 @@ import stat
 import time
 
 from collections import OrderedDict
-from functions.common import *
 from functions.data import *
 from functions.hw_diags import *
 from functions.tmux import *

@@ -3,9 +3,8 @@
 import ctypes
 import json
 
-from operator import itemgetter
-
 from functions.common import *
+from operator import itemgetter
 
 
 # STATIC VARIABLES
