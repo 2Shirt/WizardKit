@@ -99,9 +99,16 @@ def get_colored_temp_str(temp):
 
 def get_raw_sensor_data():
   """Read sensor data and return dict."""
+  data = {}
   cmd = ['sensors', '-j']
-  result = run_program(cmd)
-  return json.loads(result.stdout.decode())
+  try:
+    result = run_program(cmd)
+    data = json.loads(result.stdout.decode())
+  except subprocess.CalledProcessError:
+    # Assuming no sensors available, return empty dict below
+    pass
+
+  return data
 
 def get_sensor_data():
   """Parse raw sensor data and return new dict."""
