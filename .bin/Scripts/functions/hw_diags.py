@@ -366,6 +366,8 @@ class DiskObj():
     # Attributes
     if 'NVMe / SMART' not in self.tests:
       report.extend(self.generate_attribute_report())
+    elif not self.tests['NVMe / SMART'].report:
+      report.extend(self.generate_attribute_report())
 
     # Tests
     for test in self.tests.values():
@@ -1591,6 +1593,9 @@ def show_results(state):
     for disk in state.disks:
       show_report(disk.generate_disk_report(), log_report=True)
       print_standard(' ')
+
+  # Update progress
+  update_progress_pane(state)
 
 
 def update_main_options(state, selection, main_options):
