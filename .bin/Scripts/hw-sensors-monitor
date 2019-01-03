@@ -10,7 +10,7 @@ os.chdir(os.path.dirname(os.path.realpath(__file__)))
 sys.path.append(os.getcwd())
 from functions.sensors import *
 from functions.tmux import *
-init_global_vars()
+init_global_vars(silent=True)
 
 if __name__ == '__main__':
   background = False
