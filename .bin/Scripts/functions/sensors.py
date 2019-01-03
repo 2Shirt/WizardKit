@@ -134,6 +134,9 @@ def get_sensor_data():
     ## current temp is labeled xxxx_input
     for _source, _labels in _sources.items():
       for _label, _temp in _labels.items():
+        if _label.startswith('fan'):
+          # Skip fan RPMs
+          continue
         if 'input' in _label:
           sensor_data[_section][_adapter][_source] = {
             'Current': _temp,
