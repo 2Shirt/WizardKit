@@ -418,7 +418,9 @@ class DiskObj():
 
     # Check for attributes
     if KEY_NVME in self.smartctl:
-      self.nvme_attributes.update(self.smartctl[KEY_NVME])
+      self.nvme_attributes = {
+        k: {'name': k, 'raw': int(v), 'raw_str': str(v)}
+        for k, v in self.smartctl[KEY_NVME].items()}
     elif KEY_SMART in self.smartctl:
       for a in self.smartctl[KEY_SMART].get('table', {}):
         try:
@@ -453,7 +455,7 @@ class DiskObj():
       self.check_attributes(silent)
 
       # Check if a self-test is currently running
-      if 'remaining_percent' in self.smart_self_test['status']:
+      if 'remaining_percent' in self.smart_self_test.get('status', ''):
         _msg = 'SMART self-test in progress, all tests disabled'
 
         # Ask to abort
