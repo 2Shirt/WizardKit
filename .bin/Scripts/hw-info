@@ -105,8 +105,3 @@ echo -e "${BLUE}Drives${CLEAR}"
 hw-drive-info | sed 's/^/    /'
 echo ""
 
-# Sensors
-echo -e "${BLUE}Sensors${CLEAR}"
-hw-sensors | sed 's/^/    /'
-echo ""
-
