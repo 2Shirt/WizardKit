@@ -1010,6 +1010,10 @@ def run_hw_tests(state):
         f = v['Function']
         for test_obj in v['Objects']:
           f(state, test_obj)
+        if not v['Objects']:
+          # No devices available
+          v['Objects'].append(TestObj(dev=None, label=''))
+          v['Objects'][-1].update_status('N/A')
   except GenericAbort:
     # Cleanup
     tmux_kill_pane(*state.panes.values())
@@ -1592,6 +1596,9 @@ def show_results(state):
       '' if len(state.disks) == 1 else 's'))
     for disk in state.disks:
       show_report(disk.generate_disk_report(), log_report=True)
+      print_standard(' ')
+    if not state.disks:
+      print_warning('No devices')
       print_standard(' ')
 
   # Update progress
