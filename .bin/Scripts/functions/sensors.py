@@ -112,20 +112,25 @@ def get_raw_sensor_data():
   # Get raw data
   try:
     result = run_program(cmd)
+    result = result.stdout.decode().splitlines()
   except subprocess.CalledProcessError:
-    # Assuming no sensors available, return empty dict below
-    pass
+    # Assuming no sensors available, set to empty list
+    result = []
 
   # Workaround for bad sensors
   raw_data = []
-  for line in result.stdout.decode().splitlines():
+  for line in result:
     if line.strip() == ',':
       # Assuming malformatted line caused by missing data
       continue
     raw_data.append(line)
 
   # Parse JSON data
-  json_data = json.loads('\n'.join(raw_data))
+  try:
+    json_data = json.loads('\n'.join(raw_data))
+  except json.JSONDecodeError:
+    # Still broken, just set to empty dict
+    json_data = {}
 
   # Done
   return json_data
