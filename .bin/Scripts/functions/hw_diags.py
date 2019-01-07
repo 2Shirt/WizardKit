@@ -895,6 +895,18 @@ def run_badblocks_test(state, test):
   if test.disabled:
     return
 
+  def _save_badblocks_output(read_all=False, timeout=0.1):
+    """Get badblocks output and append to both file and var."""
+    _output = ''
+    while _output is not None:
+      _output = test.badblocks_nbsr.read(0.1)
+      if _output is not None:
+        test.badblocks_stderr += _output.decode()
+        with open(test.badblocks_out, 'a') as f:
+          f.write(_output.decode())
+      if not read_all:
+        break
+
   # Prep
   print_log('Starting badblocks test for {}'.format(test.dev.path))
   test.started = True
@@ -920,22 +932,26 @@ def run_badblocks_test(state, test):
 
   # Start badblocks
   print_standard('Running badblocks test...')
-  try:
-    test.badblocks_proc = popen_program(
-      ['sudo', 'hw-diags-badblocks', test.dev.path, test.badblocks_out],
-      pipe=True)
-    test.badblocks_proc.wait()
+  test.badblocks_proc = popen_program(
+    ['sudo', 'badblocks', '-sv', '-e', '1', test.dev.path],
+    pipe=True, bufsize=1)
+  test.badblocks_nbsr = NonBlockingStreamReader(test.badblocks_proc.stderr)
+  test.badblocks_stderr = ''
 
+  # Update progress loop
+  try:
+    while test.badblocks_proc.poll() is None:
+      _save_badblocks_output()
   except KeyboardInterrupt:
+    run_program(['killall', 'badblocks'], check=False)
     test.aborted = True
+
+  # Save remaining badblocks output
+  _save_badblocks_output(read_all=True)
 
   # Check result and build report
   test.report.append('{BLUE}badblocks{CLEAR}'.format(**COLORS))
-  try:
-    test.badblocks_out = test.badblocks_proc.stdout.read().decode()
-  except Exception as err:
-    test.badblocks_out = 'Error: {}'.format(err)
-  for line in test.badblocks_out.splitlines():
+  for line in test.badblocks_stderr.splitlines():
     line = line.strip()
     if not line or re.search(r'^Checking', line, re.IGNORECASE):
       # Skip empty and progress lines
