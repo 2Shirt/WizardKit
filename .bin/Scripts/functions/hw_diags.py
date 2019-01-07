@@ -157,6 +157,11 @@ class DiskObj():
     self.smartctl = {}
     self.tests = OrderedDict()
     self.get_details()
+
+    # Try enabling SMART
+    run_program(['sudo', 'smartctl', '--smart=on', self.path], check=False)
+
+    # Get NVMe/SMART data and set description
     self.get_smart_details()
     self.description = '{size} ({tran}) {model} {serial}'.format(
       **self.lsblk)
