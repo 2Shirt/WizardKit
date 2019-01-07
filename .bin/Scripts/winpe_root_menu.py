@@ -4,8 +4,7 @@ import os
 import sys
 
 # Init
-os.chdir(os.path.dirname(os.path.realpath(__file__)))
-sys.path.append(os.getcwd())
+sys.path.append(os.path.dirname(os.path.realpath(__file__)))
 from functions.winpe_menus import *
 # Fix 7-Zip name
 TOOLS['SevenZip'].pop('64')

@@ -15,8 +15,7 @@ USAGE = '''Usage: {script} <search-terms>...
   the search-terms provided (case-insensitive).'''.format(script=__file__)
 
 # Init
-os.chdir(os.path.dirname(os.path.realpath(__file__)))
-sys.path.append(os.getcwd())
+sys.path.append(os.path.dirname(os.path.realpath(__file__)))
 from functions.network import *
 init_global_vars()
 

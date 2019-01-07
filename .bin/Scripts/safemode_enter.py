@@ -4,8 +4,7 @@ import os
 import sys
 
 # Init
-os.chdir(os.path.dirname(os.path.realpath(__file__)))
-sys.path.append(os.getcwd())
+sys.path.append(os.path.dirname(os.path.realpath(__file__)))
 from functions.safemode import *
 init_global_vars()
 os.system('title {}: SafeMode Tool'.format(KIT_NAME_FULL))
