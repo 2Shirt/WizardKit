@@ -6,6 +6,7 @@ import time
 
 from collections import OrderedDict
 from functions.sensors import *
+from functions.threading import *
 from functions.tmux import *
 
 
@@ -79,9 +80,15 @@ TESTS_DISK = [
   ]
 TOP_PANE_TEXT = '{GREEN}Hardware Diagnostics{CLEAR}'.format(**COLORS)
 TMUX_LAYOUT = OrderedDict({
-  'Top':      {'y': 2,               'Check': True},
-  'Started':  {'x': SIDE_PANE_WIDTH, 'Check': True},
-  'Progress': {'x': SIDE_PANE_WIDTH, 'Check': True},
+  'Top':            {'y': 2,                'Check': True},
+  'Started':        {'x': SIDE_PANE_WIDTH,  'Check': True},
+  'Progress':       {'x': SIDE_PANE_WIDTH,  'Check': True},
+  # Testing panes
+  'Prime95':        {'y': 11,               'Check': False},
+  'Temps':          {'y': 1000,             'Check': False},
+  'SMART':          {'y': 3,                'Check': True},
+  'badblocks':      {'y': 5,                'Check': True},
+  'I/O Benchmark':  {'y': 1000,             'Check': False},
 })
 
 
@@ -640,12 +647,25 @@ def build_status_string(label, status, info_label=False):
     **COLORS)
 
 
-def fix_tmux_panes(state, tmux_layout):
+def fix_tmux_panes_loop(state):
+  while True:
+    try:
+      fix_tmux_panes(state)
+      sleep(1)
+    except AttributeError:
+      # tmux_layout attribute has been deleted, exit function
+      return
+    except RuntimeError:
+      # Assuming layout definitions changes mid-run, ignoring
+      pass
+
+
+def fix_tmux_panes(state):
   """Fix pane sizes if the window has been resized."""
   needs_fixed = False
 
   # Check layout
-  for k, v in tmux_layout.items():
+  for k, v in state.tmux_layout.items():
     if not  v.get('Check'):
       # Not concerned with the size of this pane
       continue
@@ -670,7 +690,7 @@ def fix_tmux_panes(state, tmux_layout):
     return
 
   # Update layout
-  for k, v in tmux_layout.items():
+  for k, v in state.tmux_layout.items():
     # Get target
     target = None
     if k != 'Current':
@@ -886,10 +906,6 @@ def run_badblocks_test(state, test):
     state.panes['Top'],
     text='{}\n{}'.format(
       TOP_PANE_TEXT, test.dev.description))
-  test.tmux_layout = TMUX_LAYOUT.copy()
-  test.tmux_layout.update({
-    'badblocks': {'y': 5, 'Check': True},
-    })
 
   # Create monitor pane
   test.badblocks_out = '{}/badblocks_{}.out'.format(
@@ -908,14 +924,7 @@ def run_badblocks_test(state, test):
     test.badblocks_proc = popen_program(
       ['sudo', 'hw-diags-badblocks', test.dev.path, test.badblocks_out],
       pipe=True)
-    while True:
-      try:
-        test.badblocks_proc.wait(timeout=1)
-      except subprocess.TimeoutExpired:
-        fix_tmux_panes(state, test.tmux_layout)
-      else:
-        # badblocks finished, exit loop
-        break
+    test.badblocks_proc.wait()
 
   except KeyboardInterrupt:
     test.aborted = True
@@ -960,7 +969,7 @@ def run_badblocks_test(state, test):
   update_progress_pane(state)
 
   # Cleanup
-  tmux_kill_pane(state.panes['badblocks'])
+  tmux_kill_pane(state.panes.pop('badblocks', None))
 
 
 def run_hw_tests(state):
@@ -971,6 +980,7 @@ def run_hw_tests(state):
   # Build Panes
   update_progress_pane(state)
   build_outer_panes(state)
+  start_tmux_repair_thread(state)
 
   # Show selected tests and create TestObj()s
   print_info('Selected Tests:')
@@ -1018,11 +1028,13 @@ def run_hw_tests(state):
           v['Objects'][-1].update_status('N/A')
   except GenericAbort:
     # Cleanup
+    stop_tmux_repair_thread(state)
     tmux_kill_pane(*state.panes.values())
 
     # Rebuild panes
     update_progress_pane(state)
     build_outer_panes(state)
+    start_tmux_repair_thread(state)
 
     # Mark unfinished tests as aborted
     for k, v in state.tests.items():
@@ -1036,12 +1048,14 @@ def run_hw_tests(state):
 
   # Done
   show_results(state)
+  sleep(1)
   if state.quick_mode:
-    pause('Press Enter to exit...')
+    pause('Press Enter to exit... ')
   else:
     pause('Press Enter to return to main menu... ')
 
   # Cleanup
+  stop_tmux_repair_thread(state)
   tmux_kill_pane(*state.panes.values())
 
 
@@ -1062,11 +1076,7 @@ def run_io_benchmark(state, test):
     state.panes['Top'],
     text='{}\n{}'.format(
       TOP_PANE_TEXT, test.dev.description))
-  test.tmux_layout = TMUX_LAYOUT.copy()
-  test.tmux_layout.update({
-    'io_benchmark': {'y': 1000, 'Check': False},
-    'Current': {'y': 15, 'Check': True},
-    })
+  state.tmux_layout['Current'] = {'y': 15, 'Check': True}
 
   # Create monitor pane
   test.io_benchmark_out = '{}/io_benchmark_{}.out'.format(
@@ -1122,9 +1132,6 @@ def run_io_benchmark(state, test):
 
       # Update offset
       offset += test.dev.dd_chunk_blocks + skip
-
-      # Fix panes
-      fix_tmux_panes(state, test.tmux_layout)
 
   except DeviceTooSmallError:
     # Device too small, skipping test
@@ -1200,7 +1207,8 @@ def run_io_benchmark(state, test):
   update_progress_pane(state)
 
   # Cleanup
-  tmux_kill_pane(state.panes['io_benchmark'])
+  state.tmux_layout.pop('Current', None)
+  tmux_kill_pane(state.panes.pop('io_benchmark', None))
 
 
 def run_keyboard_test():
@@ -1226,12 +1234,6 @@ def run_mprime_test(state, test):
   tmux_update_pane(
     state.panes['Top'],
     text='{}\n{}'.format(TOP_PANE_TEXT, test.dev.name))
-  test.tmux_layout = TMUX_LAYOUT.copy()
-  test.tmux_layout.update({
-    'Temps': {'y': 1000, 'Check': False},
-    'mprime': {'y': 11, 'Check': False},
-    'Current': {'y': 3, 'Check': True},
-    })
 
   # Start live sensor monitor
   test.sensors_out = '{}/sensors.out'.format(global_vars['TmpDir'])
@@ -1244,11 +1246,12 @@ def run_mprime_test(state, test):
     pipe=True)
 
   # Create monitor and worker panes
-  state.panes['mprime'] = tmux_split_window(
+  state.panes['Prime95'] = tmux_split_window(
     lines=10, vertical=True, text=' ')
   state.panes['Temps'] = tmux_split_window(
     behind=True, percent=80, vertical=True, watch=test.sensors_out)
   tmux_resize_pane(global_vars['Env']['TMUX_PANE'], y=3)
+  state.tmux_layout['Current'] = {'y': 3, 'Check': True}
 
   # Get idle temps
   clear_screen()
@@ -1263,7 +1266,7 @@ def run_mprime_test(state, test):
   test.abort_msg = 'If running too hot, press CTRL+c to abort the test'
   run_program(['apple-fans', 'max'])
   tmux_update_pane(
-    state.panes['mprime'],
+    state.panes['Prime95'],
     command=['hw-diags-prime95', global_vars['TmpDir']],
     working_dir=global_vars['TmpDir'])
   time_limit = int(MPRIME_LIMIT) * 60
@@ -1285,9 +1288,6 @@ def run_mprime_test(state, test):
       print('{YELLOW}{msg}{CLEAR}'.format(msg=test.abort_msg, **COLORS))
       update_sensor_data(test.sensor_data)
 
-      # Fix panes
-      fix_tmux_panes(state, test.tmux_layout)
-
       # Wait
       sleep(1)
   except KeyboardInterrupt:
@@ -1305,7 +1305,7 @@ def run_mprime_test(state, test):
   # Stop Prime95 (twice for good measure)
   run_program(['killall', '-s', 'INT', 'mprime'], check=False)
   sleep(1)
-  tmux_kill_pane(state.panes['mprime'])
+  tmux_kill_pane(state.panes.pop('Prime95', None))
 
   # Get cooldown temp
   run_program(['apple-fans', 'auto'])
@@ -1399,7 +1399,11 @@ def run_mprime_test(state, test):
   update_progress_pane(state)
 
   # Cleanup
-  tmux_kill_pane(state.panes['mprime'], state.panes['Temps'])
+  state.tmux_layout.pop('Current', None)
+  tmux_kill_pane(
+    state.panes.pop('Prime95', None),
+    state.panes.pop('Temps', None),
+    )
   test.monitor_proc.kill()
 
 
@@ -1428,10 +1432,6 @@ def run_nvme_smart_tests(state, test):
     state.panes['Top'],
     text='{}\n{}'.format(
       TOP_PANE_TEXT, test.dev.description))
-  test.tmux_layout = TMUX_LAYOUT.copy()
-  test.tmux_layout.update({
-    'smart': {'y': 3, 'Check': True},
-    })
 
   # NVMe
   if test.dev.nvme_attributes:
@@ -1471,7 +1471,7 @@ def run_nvme_smart_tests(state, test):
         global_vars['LogDir'], test.dev.name)
       with open(test.smart_out, 'w') as f:
         f.write('SMART self-test status:\n  Starting...')
-      state.panes['smart'] = tmux_split_window(
+      state.panes['SMART'] = tmux_split_window(
         lines=3, vertical=True, watch=test.smart_out)
 
       # Show attributes
@@ -1486,15 +1486,8 @@ def run_nvme_smart_tests(state, test):
 
       # Monitor progress
       try:
-        for i in range(int(test.timeout*60)):
-          sleep(1)
-
-          # Fix panes
-          fix_tmux_panes(state, test.tmux_layout)
-
-          # Only update SMART progress every 5 seconds
-          if i % 5 != 0:
-            continue
+        for i in range(int(test.timeout*60/5)):
+          sleep(5)
 
           # Update SMART data
           test.dev.get_smart_details()
@@ -1544,7 +1537,7 @@ def run_nvme_smart_tests(state, test):
           test.dev.disable_test(t, 'Denied')
 
       # Cleanup
-      tmux_kill_pane(state.panes['smart'])
+      tmux_kill_pane(state.panes.pop('SMART', None))
 
   # Save report
   test.report = test.dev.generate_attribute_report(
@@ -1605,6 +1598,19 @@ def show_results(state):
 
   # Update progress
   update_progress_pane(state)
+
+
+def start_tmux_repair_thread(state):
+  """Fix tmux panes as long as state.tmux_layout attribute exists."""
+  state.tmux_layout = TMUX_LAYOUT.copy()
+  start_thread(fix_tmux_panes_loop, args=[state])
+
+
+def stop_tmux_repair_thread(state):
+  """Stop previous thread by causing an AttributeError in the thread."""
+  if hasattr(state, 'tmux_layout'):
+    del state.tmux_layout
+    sleep(1)
 
 
 def update_main_options(state, selection, main_options):

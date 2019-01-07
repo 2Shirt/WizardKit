@@ -44,6 +44,9 @@ def tmux_kill_pane(*panes):
   """Kill tmux pane by id."""
   cmd = ['tmux', 'kill-pane', '-t']
   for pane_id in panes:
+    if not pane_id:
+      # Skip empty strings, None values, etc
+      continue
     run_program(cmd+[pane_id], check=False)
 
 
