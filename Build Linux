@@ -198,8 +198,10 @@ function update_live_env() {
         sed -i "/$p/d" "$LIVE_DIR/packages.x86_64"
     done < "$ROOT_DIR/.linux_items/packages/live_remove"
     cat "$ROOT_DIR/.linux_items/packages/live_add" >> "$LIVE_DIR/packages.x86_64"
-    if [[ "${1:-}" != "--minimal" ]]; then
-      cat "$ROOT_DIR/.linux_items/packages/live_add_x" >> "$LIVE_DIR/packages.x86_64"
+    if [[ "${1:-}" == "--minimal" ]]; then
+        cat "$ROOT_DIR/.linux_items/packages/live_add_min" >> "$LIVE_DIR/packages.x86_64"
+    else
+        cat "$ROOT_DIR/.linux_items/packages/live_add_x" >> "$LIVE_DIR/packages.x86_64"
     fi
     echo "[custom]" >> "$LIVE_DIR/pacman.conf"
     echo "SigLevel = Optional TrustAll" >> "$LIVE_DIR/pacman.conf"
