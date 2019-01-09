@@ -646,7 +646,10 @@ def upload_crash_details():
         data += '#############################\n'
         data += 'Runtime Details:\n\n'
         data += 'sys.argv: {}\n\n'.format(sys.argv)
-        data += 'global_vars: {}\n'.format(global_vars)
+        try:
+          data += generate_global_vars_report()
+        except Exception:
+          data += 'global_vars: {}\n'.format(global_vars)
         filename = global_vars.get('LogFile', 'Unknown')
         filename = re.sub(r'.*(\\|/)', '', filename)
         filename += '.txt'
@@ -819,6 +822,32 @@ def find_bin():
   if base is None:
     raise BinNotFoundError
   global_vars['BaseDir'] = base
+
+
+def generate_global_vars_report():
+  """Build readable string from global_vars, returns str."""
+  report = ['global_vars: {']
+  for k, v in sorted(global_vars.items()):
+    if k == 'Env':
+      continue
+    if isinstance(v, list):
+      report.append('  {}:'.format(str(k)))
+      for item in v:
+        report.append('    {}'.format(str(v)))
+    elif isinstance(v, dict):
+      report.append('  {}:'.format(str(k)))
+      for item_k, item_v in sorted(v.items()):
+        report.append('    {:<15} {}'.format(
+          str(item_k)+':', str(item_v)))
+    else:
+      report.append('  {:<18}{}'.format(str(k)+':', str(v)))
+  report.append('  Env:')
+  for k, v in sorted(global_vars.get('Env', {}).items()):
+    report.append('    {:<15} {}'.format(
+      str(k)+':', str(v)))
+  report.append('}')
+
+  return '\n'.join(report)
 
 
 def make_tmp_dirs():
