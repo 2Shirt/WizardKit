@@ -220,11 +220,15 @@ def update_sensor_data(sensor_data):
   for _section, _adapters in sensor_data.items():
     for _adapter, _sources in _adapters.items():
       for _source, _data in _sources.items():
-        _label = _data['Label']
-        _temp = json_data[_adapter][_source][_label]
-        _data['Current'] = _temp
-        _data['Max'] = max(_temp, _data['Max'])
-        _data['Temps'].append(_temp)
+        try:
+          _label = _data['Label']
+          _temp = json_data[_adapter][_source][_label]
+          _data['Current'] = _temp
+          _data['Max'] = max(_temp, _data['Max'])
+          _data['Temps'].append(_temp)
+        except Exception:
+          # Dumb workound for Dell sensors with changing source names
+          pass
 
 
 def join_columns(column1, column2, width=55):
