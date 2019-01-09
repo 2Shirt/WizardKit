@@ -581,6 +581,10 @@ class State():
       if not skip_disk:
         self.disks.append(disk_obj)
 
+    # Start tmux thread
+    self.tmux_layout = TMUX_LAYOUT.copy()
+    start_thread(fix_tmux_panes_loop, args=[self])
+
 
 class TestObj():
   """Object to track test data."""
@@ -657,9 +661,6 @@ def fix_tmux_panes_loop(state):
     try:
       fix_tmux_panes(state)
       sleep(1)
-    except AttributeError:
-      # tmux_layout attribute has been deleted, exit function
-      return
     except RuntimeError:
       # Assuming layout definitions changes mid-run, ignoring
       pass
@@ -668,6 +669,10 @@ def fix_tmux_panes_loop(state):
 def fix_tmux_panes(state):
   """Fix pane sizes if the window has been resized."""
   needs_fixed = False
+
+  # Bail?
+  if not state.panes:
+    return
 
   # Check layout
   for k, v in state.tmux_layout.items():
@@ -1001,7 +1006,6 @@ def run_hw_tests(state):
   # Build Panes
   update_progress_pane(state)
   build_outer_panes(state)
-  start_tmux_repair_thread(state)
 
   # Show selected tests and create TestObj()s
   print_info('Selected Tests:')
@@ -1049,13 +1053,13 @@ def run_hw_tests(state):
           v['Objects'][-1].update_status('N/A')
   except GenericAbort:
     # Cleanup
-    stop_tmux_repair_thread(state)
     tmux_kill_pane(*state.panes.values())
+    state.panes.clear()
+    state.tmux_layout.pop('Current', None)
 
     # Rebuild panes
     update_progress_pane(state)
     build_outer_panes(state)
-    start_tmux_repair_thread(state)
 
     # Mark unfinished tests as aborted
     for k, v in state.tests.items():
@@ -1076,8 +1080,8 @@ def run_hw_tests(state):
     pause('Press Enter to return to main menu... ')
 
   # Cleanup
-  stop_tmux_repair_thread(state)
   tmux_kill_pane(*state.panes.values())
+  state.panes.clear()
 
 
 def run_io_benchmark(state, test):
@@ -1619,19 +1623,6 @@ def show_results(state):
 
   # Update progress
   update_progress_pane(state)
-
-
-def start_tmux_repair_thread(state):
-  """Fix tmux panes as long as state.tmux_layout attribute exists."""
-  state.tmux_layout = TMUX_LAYOUT.copy()
-  start_thread(fix_tmux_panes_loop, args=[state])
-
-
-def stop_tmux_repair_thread(state):
-  """Stop previous thread by causing an AttributeError in the thread."""
-  if hasattr(state, 'tmux_layout'):
-    del state.tmux_layout
-    sleep(1)
 
 
 def update_main_options(state, selection, main_options):
