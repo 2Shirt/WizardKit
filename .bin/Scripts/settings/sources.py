@@ -1,9 +1,9 @@
 # Wizard Kit: Settings - Sources
 
 SOURCE_URLS = {
-  'Adobe Reader DC': 'http://ardownload.adobe.com/pub/adobe/reader/win/AcrobatDC/1801120058/AcroRdrDC1801120058_en_US.exe',
+  'Adobe Reader DC': 'http://ardownload.adobe.com/pub/adobe/reader/win/AcrobatDC/1901020069/AcroRdrDC1901020069_en_US.exe',
   'AdwCleaner': 'https://downloads.malwarebytes.com/file/adwcleaner',
-  'AIDA64': 'http://download.aida64.com/aida64engineer597.zip',
+  'AIDA64': 'http://download.aida64.com/aida64engineer599.zip',
   'aria2': 'https://github.com/aria2/aria2/releases/download/release-1.34.0/aria2-1.34.0-win-32bit-build1.zip',
   'Autoruns': 'https://download.sysinternals.com/files/Autoruns.zip',
   'BleachBit': 'https://download.bleachbit.org/BleachBit-2.0-portable.zip',
@@ -13,32 +13,32 @@ SOURCE_URLS = {
   'ClassicStartSkin': 'http://www.classicshell.net/forum/download/file.php?id=3001&sid=9a195960d98fd754867dcb63d9315335',
   'Du': 'https://download.sysinternals.com/files/DU.zip',
   'ERUNT': 'http://www.aumha.org/downloads/erunt.zip',
-  'Everything32': 'https://www.voidtools.com/Everything-1.4.1.895.x86.zip',
-  'Everything64': 'https://www.voidtools.com/Everything-1.4.1.895.x64.zip',
-  'FastCopy': 'http://ftp.vector.co.jp/70/64/2323/FastCopy354_installer.zip',
-  'Firefox uBO': 'https://addons.mozilla.org/firefox/downloads/file/1056733/ublock_origin-1.16.20-an+fx.xpi',
+  'Everything32': 'https://www.voidtools.com/Everything-1.4.1.924.x86.zip',
+  'Everything64': 'https://www.voidtools.com/Everything-1.4.1.924.x64.zip',
+  'FastCopy': 'http://ftp.vector.co.jp/70/93/2323/FastCopy361_installer.exe',
+  'Firefox uBO': 'https://addons.mozilla.org/firefox/downloads/file/1166954/ublock_origin-1.17.4-an+fx.xpi',
   'HitmanPro32': 'https://dl.surfright.nl/HitmanPro.exe',
   'HitmanPro64': 'https://dl.surfright.nl/HitmanPro_x64.exe',
-  'HWiNFO': 'http://app.oldfoss.com:81/download/HWiNFO/hwi_588.zip',
-  'Intel SSD Toolbox': r'https://downloadmirror.intel.com/27656/eng/Intel%20SSD%20Toolbox%20-%20v3.5.2.exe',
+  'HWiNFO': 'https://www.fosshub.com/HWiNFO.html?dwl=hwi_600.zip',
+  'Intel SSD Toolbox': r'https://downloadmirror.intel.com/28447/eng/Intel%20SSD%20Toolbox%20-%20v3.5.8.exe',
   'IOBit_Uninstaller': 'https://portableapps.duckduckgo.com/IObitUninstallerPortable_7.5.0.7.paf.exe',
   'KVRT': 'http://devbuilds.kaspersky-labs.com/devbuilds/KVRT/latest/full/KVRT.exe',
   'Macs Fan Control': 'https://www.crystalidea.com/downloads/macsfancontrol_setup.exe',
   'NirCmd32': 'https://www.nirsoft.net/utils/nircmd.zip',
   'NirCmd64': 'https://www.nirsoft.net/utils/nircmd-x64.zip',
-  'NotepadPlusPlus': 'https://notepad-plus-plus.org/repository/7.x/7.5.8/npp.7.5.8.bin.minimalist.7z',
+  'NotepadPlusPlus': 'https://notepad-plus-plus.org/repository/7.x/7.6.2/npp.7.6.2.bin.minimalist.7z',
   'Office Deployment Tool 2016': 'https://download.microsoft.com/download/2/7/A/27AF1BE6-DD20-4CB4-B154-EBAB8A7D4A7E/officedeploymenttool_10810.33603.exe',
   'ProduKey32': 'http://www.nirsoft.net/utils/produkey.zip',
   'ProduKey64': 'http://www.nirsoft.net/utils/produkey-x64.zip',
-  'PuTTY': 'https://the.earth.li/  sgtatham/putty/latest/w32/putty.zip',
+  'PuTTY': 'https://the.earth.li/~sgtatham/putty/latest/w32/putty.zip',
   'RKill': 'https://www.bleepingcomputer.com/download/rkill/dl/10/',
-  'Samsung Magician': 'https://s3.ap-northeast-2.amazonaws.com/global.semi.static/SAMSUNG_SSD_v5_2_1_180523/CD0CFAC4675B9E502899B41BE00525C3909ECE3AD57CC1A2FB6B74A766B2A1EA/Samsung_Magician_Installer.zip',
+  'Samsung Magician': 'https://s3.ap-northeast-2.amazonaws.com/global.semi.static/SAMSUNG_SSD_v5_3_0_181121/CD0C7CC1BE00525FAC4675B9E502899B41D5C3909ECE3AA2FB6B74A766B2A1EA/Samsung_Magician_Installer.zip',
   'SDIO Themes': 'http://snappy-driver-installer.org/downloads/SDIO_Themes.zip',
   'SDIO Torrent': 'http://snappy-driver-installer.org/downloads/SDIO_Update.torrent',
   'TDSSKiller': 'https://media.kaspersky.com/utilities/VirusUtilities/EN/tdsskiller.exe',
   'TestDisk': 'https://www.cgsecurity.org/testdisk-7.1-WIP.win.zip',
-  'wimlib32': 'https://wimlib.net/downloads/wimlib-1.12.0-windows-i686-bin.zip',
-  'wimlib64': 'https://wimlib.net/downloads/wimlib-1.12.0-windows-x86_64-bin.zip',
+  'wimlib32': 'https://wimlib.net/downloads/wimlib-1.13.0-windows-i686-bin.zip',
+  'wimlib64': 'https://wimlib.net/downloads/wimlib-1.13.0-windows-x86_64-bin.zip',
   'Winapp2': 'https://github.com/MoscaDotTo/Winapp2/archive/master.zip',
   'WizTree': 'https://antibody-software.com/files/wiztree_3_26_portable.zip',
   'XMPlay 7z': 'https://support.xmplay.com/files/16/xmp-7z.zip?v=800962',
@@ -172,7 +172,7 @@ NINITE_SOURCES = {
     'Launchy.exe': 'launchy',
     'RealVNC.exe': 'realvnc',
     'Revo Uninstaller.exe': 'revo',
-    'TeamViewer 13.exe': 'teamviewer13',
+    'TeamViewer 14.exe': 'teamviewer14',
     'TeraCopy.exe': 'teracopy',
     'WinDirStat.exe': 'windirstat',
     },
@@ -191,12 +191,14 @@ RST_SOURCES = {
   'SetupRST_14.0.exe': 'https://downloadmirror.intel.com/25091/eng/SetupRST.exe',
   'SetupRST_14.8.exe': 'https://downloadmirror.intel.com/26759/eng/setuprst.exe',
   'SetupRST_15.8.exe': 'https://downloadmirror.intel.com/27442/eng/SetupRST.exe',
-  'SetupRST_15.9.exe': 'https://downloadmirror.intel.com/27400/eng/SetupRST.exe',
-  'SetupRST_16.0.exe': 'https://downloadmirror.intel.com/27681/eng/SetupRST.exe',
-  'SetupRST_16.5.exe': 'https://downloadmirror.intel.com/27984/eng/SetupRST.exe',
+  #SetupRST_15.9.exe :  Deprecated by Intel
+  #SetupRST_16.0.exe :  Deprecated by Intel
+  #SetupRST_16.5.exe :  Deprecated by Intel
+  #SetupRST_16.7.exe :  Deprecated by Intel
+  'SetupRST_16.8.exe': 'https://downloadmirror.intel.com/28400/eng/SetupRST.exe',
   }
 
 if __name__ == '__main__':
   print("This file is not meant to be called directly.")
 
-# vim: sts=2 sw=2 ts=2
+# vim: sts=2 sw=2 ts=2 tw=0
