@@ -873,8 +873,14 @@ def set_linux_vars():
 
 def set_log_file(log_name):
   """Sets global var LogFile and creates path as needed."""
-  folder_path = r'{}\{}'.format(global_vars['LogDir'], KIT_NAME_FULL)
-  log_file = r'{}\{}'.format(folder_path, log_name)
+  folder_path = '{}{}{}'.format(
+    global_vars['LogDir'],
+    os.sep,
+    KIT_NAME_FULL)
+  log_file = '{}{}{}'.format(
+    folder_path,
+    os.sep,
+    log_name)
   os.makedirs(folder_path, exist_ok=True)
   global_vars['LogFile'] = log_file
 
