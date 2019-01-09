@@ -831,14 +831,16 @@ def generate_global_vars_report():
     if k == 'Env':
       continue
     if isinstance(v, list):
-      report.append('  {}:'.format(str(k)))
+      report.append('  {}: ['.format(str(k)))
       for item in v:
         report.append('    {}'.format(str(v)))
+      report.append('  ]')
     elif isinstance(v, dict):
-      report.append('  {}:'.format(str(k)))
+      report.append('  {}: {{'.format(str(k)))
       for item_k, item_v in sorted(v.items()):
         report.append('    {:<15} {}'.format(
           str(item_k)+':', str(item_v)))
+      report.append('  }')
     else:
       report.append('  {:<18}{}'.format(str(k)+':', str(v)))
   report.append('  Env:')
