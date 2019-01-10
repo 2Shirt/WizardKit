@@ -103,6 +103,33 @@ def get_boot_mode():
   return type_str
 
 
+def os_is_unsupported(show_alert=False):
+  """Checks if the current OS is unsupported, returns bool."""
+  msg = ''
+  unsupported = False
+
+  # Check OS version/notes
+  os_info = global_vars['OS'].copy()
+  if os_info['Notes'] == 'unsupported':
+    msg = 'The installed version of Windows is no longer supported'
+    unsupported = True
+  elif os_info['Notes'] == 'preview build':
+    msg = 'Preview builds are not officially supported'
+    unsupported = True
+  elif os_info['Version'] == '10' and os_info['Notes'] == 'outdated':
+    msg = 'The installed version of Windows is outdated'
+    unsupported = True
+  if 'Preview' not in msg:
+    msg += '\n\nPlease consider upgrading before continuing setup.'
+
+  # Show alert
+  if unsupported and show_alert:
+    show_alert_box(msg)
+
+  # Done
+  return unsupported
+
+
 def run_autoruns():
   """Run AutoRuns in the background with VirusTotal checks enabled."""
   extract_item('Autoruns', filter='autoruns*', silent=True)

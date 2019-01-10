@@ -288,20 +288,32 @@ def install_firefox_extensions():
   run_program(cmd)
 
 
-def install_ninite_bundle(mse=False):
-  """Run Ninite file(s) based on OS version."""
+def install_ninite_bundle(mse=False, libreoffice=False):
+  """Run Ninite installer(s), returns list of Popen objects."""
+  popen_objects = []
   if global_vars['OS']['Version'] in ('8', '8.1', '10'):
     # Modern selection
-    popen_program(r'{BaseDir}\Installers\Extras\Bundles\Modern.exe'.format(
-      **global_vars))
+    popen_objects.append(
+      popen_program(r'{BaseDir}\Installers\Extras\Bundles\Modern.exe'.format(
+        **global_vars)))
   else:
     # Legacy selection
     if mse:
       cmd = r'{BaseDir}\Installers\Extras\Security'.format(**global_vars)
       cmd += r'\Microsoft Security Essentials.exe'
-      popen_program(cmd)
-    popen_program(r'{BaseDir}\Installers\Extras\Bundles\Legacy.exe'.format(
-      **global_vars))
+      popen_objects.append(popen_program(cmd))
+    popen_objects.append(
+      popen_program(r'{BaseDir}\Installers\Extras\Bundles\Legacy.exe'.format(
+        **global_vars)))
+
+  # LibreOffice
+  if libreoffice:
+    cmd = r'{BaseDir}\Installers\Extras\Office'.format(**global_vars)
+    cmd += r'\LibreOffice.exe'
+    popen_objects.append(popen_program(cmd))
+
+  # Done
+  return popen_objects
 
 
 def install_vcredists():
