@@ -41,11 +41,13 @@ if __name__ == '__main__':
     if answer_vcr:
       install_vcredists()
     if answer_ninite:
-      try_and_print(message='Ninite bundle...',
+      result = try_and_print(message='Ninite bundle...',
         function=install_ninite_bundle, cs='Started',
         mse=answer_mse, other_results=other_results)
+      for proc in result['Out']:
+        # Wait for all processes to finish
+        proc.wait()
     if answer_extensions:
-      wait_for_process('ninite.exe')
       print_info('Installing Extensions')
       try_and_print(message='Classic Shell skin...',
         function=install_classicstart_skin,
