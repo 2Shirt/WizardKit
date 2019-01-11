@@ -182,37 +182,6 @@ def resolve_dynamic_url(source_url, regex):
   return url
 
 
-def scan_for_net_installers(server, family_name, min_year):
-  """Scan network shares for installers."""
-  if not server['Mounted']:
-    mount_network_share(server)
-
-  if server['Mounted']:
-    for year in os.scandir(r'\\{IP}\{Share}'.format(**server)):
-      try:
-        year_ok = int(year.name) < min_year
-      except ValueError:
-        year_ok = False # Skip non-year items
-      if year_ok:
-        # Don't support outdated installers
-        continue
-      for version in os.scandir(year.path):
-        section = r'Installers\Extras\{}\{}'.format(
-          family_name, year.name)
-        if section not in LAUNCHERS:
-          LAUNCHERS[section] = {}
-        name = version.name
-        if re.search(r'(exe|msi)$', name, re.IGNORECASE):
-          name = name[:-4]
-        if name not in LAUNCHERS[section]:
-          LAUNCHERS[section][name] = {
-            'L_TYPE': family_name,
-            'L_PATH': year.name,
-            'L_ITEM': version.name,
-            }
-    umount_network_share(server)
-
-
 # Data Recovery
 def update_testdisk():
   # Stop running processes

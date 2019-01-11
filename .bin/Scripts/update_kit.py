@@ -110,11 +110,6 @@ if __name__ == '__main__':
           width=40,
           item = item)
 
-    ## Search for network Office/QuickBooks installers & add to LAUNCHERS
-    print_success('Scanning for network installers')
-    scan_for_net_installers(OFFICE_SERVER, 'Office', min_year=2010)
-    scan_for_net_installers(QUICKBOOKS_SERVER, 'QuickBooks', min_year=2015)
-
     ## Generate Launchers
     print_success('Generating launchers')
     for section in sorted(LAUNCHERS.keys()):
