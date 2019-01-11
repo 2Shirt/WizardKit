@@ -21,7 +21,7 @@ SOURCE_URLS = {
   'HitmanPro64': 'https://dl.surfright.nl/HitmanPro_x64.exe',
   'HWiNFO': 'https://www.fosshub.com/HWiNFO.html?dwl=hwi_600.zip',
   'Intel SSD Toolbox': r'https://downloadmirror.intel.com/28447/eng/Intel%20SSD%20Toolbox%20-%20v3.5.8.exe',
-  'IOBit_Uninstaller': 'https://portableapps.duckduckgo.com/IObitUninstallerPortable_7.5.0.7.paf.exe',
+  'IOBit_Uninstaller': r'https://portableapps.com/redirect/?a=IObitUninstallerPortable&s=s&d=pa&f=IObitUninstallerPortable_7.5.0.7.paf.exe',
   'KVRT': 'http://devbuilds.kaspersky-labs.com/devbuilds/KVRT/latest/full/KVRT.exe',
   'Macs Fan Control': 'https://www.crystalidea.com/downloads/macsfancontrol_setup.exe',
   'NirCmd32': 'https://www.nirsoft.net/utils/nircmd.zip',
