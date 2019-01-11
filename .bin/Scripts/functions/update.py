@@ -626,21 +626,21 @@ def update_office():
     shutil.copytree(include_path, dest)
 
   # Download and extract
-  _odt = 'odt.exe'
-  _out_path = r'{}\odt'
+  _out_path = r'{}\odt'.format(global_vars['TmpDir'])
   download_to_temp('odt.exe', SOURCE_URLS['Office Deployment Tool'])
   cmd = [
-    odt,
-    r'/extract:{}\odt'.format(global_vars['TmpDir']),
+    r'{}\odt.exe'.format(global_vars['TmpDir']),
+    r'/extract:{}\odt'.format(_out_path),
     '/quiet',
     ]
   run_program(cmd)
   shutil.move(
-    _out_path,
+    r'{}\setup.exe'.format(_out_path),
     r'{}\_Office'.format(global_vars['CBinDir']))
 
   # Cleanup
-  remove_from_temp(odt.exe)
+  remove_from_temp('odt')
+  remove_from_temp('odt.exe')
 
 
 def update_classic_start_skin():
