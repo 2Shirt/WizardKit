@@ -357,61 +357,63 @@ LAUNCHERS = {
       },
     },
   r'Installers\Extras\Office\2016': {
-    'Home and Business 2016 (x32)': {
+    'Home and Business (x32)': {
       'L_TYPE': 'Office',
       'L_PATH': '2016',
       'L_ITEM': '2016_hb_32.xml',
       'L_NCMD': 'True',
       },
-    'Home and Business 2016 (x64)': {
+    'Home and Business (x64)': {
       'L_TYPE': 'Office',
       'L_PATH': '2016',
       'L_ITEM': '2016_hb_64.xml',
       'L_NCMD': 'True',
       },
-    'Home and Student 2016 (x32)': {
+    'Home and Student (x32)': {
       'L_TYPE': 'Office',
       'L_PATH': '2016',
       'L_ITEM': '2016_hs_32.xml',
       'L_NCMD': 'True',
       },
-    'Home and Student 2016 (x64)': {
+    'Home and Student (x64)': {
       'L_TYPE': 'Office',
       'L_PATH': '2016',
       'L_ITEM': '2016_hs_64.xml',
       'L_NCMD': 'True',
       },
-    'Home and Business 2019 (x32)': {
+    },
+  r'Installers\Extras\Office\2019': {
+    'Home and Business (x32)': {
       'L_TYPE': 'Office',
       'L_PATH': '2019',
       'L_ITEM': '2019_hb_32.xml',
       'L_NCMD': 'True',
       },
-    'Home and Business 2019 (x64)': {
+    'Home and Business (x64)': {
       'L_TYPE': 'Office',
       'L_PATH': '2019',
       'L_ITEM': '2019_hb_64.xml',
       'L_NCMD': 'True',
       },
-    'Home and Student 2019 (x32)': {
+    'Home and Student (x32)': {
       'L_TYPE': 'Office',
       'L_PATH': '2019',
       'L_ITEM': '2019_hs_32.xml',
       'L_NCMD': 'True',
       },
-    'Home and Student 2019 (x64)': {
+    'Home and Student (x64)': {
       'L_TYPE': 'Office',
       'L_PATH': '2019',
       'L_ITEM': '2019_hs_64.xml',
       'L_NCMD': 'True',
       },
-    'Office 365 2019 (x32)': {
+    'Office 365 (x32)': {
       'L_TYPE': 'Office',
       'L_PATH': '2019',
       'L_ITEM': '365_32.xml',
       'L_NCMD': 'True',
       },
-    'Office 365 2019 (x64)': {
+    'Office 365 (x64)': {
       'L_TYPE': 'Office',
       'L_PATH': '2019',
       'L_ITEM': '365_64.xml',
