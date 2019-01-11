@@ -630,7 +630,7 @@ def update_office():
   download_to_temp('odt.exe', SOURCE_URLS['Office Deployment Tool'])
   cmd = [
     r'{}\odt.exe'.format(global_vars['TmpDir']),
-    r'/extract:{}\odt'.format(_out_path),
+    r'/extract:{}'.format(_out_path),
     '/quiet',
     ]
   run_program(cmd)
