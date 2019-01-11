@@ -250,35 +250,33 @@ def update_fastcopy():
   # Remove existing folders
   remove_from_kit('FastCopy')
 
-  # Download
-  download_to_temp('FastCopy.zip', SOURCE_URLS['FastCopy'])
-
-  # Extract installer
-  extract_temp_to_bin('FastCopy.zip', 'FastCopy')
-  _path = r'{}\FastCopy'.format(global_vars['BinDir'])
-  _installer = 'FastCopy354_installer.exe'
-
-  # Extract 64-bit
-  cmd = [
-    r'{}\{}'.format(_path, _installer),
-    '/NOSUBDIR', '/DIR={}'.format(_path),
-    '/EXTRACT64']
-  run_program(cmd)
-  shutil.move(
-    r'{}\FastCopy\FastCopy.exe'.format(global_vars['BinDir']),
-    r'{}\FastCopy\FastCopy64.exe'.format(global_vars['BinDir']))
+  # Download installer
+  download_to_temp('FastCopy.exe', SOURCE_URLS['FastCopy'])
+  _installer = r'{}\FastCopy.exe'.format(global_vars['TmpDir'])
 
   # Extract 32-bit
+  _path32 = r'{}\FastCopy'.format(global_vars['BinDir'])
   cmd = [
-    r'{}\{}'.format(_path, _installer),
-    '/NOSUBDIR', '/DIR={}'.format(_path),
+    _installer,
+    '/NOSUBDIR', '/DIR={}'.format(_path32),
     '/EXTRACT32']
   run_program(cmd)
 
+  # Extract 64-bit
+  _path64 = r'{}\FastCopyTmp'.format(global_vars['TmpDir'])
+  cmd = [
+    _installer,
+    '/NOSUBDIR', '/DIR={}'.format(_path64),
+    '/EXTRACT64']
+  run_program(cmd)
+  shutil.move(
+    r'{}\FastCopy.exe'.format(_path64),
+    r'{}\FastCopy64.exe'.format(_path32))
+
   # Cleanup
-  os.remove(r'{}\{}'.format(_path, _installer))
-  os.remove(r'{}\setup.exe'.format(_path, _installer))
-  remove_from_temp('FastCopy.zip')
+  remove_item(r'{}\setup.exe'.format(_path32))
+  remove_item(_path64)
+  remove_from_temp('FastCopy.exe')
 
 
 def update_wimlib():
