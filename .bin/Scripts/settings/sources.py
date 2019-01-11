@@ -27,7 +27,7 @@ SOURCE_URLS = {
   'NirCmd32': 'https://www.nirsoft.net/utils/nircmd.zip',
   'NirCmd64': 'https://www.nirsoft.net/utils/nircmd-x64.zip',
   'NotepadPlusPlus': 'https://notepad-plus-plus.org/repository/7.x/7.6.2/npp.7.6.2.bin.minimalist.7z',
-  'Office Deployment Tool 2016': 'https://download.microsoft.com/download/2/7/A/27AF1BE6-DD20-4CB4-B154-EBAB8A7D4A7E/officedeploymenttool_10810.33603.exe',
+  'Office Deployment Tool': 'https://download.microsoft.com/download/2/7/A/27AF1BE6-DD20-4CB4-B154-EBAB8A7D4A7E/officedeploymenttool_11107-33602.exe',
   'ProduKey32': 'http://www.nirsoft.net/utils/produkey.zip',
   'ProduKey64': 'http://www.nirsoft.net/utils/produkey-x64.zip',
   'PuTTY': 'https://the.earth.li/~sgtatham/putty/latest/w32/putty.zip',

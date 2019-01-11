@@ -656,23 +656,22 @@ def update_office():
   if os.path.exists(include_path):
     shutil.copytree(include_path, dest)
 
-  for year in ['2016']:
-    # Download and extract
-    name = 'odt{}.exe'.format(year)
-    url = 'Office Deployment Tool {}'.format(year)
-    download_to_temp(name, SOURCE_URLS[url])
-    cmd = [
-      r'{}\odt{}.exe'.format(global_vars['TmpDir'], year),
-      r'/extract:{}\{}'.format(global_vars['TmpDir'], year),
-      '/quiet',
-      ]
-    run_program(cmd)
-    shutil.move(
-      r'{}\{}'.format(global_vars['TmpDir'], year),
-      r'{}\_Office\{}'.format(global_vars['CBinDir'], year))
+  # Download and extract
+  _odt = 'odt.exe'
+  _out_path = r'{}\odt'
+  download_to_temp('odt.exe', SOURCE_URLS['Office Deployment Tool'])
+  cmd = [
+    odt,
+    r'/extract:{}\odt'.format(global_vars['TmpDir']),
+    '/quiet',
+    ]
+  run_program(cmd)
+  shutil.move(
+    _out_path,
+    r'{}\_Office'.format(global_vars['CBinDir']))
 
-    # Cleanup
-    remove_from_temp('odt{}.exe'.format(year))
+  # Cleanup
+  remove_from_temp(odt.exe)
 
 
 def update_classic_start_skin():
