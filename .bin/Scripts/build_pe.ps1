@@ -145,7 +145,7 @@ if ($MyInvocation.InvocationName -ne ".") {
             # Killer Network Drivers
             @(
                 "killerinf.zip",
-                ("http://www.killernetworking.com"+(FindDynamicUrl "http://www.killernetworking.com/driver-downloads/item/killer-drivers-inf" "Download Killer-Ethernet").replace('&amp;', '&'))
+                ("https://www.killernetworking.com"+(FindDynamicUrl "https://www.killernetworking.com/killersupport/category/other-downloads" "Download Killer-Ethernet").replace('&amp;', '&'))
             ),
             # Notepad++
             @("npp_x86.7z", "https://notepad-plus-plus.org/repository/7.x/7.6.2/npp.7.6.2.bin.minimalist.7z"),
