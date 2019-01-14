@@ -19,7 +19,7 @@ SOURCE_URLS = {
   'Firefox uBO': 'https://addons.mozilla.org/firefox/downloads/file/1166954/ublock_origin-1.17.4-an+fx.xpi',
   'HitmanPro32': 'https://dl.surfright.nl/HitmanPro.exe',
   'HitmanPro64': 'https://dl.surfright.nl/HitmanPro_x64.exe',
-  'HWiNFO': 'https://www.fosshub.com/HWiNFO.html?dwl=hwi_600.zip',
+  'HWiNFO': 'http://files2.majorgeeks.com/caae8849cf31a8d77c51283b720e60e49ce1dc78/systeminfo/hwi_600.zip',
   'Intel SSD Toolbox': r'https://downloadmirror.intel.com/28447/eng/Intel%20SSD%20Toolbox%20-%20v3.5.8.exe',
   'IOBit_Uninstaller': r'https://portableapps.com/redirect/?a=IObitUninstallerPortable&s=s&d=pa&f=IObitUninstallerPortable_7.5.0.7.paf.exe',
   'KVRT': 'http://devbuilds.kaspersky-labs.com/devbuilds/KVRT/latest/full/KVRT.exe',
