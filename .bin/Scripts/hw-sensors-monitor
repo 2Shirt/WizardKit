@@ -1,0 +1,36 @@
+#!/bin/python3
+#
+## Wizard Kit: Sensor monitoring tool
+
+import os
+import sys
+
+# Init
+sys.path.append(os.path.dirname(os.path.realpath(__file__)))
+from functions.sensors import *
+from functions.tmux import *
+init_global_vars(silent=True)
+
+if __name__ == '__main__':
+  background = False
+  try:
+    if len(sys.argv) > 1 and os.path.exists(sys.argv[1]):
+      background = True
+      monitor_file = sys.argv[1]
+      monitor_pane = None
+    else:
+      result = run_program(['mktemp'])
+      monitor_file = result.stdout.decode().strip()
+    if not background:
+      monitor_pane = tmux_split_window(
+        percent=1, vertical=True, watch=monitor_file)
+      cmd = ['tmux', 'resize-pane', '-Z', '-t', monitor_pane]
+      run_program(cmd, check=False)
+    monitor_sensors(monitor_pane, monitor_file)
+    exit_script()
+  except SystemExit:
+    pass
+  except:
+    major_exception()
+
+# vim: sts=2 sw=2 ts=2

@@ -14,5 +14,6 @@ if [ ! -d "$1" ]; then
 fi
 
 # Run Prime95
-mprime -t | grep -iv --line-buffered 'stress.txt' | tee -a "$1/prime.log"
+cd "$1"
+mprime -t | grep -iv --line-buffered 'stress.txt' | tee -a "prime.log"
 

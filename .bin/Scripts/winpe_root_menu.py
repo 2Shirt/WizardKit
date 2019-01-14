@@ -4,8 +4,7 @@ import os
 import sys
 
 # Init
-os.chdir(os.path.dirname(os.path.realpath(__file__)))
-sys.path.append(os.getcwd())
+sys.path.append(os.path.dirname(os.path.realpath(__file__)))
 from functions.winpe_menus import *
 # Fix 7-Zip name
 TOOLS['SevenZip'].pop('64')
@@ -14,9 +13,11 @@ set_title('{}: Root Menu'.format(KIT_NAME_FULL))
 set_log_file('WinPE.log')
 
 if __name__ == '__main__':
-    try:
-        menu_root()
-    except SystemExit:
-        pass
-    except:
-        major_exception()
+  try:
+    menu_root()
+  except SystemExit:
+    pass
+  except:
+    major_exception()
+
+# vim: sts=2 sw=2 ts=2

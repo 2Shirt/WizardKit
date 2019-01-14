@@ -6,37 +6,37 @@ import os
 import sys
 
 # Init
-os.chdir(os.path.dirname(os.path.realpath(__file__)))
-sys.path.append(os.getcwd())
+sys.path.append(os.path.dirname(os.path.realpath(__file__)))
 from functions.common import *
 init_global_vars()
 
 if __name__ == '__main__':
+  try:
+    # Prep
+    clear_screen()
+    print_standard('Hardware Diagnostics: Audio\n')
+
+    # Set volume
     try:
-        # Prep
-        clear_screen()
-        print_standard('Hardware Diagnostics: Audio\n')
+      run_program('amixer -q set "Master" 80% unmute'.split())
+      run_program('amixer -q set "PCM" 90% unmute'.split())
+    except subprocess.CalledProcessError:
+      print_error('Failed to set volume')
 
-        # Set volume
-        try:
-            run_program('amixer -q set "Master" 80% unmute'.split())
-            run_program('amixer -q set "PCM" 90% unmute'.split())
-        except subprocess.CalledProcessError:
-            print_error('Failed to set volume')
-        
-        # Run tests
-        for mode in ['pink', 'wav']:
-            run_program(
-                cmd = 'speaker-test -c 2 -l 1 -t {}'.format(mode).split(),
-                check = False,
-                pipe = False)
-        
-        # Done
-        #print_standard('\nDone.')
-        #pause("Press Enter to exit...")
-        exit_script()
-    except SystemExit:
-        pass
-    except:
-        major_exception()
+    # Run tests
+    for mode in ['pink', 'wav']:
+      run_program(
+        cmd = 'speaker-test -c 2 -l 1 -t {}'.format(mode).split(),
+        check = False,
+        pipe = False)
 
+    # Done
+    #print_standard('\nDone.')
+    #pause("Press Enter to exit...")
+    exit_script()
+  except SystemExit:
+    pass
+  except:
+    major_exception()
+
+# vim: sts=2 sw=2 ts=2

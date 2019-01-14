@@ -6,33 +6,33 @@ import os
 import sys
 
 # Init
-os.chdir(os.path.dirname(os.path.realpath(__file__)))
-sys.path.append(os.getcwd())
+sys.path.append(os.path.dirname(os.path.realpath(__file__)))
 from functions.data import *
 init_global_vars()
 
 if __name__ == '__main__':
-    try:
-        # Prep
-        clear_screen()
-        print_standard('{}: Volume mount tool'.format(KIT_NAME_FULL))
+  try:
+    # Prep
+    clear_screen()
+    print_standard('{}: Volume mount tool'.format(KIT_NAME_FULL))
 
-        # Mount volumes
-        report = mount_volumes(all_devices=True)
+    # Mount volumes
+    report = mount_volumes(all_devices=True)
 
-        # Print report
-        print_info('\nResults')
-        for vol_name, vol_data in sorted(report.items()):
-            show_data(indent=4, width=20, **vol_data['show_data'])
+    # Print report
+    print_info('\nResults')
+    for vol_name, vol_data in sorted(report.items()):
+      show_data(indent=4, width=20, **vol_data['show_data'])
 
-        # Done
-        print_standard('\nDone.')
-        if 'gui' in sys.argv:
-            pause("Press Enter to exit...")
-            popen_program(['nohup', 'thunar', '/media'], pipe=True)
-        exit_script()
-    except SystemExit:
-        pass
-    except:
-        major_exception()
+    # Done
+    print_standard('\nDone.')
+    if 'gui' in sys.argv:
+      pause("Press Enter to exit...")
+      popen_program(['nohup', 'thunar', '/media'], pipe=True)
+    exit_script()
+  except SystemExit:
+    pass
+  except:
+    major_exception()
 
+# vim: sts=2 sw=2 ts=2

@@ -2,8 +2,8 @@ aic94xx-firmware
 bash-pipes
 hfsprogs
 i3lock-fancy-git
+macbook12-spi-driver-dkms
 mprime
-nvme-cli
 openbox-patched
 smartmontools-svn
 testdisk-wip

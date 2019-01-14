@@ -3,7 +3,7 @@
 ## Wizard Kit: ddrescue TUI Launcher
 
 SESSION_NAME="ddrescue-tui"
-WINDOW_NAME="GNU ddrescue TUI"
+WINDOW_NAME="ddrescue TUI"
 MENU="ddrescue-tui-menu"
 
 function ask() {

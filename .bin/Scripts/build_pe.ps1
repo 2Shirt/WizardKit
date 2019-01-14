@@ -131,25 +131,25 @@ if ($MyInvocation.InvocationName -ne ".") {
         ## Download Tools ##
         $ToolSources = @(
             # 7-Zip
-            @("7z-installer.msi", "https://www.7-zip.org/a/7z1805.msi"),
-            @("7z-extra.7z", "https://www.7-zip.org/a/7z1805-extra.7z"),
+            @("7z-installer.msi", "https://www.7-zip.org/a/7z1806.msi"),
+            @("7z-extra.7z", "https://www.7-zip.org/a/7z1806-extra.7z"),
             # Blue Screen View
             @("bluescreenview32.zip", "http://www.nirsoft.net/utils/bluescreenview.zip"),
             @("bluescreenview64.zip", "http://www.nirsoft.net/utils/bluescreenview-x64.zip"),
             # ConEmu
             @("ConEmuPack.7z", "https://github.com/Maximus5/ConEmu/releases/download/v18.06.26/ConEmuPack.180626.7z"),
             # Fast Copy
-            @("fastcopy.zip", "http://ftp.vector.co.jp/70/64/2323/FastCopy354_installer.zip"),
+            @("fastcopy.zip", "http://ftp.vector.co.jp/70/93/2323/FastCopy361_installer.exe"),
             # HWiNFO
-            @("hwinfo.zip", "http://app.oldfoss.com:81/download/HWiNFO/hwi_588.zip"),
+            @("hwinfo.zip", "https://www.fosshub.com/HWiNFO.html?dwl=hwi_600.zip"),
             # Killer Network Drivers
             @(
                 "killerinf.zip",
-                ("http://www.killernetworking.com"+(FindDynamicUrl "http://www.killernetworking.com/driver-downloads/item/killer-drivers-inf" "Download Killer-Ethernet").replace('&amp;', '&'))
+                ("https://www.killernetworking.com"+(FindDynamicUrl "https://www.killernetworking.com/killersupport/category/other-downloads" "Download Killer-Ethernet").replace('&amp;', '&'))
             ),
             # Notepad++
-            @("npp_x86.7z", "https://notepad-plus-plus.org/repository/7.x/7.5.8/npp.7.5.8.bin.minimalist.7z"),
-            @("npp_amd64.7z", "https://notepad-plus-plus.org/repository/7.x/7.5.8/npp.7.5.8.bin.minimalist.x64.7z"),
+            @("npp_x86.7z", "https://notepad-plus-plus.org/repository/7.x/7.6.2/npp.7.6.2.bin.minimalist.7z"),
+            @("npp_amd64.7z", "https://notepad-plus-plus.org/repository/7.x/7.6.2/npp.7.6.2.bin.minimalist.x64.7z"),
             # NT Password Editor
             @("ntpwed.zip", "http://cdslow.org.ru/files/ntpwedit/ntpwed07.zip"),
             # Prime95
@@ -159,8 +159,8 @@ if ($MyInvocation.InvocationName -ne ".") {
             @("produkey32.zip", "http://www.nirsoft.net/utils/produkey.zip"),
             @("produkey64.zip", "http://www.nirsoft.net/utils/produkey-x64.zip"),
             # Python
-            @("python32.zip", "https://www.python.org/ftp/python/3.7.0/python-3.7.0-embed-win32.zip"),
-            @("python64.zip", "https://www.python.org/ftp/python/3.7.0/python-3.7.0-embed-amd64.zip"),
+            @("python32.zip", "https://www.python.org/ftp/python/3.7.2/python-3.7.2.post1-embed-win32.zip"),
+            @("python64.zip", "https://www.python.org/ftp/python/3.7.2/python-3.7.2.post1-embed-amd64.zip"),
             # Python: psutil
             @(
                 "psutil64.whl",
@@ -182,8 +182,8 @@ if ($MyInvocation.InvocationName -ne ".") {
             @("vcredist_x86.exe", "https://aka.ms/vs/15/release/vc_redist.x86.exe"),
             @("vcredist_x64.exe", "https://aka.ms/vs/15/release/vc_redist.x64.exe"),
             # wimlib-imagex
-            @("wimlib32.zip", "https://wimlib.net/downloads/wimlib-1.12.0-windows-i686-bin.zip"),
-            @("wimlib64.zip", "https://wimlib.net/downloads/wimlib-1.12.0-windows-x86_64-bin.zip")
+            @("wimlib32.zip", "https://wimlib.net/downloads/wimlib-1.13.0-windows-i686-bin.zip"),
+            @("wimlib64.zip", "https://wimlib.net/downloads/wimlib-1.13.0-windows-x86_64-bin.zip")
         )
         foreach ($Tool in $ToolSources) {
             DownloadFile -Path $Temp -Name $Tool[0] -Url $Tool[1]

@@ -151,6 +151,7 @@ goto Exit
 call "%bin%\Scripts\init_client_dir.cmd" /Office
 set "_odt=False"
 if %L_PATH% equ 2016 (set "_odt=True")
+if %L_PATH% equ 2019 (set "_odt=True")
 if "%_odt%" == "True" (
     goto LaunchOfficeODT
 ) else (
@@ -161,8 +162,8 @@ if "%_odt%" == "True" (
 rem Prep
 set "args=-aoa -bso0 -bse0 -bsp0 -p%ARCHIVE_PASSWORD%"
 set "config=%L_ITEM%"
-set "dest=%client_dir%\Office\%L_PATH%"
-set "odt_exe=%L_PATH%\setup.exe"
+set "dest=%client_dir%\Office\ODT"
+set "odt_exe=setup.exe"
 set "source=%cbin%\_Office.7z"
 
 rem Extract

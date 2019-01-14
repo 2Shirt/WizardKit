@@ -79,21 +79,21 @@ if ($MyInvocation.InvocationName -ne ".") {
     $Path = $Temp
 
     # 7-Zip
-    DownloadFile -Path $Path -Name "7z-installer.msi" -Url "https://www.7-zip.org/a/7z1805.msi"
-    DownloadFile -Path $Path -Name "7z-extra.7z" -Url "https://www.7-zip.org/a/7z1805-extra.7z"
+    DownloadFile -Path $Path -Name "7z-installer.msi" -Url "https://www.7-zip.org/a/7z1806.msi"
+    DownloadFile -Path $Path -Name "7z-extra.7z" -Url "https://www.7-zip.org/a/7z1806-extra.7z"
 
     # ConEmu
     $Url = "https://github.com/Maximus5/ConEmu/releases/download/v18.06.26/ConEmuPack.180626.7z"
     DownloadFile -Path $Path -Name "ConEmuPack.7z" -Url $Url
 
     # Notepad++
-    $Url = "https://notepad-plus-plus.org/repository/7.x/7.5.8/npp.7.5.8.bin.minimalist.7z"
+    $Url = "https://notepad-plus-plus.org/repository/7.x/7.6.2/npp.7.6.2.bin.minimalist.7z"
     DownloadFile -Path $Path -Name "npp.7z" -Url $Url
 
     # Python
-    $Url = "https://www.python.org/ftp/python/3.7.0/python-3.7.0-embed-win32.zip"
+    $Url = "https://www.python.org/ftp/python/3.7.2/python-3.7.2.post1-embed-win32.zip"
     DownloadFile -Path $Path -Name "python32.zip" -Url $Url
-    $Url = "https://www.python.org/ftp/python/3.7.0/python-3.7.0-embed-amd64.zip"
+    $Url = "https://www.python.org/ftp/python/3.7.2/python-3.7.2.post1-embed-amd64.zip"
     DownloadFile -Path $Path -Name "python64.zip" -Url $Url
 
     # Python: psutil

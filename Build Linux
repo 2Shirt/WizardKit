@@ -119,6 +119,9 @@ function copy_live_env() {
     
     # Add items
     rsync -aI "$ROOT_DIR/.linux_items/include/" "$LIVE_DIR/"
+    if [[ "${1:-}" != "--minimal" ]]; then
+      rsync -aI "$ROOT_DIR/.linux_items/include_x/" "$LIVE_DIR/"
+    fi
     mkdir -p "$LIVE_DIR/airootfs/usr/local/bin"
     rsync -aI "$ROOT_DIR/.bin/Scripts/" "$LIVE_DIR/airootfs/usr/local/bin/"
     cp -a "$BUILD_DIR/main.py" "$LIVE_DIR/airootfs/usr/local/bin/settings/"
@@ -170,13 +173,15 @@ function update_live_env() {
     # Memtest86
     mkdir -p "$LIVE_DIR/EFI/memtest86/Benchmark"
     mkdir -p "$TEMP_DIR/memtest86"
-    curl -Lo "$TEMP_DIR/memtest86/memtest86.iso.tar.gz" "https://www.memtest86.com/downloads/memtest86-iso.tar.gz"
-    tar xvf "$TEMP_DIR/memtest86/memtest86.iso.tar.gz" -C "$TEMP_DIR/memtest86"
-    7z x "$TEMP_DIR/memtest86"/*.iso -o"$TEMP_DIR/memtest86"
-    mv "$TEMP_DIR/memtest86/EFI/BOOT/BLACKLIS.CFG" "$LIVE_DIR/EFI/memtest86/blacklist.cfg"
-    mv "$TEMP_DIR/memtest86/EFI/BOOT/BOOTX64.EFI" "$LIVE_DIR/EFI/memtest86/memtestx64.efi"
-    mv "$TEMP_DIR/memtest86/EFI/BOOT/MT86.PNG" "$LIVE_DIR/EFI/memtest86/mt86.png"
-    mv "$TEMP_DIR/memtest86/EFI/BOOT/UNIFONT.BIN" "$LIVE_DIR/EFI/memtest86/unifont.bin"
+    curl -Lo "$TEMP_DIR/memtest86/memtest86-usb.zip" "https://www.memtest86.com/downloads/memtest86-usb.zip"
+    7z e "$TEMP_DIR/memtest86/memtest86-usb.zip" -o"$TEMP_DIR/memtest86" "memtest86-usb.img"
+    7z e "$TEMP_DIR/memtest86/memtest86-usb.img" -o"$TEMP_DIR/memtest86" "MemTest86.img"
+    7z x "$TEMP_DIR/memtest86/MemTest86.img" -o"$TEMP_DIR/memtest86"
+    rm "$TEMP_DIR/memtest86/EFI/BOOT/BOOTIA32.efi"
+    mv "$TEMP_DIR/memtest86/EFI/BOOT/BOOTX64.efi" "$LIVE_DIR/EFI/memtest86/memtestx64.efi"
+    mv "$TEMP_DIR/memtest86/EFI/BOOT"/* "$LIVE_DIR/EFI/memtest86"/
+    mv "$TEMP_DIR/memtest86/help"/* "$LIVE_DIR/EFI/memtest86"/
+    mv "$TEMP_DIR/memtest86/license.rtf" "$LIVE_DIR/EFI/memtest86"/
 
     # build.sh
     if ! grep -iq 'wizardkit additions' "$LIVE_DIR/build.sh"; then
@@ -193,6 +198,11 @@ function update_live_env() {
         sed -i "/$p/d" "$LIVE_DIR/packages.x86_64"
     done < "$ROOT_DIR/.linux_items/packages/live_remove"
     cat "$ROOT_DIR/.linux_items/packages/live_add" >> "$LIVE_DIR/packages.x86_64"
+    if [[ "${1:-}" == "--minimal" ]]; then
+        cat "$ROOT_DIR/.linux_items/packages/live_add_min" >> "$LIVE_DIR/packages.x86_64"
+    else
+        cat "$ROOT_DIR/.linux_items/packages/live_add_x" >> "$LIVE_DIR/packages.x86_64"
+    fi
     echo "[custom]" >> "$LIVE_DIR/pacman.conf"
     echo "SigLevel = Optional TrustAll" >> "$LIVE_DIR/pacman.conf"
     echo "Server = file://$REPO_DIR" >> "$LIVE_DIR/pacman.conf"
@@ -211,10 +221,12 @@ function update_live_env() {
     rm -Rf "$SKEL_DIR/.oh-my-zsh/.git"
     curl -o "$SKEL_DIR/.oh-my-zsh/themes/lean.zsh-theme" https://raw.githubusercontent.com/miekg/lean/master/prompt_lean_setup
     
-    # Openbox theme
-    git clone --depth=1 https://github.com/addy-dclxvi/Openbox-Theme-Collections.git "$TEMP_DIR/ob-themes"
-    mkdir -p "$LIVE_DIR/airootfs/usr/share/themes"
-    cp -a "$TEMP_DIR/ob-themes/Triste-Orange" "$LIVE_DIR/airootfs/usr/share/themes/"
+    if [[ "${1:-}" != "--minimal" ]]; then
+      # Openbox theme
+      git clone --depth=1 https://github.com/addy-dclxvi/Openbox-Theme-Collections.git "$TEMP_DIR/ob-themes"
+      mkdir -p "$LIVE_DIR/airootfs/usr/share/themes"
+      cp -a "$TEMP_DIR/ob-themes/Triste-Orange" "$LIVE_DIR/airootfs/usr/share/themes/"
+    fi
 
     # Services
     sed -i -r 's/^(.*pacman-init.*)$/#NOPE#\1/' "$LIVE_DIR/airootfs/root/customize_airootfs.sh"
@@ -257,13 +269,15 @@ function update_live_env() {
     # udevil fix
     echo "mkdir /media" >> "$LIVE_DIR/airootfs/root/customize_airootfs.sh"
 
-    # VNC password
-    echo "mkdir '/home/$username/.vnc'" >> "$LIVE_DIR/airootfs/root/customize_airootfs.sh"
-    echo "echo '$TECH_PASSWORD' | vncpasswd -f > '/home/$username/.vnc/passwd'" >> "$LIVE_DIR/airootfs/root/customize_airootfs.sh"
+    if [[ "${1:-}" != "--minimal" ]]; then
+      # VNC password
+      echo "mkdir '/home/$username/.vnc'" >> "$LIVE_DIR/airootfs/root/customize_airootfs.sh"
+      echo "echo '$TECH_PASSWORD' | vncpasswd -f > '/home/$username/.vnc/passwd'" >> "$LIVE_DIR/airootfs/root/customize_airootfs.sh"
 
-    # Wallpaper
-    mkdir -p "$LIVE_DIR/airootfs/usr/share/wallpaper"
-    cp "$ROOT_DIR/Images/Linux.png" "$LIVE_DIR/airootfs/usr/share/wallpaper/burned.in"
+      # Wallpaper
+      mkdir -p "$LIVE_DIR/airootfs/usr/share/wallpaper"
+      cp "$ROOT_DIR/Images/Linux.png" "$LIVE_DIR/airootfs/usr/share/wallpaper/burned.in"
+    fi
 }
 
 function update_repo() {
@@ -384,6 +398,13 @@ case ${1:-} in
         echo Done
         ;;
 
+    -m|--prep-minimal-env)
+        load_settings --edit
+        copy_live_env --minimal
+        update_live_env --minimal
+        echo Done
+        ;;
+
     -o|--build-iso)
         load_settings
         build_iso
@@ -412,6 +433,7 @@ case ${1:-} in
         echo "Advanced options:"
         echo "    -f --fix-perms        Fix folder permissions"
         echo "    -i --install-deps     Install build dependencies"
+        echo "    -m --prep-minimal-env Prep live & airootfs folders (minimal packages)"
         echo "    -o --build-iso        Build ISO (using current setup)"
         echo "    -p --prep-live-env    Prep live & airootfs folders"
         echo "    -u --update-repo      Update custom pacman repo"
