@@ -430,9 +430,17 @@ class DiskObj():
 
     # Check for attributes
     if KEY_NVME in self.smartctl:
-      self.nvme_attributes = {
-        k: {'name': k, 'raw': int(v), 'raw_str': str(v)}
-        for k, v in self.smartctl[KEY_NVME].items()}
+      self.nvme_attributes = {}
+      for k, v in self.smartctl[KEY_NVME].items():
+        try:
+          self.nvme_attributes[k] = {
+            'name': k,
+            'raw': int(v),
+            'raw_str': str(v),
+            }
+        except Exception:
+          # TODO: Limit this check
+          pass
     elif KEY_SMART in self.smartctl:
       for a in self.smartctl[KEY_SMART].get('table', {}):
         try:
