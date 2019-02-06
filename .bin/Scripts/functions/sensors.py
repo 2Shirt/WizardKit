@@ -20,7 +20,7 @@ REGEX_COLORS = re.compile(r'\033\[\d+;?1?m')
 
 
 # Error Classes
-class ThermalError(Exception):
+class ThermalLimitReachedError(Exception):
   pass
 
 
@@ -219,7 +219,7 @@ def save_average_temp(sensor_data, temp_label, seconds=10):
         _data[temp_label] = sum(_data['Temps']) / len(_data['Temps'])
 
 
-def update_sensor_data(sensor_data, thermal_threshold=None):
+def update_sensor_data(sensor_data, thermal_limit=None):
   """Read sensors and update existing sensor_data, returns dict."""
   json_data = get_raw_sensor_data()
   for _section, _adapters in sensor_data.items():
@@ -236,9 +236,9 @@ def update_sensor_data(sensor_data, thermal_threshold=None):
           pass
 
         # Check if thermal limit reached
-        if thermal_threshold and _section == 'CoreTemps':
-          if max(_data['Current'], _data['Max']) >= thermal_threshold:
-            raise ThermalError('CoreTemps above threshold')
+        if thermal_limit and _section == 'CoreTemps':
+          if max(_data['Current'], _data['Max']) >= thermal_limit:
+            raise ThermalLimitReachedError('CoreTemps reached limit')
 
 
 def join_columns(column1, column2, width=55):

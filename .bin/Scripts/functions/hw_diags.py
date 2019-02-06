@@ -1325,12 +1325,12 @@ def run_mprime_test(state, test):
 
       # Wait
       sleep(1)
-  except (KeyboardInterrupt, ThermalError) as err:
-    # CTRL+c pressed or thermal threshold reached
+  except (KeyboardInterrupt, ThermalLimitReachedError) as err:
+    # CTRL+c pressed or thermal limit reached
     test.aborted = True
     if isinstance(err, KeyboardInterrupt):
       test.update_status('Aborted')
-    elif isinstance(err, ThermalError):
+    elif isinstance(err, ThermalLimitReachedError):
       test.failed = True
       test.thermal_abort = True
       test.update_status('NS')
@@ -1440,7 +1440,7 @@ def run_mprime_test(state, test):
       '  {YELLOW}Aborted{CLEAR}'.format(**COLORS))
   if test.thermal_abort:
     test.report.append(
-      '  {RED}CPU temps exceeded threshold{CLEAR}'.format(**COLORS))
+      '  {RED}CPU reached temperature limit{CLEAR}'.format(**COLORS))
 
   # Done
   update_progress_pane(state)
