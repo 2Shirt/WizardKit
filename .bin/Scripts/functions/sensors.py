@@ -237,7 +237,7 @@ def update_sensor_data(sensor_data, thermal_threshold=None):
 
         # Check if thermal limit reached
         if thermal_threshold and _section == 'CoreTemps':
-          if max(_data['Current'], _data['Max']) > thermal_threshold:
+          if max(_data['Current'], _data['Max']) >= thermal_threshold:
             raise ThermalError('CoreTemps above threshold')
 
 
