@@ -16,6 +16,7 @@ KIT_NAME_SHORT='WK'
 SUPPORT_MESSAGE='Please let 2Shirt know by opening an issue on GitHub'
 # Live Linux
 MPRIME_LIMIT='7'                            # of minutes to run Prime95 during hw-diags
+THERMAL_LIMIT='95'                          # Prime95 abort temperature in Celsius
 ROOT_PASSWORD='Abracadabra'
 TECH_PASSWORD='Abracadabra'
 # Server IP addresses

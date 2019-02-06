@@ -19,6 +19,11 @@ TEMP_LIMITS = {
 REGEX_COLORS = re.compile(r'\033\[\d+;?1?m')
 
 
+# Error Classes
+class ThermalLimitReachedError(Exception):
+  pass
+
+
 def clear_temps(sensor_data):
   """Clear saved temps but keep structure, returns dict."""
   for _section, _adapters in sensor_data.items():
@@ -214,7 +219,7 @@ def save_average_temp(sensor_data, temp_label, seconds=10):
         _data[temp_label] = sum(_data['Temps']) / len(_data['Temps'])
 
 
-def update_sensor_data(sensor_data):
+def update_sensor_data(sensor_data, thermal_limit=None):
   """Read sensors and update existing sensor_data, returns dict."""
   json_data = get_raw_sensor_data()
   for _section, _adapters in sensor_data.items():
@@ -229,6 +234,11 @@ def update_sensor_data(sensor_data):
         except Exception:
           # Dumb workound for Dell sensors with changing source names
           pass
+
+        # Check if thermal limit reached
+        if thermal_limit and _section == 'CoreTemps':
+          if max(_data['Current'], _data['Max']) >= thermal_limit:
+            raise ThermalLimitReachedError('CoreTemps reached limit')
 
 
 def join_columns(column1, column2, width=55):

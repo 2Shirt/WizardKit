@@ -1262,6 +1262,7 @@ def run_mprime_test(state, test):
   test.update_status()
   update_progress_pane(state)
   test.sensor_data = get_sensor_data()
+  test.thermal_abort = False
 
   # Update tmux layout
   tmux_update_pane(
@@ -1303,6 +1304,7 @@ def run_mprime_test(state, test):
     command=['hw-diags-prime95', global_vars['TmpDir']],
     working_dir=global_vars['TmpDir'])
   time_limit = int(MPRIME_LIMIT) * 60
+  thermal_limit = int(THERMAL_LIMIT)
   try:
     for i in range(time_limit):
       clear_screen()
@@ -1319,15 +1321,19 @@ def run_mprime_test(state, test):
       # Not using print wrappers to avoid flooding the log
       print(_status_str)
       print('{YELLOW}{msg}{CLEAR}'.format(msg=test.abort_msg, **COLORS))
-      update_sensor_data(test.sensor_data)
+      update_sensor_data(test.sensor_data, thermal_limit)
 
       # Wait
       sleep(1)
-  except KeyboardInterrupt:
-    # Catch CTRL+C
+  except (KeyboardInterrupt, ThermalLimitReachedError) as err:
+    # CTRL+c pressed or thermal limit reached
     test.aborted = True
-    test.update_status('Aborted')
-    print_warning('\nAborted.')
+    if isinstance(err, KeyboardInterrupt):
+      test.update_status('Aborted')
+    elif isinstance(err, ThermalLimitReachedError):
+      test.failed = True
+      test.thermal_abort = True
+      test.update_status('NS')
     update_progress_pane(state)
 
     # Restart live monitor
@@ -1427,6 +1433,16 @@ def run_mprime_test(state, test):
   for line in generate_sensor_report(
       test.sensor_data, 'Idle', 'Max', 'Cooldown', core_only=True):
     test.report.append('  {}'.format(line))
+
+  # Add abort message(s)
+  if test.aborted:
+    test.report.append(
+      '  {YELLOW}Aborted{CLEAR}'.format(**COLORS))
+  if test.thermal_abort:
+    test.report.append(
+      '  {RED}CPU reached temperature limit of {temp}°C{CLEAR}'.format(
+        temp=THERMAL_LIMIT,
+        **COLORS))
 
   # Done
   update_progress_pane(state)
