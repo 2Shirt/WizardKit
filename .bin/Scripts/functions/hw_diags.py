@@ -981,7 +981,8 @@ def run_badblocks_test(state, test):
     else:
       test.report.append('  {YELLOW}{line}{CLEAR}'.format(
         line=line, **COLORS))
-      test.failed = True
+      if not test.aborted:
+        test.failed = True
   if test.aborted:
     test.report.append('  {YELLOW}Aborted{CLEAR}'.format(**COLORS))
     test.update_status('Aborted')
