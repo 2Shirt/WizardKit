@@ -1440,7 +1440,9 @@ def run_mprime_test(state, test):
       '  {YELLOW}Aborted{CLEAR}'.format(**COLORS))
   if test.thermal_abort:
     test.report.append(
-      '  {RED}CPU reached temperature limit{CLEAR}'.format(**COLORS))
+      '  {RED}CPU reached temperature limit of {temp}°C{CLEAR}'.format(
+        temp=THERMAL_LIMIT,
+        **COLORS))
 
   # Done
   update_progress_pane(state)
