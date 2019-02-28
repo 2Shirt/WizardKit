@@ -59,13 +59,14 @@ SETTINGS_EXPLORER_SYSTEM = {
     },
   }
 SETTINGS_EXPLORER_USER = {
-  # Disable silently installed apps
   r'Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager': {
-    'DWORD Items': {'SilentInstalledAppsEnabled': 0},
-    },
-  # Disable Tips and Tricks
-  r'Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager': {
-    'DWORD Items': {'SoftLandingEnabled ': 0},
+    'DWORD Items': {
+      # Disable silently installed apps
+      'SilentInstalledAppsEnabled': 0,
+      # Disable Tips and Tricks
+      'SoftLandingEnabled ': 0,
+      'SubscribedContent-338389Enabled': 0,
+      },
     },
   # Hide People bar
   r'Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced\People': {
