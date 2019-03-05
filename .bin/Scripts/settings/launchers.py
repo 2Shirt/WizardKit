@@ -8,6 +8,12 @@ LAUNCHERS = {
       'L_ITEM': 'activate.py',
       'L_ELEV': 'True',
       },
+    'New System Setup': {
+      'L_TYPE': 'PyScript',
+      'L_PATH': 'Scripts',
+      'L_ITEM': 'new_system_setup.py',
+      'L_ELEV': 'True',
+      },
     'System Checklist': {
       'L_TYPE': 'PyScript',
       'L_PATH': 'Scripts',
