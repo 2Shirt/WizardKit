@@ -1,0 +1,39 @@
+# Wizard Kit: Settings - ddrescue-tui
+
+# General
+RECOMMENDED_FSTYPES = ['ext3', 'ext4', 'xfs']
+USAGE = """  {script_name} clone [source [destination]]
+  {script_name} image [source [destination]]
+  (e.g. {script_name} clone /dev/sda /dev/sdb)
+"""
+
+# Layout
+SIDE_PANE_WIDTH = 21
+TMUX_LAYOUT = OrderedDict({
+  'Source':   {'y': 2,         'Check': True},
+  'Started':  {'x': SIDE_PANE_WIDTH, 'Check': True},
+  'Progress': {'x': SIDE_PANE_WIDTH, 'Check': True},
+})
+
+# ddrescue
+AUTO_PASS_1_THRESHOLD = 95
+AUTO_PASS_2_THRESHOLD = 98
+DDRESCUE_SETTINGS = {
+  '--binary-prefixes':  {'Enabled': True,                 'Hidden': True, },
+  '--data-preview':     {'Enabled': True,   'Value': '5', 'Hidden': True, },
+  '--idirect':          {'Enabled': True,                                 },
+  '--odirect':          {'Enabled': True,                                 },
+  '--max-read-rate':    {'Enabled': False,  'Value': '1MiB',              },
+  '--min-read-rate':    {'Enabled': True,   'Value': '64KiB',             },
+  '--reopen-on-error':  {'Enabled': True,                                 },
+  '--retry-passes':     {'Enabled': True,   'Value': '0',                 },
+  '--test-mode':        {'Enabled': False,  'Value': 'test.map',          },
+  '--timeout':          {'Enabled': True,   'Value': '5m',                },
+  '-vvvv':              {'Enabled': True,                 'Hidden': True, },
+  }
+
+
+if __name__ == '__main__':
+  print("This file is not meant to be called directly.")
+
+# vim: sts=2 sw=2 ts=2
