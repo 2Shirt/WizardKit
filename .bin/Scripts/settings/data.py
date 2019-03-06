@@ -1,6 +1,7 @@
 # Wizard Kit: Settings - Data
 
 import ctypes
+import re
 
 # FastCopy
 FAST_COPY_EXCLUDES = [

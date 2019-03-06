@@ -1,5 +1,7 @@
 # Wizard Kit: Settings - Information
 
+import re
+
 # General
 REG_PROFILE_LIST = r'SOFTWARE\Microsoft\Windows NT\CurrentVersion\ProfileList'
 REG_SHELL_FOLDERS = r'Software\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders'

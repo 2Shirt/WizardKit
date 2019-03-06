@@ -1,5 +1,7 @@
 # Wizard Kit: Settings - Browsers
 
+import re
+
 # General
 DEFAULT_HOMEPAGE =      'https://www.google.com/'
 IE_GALLERY =            'https://www.microsoft.com/en-us/iegallery'

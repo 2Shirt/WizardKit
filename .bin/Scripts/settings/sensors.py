@@ -1,5 +1,7 @@
 # Wizard Kit: Settings - Sensors
 
+import re
+
 # General
 TEMP_LIMITS = {
   'GREEN':  60,
