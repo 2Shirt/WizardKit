@@ -4,19 +4,7 @@ import json
 import re
 
 from functions.tmux import *
-
-
-# STATIC VARIABLES
-TEMP_LIMITS = {
-  'GREEN':  60,
-  'YELLOW': 70,
-  'ORANGE': 80,
-  'RED':    90,
-  }
-
-
-# REGEX
-REGEX_COLORS = re.compile(r'\033\[\d+;?1?m')
+from settings.sensors import *
 
 
 # Error Classes
