@@ -156,18 +156,23 @@ class DiskObj():
       items = self.smart_attributes.items()
     for k, v in items:
       if k in ATTRIBUTES[attr_type]:
-        if 'Error' not in ATTRIBUTES[attr_type][k]:
-          # Only worried about error thresholds
+        if not ATTRIBUTES[attr_type][k]['Error']:
+          # Informational attribute, skip
           continue
-        if ATTRIBUTES[attr_type][k].get('Ignore', False):
+        if ATTRIBUTES[attr_type][k]['Ignore']:
           # Attribute is non-failing, skip
           continue
         if v['raw'] >= ATTRIBUTES[attr_type][k]['Error']:
-          self.disk_ok = False
+          if (ATTRIBUTES[attr_type][k]['Maximum']
+              and v['raw'] >= ATTRIBUTES[attr_type][k]['Maximum']):
+            # Non-standard value, skip
+            continue
+          else:
+            self.disk_ok = False
 
-          # Disable override if necessary
-          override_disabled |= ATTRIBUTES[attr_type][k].get(
-            'Critical', False)
+            # Disable override if necessary
+            override_disabled |= ATTRIBUTES[attr_type][k].get(
+              'Critical', False)
 
     # SMART overall assessment
     ## NOTE: Only fail drives if the overall value exists and reports failed
@@ -262,10 +267,12 @@ class DiskObj():
             n=v['name'][:28])
 
         # Set color
-        for _t, _c in [['Warning', 'YELLOW'], ['Error', 'RED']]:
-          if _t in ATTRIBUTES[attr_type][k]:
+        for _t, _c in ATTRIBUTE_COLORS:
+          if ATTRIBUTES[attr_type][k][_t]:
             if v['raw'] >= ATTRIBUTES[attr_type][k][_t]:
               _color = COLORS[_c]
+              if _t == 'Maximum':
+                _note = '(invalid?)'
 
         # 199/C7 warning
         if str(k) == '199' and v['raw'] > 0:

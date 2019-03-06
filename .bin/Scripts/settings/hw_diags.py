@@ -1,5 +1,7 @@
 # Wizard Kit: Settings - HW Diagnostics
 
+from collections import OrderedDict
+
 # General
 OVERRIDES_FORCED = False
 OVERRIDES_LIMITED = True # If True this disables OVERRIDE_FORCED
@@ -67,25 +69,30 @@ IO_VARS = {
 # Tests: NVMe/SMART
 ATTRIBUTES = {
   'NVMe': {
-    'critical_warning': {'Error':   1, 'Critical': True},
-    'media_errors':     {'Error':   1, 'Critical': True},
-    'power_on_hours':   {'Warning': 12000, 'Error': 26298, 'Ignore': True},
-    'unsafe_shutdowns': {'Warning': 1},
+    'critical_warning': {'Critical': True,  'Ignore': False,  'Warning': None,  'Error': 1,     'Maximum': None,  },
+    'media_errors':     {'Critical': True,  'Ignore': False,  'Warning': None,  'Error': 1,     'Maximum': None,  },
+    'power_on_hours':   {'Critical': False, 'Ignore': True,   'Warning': 17532, 'Error': 26298, 'Maximum': None,  },
+    'unsafe_shutdowns': {'Critical': False, 'Ignore': True,   'Warning': 1,     'Error': None,  'Maximum': None,  },
     },
   'SMART': {
-    5:    {'Hex': '05', 'Error':   1, 'Critical': True},
-    9:    {'Hex': '09', 'Warning': 12000, 'Error': 26298, 'Ignore': True},
-    10:   {'Hex': '0A', 'Error':   1},
-    184:  {'Hex': 'B8', 'Error':   1},
-    187:  {'Hex': 'BB', 'Error':   1},
-    188:  {'Hex': 'BC', 'Error':   1},
-    196:  {'Hex': 'C4', 'Error':   1},
-    197:  {'Hex': 'C5', 'Error':   1, 'Critical': True},
-    198:  {'Hex': 'C6', 'Error':   1, 'Critical': True},
-    199:  {'Hex': 'C7', 'Error':   1, 'Ignore': True},
-    201:  {'Hex': 'C9', 'Error':   1},
+    5:    {'Hex': '05', 'Critical': True,   'Ignore': False,  'Warning': None,  'Error': 1,     'Maximum': None,  },
+    9:    {'Hex': '09', 'Critical': False,  'Ignore': True,   'Warning': 17532, 'Error': 26298, 'Maximum': None,  },
+    10:   {'Hex': '10', 'Critical': False,  'Ignore': False,  'Warning': 1,     'Error': 10,    'Maximum': 10000, },
+    184:  {'Hex': 'B8', 'Critical': False,  'Ignore': False,  'Warning': 1,     'Error': 10,    'Maximum': 10000, },
+    187:  {'Hex': 'BB', 'Critical': False,  'Ignore': False,  'Warning': 1,     'Error': 10,    'Maximum': 10000, },
+    188:  {'Hex': 'BC', 'Critical': False,  'Ignore': False,  'Warning': 1,     'Error': 10,    'Maximum': 10000, },
+    196:  {'Hex': 'C4', 'Critical': False,  'Ignore': False,  'Warning': 1,     'Error': 10,    'Maximum': 10000, },
+    197:  {'Hex': 'C5', 'Critical': True,   'Ignore': False,  'Warning': None,  'Error': 1,     'Maximum': None,  },
+    198:  {'Hex': 'C6', 'Critical': True,   'Ignore': False,  'Warning': None,  'Error': 1,     'Maximum': None,  },
+    199:  {'Hex': 'C7', 'Critical': False,  'Ignore': True,   'Warning': None,  'Error': 1,     'Maximum': None,  },
+    201:  {'Hex': 'C9', 'Critical': False,  'Ignore': False,  'Warning': None,  'Error': 1,     'Maximum': 10000, },
     },
   }
+ATTRIBUTE_COLORS = (
+  ('Error', 'RED'),
+  ('Maximum', 'PURPLE'),
+  ('Warning', 'YELLOW'),
+  )
 KEY_NVME = 'nvme_smart_health_information_log'
 KEY_SMART = 'ata_smart_attributes'
 
