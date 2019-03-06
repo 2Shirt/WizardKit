@@ -90,8 +90,9 @@ KEY_NVME = 'nvme_smart_health_information_log'
 KEY_SMART = 'ata_smart_attributes'
 
 # Tests: Prime95
-MPRIME_LIMIT = 7 # of minutes to run Prime95
-THERMAL_LIMIT = 95 # Prime95 abort temperature in Celsius
+MPRIME_LIMIT = 7    # of minutes to run Prime95
+THERMAL_LIMIT = 95  # Abort temperature in Celsius
+
 
 if __name__ == '__main__':
   print("This file is not meant to be called directly.")

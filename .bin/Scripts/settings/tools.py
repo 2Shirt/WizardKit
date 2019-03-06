@@ -52,6 +52,7 @@ TOOLS = {
     '32': r'XMPlay\xmplay.exe'},
   }
 
+
 if __name__ == '__main__':
   print("This file is not meant to be called directly.")
 

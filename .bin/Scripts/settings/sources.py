@@ -198,6 +198,7 @@ RST_SOURCES = {
   'SetupRST_16.8.exe': 'https://downloadmirror.intel.com/28400/eng/SetupRST.exe',
   }
 
+
 if __name__ == '__main__':
   print("This file is not meant to be called directly.")
 
