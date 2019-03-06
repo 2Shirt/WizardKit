@@ -3,53 +3,7 @@
 from functions.backup import *
 from functions.disk import *
 from functions.windows_setup import *
-
-
-# STATIC VARIABLES
-FAST_COPY_PE_ARGS = [
-  '/cmd=noexist_only',
-  '/utf8',
-  '/skip_empty_dir',
-  '/linkdest',
-  '/no_ui',
-  '/auto_close',
-  '/exclude={}'.format(';'.join(FAST_COPY_EXCLUDES)),
-  ]
-PE_TOOLS = {
-  'BlueScreenView': {
-    'Path': r'BlueScreenView\BlueScreenView.exe',
-    },
-  'FastCopy': {
-    'Path': r'FastCopy\FastCopy.exe',
-    'Args': FAST_COPY_PE_ARGS,
-    },
-  'HWiNFO': {
-    'Path': r'HWiNFO\HWiNFO.exe',
-    },
-  'NT Password Editor': {
-    'Path': r'NT Password Editor\ntpwedit.exe',
-    },
-  'Notepad++': {
-    'Path': r'NotepadPlusPlus\NotepadPlusPlus.exe',
-    },
-  'PhotoRec': {
-    'Path': r'TestDisk\photorec_win.exe',
-    'Args': ['-new_console:n'],
-    },
-  'Prime95': {
-    'Path': r'Prime95\prime95.exe',
-    },
-  'ProduKey': {
-    'Path': r'ProduKey\ProduKey.exe',
-    },
-  'Q-Dir': {
-    'Path': r'Q-Dir\Q-Dir.exe',
-    },
-  'TestDisk': {
-    'Path': r'TestDisk\testdisk_win.exe',
-    'Args': ['-new_console:n'],
-    },
-  }
+from settings.winpe import *
 
 
 def check_pe_tools():
