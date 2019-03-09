@@ -1231,7 +1231,7 @@ def run_mprime_test(state, test):
   # Stress CPU
   print_log('Starting Prime95')
   test.abort_msg = 'If running too hot, press CTRL+c to abort the test'
-  run_program(['apple-fans', 'max'])
+  run_program(['apple-fans', 'max'], check=False)
   tmux_update_pane(
     state.panes['Prime95'],
     command=['hw-diags-prime95', global_vars['TmpDir']],
@@ -1279,7 +1279,7 @@ def run_mprime_test(state, test):
   tmux_kill_pane(state.panes.pop('Prime95', None))
 
   # Get cooldown temp
-  run_program(['apple-fans', 'auto'])
+  run_program(['apple-fans', 'auto'], check=False)
   clear_screen()
   try_and_print(
     message='Letting CPU cooldown for bit...', indent=0,
