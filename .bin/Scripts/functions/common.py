@@ -115,6 +115,14 @@ def ask(prompt='Kotaero!'):
   return answer
 
 
+def beep(repeat=1):
+  """Play system bell with optional repeat."""
+  for i in range(repeat):
+    # Print bell char
+    print('\a')
+    sleep(0.5)
+
+
 def choice(choices, prompt='Kotaero!'):
   """Prompt the user with a choice question, returns str."""
   answer = None
