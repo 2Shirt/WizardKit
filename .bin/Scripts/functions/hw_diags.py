@@ -76,6 +76,7 @@ class DiskObj():
     self.lsblk = {}
     self.name = re.sub(r'^.*/(.*)', r'\1', disk_path)
     self.nvme_attributes = {}
+    self.nvme_smart_notes = {}
     self.override_disabled = False
     self.path = disk_path
     self.smart_attributes = {}
@@ -92,6 +93,11 @@ class DiskObj():
     self.get_smart_details()
     self.description = '{size} ({tran}) {model} {serial}'.format(
       **self.lsblk)
+
+  def add_nvme_smart_note(self, note):
+    """Add note that will be included in the NVMe / SMART report."""
+    # A dict is used to avoid duplicate notes
+    self.nvme_smart_notes[note] = None
 
   def calc_io_dd_values(self):
     """Calcualte I/O benchmark dd values."""
@@ -152,6 +158,9 @@ class DiskObj():
     attr_type = self.attr_type
     disk_ok = True
     if self.nvme_attributes:
+      self.add_nvme_smart_note(
+        '  {YELLOW}NVMe disk support is still experimental{CLEAR}'.format(
+        **COLORS))
       items = self.nvme_attributes.items()
     elif self.smart_attributes:
       items = self.smart_attributes.items()
@@ -180,17 +189,18 @@ class DiskObj():
     if not self.smartctl.get('smart_status', {}).get('passed', True):
       disk_ok = False
       self.override_disabled = True
+      self.add_nvme_smart_note(
+        '  {RED}SMART overall self-assessment: Failed{CLEAR}'.format(**COLORS))
 
     # Done
     return disk_ok
 
-  def check_smart_self_test(silent=False):
+  def check_smart_self_test(self, silent=False):
     """Check if a SMART self-test is currently running, returns bool."""
     msg = 'SMART self-test in progress, all tests disabled'
-    running = 'remaining_percent' in self.smart_self_test.get('status', '')
-    disk_ok = not running
+    test_running = 'remaining_percent' in self.smart_self_test.get('status', '')
 
-    if running:
+    if test_running:
       # Ask to abort
       if not silent:
         print_warning('WARNING: {}'.format(msg))
@@ -198,18 +208,12 @@ class DiskObj():
         if ask('Abort HW Diagnostics?'):
           exit_script()
 
-      # Add warning to report
-      if 'NVMe / SMART' in self.tests:
-        self.tests['NVMe / SMART'].report = self.generate_attribute_report()
-        self.tests['NVMe / SMART'].report.append(
-          '{YELLOW}WARNING: {msg}{CLEAR}'.format(msg=msg, **COLORS))
-
-      # Disable all tests for this disk
-      for t in self.tests.keys():
-        self.disable_test(t, 'Denied')
+      # Add warning note
+      self.add_nvme_smart_note(
+        '  {YELLOW}WARNING: {msg}{CLEAR}'.format(msg=msg, **COLORS))
 
     # Done
-    return disk_ok
+    return test_running
 
   def disable_test(self, name, status):
     """Disable test by name and update status."""
@@ -220,30 +224,19 @@ class DiskObj():
   def generate_attribute_report(
       self, description=False, short_test=False, timestamp=False):
     """Generate NVMe / SMART report, returns list."""
+    attr_type = self.attr_type
     report = []
     if description:
       report.append('{BLUE}Device ({name}){CLEAR}'.format(
         name=self.name, **COLORS))
       report.append('  {}'.format(self.description))
 
-    # Warnings
-    if self.nvme_attributes:
-      attr_type = 'NVMe'
-      report.append(
-        '  {YELLOW}NVMe disk support is still experimental{CLEAR}'.format(
-          **COLORS))
-    elif self.smart_attributes:
-      attr_type = 'SMART'
-    else:
-      # No attribute data available, return short report
+    # Skip attributes if they don't exist
+    if not (self.nvme_attributes or self.smart_attributes):
       report.append(
         '  {YELLOW}No NVMe or SMART data available{CLEAR}'.format(
           **COLORS))
       return report
-    if not self.smartctl.get('smart_status', {}).get('passed', True):
-      report.append(
-        '  {RED}SMART overall self-assessment: Failed{CLEAR}'.format(
-          **COLORS))
 
     # Attributes
     report.append('{BLUE}{a} Attributes{YELLOW}{u:>23} {t}{CLEAR}'.format(
@@ -293,30 +286,21 @@ class DiskObj():
         # Add line to report
         report.append(_line)
 
-    # SMART short-test
-    if short_test:
-      report.append('{BLUE}SMART Short self-test{CLEAR}'.format(**COLORS))
-      report.append('  {}'.format(
-        self.smart_self_test['status'].get(
-          'string', 'UNKNOWN').capitalize()))
-      if self.smart_timeout:
-        report.append('  {YELLOW}Timed out{CLEAR}'.format(**COLORS))
-
     # Done
     return report
 
   def generate_disk_report(self):
     """Generate disk report with data from all tests."""
     report = []
-    report.append('{BLUE}Device ({name}){CLEAR}'.format(
-      name=self.name, **COLORS))
-    report.append('  {}'.format(self.description))
 
     # Attributes
-    if 'NVMe / SMART' not in self.tests:
-      report.extend(self.generate_attribute_report())
-    elif not self.tests['NVMe / SMART'].report:
-      report.extend(self.generate_attribute_report())
+    report.extend(self.generate_attribute_report(description=True))
+
+    # Notes
+    if self.nvme_smart_notes:
+      report.append('{BLUE}{attr_type} Notes{CLEAR}'.format(
+        attr_type=self.attr_type, **COLORS))
+      report.extend(sorted(self.nvme_smart_notes.keys()))
 
     # Tests
     for test in self.tests.values():
@@ -410,54 +394,55 @@ class DiskObj():
 
   def safety_check(self, silent=False):
     """Run safety checks and disable tests if necessary."""
+    test_running = False
     if self.nvme_attributes or self.smart_attributes:
       disk_ok = self.check_attributes()
-      disk_ok &= self.check_smart_self_test(silent)
+      test_running = self.check_smart_self_test(silent)
+
+      # Show errors (unless a SMART self-test is running)
+      if not (silent or test_running):
+        if disk_ok:
+          # 199/C7 warning
+          if self.smart_attributes.get(199, {}).get('raw', 0) > 0:
+            print_warning('199/C7 error detected')
+            print_standard('  (Have you tried swapping the disk cable?)')
+        else:
+          # Override?
+          show_report(
+            self.generate_attribute_report(description=True),
+            log_report=True)
+          print_warning('  {} error(s) detected.'.format(self.attr_type))
+          if self.override_disabled:
+            print_standard('Tests disabled for this device')
+            pause()
+          elif not (len(self.tests) == 3 and OVERRIDES_LIMITED):
+            if OVERRIDES_FORCED or ask('Run tests on this device anyway?'):
+              disk_ok = True
+              if 'NVMe / SMART' in self.tests:
+                self.disable_test('NVMe / SMART', 'OVERRIDE')
+                if not self.nvme_attributes and self.smart_attributes:
+                  # Re-enable for SMART short-tests
+                  self.tests['NVMe / SMART'].disabled = False
+              print_standard(' ')
     else:
       # No NVMe/SMART details
       self.disable_test('NVMe / SMART', 'N/A')
       if silent:
         disk_ok = OVERRIDES_FORCED
       else:
-        print_info('Device ({})'.format(self.name))
-        print_standard('  {}'.format(self.description))
-        print_warning('  No NVMe or SMART data available')
-        disk_ok = OVERRIDES_FORCED or ask('Run tests on this device anyway?')
-        print_standard(' ')
-
-    # Show errors
-    if not silent:
-      if disk_ok:
-        # 199/C7 warning
-        if self.smart_attributes.get(199, {}).get('raw', 0) > 0:
-          print_warning('199/C7 error detected')
-          print_standard('  (Have you tried swapping the disk cable?)')
-      else:
-        # Override?
         show_report(
           self.generate_attribute_report(description=True),
           log_report=True)
-        print_warning('  {} error(s) detected.'.format(self.attr_type))
-        if self.override_disabled:
-          print_standard('Tests disabled for this device')
-          pause()
-        elif not (len(self.tests) == 3 and OVERRIDES_LIMITED):
-          if OVERRIDES_FORCED or ask('Run tests on this device anyway?'):
-            disk_ok = True
-            if 'NVMe / SMART' in self.tests:
-              self.disable_test('NVMe / SMART', 'OVERRIDE')
-              if not self.nvme_attributes and self.smart_attributes:
-                # Re-enable for SMART short-tests
-                self.tests['NVMe / SMART'].disabled = False
-            print_standard(' ')
+        disk_ok = OVERRIDES_FORCED or ask('Run tests on this device anyway?')
+        print_standard(' ')
 
-    # Disable tests if necessary
-    if not disk_ok:
-      if 'NVMe / SMART' in self.tests:
-        # NOTE: This will not overwrite the existing status if set
-        self.disable_test('NVMe / SMART', 'NS')
-        if not self.tests['NVMe / SMART'].report:
-          self.tests['NVMe / SMART'].report = self.generate_attribute_report()
+
+    # Disable tests if necessary (statuses won't be overwritten)
+    if test_running:
+      for t in ['NVMe / SMART', 'badblocks', 'I/O Benchmark']:
+        self.disable_test(t, 'Denied')
+    elif not disk_ok:
+      self.disable_test('NVMe / SMART', 'NS')
       for t in ['badblocks', 'I/O Benchmark']:
         self.disable_test(t, 'Denied')
 
@@ -1456,7 +1441,6 @@ def run_nvme_smart_tests(state, test):
       test.timeout = test.dev.smart_self_test['polling_minutes'].get(
         'short', 5)
       test.timeout = int(test.timeout) + 5
-      _include_short_test = True
       _self_test_started = False
       _self_test_finished = False
 
@@ -1505,7 +1489,6 @@ def run_nvme_smart_tests(state, test):
 
       except KeyboardInterrupt:
         test.aborted = True
-        test.report = test.dev.generate_attribute_report()
         test.report.append('{BLUE}SMART Short self-test{CLEAR}'.format(
           **COLORS))
         test.report.append('  {YELLOW}Aborted{CLEAR}'.format(**COLORS))
@@ -1530,12 +1513,16 @@ def run_nvme_smart_tests(state, test):
         for t in ['badblocks', 'I/O Benchmark']:
           test.dev.disable_test(t, 'Denied')
 
+      # Save report
+      test.report.append('{BLUE}SMART Short self-test{CLEAR}'.format(**COLORS))
+      test.report.append('  {}'.format(
+        test.dev.smart_self_test['status'].get(
+          'string', 'UNKNOWN').capitalize()))
+      if test.dev.smart_timeout:
+        test.report.append('  {YELLOW}Timed out{CLEAR}'.format(**COLORS))
+
       # Cleanup
       tmux_kill_pane(state.panes.pop('SMART', None))
-
-  # Save report
-  test.report = test.dev.generate_attribute_report(
-    short_test=_include_short_test)
 
   # Done
   update_progress_pane(state)
