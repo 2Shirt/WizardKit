@@ -201,7 +201,7 @@ class DiskObj():
 
   def check_smart_self_test(self, silent=False):
     """Check if a SMART self-test is currently running, returns bool."""
-    msg = 'SMART self-test in progress, all tests disabled'
+    msg = 'SMART self-test in progress'
     test_running = 'remaining_percent' in self.smart_self_test.get('status', '')
 
     if test_running:
