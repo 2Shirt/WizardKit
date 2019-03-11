@@ -222,7 +222,7 @@ class DiskObj():
       self.tests[name].disabled = True
 
   def generate_attribute_report(
-      self, description=False, short_test=False, timestamp=False):
+      self, description=False, timestamp=False):
     """Generate NVMe / SMART report, returns list."""
     attr_type = self.attr_type
     report = []
@@ -1401,7 +1401,6 @@ def run_nvme_smart_tests(state, test):
 
   # Prep
   print_log('Starting NVMe/SMART test for {}'.format(test.dev.path))
-  _include_short_test = False
   test.started = True
   test.update_status()
   update_progress_pane(state)
