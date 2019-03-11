@@ -80,7 +80,6 @@ class DiskObj():
     self.override_disabled = False
     self.path = disk_path
     self.smart_attributes = {}
-    self.smart_timeout = False
     self.smart_self_test = {}
     self.smartctl = {}
     self.tests = OrderedDict()
@@ -157,6 +156,11 @@ class DiskObj():
     """Check NVMe / SMART attributes for errors, returns bool."""
     attr_type = self.attr_type
     disk_ok = True
+
+    # Get updated attributes
+    self.get_smart_details()
+
+    # Check attributes
     if self.nvme_attributes:
       self.add_nvme_smart_note(
         '  {YELLOW}NVMe disk support is still experimental{CLEAR}'.format(
@@ -1395,12 +1399,14 @@ def run_network_test():
 
 def run_nvme_smart_tests(state, test):
   """Run NVMe or SMART test for test.dev."""
+  dev = test.dev
+
   # Bail early
   if test.disabled:
     return
 
   # Prep
-  print_log('Starting NVMe/SMART test for {}'.format(test.dev.path))
+  print_log('Starting NVMe/SMART test for {}'.format(dev.path))
   test.started = True
   test.update_status()
   update_progress_pane(state)
@@ -1409,122 +1415,120 @@ def run_nvme_smart_tests(state, test):
   tmux_update_pane(
     state.panes['Top'],
     text='{}\n{}'.format(
-      TOP_PANE_TEXT, test.dev.description))
+      TOP_PANE_TEXT, dev.description))
 
-  # NVMe
-  if test.dev.nvme_attributes:
-    # NOTE: Pass/Fail is just the attribute check
-    if test.dev.disk_ok:
+  # SMART short self-test
+  if dev.smart_attributes:
+    run_smart_short_test(state, test)
+
+  # Attribute check
+  dev.check_attributes()
+
+  # Check results
+  if dev.nvme_attributes or state.quick_mode:
+    if dev.disk_ok:
       test.passed = True
       test.update_status('CS')
     else:
-      # NOTE: Other test(s) should've been disabled by DiskObj.safety_check()
       test.failed = True
       test.update_status('NS')
-
-  # SMART
-  elif test.dev.smart_attributes:
-    # NOTE: Pass/Fail based on both attributes and SMART short self-test
-    if not (test.dev.disk_ok or 'OVERRIDE' in test.status):
+  elif dev.smart_attributes:
+    if dev.disk_ok and dev.self_test_passed:
+      test.passed = True
+      test.update_status('CS')
+    elif test.aborted:
+      test.update_status('Aborted')
+      raise GenericAbort('Aborted')
+    elif dev.self_test_timed_out:
+      test.update_status('TimedOut')
+    elif dev.override_disabled or 'OVERRIDE' not in test.status:
+      # override_disabled is set to True if one or more critical attributes
+      # have exceeded the Error threshold. This overrules an override.
       test.failed = True
       test.update_status('NS')
-    elif state.quick_mode:
-      if test.dev.disk_ok:
-        test.passed = True
-        test.update_status('CS')
-      else:
-        test.failed = True
-        test.update_status('NS')
-    else:
-      # Prep
-      test.timeout = test.dev.smart_self_test['polling_minutes'].get(
-        'short', 5)
-      test.timeout = int(test.timeout) + 5
-      _self_test_started = False
-      _self_test_finished = False
+  else:
+    # This dev lacks both NVMe and SMART data. This test should've been
+    # disabled during the safety_check().
+    pass
 
-      # Create monitor pane
-      test.smart_out = '{}/smart_{}.out'.format(
-        global_vars['LogDir'], test.dev.name)
-      with open(test.smart_out, 'w') as f:
-        f.write('SMART self-test status:\n  Starting...')
-      state.panes['SMART'] = tmux_split_window(
-        lines=3, vertical=True, watch=test.smart_out)
-
-      # Show attributes
-      clear_screen()
-      show_report(test.dev.generate_attribute_report())
-      print_standard(' ')
-
-      # Start short test
-      print_standard('Running self-test...')
-      cmd = ['sudo', 'smartctl', '--test=short', test.dev.path]
-      run_program(cmd, check=False)
-
-      # Monitor progress
-      try:
-        for i in range(int(test.timeout*60/5)):
-          sleep(5)
-
-          # Update SMART data
-          test.dev.get_smart_details()
-
-          if _self_test_started:
-            # Update progress file
-            with open(test.smart_out, 'w') as f:
-              f.write('SMART self-test status:\n  {}'.format(
-                test.dev.smart_self_test['status'].get(
-                  'string', 'UNKNOWN').capitalize()))
-
-            # Check if test has finished
-            if 'remaining_percent' not in test.dev.smart_self_test['status']:
-              _self_test_finished = True
-              break
-
-          else:
-            # Check if test has started
-            if 'remaining_percent' in test.dev.smart_self_test['status']:
-              _self_test_started = True
-
-      except KeyboardInterrupt:
-        test.aborted = True
-        test.report.append('{BLUE}SMART Short self-test{CLEAR}'.format(
-          **COLORS))
-        test.report.append('  {YELLOW}Aborted{CLEAR}'.format(**COLORS))
-        test.update_status('Aborted')
-        raise GenericAbort('Aborted')
-
-      # Check if timed out
-      if _self_test_finished:
-        if test.dev.smart_self_test['status'].get('passed', False):
-          if 'OVERRIDE' not in test.status:
-            test.passed = True
-            test.update_status('CS')
-        else:
-          test.failed = True
-          test.update_status('NS')
-      else:
-        test.dev.smart_timeout = True
-        test.update_status('TimedOut')
-
-      # Disable other drive tests if necessary
-      if test.failed:
-        for t in ['badblocks', 'I/O Benchmark']:
-          test.dev.disable_test(t, 'Denied')
-
-      # Save report
-      test.report.append('{BLUE}SMART Short self-test{CLEAR}'.format(**COLORS))
-      test.report.append('  {}'.format(
-        test.dev.smart_self_test['status'].get(
-          'string', 'UNKNOWN').capitalize()))
-      if test.dev.smart_timeout:
-        test.report.append('  {YELLOW}Timed out{CLEAR}'.format(**COLORS))
-
-      # Cleanup
-      tmux_kill_pane(state.panes.pop('SMART', None))
+  # Disable other disk tests if necessary
+  if test.failed:
+    for t in ['badblocks', 'I/O Benchmark']:
+      dev.disable_test(t, 'Denied')
 
   # Done
   update_progress_pane(state)
+
+
+def run_smart_short_test(state, test):
+  """Run SMART short self-test for test.dev."""
+  dev = test.dev
+  dev.self_test_started = False
+  dev.self_test_finished = False
+  dev.self_test_passed = False
+  dev.self_test_timed_out = False
+  test.timeout = dev.smart_self_test['polling_minutes'].get('short', 5)
+  test.timeout = int(test.timeout) + 5
+
+  # Create monitor pane
+  test.smart_out = '{}/smart_{}.out'.format(global_vars['LogDir'], dev.name)
+  with open(test.smart_out, 'w') as f:
+    f.write('SMART self-test status:\n  Starting...')
+  state.panes['SMART'] = tmux_split_window(
+    lines=3, vertical=True, watch=test.smart_out)
+
+  # Show attributes
+  clear_screen()
+  show_report(dev.generate_attribute_report())
+  print_standard(' ')
+
+  # Start short test
+  print_standard('Running self-test...')
+  cmd = ['sudo', 'smartctl', '--test=short', dev.path]
+  run_program(cmd, check=False)
+
+  # Monitor progress
+  try:
+    for i in range(int(test.timeout*60/5)):
+      sleep(5)
+
+      # Update SMART data
+      dev.get_smart_details()
+
+      if dev.self_test_started:
+        # Update progress file
+        with open(test.smart_out, 'w') as f:
+          f.write('SMART self-test status:\n  {}'.format(
+            dev.smart_self_test['status'].get(
+              'string', 'UNKNOWN').capitalize()))
+
+        # Check if test has finished
+        if 'remaining_percent' not in dev.smart_self_test['status']:
+          dev.self_test_finished = True
+          break
+
+      else:
+        # Check if test has started
+        if 'remaining_percent' in dev.smart_self_test['status']:
+          dev.self_test_started = True
+  except KeyboardInterrupt:
+    # Will be handled in run_nvme_smart_tests()
+    test.aborted = True
+
+  # Save report
+  test.report.append('{BLUE}SMART Short self-test{CLEAR}'.format(**COLORS))
+  test.report.append('  {}'.format(
+    dev.smart_self_test['status'].get('string', 'UNKNOWN').capitalize()))
+  if dev.self_test_finished:
+    dev.self_test_passed = dev.smart_self_test['status'].get('passed', False)
+  elif test.aborted:
+    test.report.append('  {YELLOW}Aborted{CLEAR}'.format(**COLORS))
+  else:
+    dev.self_test_timed_out = True
+    test.report.append('  {YELLOW}Timed out{CLEAR}'.format(**COLORS))
+
+  # Cleanup
+  tmux_kill_pane(state.panes.pop('SMART', None))
 
 
 def secret_screensaver(screensaver=None):
