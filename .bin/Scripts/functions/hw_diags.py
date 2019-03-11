@@ -210,7 +210,7 @@ class DiskObj():
         print_warning('WARNING: {}'.format(msg))
         print_standard(' ')
         if ask('Abort HW Diagnostics?'):
-          exit_script()
+          raise GenericAbort('Bail')
 
       # Add warning note
       self.add_nvme_smart_note(
@@ -982,7 +982,12 @@ def run_hw_tests(state):
     _disk_tests_enabled |= state.tests[k]['Enabled']
   if _disk_tests_enabled:
     for disk in state.disks:
-      disk.safety_check(silent=state.quick_mode)
+      try:
+        disk.safety_check(silent=state.quick_mode)
+      except GenericAbort:
+        tmux_kill_pane(*state.panes.values())
+        state.panes.clear()
+        return
 
   # Run tests
   ## Because state.tests is an OrderedDict and the disks were added
