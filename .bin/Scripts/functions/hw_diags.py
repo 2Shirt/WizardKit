@@ -1418,7 +1418,7 @@ def run_nvme_smart_tests(state, test):
       TOP_PANE_TEXT, dev.description))
 
   # SMART short self-test
-  if dev.smart_attributes:
+  if dev.smart_attributes and not state.quick_mode:
     run_smart_short_test(state, test)
 
   # Attribute check
