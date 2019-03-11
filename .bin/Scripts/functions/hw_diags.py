@@ -997,6 +997,11 @@ def run_hw_tests(state):
           # No devices available
           v['Objects'].append(TestObj(dev=None, label=''))
           v['Objects'][-1].update_status('N/A')
+    # Recheck attributes
+    if state.tests['NVMe / SMART']['Enabled']:
+      for test_obj in state.tests['NVMe / SMART']['Objects']:
+        run_nvme_smart_tests(state, test_obj, update_mode=True)
+
   except GenericAbort:
     # Cleanup
     tmux_kill_pane(*state.panes.values())
@@ -1400,8 +1405,11 @@ def run_network_test():
   pause('Press Enter to return to main menu... ')
 
 
-def run_nvme_smart_tests(state, test):
-  """Run NVMe or SMART test for test.dev."""
+def run_nvme_smart_tests(state, test, update_mode=False):
+  """Run NVMe or SMART test for test.dev.
+
+  Update mode is used to refresh the attributes and recheck them.
+  (i.e. no self-test and don't disable other tests)"""
   dev = test.dev
 
   # Bail early
@@ -1421,7 +1429,7 @@ def run_nvme_smart_tests(state, test):
       TOP_PANE_TEXT, dev.description))
 
   # SMART short self-test
-  if dev.smart_attributes and not state.quick_mode:
+  if dev.smart_attributes and not (state.quick_mode or update_mode):
     run_smart_short_test(state, test)
 
   # Attribute check
@@ -1455,7 +1463,7 @@ def run_nvme_smart_tests(state, test):
     pass
 
   # Disable other disk tests if necessary
-  if test.failed:
+  if test.failed and not update_mode:
     for t in ['badblocks', 'I/O Benchmark']:
       dev.disable_test(t, 'Denied')
 
