@@ -443,7 +443,10 @@ class DiskObj():
 
     # Disable tests if necessary (statuses won't be overwritten)
     if test_running:
-      for t in ['NVMe / SMART', 'badblocks', 'I/O Benchmark']:
+      if not silent:
+        # silent is only True in quick_mode
+        self.disable_test('NVMe / SMART', 'Denied')
+      for t in ['badblocks', 'I/O Benchmark']:
         self.disable_test(t, 'Denied')
     elif not disk_ok:
       self.disable_test('NVMe / SMART', 'NS')
