@@ -556,6 +556,17 @@ mount ${DEST_PAR} /mnt/Dest >> "${LOG_FILE}" 2>&1
 mount "${LINUX_ISO}" /mnt/Linux -r >> "${LOG_FILE}" 2>&1
 mount "${WINPE_ISO}" /mnt/WinPE -r >> "${LOG_FILE}" 2>&1
 
+# Find WinPE source
+w_boot="$(find /mnt/WinPE -iwholename "/mnt/WinPE/Boot")"
+w_boot_bcd="$(find /mnt/WinPE -iwholename "/mnt/WinPE/Boot/BCD")"
+w_boot_sdi="$(find /mnt/WinPE -iwholename "/mnt/WinPE/Boot/boot.sdi")"
+w_bootmgr="$(find /mnt/WinPE -iwholename "/mnt/WinPE/bootmgr")"
+w_bootmgr_efi="$(find /mnt/WinPE -iwholename "/mnt/WinPE/bootmgr.efi")"
+w_efi_boot="$(find /mnt/WinPE -iwholename "/mnt/WinPE/EFI/Boot")"
+w_efi_microsoft="$(find /mnt/WinPE -iwholename "/mnt/WinPE/EFI/Microsoft")"
+w_en_us="$(find /mnt/WinPE -iwholename "/mnt/WinPE/en-us")"
+w_sources="$(find /mnt/WinPE -iwholename "/mnt/WinPE/sources")"
+
 # Copy files
 echo "Copying Linux files..."
 rsync ${RSYNC_ARGS} /mnt/Linux/* /mnt/Dest/ >> "${LOG_FILE}" 2>&1
@@ -565,17 +576,29 @@ sed -i "s/${ISO_LABEL}/${UFD_LABEL}/" /mnt/Dest/arch/boot/syslinux/*cfg
 sed -i "s/#UFD#//" /mnt/Dest/arch/boot/syslinux/*cfg
 
 echo "Copying WinPE files..."
-rsync ${RSYNC_ARGS} /mnt/WinPE/{Boot,bootmgr{,.efi},en-us,sources} /mnt/Dest/ >> "${LOG_FILE}" 2>&1
-rsync ${RSYNC_ARGS} /mnt/WinPE/EFI/Microsoft /mnt/Dest/EFI/ >> "${LOG_FILE}" 2>&1
-rsync ${RSYNC_ARGS} /mnt/WinPE/EFI/Boot/* /mnt/Dest/EFI/Microsoft/ >> "${LOG_FILE}" 2>&1
-rsync ${RSYNC_ARGS} /mnt/WinPE/{Boot/{BCD,boot.sdi},bootmgr} /mnt/Dest/sources/ >> "${LOG_FILE}" 2>&1
+rsync ${RSYNC_ARGS} \
+  "${w_bootmgr}" "${w_bootmgr_efi}" "${w_en_us}" \
+  /mnt/Dest/ >> "${LOG_FILE}" 2>&1
+rsync ${RSYNC_ARGS} \
+  "${w_boot}"/* \
+  /mnt/Dest/Boot/ >> "${LOG_FILE}" 2>&1
+rsync ${RSYNC_ARGS} \
+  "${w_efi_boot}"/* "${w_efi_microsoft}"/* \
+  /mnt/Dest/EFI/Microsoft/ >> "${LOG_FILE}" 2>&1
+rsync ${RSYNC_ARGS} \
+  "${w_boot_bcd}" "${w_boot_sdi}" "${w_bootmgr}" "${w_sources}"/* \
+  /mnt/Dest/sources/ >> "${LOG_FILE}" 2>&1
 
 echo "Copying Main Kit..."
-rsync ${RSYNC_ARGS} "${MAIN_KIT}/" "/mnt/Dest/${KIT_NAME_FULL}/" >> "${LOG_FILE}" 2>&1
+rsync ${RSYNC_ARGS} \
+  "${MAIN_KIT}/" \
+  "/mnt/Dest/${KIT_NAME_FULL}/" >> "${LOG_FILE}" 2>&1
 
 if [[ ! -z "${EXTRA_DIR:-}" ]]; then
     echo "Copying Extra files..."
-    rsync ${RSYNC_ARGS} "${EXTRA_DIR}"/ /mnt/Dest/ >> "${LOG_FILE}" 2>&1
+    rsync ${RSYNC_ARGS} \
+      "${EXTRA_DIR}"/ \
+      /mnt/Dest/ >> "${LOG_FILE}" 2>&1
 fi
 
 # Install syslinux
