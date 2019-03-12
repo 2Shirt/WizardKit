@@ -84,6 +84,7 @@ class DiskObj():
     self.smartctl = {}
     self.tests = OrderedDict()
     self.get_details()
+    self.get_size()
 
     # Try enabling SMART
     run_program(['sudo', 'smartctl', '--smart=on', self.path], check=False)
@@ -99,38 +100,33 @@ class DiskObj():
     self.nvme_smart_notes[note] = None
 
   def calc_io_dd_values(self):
-    """Calcualte I/O benchmark dd values."""
-    # Get real disk size
-    cmd = ['lsblk',
-      '--bytes', '--nodeps', '--noheadings',
-      '--output', 'size', self.path]
-    result = run_program(cmd)
-    self.size_bytes = int(result.stdout.decode().strip())
+    """Calcualte I/O benchmark dd values.
 
-    # dd calculations
-    ## The minimum dev size is 'Graph Horizontal Width' * 'Chunk Size'
-    ##   (e.g. 1.25 GB for a width of 40 and a chunk size of 32MB)
-    ##   If the device is smaller than the minimum dd_chunks would be set
-    ##   to zero which would cause a divide by zero error.
-    ##   If the device is below the minimum size an Exception will be raised
-    ##
-    ## dd_size is the area to be read in bytes
-    ##   If the dev is < 10Gb then it's the whole dev
-    ##   Otherwise it's the larger of 10Gb or 1% of the dev
-    ##
-    ## dd_chunks is the number of groups of "Chunk Size" in self.dd_size
-    ##   This number is reduced to a multiple of the graph width in
-    ##   order to allow for the data to be condensed cleanly
-    ##
-    ## dd_chunk_blocks is the chunk size in number of blocks
-    ##   (e.g. 64 if block size is 512KB and chunk size is 32MB
-    ##
-    ## dd_skip_blocks is the number of "Block Size" groups not tested
-    ## dd_skip_count is the number of blocks to skip per self.dd_chunk
-    ## dd_skip_extra is how often to add an additional skip block
-    ##   This is needed to ensure an even testing across the dev
-    ##   This is calculated by using the fractional amount left off
-    ##   of the dd_skip_count variable
+    Calculations
+    The minimum dev size is 'Graph Horizontal Width' * 'Chunk Size'
+      (e.g. 1.25 GB for a width of 40 and a chunk size of 32MB)
+      If the device is smaller than the minimum dd_chunks would be set
+      to zero which would cause a divide by zero error.
+      If the device is below the minimum size an Exception will be raised
+
+    dd_size is the area to be read in bytes
+      If the dev is < 10Gb then it's the whole dev
+      Otherwise it's the larger of 10Gb or 1% of the dev
+
+    dd_chunks is the number of groups of "Chunk Size" in self.dd_size
+      This number is reduced to a multiple of the graph width in
+      order to allow for the data to be condensed cleanly
+
+    dd_chunk_blocks is the chunk size in number of blocks
+      (e.g. 64 if block size is 512KB and chunk size is 32MB
+
+    dd_skip_blocks is the number of "Block Size" groups not tested
+    dd_skip_count is the number of blocks to skip per self.dd_chunk
+    dd_skip_extra is how often to add an additional skip block
+      This is needed to ensure an even testing across the dev
+      This is calculated by using the fractional amount left off
+      of the dd_skip_count variable
+    """
     self.dd_size = min(IO_VARS['Minimum Test Size'], self.size_bytes)
     self.dd_size = max(
       self.dd_size,
@@ -342,6 +338,18 @@ class DiskObj():
       self.labels.append(disk.get('label', ''))
       self.labels.append(disk.get('partlabel', ''))
     self.labels = [str(label) for label in self.labels if label]
+
+  def get_size(self):
+    """Get real disk size."""
+    cmd = ['lsblk',
+      '--bytes', '--nodeps', '--noheadings',
+      '--output', 'size', self.path]
+    try:
+      result = run_program(cmd)
+      self.size_bytes = int(result.stdout.decode().strip())
+    except Exception:
+      # Setting to impossible value for now
+      self.size_bytes = -1
 
   def get_smart_details(self):
     """Get data from smartctl."""
