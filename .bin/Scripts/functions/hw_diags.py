@@ -1063,12 +1063,14 @@ def run_hw_tests(state):
 
 def run_io_benchmark(state, test):
   """Run a read-only I/O benchmark using dd."""
+  dev = test.dev
+
   # Bail early
   if test.disabled:
     return
 
   # Prep
-  print_log('Starting I/O benchmark test for {}'.format(test.dev.path))
+  print_log('Starting I/O benchmark test for {}'.format(dev.path))
   test.started = True
   test.update_status()
   update_progress_pane(state)
@@ -1077,12 +1079,12 @@ def run_io_benchmark(state, test):
   tmux_update_pane(
     state.panes['Top'],
     text='{}\n{}'.format(
-      TOP_PANE_TEXT, test.dev.description))
+      TOP_PANE_TEXT, dev.description))
   state.tmux_layout['Current'] = {'y': 15, 'Check': True}
 
   # Create monitor pane
   test.io_benchmark_out = '{}/io_benchmark_{}.out'.format(
-    global_vars['LogDir'], test.dev.name)
+    global_vars['LogDir'], dev.name)
   state.panes['io_benchmark'] = tmux_split_window(
     percent=75, vertical=True,
     watch=test.io_benchmark_out, watch_cmd='tail')
@@ -1090,7 +1092,7 @@ def run_io_benchmark(state, test):
 
   # Show disk details
   clear_screen()
-  show_report(test.dev.generate_attribute_report())
+  show_report(dev.generate_attribute_report())
   print_standard(' ')
 
   # Start I/O Benchmark
@@ -1098,23 +1100,23 @@ def run_io_benchmark(state, test):
   try:
     test.merged_rates = []
     test.read_rates = []
-    test.dev.calc_io_dd_values()
+    dev.calc_io_dd_values()
 
     # Run dd read tests
     offset = 0
-    for i in range(test.dev.dd_chunks):
+    for i in range(dev.dd_chunks):
       # Build cmd
       i += 1
-      skip = test.dev.dd_skip_count
-      if test.dev.dd_skip_extra and i % test.dev.dd_skip_extra == 0:
+      skip = dev.dd_skip_count
+      if dev.dd_skip_extra and i % dev.dd_skip_extra == 0:
         skip += 1
       cmd = [
         'sudo', 'dd',
         'bs={}'.format(IO_VARS['Block Size']),
         'skip={}'.format(offset+skip),
-        'count={}'.format(test.dev.dd_chunk_blocks),
+        'count={}'.format(dev.dd_chunk_blocks),
         'iflag=direct',
-        'if={}'.format(test.dev.path),
+        'if={}'.format(dev.path),
         'of=/dev/null']
 
       # Run cmd and get read rate
@@ -1128,12 +1130,12 @@ def run_io_benchmark(state, test):
       # Show progress
       if i % IO_VARS['Progress Refresh Rate'] == 0:
         update_io_progress(
-          percent=(i/test.dev.dd_chunks)*100,
+          percent=(i/dev.dd_chunks)*100,
           rate=cur_rate,
           progress_file=test.io_benchmark_out)
 
       # Update offset
-      offset += test.dev.dd_chunk_blocks + skip
+      offset += dev.dd_chunk_blocks + skip
 
   except DeviceTooSmallError:
     # Device too small, skipping test
@@ -1159,7 +1161,7 @@ def run_io_benchmark(state, test):
   else:
     # Merge rates for horizontal graph
     offset = 0
-    width = int(test.dev.dd_chunks / IO_VARS['Graph Horizontal Width'])
+    width = int(dev.dd_chunks / IO_VARS['Graph Horizontal Width'])
     for i in range(IO_VARS['Graph Horizontal Width']):
       test.merged_rates.append(
         sum(test.read_rates[offset:offset+width])/width)
@@ -1180,7 +1182,7 @@ def run_io_benchmark(state, test):
     test.report.append(avg_min_max)
 
     # Compare read speeds to thresholds
-    if test.dev.lsblk['rota']:
+    if dev.lsblk['rota']:
       # Use HDD scale
       thresh_min = IO_VARS['Threshold HDD Min']
       thresh_high_avg = IO_VARS['Threshold HDD High Avg']
@@ -1221,6 +1223,8 @@ def run_keyboard_test():
 
 def run_mprime_test(state, test):
   """Test CPU with Prime95 and track temps."""
+  dev = test.dev
+
   # Bail early
   if test.disabled:
     return
@@ -1236,7 +1240,7 @@ def run_mprime_test(state, test):
   # Update tmux layout
   tmux_update_pane(
     state.panes['Top'],
-    text='{}\n{}'.format(TOP_PANE_TEXT, test.dev.name))
+    text='{}\n{}'.format(TOP_PANE_TEXT, dev.name))
 
   # Start live sensor monitor
   test.sensors_out = '{}/sensors.out'.format(global_vars['TmpDir'])
