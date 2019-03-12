@@ -143,11 +143,11 @@ function help () {
 [[ "${__usage+x}" ]] || read -r -d '' __usage <<-'EOF' || true # exits non-zero when EOF encountered
   OPTIONS:
   -u --ufd-device [arg] Device to which the kit will be applied
-  -m --main-kit   [arg] Path to the Main Kit
   -l --linux-iso  [arg] Path to the Linux ISO
-  -w --winpe-iso  [arg] Path to the WinPE ISO
 
   -e --extra-dir  [arg] Path to the Extra folder (optional)
+  -m --main-kit   [arg] Path to the Main Kit (optional)
+  -w --winpe-iso  [arg] Path to the WinPE ISO (optional)
   -h --help             This page
 
   ADVANCED:
@@ -390,15 +390,11 @@ if [[ "${arg_h:?}" == 1 ]]; then
 else
     # Print warning line
     [[ "${arg_u:-}" ]] || echo " -u or --ufd-device is required"
-    [[ "${arg_m:-}" ]] || echo " -m or --main-kit is required"
     [[ "${arg_l:-}" ]] || echo " -l or --linux-iso is required"
-    [[ "${arg_w:-}" ]] || echo " -w or --winpe-iso is required"
 
     # Bail if necessary
     [[ "${arg_u:-}" ]] || help "${__usage_example}"
     [[ "${arg_l:-}" ]] || help "${__usage_example}"
-    [[ "${arg_m:-}" ]] || help "${__usage_example}"
-    [[ "${arg_w:-}" ]] || help "${__usage_example}"
 fi
 [[ "${LOG_LEVEL:-}" ]] || emergency "Cannot continue without LOG_LEVEL. "
 
@@ -492,9 +488,13 @@ echo ""
 
 # Verify sources
 [[ -b "${DEST_DEV}" ]] || abort "${DEST_DEV} is not a valid device."
-[[ -d "${MAIN_KIT}/.bin" ]] || abort "Invalid Main Kit, ${MAIN_KIT}/.bin not found."
 [[ -e "${LINUX_ISO}" ]] || abort "Linux ISO not found."
-[[ -e "${WINPE_ISO}" ]] || abort "WinPE ISO not found."
+if [[ ! -z "${arg_m:-}" ]]; then
+  [[ -d "${MAIN_KIT}/.bin" ]] || abort "Invalid Main Kit, ${MAIN_KIT}/.bin not found."
+fi
+if [[ ! -z "${arg_w:-}" ]]; then
+  [[ -e "${WINPE_ISO}" ]] || abort "WinPE ISO not found."
+fi
 if [[ ! -z "${arg_e:-}" ]]; then
     [[ -d "${EXTRA_DIR}" ]] || abort "Extra Dir not found."
 fi
@@ -554,7 +554,9 @@ echo "Mounting sources and destination..."
 mkdir /mnt/{Dest,Linux,WinPE} -p >> "${LOG_FILE}" 2>&1
 mount ${DEST_PAR} /mnt/Dest >> "${LOG_FILE}" 2>&1
 mount "${LINUX_ISO}" /mnt/Linux -r >> "${LOG_FILE}" 2>&1
-mount "${WINPE_ISO}" /mnt/WinPE -r >> "${LOG_FILE}" 2>&1
+if [[ ! -z "${arg_w:-}" ]]; then
+  mount "${WINPE_ISO}" /mnt/WinPE -r >> "${LOG_FILE}" 2>&1
+fi
 
 # Find WinPE source
 w_boot="$(find /mnt/WinPE -iwholename "/mnt/WinPE/Boot")"
@@ -576,23 +578,27 @@ sed -i "s/${ISO_LABEL}/${UFD_LABEL}/" /mnt/Dest/arch/boot/syslinux/*cfg
 sed -i "s/#UFD#//" /mnt/Dest/arch/boot/syslinux/*cfg
 
 echo "Copying WinPE files..."
-rsync ${RSYNC_ARGS} \
-  "${w_bootmgr}" "${w_bootmgr_efi}" "${w_en_us}" \
-  /mnt/Dest/ >> "${LOG_FILE}" 2>&1
-rsync ${RSYNC_ARGS} \
-  "${w_boot}"/* \
-  /mnt/Dest/Boot/ >> "${LOG_FILE}" 2>&1
-rsync ${RSYNC_ARGS} \
-  "${w_efi_boot}"/* "${w_efi_microsoft}"/* \
-  /mnt/Dest/EFI/Microsoft/ >> "${LOG_FILE}" 2>&1
-rsync ${RSYNC_ARGS} \
-  "${w_boot_bcd}" "${w_boot_sdi}" "${w_bootmgr}" "${w_sources}"/* \
-  /mnt/Dest/sources/ >> "${LOG_FILE}" 2>&1
+if [[ ! -z "${arg_w:-}" ]]; then
+  rsync ${RSYNC_ARGS} \
+    "${w_bootmgr}" "${w_bootmgr_efi}" "${w_en_us}" \
+    /mnt/Dest/ >> "${LOG_FILE}" 2>&1
+  rsync ${RSYNC_ARGS} \
+    "${w_boot}"/* \
+    /mnt/Dest/Boot/ >> "${LOG_FILE}" 2>&1
+  rsync ${RSYNC_ARGS} \
+    "${w_efi_boot}"/* "${w_efi_microsoft}"/* \
+    /mnt/Dest/EFI/Microsoft/ >> "${LOG_FILE}" 2>&1
+  rsync ${RSYNC_ARGS} \
+    "${w_boot_bcd}" "${w_boot_sdi}" "${w_bootmgr}" "${w_sources}"/* \
+    /mnt/Dest/sources/ >> "${LOG_FILE}" 2>&1
+fi
 
 echo "Copying Main Kit..."
-rsync ${RSYNC_ARGS} \
-  "${MAIN_KIT}/" \
-  "/mnt/Dest/${KIT_NAME_FULL}/" >> "${LOG_FILE}" 2>&1
+if [[ ! -z "${arg_m:-}" ]]; then
+  rsync ${RSYNC_ARGS} \
+    "${MAIN_KIT}/" \
+    "/mnt/Dest/${KIT_NAME_FULL}/" >> "${LOG_FILE}" 2>&1
+fi
 
 if [[ ! -z "${EXTRA_DIR:-}" ]]; then
     echo "Copying Extra files..."
