@@ -34,6 +34,10 @@ TMUX_LAYOUT = OrderedDict({
   'I/O Benchmark':  {'y': 1000,             'Check': False},
 })
 
+# Tests: badblocks
+## NOTE: Force 4K read block size for disks >= to 3TB
+BADBLOCKS_LARGE_DISK = 3*1024**4
+
 # Tests: I/O Benchmark
 IO_VARS = {
   'Block Size': 512*1024,

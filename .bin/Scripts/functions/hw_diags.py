@@ -322,15 +322,19 @@ class DiskObj():
     # Set necessary details
     self.lsblk['model'] = self.lsblk.get('model', 'Unknown Model')
     self.lsblk['name'] = self.lsblk.get('name', self.path)
+    self.lsblk['phy-sec'] = self.lsblk.get('phy-sec', -1)
     self.lsblk['rota'] = self.lsblk.get('rota', True)
     self.lsblk['serial'] = self.lsblk.get('serial', 'Unknown Serial')
     self.lsblk['size'] = self.lsblk.get('size', '???b')
     self.lsblk['tran'] = self.lsblk.get('tran', '???')
 
-    # Ensure certain attributes are strings
+    # Ensure certain attributes types
     for attr in ['model', 'name', 'rota', 'serial', 'size', 'tran']:
       if not isinstance(self.lsblk[attr], str):
         self.lsblk[attr] = str(self.lsblk[attr])
+    for attr in ['phy-sec']:
+      if not isinstance(self.lsblk[attr], int):
+        self.lsblk[attr] = int(self.lsblk[attr])
     self.lsblk['tran'] = self.lsblk['tran'].upper().replace('NVME', 'NVMe')
 
     # Build list of labels
@@ -854,6 +858,8 @@ def run_audio_test():
 
 def run_badblocks_test(state, test):
   """Run a read-only surface scan with badblocks."""
+  dev = test.dev
+
   # Bail early
   if test.disabled:
     return
@@ -871,7 +877,7 @@ def run_badblocks_test(state, test):
         break
 
   # Prep
-  print_log('Starting badblocks test for {}'.format(test.dev.path))
+  print_log('Starting badblocks test for {}'.format(dev.path))
   test.started = True
   test.update_status()
   update_progress_pane(state)
@@ -880,23 +886,30 @@ def run_badblocks_test(state, test):
   tmux_update_pane(
     state.panes['Top'],
     text='{}\n{}'.format(
-      TOP_PANE_TEXT, test.dev.description))
+      TOP_PANE_TEXT, dev.description))
 
   # Create monitor pane
   test.badblocks_out = '{}/badblocks_{}.out'.format(
-    global_vars['LogDir'], test.dev.name)
+    global_vars['LogDir'], dev.name)
   state.panes['badblocks'] = tmux_split_window(
     lines=5, vertical=True, watch=test.badblocks_out, watch_cmd='tail')
 
   # Show disk details
   clear_screen()
-  show_report(test.dev.generate_attribute_report())
+  show_report(dev.generate_attribute_report())
   print_standard(' ')
+
+  # Set read block size
+  if dev.lsblk['phy-sec'] == 4096 or dev.size_bytes >= BADBLOCKS_LARGE_DISK:
+    block_size = '4096'
+  else:
+    # Use default value
+    block_size = '1024'
 
   # Start badblocks
   print_standard('Running badblocks test...')
   test.badblocks_proc = popen_program(
-    ['sudo', 'badblocks', '-sv', '-e', '1', test.dev.path],
+    ['sudo', 'badblocks', '-sv', '-b', block_size, '-e', '1', dev.path],
     pipe=True, bufsize=1)
   test.badblocks_nbsr = NonBlockingStreamReader(test.badblocks_proc.stderr)
   test.badblocks_stderr = ''
@@ -935,7 +948,7 @@ def run_badblocks_test(state, test):
 
   # Disable other drive tests if necessary
   if not test.passed:
-    test.dev.disable_test('I/O Benchmark', 'Denied')
+    dev.disable_test('I/O Benchmark', 'Denied')
 
   # Update status
   if test.failed:
