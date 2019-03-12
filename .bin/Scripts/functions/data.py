@@ -78,8 +78,7 @@ def find_core_storage_volumes(device_path=None):
     '--output', 'NAME,PARTTYPE']
   if device_path:
     cmd.append(device_path)
-  result = run_program(cmd)
-  json_data = json.loads(result.stdout.decode())
+  json_data = get_json_from_command(cmd)
   devs = json_data.get('blockdevices', [])
   devs = [d for d in devs if d.get('parttype', '') == corestorage_uuid]
   if devs:
@@ -159,8 +158,7 @@ def get_mounted_volumes():
       'devtmpfs,hugetlbfs,mqueue,proc,pstore,securityfs,sysfs,tmpfs'
       ),
     '-o', 'SOURCE,TARGET,FSTYPE,LABEL,SIZE,AVAIL,USED']
-  result = run_program(cmd)
-  json_data = json.loads(result.stdout.decode())
+  json_data = get_json_from_command(cmd)
   mounted_volumes = []
   for item in json_data.get('filesystems', []):
     mounted_volumes.append(item)
@@ -185,8 +183,7 @@ def mount_volumes(
     find_core_storage_volumes(device_path)
 
   # Get list of block devices
-  result = run_program(cmd)
-  json_data = json.loads(result.stdout.decode())
+  json_data = get_json_from_command(cmd)
   devs = json_data.get('blockdevices', [])
 
   # Get list of volumes

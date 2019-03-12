@@ -105,7 +105,7 @@ def get_raw_sensor_data():
   # Get raw data
   try:
     result = run_program(cmd)
-    result = result.stdout.decode().splitlines()
+    result = result.stdout.decode('utf-8', errors='ignore').splitlines()
   except subprocess.CalledProcessError:
     # Assuming no sensors available, set to empty list
     result = []

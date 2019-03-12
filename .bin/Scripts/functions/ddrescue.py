@@ -1,6 +1,5 @@
 # Wizard Kit: Functions - ddrescue-tui
 
-import json
 import pathlib
 import psutil
 import re
@@ -11,6 +10,7 @@ import time
 from collections import OrderedDict
 from functions.data import *
 from functions.hw_diags import *
+from functions.json import *
 from functions.tmux import *
 from operator import itemgetter
 from settings.ddrescue import *
@@ -346,15 +346,14 @@ class RecoveryState():
     map_allowed_fstypes = RECOMMENDED_FSTYPES.copy()
     map_allowed_fstypes.extend(['cifs', 'ext2', 'vfat'])
     map_allowed_fstypes.sort()
-    json_data = {}
+    json_data = get_json_from_command(cmd)
 
-    # Avoid saving map to non-persistent filesystem
-    try:
-      result = run_program(cmd)
-      json_data = json.loads(result.stdout.decode())
-    except Exception:
+    # Abort if json_data is empty
+    if not json_data:
       print_error('ERROR: Failed to verify map path')
       raise GenericAbort()
+
+    # Avoid saving map to non-persistent filesystem
     fstype = json_data.get(
       'filesystems', [{}])[0].get(
       'fstype', 'unknown')
@@ -547,21 +546,11 @@ def fix_tmux_panes(state, forced=False):
 
 def get_device_details(dev_path):
   """Get device details via lsblk, returns JSON dict."""
-  try:
-    cmd = (
-      'lsblk',
-      '--json',
-      '--output-all',
-      '--paths',
-      dev_path)
-    result = run_program(cmd)
-  except CalledProcessError:
-    # Return empty dict and let calling section deal with the issue
-    return {}
+  cmd = ['lsblk', '--json', '--output-all', '--paths', dev_path]
+  json_data = get_json_from_command(cmd)
 
-  json_data = json.loads(result.stdout.decode())
   # Just return the first device (there should only be one)
-  return json_data['blockdevices'][0]
+  return json_data.get('blockdevices', [{}])[0]
 
 
 def get_device_report(dev_path):
@@ -594,17 +583,19 @@ def get_device_report(dev_path):
 
 def get_dir_details(dir_path):
   """Get dir details via findmnt, returns JSON dict."""
-  try:
-    result = run_program([
-      'findmnt', '-J',
-      '-o', 'SOURCE,TARGET,FSTYPE,OPTIONS,SIZE,AVAIL,USED',
-      '-T', dir_path])
-    json_data = json.loads(result.stdout.decode())
-  except Exception:
+  cmd = [
+    'findmnt', '-J',
+    '-o', 'SOURCE,TARGET,FSTYPE,OPTIONS,SIZE,AVAIL,USED',
+    '-T', dir_path,
+    ]
+  json_data = get_json_from_command(cmd)
+
+  # Raise exception if json_data is empty
+  if not json_data:
     raise GenericError(
-      'Failed to get directory details for "{}".'.format(self.path))
-  else:
-    return json_data['filesystems'][0]
+      'Failed to get directory details for "{}".'.format(dir_path))
+
+  return json_data.get('filesystems', [{}])[0]
 
 
 def get_dir_report(dir_path):
@@ -1210,14 +1201,8 @@ def select_path(skip_device=None):
 
 def select_device(description='device', skip_device=None):
   """Select device via a menu, returns DevObj."""
-  cmd = (
-    'lsblk',
-    '--json',
-    '--nodeps',
-    '--output-all',
-    '--paths')
-  result = run_program(cmd)
-  json_data = json.loads(result.stdout.decode())
+  cmd = ['lsblk', '--json', '--nodeps', '--output-all', '--paths']
+  json_data = get_json_from_command(cmd)
   skip_names = []
   if skip_device:
     skip_names.append(skip_device.path)
@@ -1226,7 +1211,7 @@ def select_device(description='device', skip_device=None):
 
   # Build menu
   dev_options = []
-  for dev in json_data['blockdevices']:
+  for dev in json_data.get('blockdevices', []):
     # Disable dev if in skip_names
     disabled = dev['name'] in skip_names or dev['pkname'] in skip_names
 

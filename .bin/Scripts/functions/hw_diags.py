@@ -1,10 +1,10 @@
 # Wizard Kit: Functions - HW Diagnostics
 
-import json
 import re
 import time
 
 from collections import OrderedDict
+from functions.json import *
 from functions.sensors import *
 from functions.threading import *
 from functions.tmux import *
@@ -38,15 +38,10 @@ class CpuObj():
   def get_details(self):
     """Get CPU details from lscpu."""
     cmd = ['lscpu', '--json']
-    try:
-      result = run_program(cmd, check=False)
-      json_data = json.loads(result.stdout.decode())
-    except Exception:
-      # Ignore and leave self.lscpu empty
-      return
-    for line in json_data.get('lscpu', []):
-      _field = line.get('field', None).replace(':', '')
-      _data = line.get('data', None)
+    json_data = get_json_from_command(cmd)
+    for line in json_data.get('lscpu', [{}]):
+      _field = line.get('field', '').replace(':', '')
+      _data = line.get('data', '')
       if not _field and not _data:
         # Skip
         print_warning(_field, _data)
@@ -311,13 +306,8 @@ class DiskObj():
   def get_details(self):
     """Get data from lsblk."""
     cmd = ['lsblk', '--json', '--output-all', '--paths', self.path]
-    try:
-      result = run_program(cmd, check=False)
-      json_data = json.loads(result.stdout.decode())
-      self.lsblk = json_data['blockdevices'][0]
-    except Exception:
-      # Leave self.lsblk empty
-      pass
+    json_data = get_json_from_command(cmd)
+    self.lsblk = json_data.get('blockdevices', [{}])[0]
 
     # Set necessary details
     self.lsblk['model'] = self.lsblk.get('model', 'Unknown Model')
@@ -358,12 +348,7 @@ class DiskObj():
   def get_smart_details(self):
     """Get data from smartctl."""
     cmd = ['sudo', 'smartctl', '--all', '--json', self.path]
-    try:
-      result = run_program(cmd, check=False)
-      self.smartctl = json.loads(result.stdout.decode())
-    except Exception:
-      # Leave self.smartctl empty
-      pass
+    self.smartctl = get_json_from_command(cmd)
 
     # Check for attributes
     if KEY_NVME in self.smartctl:
@@ -518,9 +503,8 @@ class State():
 
     # Add block devices
     cmd = ['lsblk', '--json', '--nodeps', '--paths']
-    result = run_program(cmd, check=False)
-    json_data = json.loads(result.stdout.decode())
-    for disk in json_data['blockdevices']:
+    json_data = get_json_from_command(cmd)
+    for disk in json_data.get('blockdevices', []):
       skip_disk = False
       disk_obj = DiskObj(disk['name'])
 
