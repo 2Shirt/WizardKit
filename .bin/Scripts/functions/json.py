@@ -6,7 +6,7 @@ from functions.common import *
 
 def get_json_from_command(cmd, ignore_errors=True):
   """Capture JSON content from cmd output, returns dict.
-  
+
   If the data can't be decoded then either an exception is raised
   or an empty dict is returned depending on ignore_errors.
   """
@@ -22,7 +22,7 @@ def get_json_from_command(cmd, ignore_errors=True):
   except (subprocess.CalledProcessError, json.decoder.JSONDecodeError):
     if not ignore_errors:
       raise
-  
+
   return json_data
 
 
