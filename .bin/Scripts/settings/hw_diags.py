@@ -3,6 +3,7 @@
 from collections import OrderedDict
 
 # General
+DEBUG_MODE = False
 OVERRIDES_FORCED = False
 OVERRIDES_LIMITED = True # If True this disables OVERRIDE_FORCED
 STATUSES = {

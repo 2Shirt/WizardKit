@@ -26,8 +26,37 @@ if __name__ == '__main__':
     # Normal exit
     pass
   except:
+    # Cleanup
     tmux_kill_all_panes()
-    major_exception()
+
+    if DEBUG_MODE:
+      # Custom major exception
+      print_standard(' ')
+      print_error('Major exception')
+      print_warning(SUPPORT_MESSAGE)
+      print(traceback.format_exc())
+      print_log(traceback.format_exc())
+
+      # Save debug reports and upload data
+      try_and_print(
+        message='Saving debug reports...',
+        function=save_debug_reports,
+        state=state, global_vars=global_vars)
+      question = 'Upload crash details to {}?'.format(CRASH_SERVER['Name'])
+      if ENABLED_UPLOAD_DATA and ask(question):
+        try_and_print(
+          message='Uploading Data...',
+          function=upload_logdir,
+          global_vars=global_vars)
+
+      # Done
+      sleep(10)
+      pause('Press Enter to exit...')
+      exit_script(1)
+
+    else:
+      # "Normal" major exception
+      major_exception()
 
   # Done
   tmux_kill_all_panes()

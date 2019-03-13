@@ -9,6 +9,8 @@ from functions.sensors import *
 from functions.threading import *
 from functions.tmux import *
 from settings.hw_diags import *
+if DEBUG_MODE:
+  from debug.hw_diags import *
 
 
 # Fix settings
