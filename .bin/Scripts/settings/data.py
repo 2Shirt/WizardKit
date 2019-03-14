@@ -3,6 +3,8 @@
 import ctypes
 import re
 
+from settings.main import *
+
 # FastCopy
 FAST_COPY_EXCLUDES = [
   r'\*.esd',

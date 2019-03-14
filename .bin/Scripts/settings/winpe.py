@@ -1,5 +1,18 @@
 # Wizard Kit: Settings - WinPE
 
+from settings.data import *
+
+# FastCopy
+FAST_COPY_PE_ARGS = [
+  '/cmd=noexist_only',
+  '/utf8',
+  '/skip_empty_dir',
+  '/linkdest',
+  '/no_ui',
+  '/auto_close',
+  '/exclude={}'.format(';'.join(FAST_COPY_EXCLUDES)),
+  ]
+
 # General
 PE_TOOLS = {
   'BlueScreenView': {
@@ -36,17 +49,6 @@ PE_TOOLS = {
     'Args': ['-new_console:n'],
     },
   }
-
-# FastCopy
-FAST_COPY_PE_ARGS = [
-  '/cmd=noexist_only',
-  '/utf8',
-  '/skip_empty_dir',
-  '/linkdest',
-  '/no_ui',
-  '/auto_close',
-  '/exclude={}'.format(';'.join(FAST_COPY_EXCLUDES)),
-  ]
 
 
 if __name__ == '__main__':

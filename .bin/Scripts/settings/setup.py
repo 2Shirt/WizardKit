@@ -1,5 +1,7 @@
 # Wizard Kit: Settings - Setup
 
+import winreg
+
 # General
 HKU =  winreg.HKEY_USERS
 HKCR = winreg.HKEY_CLASSES_ROOT

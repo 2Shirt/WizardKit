@@ -1,5 +1,6 @@
 # Wizard Kit: Settings - Browsers
 
+import os
 import re
 
 # General
