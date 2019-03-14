@@ -1467,6 +1467,7 @@ def run_nvme_smart_tests(state, test, update_mode=False):
       test.update_status('Aborted')
       raise GenericAbort('Aborted')
     elif dev.self_test_timed_out:
+      test.failed = True
       test.update_status('TimedOut')
     elif dev.override_disabled or 'OVERRIDE' not in test.status:
       # override_disabled is set to True if one or more critical attributes
