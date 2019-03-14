@@ -1,9 +1,8 @@
 # Wizard Kit: Functions - Data
 
 import ctypes
-import json
 
-from functions.common import *
+from functions.json import *
 from operator import itemgetter
 from settings.data import *
 
