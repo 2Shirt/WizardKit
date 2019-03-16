@@ -1460,7 +1460,7 @@ def run_nvme_smart_tests(state, test, update_mode=False):
       test.failed = True
       test.update_status('NS')
   elif dev.smart_attributes:
-    if dev.disk_ok and dev.self_test_passed:
+    if dev.disk_ok and dev.self_test_passed and 'OVERRIDE' not in test.status:
       test.passed = True
       test.update_status('CS')
     elif test.aborted:
