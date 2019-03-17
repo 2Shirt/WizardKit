@@ -497,7 +497,7 @@ echo Press any key to exit...
 pause>nul
 rem reset color and reset errorlevel to 0
 rem NOTE: This is done to avoid causing a ErrorLaunchCMD in the launcher.cmd
-color
+color 07
 goto Exit
 
 :: Cleanup and exit ::
