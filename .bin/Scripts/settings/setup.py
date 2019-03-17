@@ -71,7 +71,8 @@ SETTINGS_EXPLORER_SYSTEM = {
     'Status': {'Value': 0},
     },
   # Disable Telemetry
-  r'Software\Microsoft\Windows\CurrentVersion\Policies\DataCollection': {
+  r'SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\DataCollection': {
+    # Using SOFTWARE in all caps to avoid collision with 32-bit setting below
     'DWORD Items': {'AllowTelemetry': 0},
     },
   r'Software\Microsoft\Windows\CurrentVersion\Policies\DataCollection': {
