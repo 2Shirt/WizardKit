@@ -137,6 +137,17 @@ VCR_REDISTS = [
       '/passive', '/norestart']},
   ]
 
+# Windows Updates
+SETTINGS_WINDOWS_UPDATES = {
+  r'Software\Microsoft\WindowsUpdate\UX\Settings': {
+    'DWORD Items': {
+      # Set to non-targeted readiness level
+      'BranchReadinessLevel': 32,
+      'DeferFeatureUpdatesPeriodInDays': 60,
+      },
+    }
+  }
+
 
 if __name__ == '__main__':
   print("This file is not meant to be called directly.")

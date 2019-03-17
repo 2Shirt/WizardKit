@@ -103,6 +103,8 @@ if __name__ == '__main__':
         function=config_explorer_system, cs='Done')
       try_and_print(message='Disabling telemetry...',
         function=disable_windows_telemetry, cs='Done')
+      try_and_print(message='Windows Updates...',
+        function=config_windows_updates, cs='Done')
     try_and_print(message='Updating Clock...',
       function=update_clock, cs='Done')
 

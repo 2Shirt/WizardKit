@@ -67,6 +67,11 @@ def config_explorer_user():
   write_registry_settings(SETTINGS_EXPLORER_USER, all_users=False)
 
 
+def config_windows_updates():
+  """Configure Windows updates."""
+  write_registry_settings(SETTINGS_WINDOWS_UPDATES, all_users=True)
+
+
 def disable_windows_telemetry():
   """Disable Windows 10 telemetry settings with O&O ShutUp10."""
   extract_item('ShutUp10', silent=True)
