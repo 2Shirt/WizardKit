@@ -79,7 +79,7 @@ def download_windows_updates():
     for winver, v2 in v.items():
       for arch, url in v2.items():
         name = 'KB{}-Windows{}-x{}.msu'.format(kb, winver, arch)
-        if not os.path.exists(r'{}\{}'.format(dest, name):
+        if not os.path.exists(r'{}\{}'.format(dest, name)):
           download_generic(dest, name, url)
 
 
