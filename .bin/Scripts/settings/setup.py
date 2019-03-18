@@ -1,5 +1,6 @@
 # Wizard Kit: Settings - Setup
 
+import os
 import winreg
 
 # General
