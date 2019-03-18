@@ -48,6 +48,10 @@ if __name__ == '__main__':
     try_and_print(message='Updating Clock...',
       function=update_clock, cs='Done')
 
+    # Restart Explorer
+    try_and_print(message='Restarting Explorer...',
+      function=restart_explorer, cs='Done')
+
     # Cleanup
     print_info('Cleanup')
     try_and_print(message='AdwCleaner...',

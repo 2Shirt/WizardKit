@@ -71,6 +71,10 @@ if __name__ == '__main__':
       if not answer_config_browsers:
         print_warning('    Skipped')
 
+    # Restart Explorer
+    try_and_print(message='Restarting Explorer...',
+      function=restart_explorer, cs='Done')
+
     # Run speedtest
     popen_program(['start', '', 'https://fast.com'], shell=True)
 

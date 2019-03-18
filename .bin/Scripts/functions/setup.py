@@ -4,6 +4,7 @@ from functions.update import *
 from settings.setup import *
 
 
+# Configuration
 def config_classicstart():
   """Configure ClassicStart."""
   # User level, not system level
@@ -223,6 +224,13 @@ def open_windows_activation():
 
 def open_windows_updates():
   popen_program(['control', '/name', 'Microsoft.WindowsUpdate'])
+
+
+def restart_explorer():
+  """Restart Explorer."""
+  kill_process('explorer.exe')
+  sleep(2)
+  kill_process('explorer.exe')
 
 
 if __name__ == '__main__':
