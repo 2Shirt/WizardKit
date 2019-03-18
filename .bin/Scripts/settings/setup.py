@@ -105,7 +105,7 @@ SETTINGS_EXPLORER_USER = {
   # File Explorer
   r'Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced': {
     'DWORD Items': {
-    # Change default Explorer view to "Computer"
+      # Change default Explorer view to "Computer"
       'LaunchTo': 1,
       },
     },
