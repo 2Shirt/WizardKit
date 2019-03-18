@@ -92,13 +92,21 @@ SETTINGS_EXPLORER_SYSTEM = {
     },
   }
 SETTINGS_EXPLORER_USER = {
+  # Disable features
   r'Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager': {
     'DWORD Items': {
-      # Disable silently installed apps
+      # Silently installed apps
       'SilentInstalledAppsEnabled': 0,
-      # Disable Tips and Tricks
+      # Tips and Tricks
       'SoftLandingEnabled ': 0,
       'SubscribedContent-338389Enabled': 0,
+      },
+    },
+  # File Explorer
+  r'Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced': {
+    'DWORD Items': {
+    # Change default Explorer view to "Computer"
+      'LaunchTo': 1,
       },
     },
   # Hide People bar
@@ -108,10 +116,6 @@ SETTINGS_EXPLORER_USER = {
   # Hide Search button / box
   r'Software\Microsoft\Windows\CurrentVersion\Search': {
     'DWORD Items': {'SearchboxTaskbarMode': 0},
-    },
-  # Change default Explorer view to "Computer"
-  r'Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced': {
-    'DWORD Items': {'LaunchTo': 1},
     },
   }
 
