@@ -288,8 +288,8 @@ LAUNCHERS = {
     'Intel RST (Current Release)': {
       'L_TYPE': 'Executable',
       'L_PATH': '_Drivers\Intel RST',
-      'L_ITEM': 'SetupRST_16.8.exe',
-      'L_7ZIP': 'SetupRST_16.8.exe',
+      'L_ITEM': 'SetupRST_17.2.exe',
+      'L_7ZIP': 'SetupRST_17.2.exe',
       },
     'Intel RST (Previous Releases)': {
       'L_TYPE': 'Folder',
