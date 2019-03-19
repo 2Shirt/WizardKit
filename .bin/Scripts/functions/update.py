@@ -843,8 +843,13 @@ def update_wiztree():
 
   # Extract files
   extract_temp_to_cbin('wiztree.zip', 'WizTree')
+  ## NOTE: It's double-zipped for some reason?
+  extract_generic(
+    r'{}\WizTree\wiztree'.format(global_vars['CBinDir']),
+    r'{}\WizTree'.format(global_vars['CBinDir']))
 
   # Cleanup
+  remove_item(r'{}\WizTree\wiztree'.format(global_vars['CBinDir']))
   remove_from_temp('wiztree.zip')
 
 
