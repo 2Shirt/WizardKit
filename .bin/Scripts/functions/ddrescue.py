@@ -416,8 +416,8 @@ class RecoveryState():
     elif 'In Progress' not in self.status:
       # Don't update when EToC is hidden
       return
-    if now.second % 5 != 0:
-      # Limit updates to every 5 seconds
+    if now.second % ETOC_REFRESH_RATE != 0:
+      # Limit updates based on settings/ddrescue.py
       return
 
     self.etoc = 'Unknown'

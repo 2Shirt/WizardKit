@@ -35,6 +35,7 @@ DDRESCUE_SETTINGS = {
   '--timeout':          {'Enabled': True,   'Value': '5m',                },
   '-vvvv':              {'Enabled': True,                 'Hidden': True, },
   }
+ETOC_REFRESH_RATE = 30 # in seconds
 REGEX_REMAINING_TIME = re.compile(
   r'remaining time:'
   r'\s*((?P<days>\d+)d)?'
