@@ -256,6 +256,7 @@ class RecoveryState():
     self.block_pairs = []
     self.current_pass = 0
     self.current_pass_str = '0: Initializing'
+    self.etoc = ''
     self.settings = DDRESCUE_SETTINGS.copy()
     self.finished = False
     self.panes = {}
@@ -402,6 +403,66 @@ class RecoveryState():
       self.current_pass_str = '2 "Trimming bad areas"'
     elif self.current_pass == 2:
       self.current_pass_str = '3 "Scraping bad areas"'
+
+  def update_etoc(self):
+    """Search ddrescue output for the current EToC, returns str."""
+    now = datetime.datetime.now(tz=self.timezone)
+
+    # Bail early
+    if 'NEEDS ATTENTION' in self.status:
+      # Just set to N/A (NOTE: this overrules the refresh rate below)
+      self.etoc = 'N/A'
+      return
+    elif 'In Progress' not in self.status:
+      # Don't update when EToC is hidden
+      return
+    if now.second % 5 != 0:
+      # Limit updates to every 5 seconds
+      return
+
+    self.etoc = 'Unknown'
+    etoc_delta = None
+    text = ''
+
+    # Capture main tmux pane
+    try:
+      text = tmux_capture_pane()
+    except Exception:
+      # Ignore
+      pass
+
+    # Search for EToC delta
+    matches = re.findall(r'remaining time:.*$', text, re.MULTILINE)
+    if matches:
+      r = REGEX_REMAINING_TIME.search(matches[-1])
+      if r.group('na'):
+        self.etoc = 'N/A'
+      else:
+        self.etoc = r.string
+        days = r.group('days') if r.group('days') else 0
+        hours = r.group('hours') if r.group('hours') else 0
+        minutes = r.group('minutes') if r.group('minutes') else 0
+        seconds = r.group('seconds') if r.group('seconds') else 0
+        try:
+          etoc_delta = datetime.timedelta(
+            days=int(days),
+            hours=int(hours),
+            minutes=int(minutes),
+            seconds=int(seconds),
+            )
+        except Exception:
+          # Ignore and leave as raw string
+          pass
+
+    # Calc finish time if EToC delta found
+    if etoc_delta:
+      try:
+        now = datetime.datetime.now(tz=self.timezone)
+        _etoc = now + etoc_delta
+        self.etoc = _etoc.strftime('%Y-%m-%d %H:%M %Z')
+      except Exception:
+        # Ignore and leave as current string
+        pass
 
   def update_progress(self):
     """Update overall progress using block_pairs."""
@@ -1328,62 +1389,17 @@ def update_sidepane(state):
     output.append(' ')
 
   # EToC
-  etoc = 'Unknown'
   if re.search(r'(In Progress|NEEDS ATTENTION)', state.status):
     if not output[-1].strip():
       # Last line is empty
       output.pop()
     output.append('─────────────────────')
     output.append('{BLUE}Estimated Pass Finish{CLEAR}'.format(**COLORS))
-    if 'In Progress' in state.status:
-      etoc_delta = None
-      text = ''
-
-      # Capture main tmux pane
-      try:
-        text = tmux_capture_pane()
-      except Exception:
-        # Ignore
-        pass
-
-      # Search for EToC delta
-      matches = re.findall(r'remaining time:.*$', text, re.MULTILINE)
-      if matches:
-        r = REGEX_REMAINING_TIME.search(matches[-1])
-        if r.group('na'):
-          etoc = 'N/A'
-        else:
-          etoc = r.string
-          days = r.group('days') if r.group('days') else 0
-          hours = r.group('hours') if r.group('hours') else 0
-          minutes = r.group('minutes') if r.group('minutes') else 0
-          seconds = r.group('seconds') if r.group('seconds') else 0
-          try:
-            etoc_delta = datetime.timedelta(
-              days=int(days),
-              hours=int(hours),
-              minutes=int(minutes),
-              seconds=int(seconds),
-              )
-          except Exception:
-            # Ignore and leave as raw string
-            pass
-
-      # Calc finish time if EToC delta found
-      if etoc_delta:
-        try:
-          now = datetime.datetime.now(tz=state.timezone)
-          etoc = now + etoc_delta
-          etoc = etoc.strftime('%Y-%m-%d %H:%M %Z')
-        except Exception:
-          # Ignore and leave as current string
-          pass
-
-    # Finally add EToC
-    if 'N/A' in etoc.upper():
+    state.update_etoc()
+    if 'N/A' in state.etoc.upper():
       output.append('{YELLOW}N/A{CLEAR}'.format(**COLORS))
     else:
-      output.append(etoc)
+      output.append(state.etoc)
 
   # Add line-endings
   output = ['{}\n'.format(line) for line in output]
