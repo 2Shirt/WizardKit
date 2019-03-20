@@ -437,6 +437,9 @@ def ping(addr='google.com'):
 def popen_program(cmd, pipe=False, minimized=False, shell=False, **kwargs):
   """Run program and return a subprocess.Popen object."""
   cmd_kwargs = {'args': cmd, 'shell': shell}
+  for kw in ('encoding', 'errors'):
+    if kw in kwargs:
+      cmd_kwargs[kw] = kwargs[kw]
 
   if minimized:
     startupinfo = subprocess.STARTUPINFO()
@@ -506,6 +509,9 @@ def run_program(cmd, check=True, pipe=True, shell=False, **kwargs):
     cmd = ' '.join(cmd)
 
   cmd_kwargs = {'args': cmd, 'check': check, 'shell': shell}
+  for kw in ('encoding', 'errors'):
+    if kw in kwargs:
+      cmd_kwargs[kw] = kwargs[kw]
 
   if pipe:
     cmd_kwargs.update({
