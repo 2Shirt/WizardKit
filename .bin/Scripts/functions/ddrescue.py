@@ -261,6 +261,7 @@ class RecoveryState():
     self.rescued = 0
     self.resumed = False
     self.started = False
+    self.status = 'Inactive'
     self.total_size = 0
     if mode not in ('clone', 'image'):
       raise GenericError('Unsupported mode')
@@ -768,6 +769,13 @@ def menu_main(state):
 
   # Show menu
   while True:
+    # Update status
+    if state.finished:
+      state.status = '      Finished'
+    else:
+      state.status = '      Inactive'
+    update_sidepane(state)
+
     # Update entries
     for opt in main_options:
       opt['Name'] = '[{}] {}'.format(
@@ -922,6 +930,7 @@ def run_ddrescue(state, pass_settings):
   """Run ddrescue pass."""
   return_code = -1
   aborted = False
+  state.status = '     In Progress'
 
   if state.finished:
     clear_screen()
@@ -1036,6 +1045,9 @@ def run_ddrescue(state, pass_settings):
   # Done
   if str(return_code) != '0':
     # Pause on errors
+    state.status = '   {YELLOW}NEEDS ATTENTION{CLEAR}'.format(**COLORS)
+    state.status = state.status.replace('33m', '33;5m')
+    update_sidepane(state)
     pause('Press Enter to return to main menu... ')
 
   # Cleanup
@@ -1292,6 +1304,7 @@ def update_sidepane(state):
     output.append('   {BLUE}Cloning Status{CLEAR}'.format(**COLORS))
   else:
     output.append('   {BLUE}Imaging Status{CLEAR}'.format(**COLORS))
+  output.append(state.status)
   output.append('─────────────────────')
 
   # Overall progress

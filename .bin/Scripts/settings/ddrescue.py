@@ -1,5 +1,7 @@
 # Wizard Kit: Settings - ddrescue-tui
 
+from collections import OrderedDict
+
 # General
 RECOMMENDED_FSTYPES = ['ext3', 'ext4', 'xfs']
 USAGE = """  {script_name} clone [source [destination]]
