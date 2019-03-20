@@ -10,6 +10,21 @@ def create_file(filepath):
       f.write('')
 
 
+def tmux_capture_pane(pane_id=None):
+  """Capture text from target, or current, pane, returns str."""
+  cmd = ['tmux', 'capture-pane', '-p']
+  if pane_id:
+    cmd.extend(['-t', pane_id])
+  text = ''
+
+  # Capture
+  result = run_program(cmd, check=False, encoding='utf-8', errors='ignore')
+  text = result.stdout
+
+  # Done
+  return str(text)
+
+
 def tmux_get_pane_size(pane_id=None):
   """Get target, or current, pane size, returns tuple."""
   x = -1
