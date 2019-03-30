@@ -577,18 +577,36 @@ sed -i "s/${ISO_LABEL}/${UFD_LABEL}/" /mnt/Dest/arch/boot/syslinux/*cfg
 
 echo "Copying WinPE files..." | tee -a "${LOG_FILE}"
 if [[ ! -z "${arg_w:-}" ]]; then
-  rsync ${RSYNC_ARGS} \
-    "${w_bootmgr}" "${w_bootmgr_efi}" "${w_en_us}" \
-    /mnt/Dest/ >> "${LOG_FILE}" 2>&1
-  rsync ${RSYNC_ARGS} \
-    "${w_boot}"/* \
-    /mnt/Dest/Boot/ >> "${LOG_FILE}" 2>&1
-  rsync ${RSYNC_ARGS} \
-    "${w_efi_boot}"/* "${w_efi_microsoft}"/* \
-    /mnt/Dest/EFI/Microsoft/ >> "${LOG_FILE}" 2>&1
-  rsync ${RSYNC_ARGS} \
-    "${w_boot_bcd}" "${w_boot_sdi}" "${w_bootmgr}" "${w_sources}"/* \
-    /mnt/Dest/sources/ >> "${LOG_FILE}" 2>&1
+  if [[ ! -z "${w_bootmgr:-}" ]]; then
+    rsync ${RSYNC_ARGS} "${w_bootmgr}" /mnt/Dest/ >> "${LOG_FILE}" 2>&1
+  fi
+  if [[ ! -z "${w_bootmgr_efi:-}" ]]; then
+    rsync ${RSYNC_ARGS} "${w_bootmgr_efi}" /mnt/Dest/ >> "${LOG_FILE}" 2>&1
+  fi
+  if [[ ! -z "${w_en_us:-}" ]]; then
+    rsync ${RSYNC_ARGS} "${w_en_us}" /mnt/Dest/ >> "${LOG_FILE}" 2>&1
+  fi
+  if [[ ! -z "${w_boot:-}" ]]; then
+    rsync ${RSYNC_ARGS} "${w_boot}"/* /mnt/Dest/Boot/ >> "${LOG_FILE}" 2>&1
+  fi
+  if [[ ! -z "${w_efi_boot:-}" ]]; then
+    rsync ${RSYNC_ARGS} "${w_efi_boot}"/* /mnt/Dest/EFI/Microsoft/ >> "${LOG_FILE}" 2>&1
+  fi
+  if [[ ! -z "${w_efi_microsoft:-}" ]]; then
+    rsync ${RSYNC_ARGS} "${w_efi_microsoft}"/* /mnt/Dest/EFI/Microsoft/ >> "${LOG_FILE}" 2>&1
+  fi
+  if [[ ! -z "${w_boot_bcd:-}" ]]; then
+    rsync ${RSYNC_ARGS} "${w_boot_bcd}" /mnt/Dest/sources/ >> "${LOG_FILE}" 2>&1
+  fi
+  if [[ ! -z "${w_boot_sdi:-}" ]]; then
+    rsync ${RSYNC_ARGS} "${w_boot_sdi}" /mnt/Dest/sources/ >> "${LOG_FILE}" 2>&1
+  fi
+  if [[ ! -z "${w_bootmgr:-}" ]]; then
+    rsync ${RSYNC_ARGS} "${w_bootmgr}" /mnt/Dest/sources/ >> "${LOG_FILE}" 2>&1
+  fi
+  if [[ ! -z "${w_sources:-}" ]]; then
+    rsync ${RSYNC_ARGS} "${w_sources}"/* /mnt/Dest/sources/ >> "${LOG_FILE}" 2>&1
+  fi
 
   # Uncomment boot entries
   sed -i "s/#UFD-WINPE#//" /mnt/Dest/EFI/boot/refind.conf
