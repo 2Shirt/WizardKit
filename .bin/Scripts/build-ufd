@@ -621,7 +621,7 @@ if [[ ! -z "${arg_m:-}" ]]; then
 fi
 
 if [[ ! -z "${EXTRA_DIR:-}" ]]; then
-    echo "Copying Extra files..."
+    echo "Copying Extra files..." | tee -a "${LOG_FILE}"
     rsync ${RSYNC_ARGS} \
       "${EXTRA_DIR}"/ \
       /mnt/Dest/ >> "${LOG_FILE}" 2>&1
