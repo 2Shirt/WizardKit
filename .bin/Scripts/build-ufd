@@ -500,18 +500,18 @@ if [[ ! -z "${arg_e:-}" ]]; then
 fi
 
 # Print Info
-echo -e "${BLUE}Sources${CLEAR}"
-echo "Main Kit:  ${MAIN_KIT}"
-echo "Linux ISO: ${LINUX_ISO}"
-echo "WinPE ISO: ${WINPE_ISO}"
-echo "Extra Dir: ${EXTRA_DIR:-(Not Specified)}"
-echo ""
-echo -e "${BLUE}Destination${CLEAR}"
-lsblk -n -o NAME,LABEL,SIZE,MODEL,SERIAL "${DEST_DEV}"
+echo -e "${BLUE}Sources${CLEAR}" | tee -a "${LOG_FILE}"
+echo "Main Kit:  ${MAIN_KIT}" | tee -a "${LOG_FILE}"
+echo "Linux ISO: ${LINUX_ISO}" | tee -a "${LOG_FILE}"
+echo "WinPE ISO: ${WINPE_ISO}" | tee -a "${LOG_FILE}"
+echo "Extra Dir: ${EXTRA_DIR:-(Not Specified)}" | tee -a "${LOG_FILE}"
+echo "" | tee -a "${LOG_FILE}"
+echo -e "${BLUE}Destination${CLEAR}" | tee -a "${LOG_FILE}"
+lsblk -n -o NAME,LABEL,SIZE,MODEL,SERIAL "${DEST_DEV}" | tee -a "${LOG_FILE}"
 if [[ "${USE_MBR}" == "True" ]]; then
-    echo -e "${YELLOW}Formatting using legacy MBR${CLEAR}"
+    echo -e "${YELLOW}Formatting using legacy MBR${CLEAR}" | tee -a "${LOG_FILE}"
 fi
-echo ""
+echo "" | tee -a "${LOG_FILE}"
 
 # Ask before starting job
 echo ""
@@ -528,8 +528,8 @@ else
 fi
 
 # Start Build
-echo ""
-echo -e "${GREEN}Building Kit${CLEAR}"
+echo "" | tee -a "${LOG_FILE}"
+echo -e "${GREEN}Building Kit${CLEAR}" | tee -a "${LOG_FILE}"
 touch "${LOG_FILE}"
 tmux split-window -dl 10 tail -f "${LOG_FILE}"
 
@@ -537,7 +537,7 @@ tmux split-window -dl 10 tail -f "${LOG_FILE}"
 dd bs=4M count=16 if=/dev/zero of="${DEST_DEV}" >> "${LOG_FILE}" 2>&1
 
 # Format
-echo "Formatting drive..."
+echo "Formatting drive..." | tee -a "${LOG_FILE}"
 if [[ "${USE_MBR}" == "True" ]]; then
     parted "${DEST_DEV}" --script -- mklabel msdos mkpart primary fat32 4MiB -1s >> "${LOG_FILE}" 2>&1
     parted "${DEST_DEV}" set 1 boot on >> "${LOG_FILE}" 2>&1
@@ -550,7 +550,7 @@ fi
 mkfs.vfat -F 32 -n "${UFD_LABEL}" "${DEST_PAR}" >> "${LOG_FILE}" 2>&1
 
 # Mount sources and dest
-echo "Mounting sources and destination..."
+echo "Mounting sources and destination..." | tee -a "${LOG_FILE}"
 mkdir /mnt/{Dest,Linux,WinPE} -p >> "${LOG_FILE}" 2>&1
 mount ${DEST_PAR} /mnt/Dest >> "${LOG_FILE}" 2>&1
 mount "${LINUX_ISO}" /mnt/Linux -r >> "${LOG_FILE}" 2>&1
@@ -570,12 +570,12 @@ w_en_us="$(find /mnt/WinPE -iwholename "/mnt/WinPE/en-us")"
 w_sources="$(find /mnt/WinPE -iwholename "/mnt/WinPE/sources")"
 
 # Copy files
-echo "Copying Linux files..."
+echo "Copying Linux files..." | tee -a "${LOG_FILE}"
 rsync ${RSYNC_ARGS} /mnt/Linux/* /mnt/Dest/ >> "${LOG_FILE}" 2>&1
 sed -i "s/${ISO_LABEL}/${UFD_LABEL}/" /mnt/Dest/EFI/boot/refind.conf
 sed -i "s/${ISO_LABEL}/${UFD_LABEL}/" /mnt/Dest/arch/boot/syslinux/*cfg
 
-echo "Copying WinPE files..."
+echo "Copying WinPE files..." | tee -a "${LOG_FILE}"
 if [[ ! -z "${arg_w:-}" ]]; then
   rsync ${RSYNC_ARGS} \
     "${w_bootmgr}" "${w_bootmgr_efi}" "${w_en_us}" \
@@ -595,7 +595,7 @@ if [[ ! -z "${arg_w:-}" ]]; then
   sed -i "s/#UFD-WINPE#//" /mnt/Dest/arch/boot/syslinux/*cfg
 fi
 
-echo "Copying Main Kit..."
+echo "Copying Main Kit..." | tee -a "${LOG_FILE}"
 if [[ ! -z "${arg_m:-}" ]]; then
   rsync ${RSYNC_ARGS} \
     "${MAIN_KIT}/" \
@@ -610,16 +610,16 @@ if [[ ! -z "${EXTRA_DIR:-}" ]]; then
 fi
 
 # Install syslinux
-echo "Copying Syslinux files..."
+echo "Copying Syslinux files..." | tee -a "${LOG_FILE}"
 rsync ${RSYNC_ARGS} /usr/lib/syslinux/bios/*.c32 /mnt/Dest/arch/boot/syslinux/ >> "${LOG_FILE}" 2>&1
 syslinux --install -d /arch/boot/syslinux/ ${DEST_PAR} >> "${LOG_FILE}" 2>&1
 
-echo "Unmounting destination..."
+echo "Unmounting destination..." | tee -a "${LOG_FILE}"
 umount /mnt/Dest >> "${LOG_FILE}" 2>&1
 rmdir /mnt/Dest >> "${LOG_FILE}" 2>&1
 sync
 
-echo "Installing Syslinux MBR..."
+echo "Installing Syslinux MBR..." | tee -a "${LOG_FILE}"
 if [[ "${USE_MBR}" == "True" ]]; then
     dd bs=440 count=1 if=/usr/lib/syslinux/bios/mbr.bin of=${DEST_DEV} >> "${LOG_FILE}" 2>&1
 else
@@ -628,7 +628,7 @@ fi
 sync
 
 # Cleanup
-echo "Hiding boot files..."
+echo "Hiding boot files..." | tee -a "${LOG_FILE}"
 echo "drive s: file=\"${DEST_PAR}\"" > /root/.mtoolsrc
 echo 'mtools_skip_check=1' >> /root/.mtoolsrc
 for item in arch Boot bootmgr{,.efi} EFI en-us images isolinux sources "${KIT_NAME_FULL}"/{.bin,.cbin}; do
@@ -637,7 +637,7 @@ done
 sync
 
 # Unmount Sources
-echo "Unmounting sources..."
+echo "Unmounting sources..." | tee -a "${LOG_FILE}"
 for d in Linux WinPE; do
     umount "/mnt/${d}" >> "${LOG_FILE}" 2>&1 || true
     rmdir "/mnt/${d}" >> "${LOG_FILE}" 2>&1 || true
@@ -647,7 +647,7 @@ done
 pkill -f "tail.*${LOG_FILE}"
 
 # Done
-echo ""
-echo "Done."
+echo "" | tee -a "${LOG_FILE}"
+echo "Done." | tee -a "${LOG_FILE}"
 echo ""
 exit 0
