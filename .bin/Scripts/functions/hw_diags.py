@@ -1012,7 +1012,9 @@ def run_hw_tests(state):
     # Recheck attributes
     if state.tests['NVMe / SMART']['Enabled']:
       for test_obj in state.tests['NVMe / SMART']['Objects']:
-        run_nvme_smart_tests(state, test_obj, update_mode=True)
+        if test_obj.dev is not None:
+          # dev == None for the 'N/A' lines set above
+          run_nvme_smart_tests(state, test_obj, update_mode=True)
 
   except GenericAbort:
     # Cleanup
