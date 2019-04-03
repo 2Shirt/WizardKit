@@ -170,6 +170,9 @@ function update_live_env() {
     rsync -aI "/usr/share/refind/icons/" "$LIVE_DIR/EFI/boot/icons/" --exclude "/usr/share/refind/icons/svg"
     sed -i "s/%ARCHISO_LABEL%/${label}/" "$LIVE_DIR/EFI/boot/refind.conf"
 
+    # Customize_airootfs.sh
+    sed -i -r 's/set -e -u/set -o errexit\nset -o errtrace\nset -o nounset\nset -o pipefail/' "$LIVE_DIR/airootfs/root/customize_airootfs.sh"
+
     # Memtest86
     mkdir -p "$LIVE_DIR/EFI/memtest86/Benchmark"
     mkdir -p "$TEMP_DIR/memtest86"

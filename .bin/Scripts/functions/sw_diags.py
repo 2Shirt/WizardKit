@@ -1,31 +1,9 @@
-# Wizard Kit: Functions - Diagnostics
+# Wizard Kit: Functions - SW Diagnostics
 
 import ctypes
 
 from functions.common import *
-
-
-# STATIC VARIABLES
-AUTORUNS_SETTINGS = {
-  r'Software\Sysinternals\AutoRuns': {
-    'checkvirustotal': 1,
-    'EulaAccepted': 1,
-    'shownomicrosoft': 1,
-    'shownowindows': 1,
-    'showonlyvirustotal': 1,
-    'submitvirustotal': 0,
-    'verifysignatures': 1,
-    },
-  r'Software\Sysinternals\AutoRuns\SigCheck': {
-    'EulaAccepted': 1,
-    },
-  r'Software\Sysinternals\AutoRuns\Streams': {
-    'EulaAccepted': 1,
-    },
-  r'Software\Sysinternals\AutoRuns\VirusTotal': {
-    'VirusTotalTermsAccepted': 1,
-    },
-  }
+from settings.sw_diags import *
 
 
 def check_connection():

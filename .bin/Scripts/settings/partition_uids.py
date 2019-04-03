@@ -319,6 +319,7 @@ PARTITION_UIDS = {
   'BC13C2FF-59E6-4262-A352-B275FD6F7172': {'OS': 'Freedesktop', 'Description': 'Extended Boot Partition ($BOOT)'},
 }
 
+
 if __name__ == '__main__':
   print("This file is not meant to be called directly.")
 

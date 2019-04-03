@@ -1,8 +1,9 @@
-# Wizard Kit: Functions - ddrescue
+# Wizard Kit: Functions - ddrescue-tui
 
-import json
+import datetime
 import pathlib
 import psutil
+import pytz
 import re
 import signal
 import stat
@@ -11,37 +12,10 @@ import time
 from collections import OrderedDict
 from functions.data import *
 from functions.hw_diags import *
+from functions.json import *
 from functions.tmux import *
 from operator import itemgetter
-
-
-# STATIC VARIABLES
-AUTO_PASS_1_THRESHOLD = 95
-AUTO_PASS_2_THRESHOLD = 98
-DDRESCUE_SETTINGS = {
-  '--binary-prefixes': {'Enabled': True, 'Hidden': True},
-  '--data-preview': {'Enabled': True, 'Hidden': True, 'Value': '5'},
-  '--idirect': {'Enabled': True},
-  '--odirect': {'Enabled': True},
-  '--max-read-rate': {'Enabled': False, 'Value': '1MiB'},
-  '--min-read-rate': {'Enabled': True, 'Value': '64KiB'},
-  '--reopen-on-error': {'Enabled': True},
-  '--retry-passes': {'Enabled': True, 'Value': '0'},
-  '--test-mode': {'Enabled': False, 'Value': 'test.map'},
-  '--timeout': {'Enabled': True, 'Value': '5m'},
-  '-vvvv': {'Enabled': True, 'Hidden': True},
-  }
-RECOMMENDED_FSTYPES = ['ext3', 'ext4', 'xfs']
-SIDE_PANE_WIDTH = 21
-TMUX_LAYOUT = OrderedDict({
-  'Source':   {'y': 2,         'Check': True},
-  'Started':  {'x': SIDE_PANE_WIDTH, 'Check': True},
-  'Progress': {'x': SIDE_PANE_WIDTH, 'Check': True},
-})
-USAGE = """  {script_name} clone [source [destination]]
-  {script_name} image [source [destination]]
-  (e.g. {script_name} clone /dev/sda /dev/sdb)
-"""
+from settings.ddrescue import *
 
 
 # Clases
@@ -282,6 +256,7 @@ class RecoveryState():
     self.block_pairs = []
     self.current_pass = 0
     self.current_pass_str = '0: Initializing'
+    self.etoc = ''
     self.settings = DDRESCUE_SETTINGS.copy()
     self.finished = False
     self.panes = {}
@@ -289,6 +264,8 @@ class RecoveryState():
     self.rescued = 0
     self.resumed = False
     self.started = False
+    self.status = 'Inactive'
+    self.timezone = pytz.timezone(LINUX_TIME_ZONE)
     self.total_size = 0
     if mode not in ('clone', 'image'):
       raise GenericError('Unsupported mode')
@@ -374,15 +351,14 @@ class RecoveryState():
     map_allowed_fstypes = RECOMMENDED_FSTYPES.copy()
     map_allowed_fstypes.extend(['cifs', 'ext2', 'vfat'])
     map_allowed_fstypes.sort()
-    json_data = {}
+    json_data = get_json_from_command(cmd)
 
-    # Avoid saving map to non-persistent filesystem
-    try:
-      result = run_program(cmd)
-      json_data = json.loads(result.stdout.decode())
-    except Exception:
+    # Abort if json_data is empty
+    if not json_data:
       print_error('ERROR: Failed to verify map path')
       raise GenericAbort()
+
+    # Avoid saving map to non-persistent filesystem
     fstype = json_data.get(
       'filesystems', [{}])[0].get(
       'fstype', 'unknown')
@@ -427,6 +403,66 @@ class RecoveryState():
       self.current_pass_str = '2 "Trimming bad areas"'
     elif self.current_pass == 2:
       self.current_pass_str = '3 "Scraping bad areas"'
+
+  def update_etoc(self):
+    """Search ddrescue output for the current EToC, returns str."""
+    now = datetime.datetime.now(tz=self.timezone)
+
+    # Bail early
+    if 'NEEDS ATTENTION' in self.status:
+      # Just set to N/A (NOTE: this overrules the refresh rate below)
+      self.etoc = 'N/A'
+      return
+    elif 'In Progress' not in self.status:
+      # Don't update when EToC is hidden
+      return
+    if now.second % ETOC_REFRESH_RATE != 0:
+      # Limit updates based on settings/ddrescue.py
+      return
+
+    self.etoc = 'Unknown'
+    etoc_delta = None
+    text = ''
+
+    # Capture main tmux pane
+    try:
+      text = tmux_capture_pane()
+    except Exception:
+      # Ignore
+      pass
+
+    # Search for EToC delta
+    matches = re.findall(r'remaining time:.*$', text, re.MULTILINE)
+    if matches:
+      r = REGEX_REMAINING_TIME.search(matches[-1])
+      if r.group('na'):
+        self.etoc = 'N/A'
+      else:
+        self.etoc = r.string
+        days = r.group('days') if r.group('days') else 0
+        hours = r.group('hours') if r.group('hours') else 0
+        minutes = r.group('minutes') if r.group('minutes') else 0
+        seconds = r.group('seconds') if r.group('seconds') else 0
+        try:
+          etoc_delta = datetime.timedelta(
+            days=int(days),
+            hours=int(hours),
+            minutes=int(minutes),
+            seconds=int(seconds),
+            )
+        except Exception:
+          # Ignore and leave as raw string
+          pass
+
+    # Calc finish time if EToC delta found
+    if etoc_delta:
+      try:
+        now = datetime.datetime.now(tz=self.timezone)
+        _etoc = now + etoc_delta
+        self.etoc = _etoc.strftime('%Y-%m-%d %H:%M %Z')
+      except Exception:
+        # Ignore and leave as current string
+        pass
 
   def update_progress(self):
     """Update overall progress using block_pairs."""
@@ -575,21 +611,11 @@ def fix_tmux_panes(state, forced=False):
 
 def get_device_details(dev_path):
   """Get device details via lsblk, returns JSON dict."""
-  try:
-    cmd = (
-      'lsblk',
-      '--json',
-      '--output-all',
-      '--paths',
-      dev_path)
-    result = run_program(cmd)
-  except CalledProcessError:
-    # Return empty dict and let calling section deal with the issue
-    return {}
+  cmd = ['lsblk', '--json', '--output-all', '--paths', dev_path]
+  json_data = get_json_from_command(cmd)
 
-  json_data = json.loads(result.stdout.decode())
   # Just return the first device (there should only be one)
-  return json_data['blockdevices'][0]
+  return json_data.get('blockdevices', [{}])[0]
 
 
 def get_device_report(dev_path):
@@ -622,17 +648,19 @@ def get_device_report(dev_path):
 
 def get_dir_details(dir_path):
   """Get dir details via findmnt, returns JSON dict."""
-  try:
-    result = run_program([
-      'findmnt', '-J',
-      '-o', 'SOURCE,TARGET,FSTYPE,OPTIONS,SIZE,AVAIL,USED',
-      '-T', dir_path])
-    json_data = json.loads(result.stdout.decode())
-  except Exception:
+  cmd = [
+    'findmnt', '-J',
+    '-o', 'SOURCE,TARGET,FSTYPE,OPTIONS,SIZE,AVAIL,USED',
+    '-T', dir_path,
+    ]
+  json_data = get_json_from_command(cmd)
+
+  # Raise exception if json_data is empty
+  if not json_data:
     raise GenericError(
-      'Failed to get directory details for "{}".'.format(self.path))
-  else:
-    return json_data['filesystems'][0]
+      'Failed to get directory details for "{}".'.format(dir_path))
+
+  return json_data.get('filesystems', [{}])[0]
 
 
 def get_dir_report(dir_path):
@@ -805,6 +833,13 @@ def menu_main(state):
 
   # Show menu
   while True:
+    # Update status
+    if state.finished:
+      state.status = '      Finished'
+    else:
+      state.status = '      Inactive'
+    update_sidepane(state)
+
     # Update entries
     for opt in main_options:
       opt['Name'] = '[{}] {}'.format(
@@ -959,6 +994,7 @@ def run_ddrescue(state, pass_settings):
   """Run ddrescue pass."""
   return_code = -1
   aborted = False
+  state.status = '     In Progress'
 
   if state.finished:
     clear_screen()
@@ -1073,6 +1109,9 @@ def run_ddrescue(state, pass_settings):
   # Done
   if str(return_code) != '0':
     # Pause on errors
+    state.status = '   {YELLOW}NEEDS ATTENTION{CLEAR}'.format(**COLORS)
+    state.status = state.status.replace('33m', '33;5m')
+    update_sidepane(state)
     pause('Press Enter to return to main menu... ')
 
   # Cleanup
@@ -1238,14 +1277,8 @@ def select_path(skip_device=None):
 
 def select_device(description='device', skip_device=None):
   """Select device via a menu, returns DevObj."""
-  cmd = (
-    'lsblk',
-    '--json',
-    '--nodeps',
-    '--output-all',
-    '--paths')
-  result = run_program(cmd)
-  json_data = json.loads(result.stdout.decode())
+  cmd = ['lsblk', '--json', '--nodeps', '--output-all', '--paths']
+  json_data = get_json_from_command(cmd)
   skip_names = []
   if skip_device:
     skip_names.append(skip_device.path)
@@ -1254,7 +1287,7 @@ def select_device(description='device', skip_device=None):
 
   # Build menu
   dev_options = []
-  for dev in json_data['blockdevices']:
+  for dev in json_data.get('blockdevices', []):
     # Disable dev if in skip_names
     disabled = dev['name'] in skip_names or dev['pkname'] in skip_names
 
@@ -1335,6 +1368,7 @@ def update_sidepane(state):
     output.append('   {BLUE}Cloning Status{CLEAR}'.format(**COLORS))
   else:
     output.append('   {BLUE}Imaging Status{CLEAR}'.format(**COLORS))
+  output.append(state.status)
   output.append('─────────────────────')
 
   # Overall progress
@@ -1353,6 +1387,19 @@ def update_sidepane(state):
         **COLORS))
     output.extend(bp.status)
     output.append(' ')
+
+  # EToC
+  if re.search(r'(In Progress|NEEDS ATTENTION)', state.status):
+    if not output[-1].strip():
+      # Last line is empty
+      output.pop()
+    output.append('─────────────────────')
+    output.append('{BLUE}Estimated Pass Finish{CLEAR}'.format(**COLORS))
+    state.update_etoc()
+    if 'N/A' in state.etoc.upper():
+      output.append('{YELLOW}N/A{CLEAR}'.format(**COLORS))
+    else:
+      output.append(state.etoc)
 
   # Add line-endings
   output = ['{}\n'.format(line) for line in output]

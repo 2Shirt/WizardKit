@@ -1,7 +1,7 @@
 # Wizard Kit: Settings - Sources
 
 SOURCE_URLS = {
-  'Adobe Reader DC': 'http://ardownload.adobe.com/pub/adobe/reader/win/AcrobatDC/1901020069/AcroRdrDC1901020069_en_US.exe',
+  'Adobe Reader DC': 'http://ardownload.adobe.com/pub/adobe/reader/win/AcrobatDC/1901020098/AcroRdrDC1901020098_en_US.exe',
   'AdwCleaner': 'https://downloads.malwarebytes.com/file/adwcleaner',
   'AIDA64': 'http://download.aida64.com/aida64engineer599.zip',
   'aria2': 'https://github.com/aria2/aria2/releases/download/release-1.34.0/aria2-1.34.0-win-32bit-build1.zip',
@@ -13,21 +13,21 @@ SOURCE_URLS = {
   'ClassicStartSkin': 'http://www.classicshell.net/forum/download/file.php?id=3001&sid=9a195960d98fd754867dcb63d9315335',
   'Du': 'https://download.sysinternals.com/files/DU.zip',
   'ERUNT': 'http://www.aumha.org/downloads/erunt.zip',
-  'Everything32': 'https://www.voidtools.com/Everything-1.4.1.924.x86.zip',
-  'Everything64': 'https://www.voidtools.com/Everything-1.4.1.924.x64.zip',
-  'FastCopy': 'http://ftp.vector.co.jp/70/93/2323/FastCopy361_installer.exe',
-  'Firefox uBO': 'https://addons.mozilla.org/firefox/downloads/file/1166954/ublock_origin-1.17.4-an+fx.xpi',
+  'Everything32': 'https://www.voidtools.com/Everything-1.4.1.935.x86.en-US.zip',
+  'Everything64': 'https://www.voidtools.com/Everything-1.4.1.935.x64.en-US.zip',
+  'FastCopy': 'http://ftp.vector.co.jp/71/31/2323/FastCopy363_installer.exe',
+  'Firefox uBO': 'https://addons.mozilla.org/firefox/downloads/file/1709472/ublock_origin-1.18.6-an+fx.xpi',
   'HitmanPro32': 'https://dl.surfright.nl/HitmanPro.exe',
   'HitmanPro64': 'https://dl.surfright.nl/HitmanPro_x64.exe',
-  'HWiNFO': 'http://files2.majorgeeks.com/caae8849cf31a8d77c51283b720e60e49ce1dc78/systeminfo/hwi_600.zip',
-  'Intel SSD Toolbox': r'https://downloadmirror.intel.com/28447/eng/Intel%20SSD%20Toolbox%20-%20v3.5.8.exe',
+  'HWiNFO': 'http://files2.majorgeeks.com/377527622c5325acc1cb937fb149d0de922320c0/systeminfo/hwi_602.zip',
+  'Intel SSD Toolbox': r'https://downloadmirror.intel.com/28593/eng/Intel%20SSD%20Toolbox%20-%20v3.5.9.exe',
   'IOBit_Uninstaller': r'https://portableapps.com/redirect/?a=IObitUninstallerPortable&s=s&d=pa&f=IObitUninstallerPortable_7.5.0.7.paf.exe',
   'KVRT': 'http://devbuilds.kaspersky-labs.com/devbuilds/KVRT/latest/full/KVRT.exe',
   'Macs Fan Control': 'https://www.crystalidea.com/downloads/macsfancontrol_setup.exe',
   'NirCmd32': 'https://www.nirsoft.net/utils/nircmd.zip',
   'NirCmd64': 'https://www.nirsoft.net/utils/nircmd-x64.zip',
-  'NotepadPlusPlus': 'https://notepad-plus-plus.org/repository/7.x/7.6.2/npp.7.6.2.bin.minimalist.7z',
-  'Office Deployment Tool': 'https://download.microsoft.com/download/2/7/A/27AF1BE6-DD20-4CB4-B154-EBAB8A7D4A7E/officedeploymenttool_11107-33602.exe',
+  'NotepadPlusPlus': 'https://notepad-plus-plus.org/repository/7.x/7.6.4/npp.7.6.4.bin.minimalist.7z',
+  'Office Deployment Tool': 'https://download.microsoft.com/download/2/7/A/27AF1BE6-DD20-4CB4-B154-EBAB8A7D4A7E/officedeploymenttool_11509-33604.exe',
   'ProduKey32': 'http://www.nirsoft.net/utils/produkey.zip',
   'ProduKey64': 'http://www.nirsoft.net/utils/produkey-x64.zip',
   'PuTTY': 'https://the.earth.li/~sgtatham/putty/latest/w32/putty.zip',
@@ -40,7 +40,7 @@ SOURCE_URLS = {
   'wimlib32': 'https://wimlib.net/downloads/wimlib-1.13.0-windows-i686-bin.zip',
   'wimlib64': 'https://wimlib.net/downloads/wimlib-1.13.0-windows-x86_64-bin.zip',
   'Winapp2': 'https://github.com/MoscaDotTo/Winapp2/archive/master.zip',
-  'WizTree': 'https://antibody-software.com/files/wiztree_3_26_portable.zip',
+  'WizTree': 'https://antibody-software.com/files/wiztree_3_28_portable.zip',
   'XMPlay 7z': 'https://support.xmplay.com/files/16/xmp-7z.zip?v=800962',
   'XMPlay Game': 'https://support.xmplay.com/files/12/xmp-gme.zip?v=515637',
   'XMPlay RAR': 'https://support.xmplay.com/files/16/xmp-rar.zip?v=409646',
@@ -94,7 +94,7 @@ NINITE_SOURCES = {
     'SugarSync.exe': 'sugarsync',
     },
   'Communication': {
-    'Discord': 'discord',
+    'Discord.exe': 'discord',
     'Pidgin.exe': 'pidgin',
     'Skype.exe': 'skype',
     'Trillian.exe': 'trillian',
@@ -106,8 +106,6 @@ NINITE_SOURCES = {
     },
   'Developer': {
     'Eclipse.exe': 'eclipse',
-    'JDK 8.exe': 'jdk8',
-    'JDK 8 (x64).exe': 'jdkx8',
     'Notepad++.exe': 'notepadplusplus',
     'PuTTY.exe': 'putty',
     'Python 2.exe': 'python',
@@ -150,7 +148,6 @@ NINITE_SOURCES = {
   'Runtimes': {
     'Adobe Air.exe': 'air',
     'dotNET.exe': '.net4.7.2',
-    'Java 8.exe': 'java8',
     'Shockwave.exe': 'shockwave',
     'Silverlight.exe': 'silverlight',
     },
@@ -191,12 +188,31 @@ RST_SOURCES = {
   'SetupRST_14.0.exe': 'https://downloadmirror.intel.com/25091/eng/SetupRST.exe',
   'SetupRST_14.8.exe': 'https://downloadmirror.intel.com/26759/eng/setuprst.exe',
   'SetupRST_15.8.exe': 'https://downloadmirror.intel.com/27442/eng/SetupRST.exe',
-  #SetupRST_15.9.exe :  Deprecated by Intel
+  'SetupRST_15.9.exe': 'https://downloadmirror.intel.com/28656/eng/SetupRST.exe',
   #SetupRST_16.0.exe :  Deprecated by Intel
   #SetupRST_16.5.exe :  Deprecated by Intel
   #SetupRST_16.7.exe :  Deprecated by Intel
-  'SetupRST_16.8.exe': 'https://downloadmirror.intel.com/28400/eng/SetupRST.exe',
+  'SetupRST_16.8.exe': 'https://downloadmirror.intel.com/28653/eng/SetupRST.exe',
+  'SetupRST_17.2.exe': 'https://downloadmirror.intel.com/28650/eng/SetupRST.exe',
   }
+WINDOWS_UPDATE_SOURCES = {
+  '2999226': {
+    # https://support.microsoft.com/en-us/help/2999226/update-for-universal-c-runtime-in-windows
+    '7': {
+      '32': 'https://download.microsoft.com/download/4/F/E/4FE73868-5EDD-4B47-8B33-CE1BB7B2B16A/Windows6.1-KB2999226-x86.msu',
+      '64': 'https://download.microsoft.com/download/1/1/5/11565A9A-EA09-4F0A-A57E-520D5D138140/Windows6.1-KB2999226-x64.msu',
+      },
+    '8': {
+      '32': 'https://download.microsoft.com/download/1/E/8/1E8AFE90-5217-464D-9292-7D0B95A56CE4/Windows8-RT-KB2999226-x86.msu',
+      '64': 'https://download.microsoft.com/download/A/C/1/AC15393F-A6E6-469B-B222-C44B3BB6ECCC/Windows8-RT-KB2999226-x64.msu',
+      },
+    '8.1': {
+      '32': 'https://download.microsoft.com/download/E/4/6/E4694323-8290-4A08-82DB-81F2EB9452C2/Windows8.1-KB2999226-x86.msu',
+      '64': 'https://download.microsoft.com/download/9/6/F/96FD0525-3DDF-423D-8845-5F92F4A6883E/Windows8.1-KB2999226-x64.msu',
+      },
+    },
+  }
+
 
 if __name__ == '__main__':
   print("This file is not meant to be called directly.")

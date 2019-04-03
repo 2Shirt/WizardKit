@@ -60,6 +60,7 @@ if __name__ == '__main__':
     try_and_print(message='Macs Fan Control...', function=update_macs_fan_control, other_results=other_results, width=40)
     try_and_print(message='MS Office...', function=update_office, other_results=other_results, width=40)
     try_and_print(message='Visual C++ Runtimes...', function=update_vcredists, other_results=other_results, width=40)
+    try_and_print(message='Windows Updates...', function=download_windows_updates, other_results=other_results, width=40)
     update_all_ninite(other_results=other_results, width=40)
 
     # Misc

@@ -263,6 +263,7 @@ call :ExtractOrFindPath || goto ErrorProgramNotFound
 set "script=%_path%\%L_ITEM%"
 
 rem Verify
+"%PYTHON%" --version >nul || goto ErrorPythonUnsupported
 if not exist "%script%" goto ErrorScriptNotFound
 
 rem Run
@@ -435,6 +436,16 @@ echo ERROR: Office version not supported by this script.
 start "" "explorer.exe" "%client_dir%\Office"
 goto Abort
 
+:ErrorPythonUnsupported
+rem The Windows installation lacks Windows update KB2999226 needed to run Python
+echo.
+echo ERROR: Failed to run Python, try installing Windows update KB2999226.
+echo NOTE: That update is from October 2015 so this system is SEVERELY outdated
+if exist "%bin%\..\Installers\Extras\Windows Updates" (
+  start "" "explorer.exe" "%bin%\..\Installers\Extras\Windows Updates"
+)
+goto Abort
+
 :ErrorQuickBooksSourceNotFound
 echo.
 echo ERROR: QuickBooks source "%L_ITEM%" not found.
@@ -486,7 +497,7 @@ echo Press any key to exit...
 pause>nul
 rem reset color and reset errorlevel to 0
 rem NOTE: This is done to avoid causing a ErrorLaunchCMD in the launcher.cmd
-color
+color 07
 goto Exit
 
 :: Cleanup and exit ::

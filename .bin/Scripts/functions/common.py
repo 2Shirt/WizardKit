@@ -27,11 +27,12 @@ global_vars = {}
 # STATIC VARIABLES
 COLORS = {
   'CLEAR':  '\033[0m',
-  'RED':  '\033[31m',
+  'RED':    '\033[31m',
   'ORANGE': '\033[31;1m',
   'GREEN':  '\033[32m',
   'YELLOW': '\033[33m',
   'BLUE':   '\033[34m',
+  'PURPLE': '\033[35m',
   'CYAN':   '\033[36m',
   }
 try:
@@ -112,6 +113,14 @@ def ask(prompt='Kotaero!'):
     answer_text = 'Yes' if answer else 'No')
   print_log(message=message)
   return answer
+
+
+def beep(repeat=1):
+  """Play system bell with optional repeat."""
+  for i in range(repeat):
+    # Print bell char
+    print('\a')
+    sleep(0.5)
 
 
 def choice(choices, prompt='Kotaero!'):
@@ -428,6 +437,9 @@ def ping(addr='google.com'):
 def popen_program(cmd, pipe=False, minimized=False, shell=False, **kwargs):
   """Run program and return a subprocess.Popen object."""
   cmd_kwargs = {'args': cmd, 'shell': shell}
+  for kw in ('encoding', 'errors'):
+    if kw in kwargs:
+      cmd_kwargs[kw] = kwargs[kw]
 
   if minimized:
     startupinfo = subprocess.STARTUPINFO()
@@ -497,6 +509,9 @@ def run_program(cmd, check=True, pipe=True, shell=False, **kwargs):
     cmd = ' '.join(cmd)
 
   cmd_kwargs = {'args': cmd, 'check': check, 'shell': shell}
+  for kw in ('encoding', 'errors'):
+    if kw in kwargs:
+      cmd_kwargs[kw] = kwargs[kw]
 
   if pipe:
     cmd_kwargs.update({

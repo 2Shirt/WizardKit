@@ -1,95 +1,22 @@
 # Wizard Kit: Functions - HW Diagnostics
 
-import json
 import re
 import time
 
 from collections import OrderedDict
+from functions.json import *
 from functions.sensors import *
 from functions.threading import *
 from functions.tmux import *
+from settings.hw_diags import *
+if DEBUG_MODE:
+  from debug.hw_diags import *
 
 
-# STATIC VARIABLES
-ATTRIBUTES = {
-  'NVMe': {
-    'critical_warning': {'Error':   1, 'Critical': True},
-    'media_errors':     {'Error':   1, 'Critical': True},
-    'power_on_hours':   {'Warning': 12000, 'Error': 26298, 'Ignore': True},
-    'unsafe_shutdowns': {'Warning': 1},
-    },
-  'SMART': {
-    5:    {'Hex': '05', 'Error':   1, 'Critical': True},
-    9:    {'Hex': '09', 'Warning': 12000, 'Error': 26298, 'Ignore': True},
-    10:   {'Hex': '0A', 'Error':   1},
-    184:  {'Hex': 'B8', 'Error':   1},
-    187:  {'Hex': 'BB', 'Error':   1},
-    188:  {'Hex': 'BC', 'Error':   1},
-    196:  {'Hex': 'C4', 'Error':   1},
-    197:  {'Hex': 'C5', 'Error':   1, 'Critical': True},
-    198:  {'Hex': 'C6', 'Error':   1, 'Critical': True},
-    199:  {'Hex': 'C7', 'Error':   1, 'Ignore': True},
-    201:  {'Hex': 'C9', 'Error':   1},
-    },
-  }
-HW_OVERRIDES_FORCED = HW_OVERRIDES_FORCED and not HW_OVERRIDES_LIMITED
-IO_VARS = {
-  'Block Size': 512*1024,
-  'Chunk Size': 32*1024**2,
-  'Minimum Test Size': 10*1024**3,
-  'Alt Test Size Factor': 0.01,
-  'Progress Refresh Rate': 5,
-  'Scale 8': [2**(0.56*(x+1))+(16*(x+1)) for x in range(8)],
-  'Scale 16': [2**(0.56*(x+1))+(16*(x+1)) for x in range(16)],
-  'Scale 32': [2**(0.56*(x+1)/2)+(16*(x+1)/2) for x in range(32)],
-  'Threshold Graph Fail': 65*1024**2,
-  'Threshold Graph Warn': 135*1024**2,
-  'Threshold Graph Great': 750*1024**2,
-  'Threshold HDD Min': 50*1024**2,
-  'Threshold HDD High Avg': 75*1024**2,
-  'Threshold HDD Low Avg': 65*1024**2,
-  'Threshold SSD Min': 90*1024**2,
-  'Threshold SSD High Avg': 135*1024**2,
-  'Threshold SSD Low Avg': 100*1024**2,
-  'Graph Horizontal': ('▁', '▂', '▃', '▄', '▅', '▆', '▇', '█'),
-  'Graph Horizontal Width': 40,
-  'Graph Vertical': (
-    '▏',    '▎',    '▍',    '▌',
-    '▋',    '▊',    '▉',    '█',
-    '█▏',   '█▎',   '█▍',   '█▌',
-    '█▋',   '█▊',   '█▉',   '██',
-    '██▏',  '██▎',  '██▍',  '██▌',
-    '██▋',  '██▊',  '██▉',  '███',
-    '███▏', '███▎', '███▍', '███▌',
-    '███▋', '███▊', '███▉', '████'),
-  }
-KEY_NVME = 'nvme_smart_health_information_log'
-KEY_SMART = 'ata_smart_attributes'
-QUICK_LABEL = '{YELLOW}(Quick){CLEAR}'.format(**COLORS)
-SIDE_PANE_WIDTH = 20
-STATUSES = {
-  'RED':    ['Denied', 'ERROR', 'NS', 'TimedOut'],
-  'YELLOW': ['Aborted', 'N/A', 'OVERRIDE', 'Unknown', 'Working'],
-  'GREEN':  ['CS'],
-}
-TESTS_CPU = ['Prime95']
-TESTS_DISK = [
-  'I/O Benchmark',
-  'NVMe / SMART',
-  'badblocks',
-  ]
-TOP_PANE_TEXT = '{GREEN}Hardware Diagnostics{CLEAR}'.format(**COLORS)
-TMUX_LAYOUT = OrderedDict({
-  'Top':            {'y': 2,                'Check': True},
-  'Started':        {'x': SIDE_PANE_WIDTH,  'Check': True},
-  'Progress':       {'x': SIDE_PANE_WIDTH,  'Check': True},
-  # Testing panes
-  'Prime95':        {'y': 11,               'Check': False},
-  'Temps':          {'y': 1000,             'Check': False},
-  'SMART':          {'y': 3,                'Check': True},
-  'badblocks':      {'y': 5,                'Check': True},
-  'I/O Benchmark':  {'y': 1000,             'Check': False},
-})
+# Fix settings
+OVERRIDES_FORCED = OVERRIDES_FORCED and not OVERRIDES_LIMITED
+QUICK_LABEL = QUICK_LABEL.format(**COLORS)
+TOP_PANE_TEXT = TOP_PANE_TEXT.format(**COLORS)
 
 
 # Regex
@@ -113,15 +40,10 @@ class CpuObj():
   def get_details(self):
     """Get CPU details from lscpu."""
     cmd = ['lscpu', '--json']
-    try:
-      result = run_program(cmd, check=False)
-      json_data = json.loads(result.stdout.decode())
-    except Exception:
-      # Ignore and leave self.lscpu empty
-      return
-    for line in json_data.get('lscpu', []):
-      _field = line.get('field', None).replace(':', '')
-      _data = line.get('data', None)
+    json_data = get_json_from_command(cmd)
+    for line in json_data.get('lscpu', [{}]):
+      _field = line.get('field', '').replace(':', '')
+      _data = line.get('data', '')
       if not _field and not _data:
         # Skip
         print_warning(_field, _data)
@@ -145,18 +67,21 @@ class CpuObj():
 class DiskObj():
   """Object for tracking disk specific data."""
   def __init__(self, disk_path):
+    self.attr_type = 'UNKNOWN'
     self.disk_ok = True
     self.labels = []
     self.lsblk = {}
     self.name = re.sub(r'^.*/(.*)', r'\1', disk_path)
     self.nvme_attributes = {}
+    self.nvme_smart_notes = {}
+    self.override_disabled = False
     self.path = disk_path
     self.smart_attributes = {}
-    self.smart_timeout = False
     self.smart_self_test = {}
     self.smartctl = {}
     self.tests = OrderedDict()
     self.get_details()
+    self.get_size()
 
     # Try enabling SMART
     run_program(['sudo', 'smartctl', '--smart=on', self.path], check=False)
@@ -166,39 +91,39 @@ class DiskObj():
     self.description = '{size} ({tran}) {model} {serial}'.format(
       **self.lsblk)
 
-  def calc_io_dd_values(self):
-    """Calcualte I/O benchmark dd values."""
-    # Get real disk size
-    cmd = ['lsblk',
-      '--bytes', '--nodeps', '--noheadings',
-      '--output', 'size', self.path]
-    result = run_program(cmd)
-    self.size_bytes = int(result.stdout.decode().strip())
+  def add_nvme_smart_note(self, note):
+    """Add note that will be included in the NVMe / SMART report."""
+    # A dict is used to avoid duplicate notes
+    self.nvme_smart_notes[note] = None
 
-    # dd calculations
-    ## The minimum dev size is 'Graph Horizontal Width' * 'Chunk Size'
-    ##   (e.g. 1.25 GB for a width of 40 and a chunk size of 32MB)
-    ##   If the device is smaller than the minimum dd_chunks would be set
-    ##   to zero which would cause a divide by zero error.
-    ##   If the device is below the minimum size an Exception will be raised
-    ##
-    ## dd_size is the area to be read in bytes
-    ##   If the dev is < 10Gb then it's the whole dev
-    ##   Otherwise it's the larger of 10Gb or 1% of the dev
-    ##
-    ## dd_chunks is the number of groups of "Chunk Size" in self.dd_size
-    ##   This number is reduced to a multiple of the graph width in
-    ##   order to allow for the data to be condensed cleanly
-    ##
-    ## dd_chunk_blocks is the chunk size in number of blocks
-    ##   (e.g. 64 if block size is 512KB and chunk size is 32MB
-    ##
-    ## dd_skip_blocks is the number of "Block Size" groups not tested
-    ## dd_skip_count is the number of blocks to skip per self.dd_chunk
-    ## dd_skip_extra is how often to add an additional skip block
-    ##   This is needed to ensure an even testing across the dev
-    ##   This is calculated by using the fractional amount left off
-    ##   of the dd_skip_count variable
+  def calc_io_dd_values(self):
+    """Calcualte I/O benchmark dd values.
+
+    Calculations
+    The minimum dev size is 'Graph Horizontal Width' * 'Chunk Size'
+      (e.g. 1.25 GB for a width of 40 and a chunk size of 32MB)
+      If the device is smaller than the minimum dd_chunks would be set
+      to zero which would cause a divide by zero error.
+      If the device is below the minimum size an Exception will be raised
+
+    dd_size is the area to be read in bytes
+      If the dev is < 10Gb then it's the whole dev
+      Otherwise it's the larger of 10Gb or 1% of the dev
+
+    dd_chunks is the number of groups of "Chunk Size" in self.dd_size
+      This number is reduced to a multiple of the graph width in
+      order to allow for the data to be condensed cleanly
+
+    dd_chunk_blocks is the chunk size in number of blocks
+      (e.g. 64 if block size is 512KB and chunk size is 32MB
+
+    dd_skip_blocks is the number of "Block Size" groups not tested
+    dd_skip_count is the number of blocks to skip per self.dd_chunk
+    dd_skip_extra is how often to add an additional skip block
+      This is needed to ensure an even testing across the dev
+      This is calculated by using the fractional amount left off
+      of the dd_skip_count variable
+    """
     self.dd_size = min(IO_VARS['Minimum Test Size'], self.size_bytes)
     self.dd_size = max(
       self.dd_size,
@@ -220,61 +145,72 @@ class DiskObj():
       # self.dd_skip_extra == 0 is fine
       pass
 
-  def check_attributes(self, silent=False):
-    """Check NVMe / SMART attributes for errors."""
-    override_disabled = False
+  def check_attributes(self):
+    """Check NVMe / SMART attributes for errors, returns bool."""
+    attr_type = self.attr_type
+    disk_ok = True
+
+    # Get updated attributes
+    self.get_smart_details()
+
+    # Check attributes
     if self.nvme_attributes:
-      attr_type = 'NVMe'
+      self.add_nvme_smart_note(
+        '  {YELLOW}NVMe disk support is still experimental{CLEAR}'.format(
+        **COLORS))
       items = self.nvme_attributes.items()
     elif self.smart_attributes:
-      attr_type = 'SMART'
       items = self.smart_attributes.items()
     for k, v in items:
       if k in ATTRIBUTES[attr_type]:
-        if 'Error' not in ATTRIBUTES[attr_type][k]:
-          # Only worried about error thresholds
+        if not ATTRIBUTES[attr_type][k]['Error']:
+          # Informational attribute, skip
           continue
-        if ATTRIBUTES[attr_type][k].get('Ignore', False):
+        if ATTRIBUTES[attr_type][k]['Ignore']:
           # Attribute is non-failing, skip
           continue
         if v['raw'] >= ATTRIBUTES[attr_type][k]['Error']:
-          self.disk_ok = False
+          if (ATTRIBUTES[attr_type][k]['Maximum']
+              and v['raw'] >= ATTRIBUTES[attr_type][k]['Maximum']):
+            # Non-standard value, skip
+            continue
+          else:
+            disk_ok = False
 
-          # Disable override if necessary
-          override_disabled |= ATTRIBUTES[attr_type][k].get(
-            'Critical', False)
+            # Disable override if necessary
+            self.override_disabled |= ATTRIBUTES[attr_type][k].get(
+              'Critical', False)
 
     # SMART overall assessment
     ## NOTE: Only fail drives if the overall value exists and reports failed
     if not self.smartctl.get('smart_status', {}).get('passed', True):
-      self.disk_ok = False
-      override_disabled = True
+      disk_ok = False
+      self.override_disabled = True
+      self.add_nvme_smart_note(
+        '  {RED}SMART overall self-assessment: Failed{CLEAR}'.format(**COLORS))
 
-    # Print errors
-    if not silent:
-      if self.disk_ok:
-        # 199/C7 warning
-        if self.smart_attributes.get(199, {}).get('raw', 0) > 0:
-          print_warning('199/C7 error detected')
-          print_standard('  (Have you tried swapping the disk cable?)')
-      else:
-        # Override?
-        show_report(
-          self.generate_attribute_report(description=True),
-          log_report=True)
-        print_warning('  {} error(s) detected.'.format(attr_type))
-        if override_disabled:
-          print_standard('Tests disabled for this device')
-          pause()
-        elif not (len(self.tests) == 3 and HW_OVERRIDES_LIMITED):
-          if HW_OVERRIDES_FORCED or ask('Run tests on this device anyway?'):
-            self.disk_ok = True
-            if 'NVMe / SMART' in self.tests:
-              self.disable_test('NVMe / SMART', 'OVERRIDE')
-              if not self.nvme_attributes and self.smart_attributes:
-                # Re-enable for SMART short-tests
-                self.tests['NVMe / SMART'].disabled = False
-            print_standard(' ')
+    # Done
+    return disk_ok
+
+  def check_smart_self_test(self, silent=False):
+    """Check if a SMART self-test is currently running, returns bool."""
+    msg = 'SMART self-test in progress'
+    test_running = 'remaining_percent' in self.smart_self_test.get('status', '')
+
+    if test_running:
+      # Ask to abort
+      if not silent:
+        print_warning('WARNING: {}'.format(msg))
+        print_standard(' ')
+        if ask('Abort HW Diagnostics?'):
+          raise GenericAbort('Bail')
+
+      # Add warning note
+      self.add_nvme_smart_note(
+        '  {YELLOW}WARNING: {msg}{CLEAR}'.format(msg=msg, **COLORS))
+
+    # Done
+    return test_running
 
   def disable_test(self, name, status):
     """Disable test by name and update status."""
@@ -283,32 +219,21 @@ class DiskObj():
       self.tests[name].disabled = True
 
   def generate_attribute_report(
-      self, description=False, short_test=False, timestamp=False):
+      self, description=False, timestamp=False):
     """Generate NVMe / SMART report, returns list."""
+    attr_type = self.attr_type
     report = []
     if description:
       report.append('{BLUE}Device ({name}){CLEAR}'.format(
         name=self.name, **COLORS))
       report.append('  {}'.format(self.description))
 
-    # Warnings
-    if self.nvme_attributes:
-      attr_type = 'NVMe'
-      report.append(
-        '  {YELLOW}NVMe disk support is still experimental{CLEAR}'.format(
-          **COLORS))
-    elif self.smart_attributes:
-      attr_type = 'SMART'
-    else:
-      # No attribute data available, return short report
+    # Skip attributes if they don't exist
+    if not (self.nvme_attributes or self.smart_attributes):
       report.append(
         '  {YELLOW}No NVMe or SMART data available{CLEAR}'.format(
           **COLORS))
       return report
-    if not self.smartctl.get('smart_status', {}).get('passed', True):
-      report.append(
-        '  {RED}SMART overall self-assessment: Failed{CLEAR}'.format(
-          **COLORS))
 
     # Attributes
     report.append('{BLUE}{a} Attributes{YELLOW}{u:>23} {t}{CLEAR}'.format(
@@ -337,10 +262,12 @@ class DiskObj():
             n=v['name'][:28])
 
         # Set color
-        for _t, _c in [['Warning', 'YELLOW'], ['Error', 'RED']]:
-          if _t in ATTRIBUTES[attr_type][k]:
+        for _t, _c in ATTRIBUTE_COLORS:
+          if ATTRIBUTES[attr_type][k][_t]:
             if v['raw'] >= ATTRIBUTES[attr_type][k][_t]:
               _color = COLORS[_c]
+              if _t == 'Maximum':
+                _note = '(invalid?)'
 
         # 199/C7 warning
         if str(k) == '199' and v['raw'] > 0:
@@ -356,30 +283,21 @@ class DiskObj():
         # Add line to report
         report.append(_line)
 
-    # SMART short-test
-    if short_test:
-      report.append('{BLUE}SMART Short self-test{CLEAR}'.format(**COLORS))
-      report.append('  {}'.format(
-        self.smart_self_test['status'].get(
-          'string', 'UNKNOWN').capitalize()))
-      if self.smart_timeout:
-        report.append('  {YELLOW}Timed out{CLEAR}'.format(**COLORS))
-
     # Done
     return report
 
   def generate_disk_report(self):
     """Generate disk report with data from all tests."""
     report = []
-    report.append('{BLUE}Device ({name}){CLEAR}'.format(
-      name=self.name, **COLORS))
-    report.append('  {}'.format(self.description))
 
     # Attributes
-    if 'NVMe / SMART' not in self.tests:
-      report.extend(self.generate_attribute_report())
-    elif not self.tests['NVMe / SMART'].report:
-      report.extend(self.generate_attribute_report())
+    report.extend(self.generate_attribute_report(description=True))
+
+    # Notes
+    if self.nvme_smart_notes:
+      report.append('{BLUE}{attr_type} Notes{CLEAR}'.format(
+        attr_type=self.attr_type, **COLORS))
+      report.extend(sorted(self.nvme_smart_notes.keys()))
 
     # Tests
     for test in self.tests.values():
@@ -390,26 +308,25 @@ class DiskObj():
   def get_details(self):
     """Get data from lsblk."""
     cmd = ['lsblk', '--json', '--output-all', '--paths', self.path]
-    try:
-      result = run_program(cmd, check=False)
-      json_data = json.loads(result.stdout.decode())
-      self.lsblk = json_data['blockdevices'][0]
-    except Exception:
-      # Leave self.lsblk empty
-      pass
+    json_data = get_json_from_command(cmd)
+    self.lsblk = json_data.get('blockdevices', [{}])[0]
 
     # Set necessary details
     self.lsblk['model'] = self.lsblk.get('model', 'Unknown Model')
     self.lsblk['name'] = self.lsblk.get('name', self.path)
+    self.lsblk['phy-sec'] = self.lsblk.get('phy-sec', -1)
     self.lsblk['rota'] = self.lsblk.get('rota', True)
     self.lsblk['serial'] = self.lsblk.get('serial', 'Unknown Serial')
     self.lsblk['size'] = self.lsblk.get('size', '???b')
     self.lsblk['tran'] = self.lsblk.get('tran', '???')
 
-    # Ensure certain attributes are strings
+    # Ensure certain attributes types
     for attr in ['model', 'name', 'rota', 'serial', 'size', 'tran']:
       if not isinstance(self.lsblk[attr], str):
         self.lsblk[attr] = str(self.lsblk[attr])
+    for attr in ['phy-sec']:
+      if not isinstance(self.lsblk[attr], int):
+        self.lsblk[attr] = int(self.lsblk[attr])
     self.lsblk['tran'] = self.lsblk['tran'].upper().replace('NVME', 'NVMe')
 
     # Build list of labels
@@ -418,18 +335,26 @@ class DiskObj():
       self.labels.append(disk.get('partlabel', ''))
     self.labels = [str(label) for label in self.labels if label]
 
+  def get_size(self):
+    """Get real disk size."""
+    cmd = ['lsblk',
+      '--bytes', '--nodeps', '--noheadings',
+      '--output', 'size', self.path]
+    try:
+      result = run_program(cmd)
+      self.size_bytes = int(result.stdout.decode().strip())
+    except Exception:
+      # Setting to impossible value for now
+      self.size_bytes = -1
+
   def get_smart_details(self):
     """Get data from smartctl."""
     cmd = ['sudo', 'smartctl', '--all', '--json', self.path]
-    try:
-      result = run_program(cmd, check=False)
-      self.smartctl = json.loads(result.stdout.decode())
-    except Exception:
-      # Leave self.smartctl empty
-      pass
+    self.smartctl = get_json_from_command(cmd)
 
     # Check for attributes
     if KEY_NVME in self.smartctl:
+      self.attr_type = 'NVMe'
       self.nvme_attributes = {}
       for k, v in self.smartctl[KEY_NVME].items():
         try:
@@ -442,6 +367,7 @@ class DiskObj():
           # TODO: Limit this check
           pass
     elif KEY_SMART in self.smartctl:
+      self.attr_type = 'SMART'
       for a in self.smartctl[KEY_SMART].get('table', {}):
         try:
           _id = int(a.get('id', -1))
@@ -471,48 +397,58 @@ class DiskObj():
 
   def safety_check(self, silent=False):
     """Run safety checks and disable tests if necessary."""
+    test_running = False
     if self.nvme_attributes or self.smart_attributes:
-      self.check_attributes(silent)
+      disk_ok = self.check_attributes()
+      test_running = self.check_smart_self_test(silent)
 
-      # Check if a self-test is currently running
-      if 'remaining_percent' in self.smart_self_test.get('status', ''):
-        _msg = 'SMART self-test in progress, all tests disabled'
-
-        # Ask to abort
-        if not silent:
-          print_warning('WARNING: {}'.format(_msg))
-          print_standard(' ')
-          if ask('Abort HW Diagnostics?'):
-            exit_script()
-
-        # Add warning to report
-        if 'NVMe / SMART' in self.tests:
-          self.tests['NVMe / SMART'].report = self.generate_attribute_report()
-          self.tests['NVMe / SMART'].report.append(
-            '{YELLOW}WARNING: {msg}{CLEAR}'.format(msg=_msg, **COLORS))
-
-        # Disable all tests for this disk
-        for t in self.tests.keys():
-          self.disable_test(t, 'Denied')
+      # Show errors (unless a SMART self-test is running)
+      if not (silent or test_running):
+        if disk_ok:
+          # 199/C7 warning
+          if self.smart_attributes.get(199, {}).get('raw', 0) > 0:
+            print_warning('199/C7 error detected')
+            print_standard('  (Have you tried swapping the disk cable?)')
+        else:
+          # Override?
+          show_report(
+            self.generate_attribute_report(description=True),
+            log_report=True)
+          print_warning('  {} error(s) detected.'.format(self.attr_type))
+          if self.override_disabled:
+            print_standard('Tests disabled for this device')
+            pause()
+          elif not (len(self.tests) == 3 and OVERRIDES_LIMITED):
+            if OVERRIDES_FORCED or ask('Run tests on this device anyway?'):
+              disk_ok = True
+              if 'NVMe / SMART' in self.tests:
+                self.disable_test('NVMe / SMART', 'OVERRIDE')
+                if not self.nvme_attributes and self.smart_attributes:
+                  # Re-enable for SMART short-tests
+                  self.tests['NVMe / SMART'].disabled = False
+              print_standard(' ')
     else:
       # No NVMe/SMART details
       self.disable_test('NVMe / SMART', 'N/A')
       if silent:
-        self.disk_ok = HW_OVERRIDES_FORCED
+        disk_ok = OVERRIDES_FORCED
       else:
-        print_info('Device ({})'.format(self.name))
-        print_standard('  {}'.format(self.description))
-        print_warning('  No NVMe or SMART data available')
-        self.disk_ok = HW_OVERRIDES_FORCED or ask(
-          'Run tests on this device anyway?')
+        show_report(
+          self.generate_attribute_report(description=True),
+          log_report=True)
+        disk_ok = OVERRIDES_FORCED or ask('Run tests on this device anyway?')
         print_standard(' ')
 
-    if not self.disk_ok:
-      if 'NVMe / SMART' in self.tests:
-        # NOTE: This will not overwrite the existing status if set
-        self.disable_test('NVMe / SMART', 'NS')
-        if not self.tests['NVMe / SMART'].report:
-          self.tests['NVMe / SMART'].report = self.generate_attribute_report()
+
+    # Disable tests if necessary (statuses won't be overwritten)
+    if test_running:
+      if not silent:
+        # silent is only True in quick_mode
+        self.disable_test('NVMe / SMART', 'Denied')
+      for t in ['badblocks', 'I/O Benchmark']:
+        self.disable_test(t, 'Denied')
+    elif not disk_ok:
+      self.disable_test('NVMe / SMART', 'NS')
       for t in ['badblocks', 'I/O Benchmark']:
         self.disable_test(t, 'Denied')
 
@@ -569,9 +505,8 @@ class State():
 
     # Add block devices
     cmd = ['lsblk', '--json', '--nodeps', '--paths']
-    result = run_program(cmd, check=False)
-    json_data = json.loads(result.stdout.decode())
-    for disk in json_data['blockdevices']:
+    json_data = get_json_from_command(cmd)
+    for disk in json_data.get('blockdevices', []):
       skip_disk = False
       disk_obj = DiskObj(disk['name'])
 
@@ -909,6 +844,8 @@ def run_audio_test():
 
 def run_badblocks_test(state, test):
   """Run a read-only surface scan with badblocks."""
+  dev = test.dev
+
   # Bail early
   if test.disabled:
     return
@@ -926,7 +863,7 @@ def run_badblocks_test(state, test):
         break
 
   # Prep
-  print_log('Starting badblocks test for {}'.format(test.dev.path))
+  print_log('Starting badblocks test for {}'.format(dev.path))
   test.started = True
   test.update_status()
   update_progress_pane(state)
@@ -935,23 +872,30 @@ def run_badblocks_test(state, test):
   tmux_update_pane(
     state.panes['Top'],
     text='{}\n{}'.format(
-      TOP_PANE_TEXT, test.dev.description))
+      TOP_PANE_TEXT, dev.description))
 
   # Create monitor pane
   test.badblocks_out = '{}/badblocks_{}.out'.format(
-    global_vars['LogDir'], test.dev.name)
+    global_vars['LogDir'], dev.name)
   state.panes['badblocks'] = tmux_split_window(
     lines=5, vertical=True, watch=test.badblocks_out, watch_cmd='tail')
 
   # Show disk details
   clear_screen()
-  show_report(test.dev.generate_attribute_report())
+  show_report(dev.generate_attribute_report())
   print_standard(' ')
+
+  # Set read block size
+  if dev.lsblk['phy-sec'] == 4096 or dev.size_bytes >= BADBLOCKS_LARGE_DISK:
+    block_size = '4096'
+  else:
+    # Use default value
+    block_size = '1024'
 
   # Start badblocks
   print_standard('Running badblocks test...')
   test.badblocks_proc = popen_program(
-    ['sudo', 'badblocks', '-sv', '-e', '1', test.dev.path],
+    ['sudo', 'badblocks', '-sv', '-b', block_size, '-e', '1', dev.path],
     pipe=True, bufsize=1)
   test.badblocks_nbsr = NonBlockingStreamReader(test.badblocks_proc.stderr)
   test.badblocks_stderr = ''
@@ -981,7 +925,8 @@ def run_badblocks_test(state, test):
     else:
       test.report.append('  {YELLOW}{line}{CLEAR}'.format(
         line=line, **COLORS))
-      test.failed = True
+      if not test.aborted:
+        test.failed = True
   if test.aborted:
     test.report.append('  {YELLOW}Aborted{CLEAR}'.format(**COLORS))
     test.update_status('Aborted')
@@ -989,7 +934,7 @@ def run_badblocks_test(state, test):
 
   # Disable other drive tests if necessary
   if not test.passed:
-    test.dev.disable_test('I/O Benchmark', 'Denied')
+    dev.disable_test('I/O Benchmark', 'Denied')
 
   # Update status
   if test.failed:
@@ -1044,7 +989,12 @@ def run_hw_tests(state):
     _disk_tests_enabled |= state.tests[k]['Enabled']
   if _disk_tests_enabled:
     for disk in state.disks:
-      disk.safety_check(silent=state.quick_mode)
+      try:
+        disk.safety_check(silent=state.quick_mode)
+      except GenericAbort:
+        tmux_kill_pane(*state.panes.values())
+        state.panes.clear()
+        return
 
   # Run tests
   ## Because state.tests is an OrderedDict and the disks were added
@@ -1059,6 +1009,13 @@ def run_hw_tests(state):
           # No devices available
           v['Objects'].append(TestObj(dev=None, label=''))
           v['Objects'][-1].update_status('N/A')
+    # Recheck attributes
+    if state.tests['NVMe / SMART']['Enabled']:
+      for test_obj in state.tests['NVMe / SMART']['Objects']:
+        if test_obj.dev is not None:
+          # dev == None for the 'N/A' lines set above
+          run_nvme_smart_tests(state, test_obj, update_mode=True)
+
   except GenericAbort:
     # Cleanup
     tmux_kill_pane(*state.panes.values())
@@ -1094,12 +1051,14 @@ def run_hw_tests(state):
 
 def run_io_benchmark(state, test):
   """Run a read-only I/O benchmark using dd."""
+  dev = test.dev
+
   # Bail early
   if test.disabled:
     return
 
   # Prep
-  print_log('Starting I/O benchmark test for {}'.format(test.dev.path))
+  print_log('Starting I/O benchmark test for {}'.format(dev.path))
   test.started = True
   test.update_status()
   update_progress_pane(state)
@@ -1108,12 +1067,12 @@ def run_io_benchmark(state, test):
   tmux_update_pane(
     state.panes['Top'],
     text='{}\n{}'.format(
-      TOP_PANE_TEXT, test.dev.description))
+      TOP_PANE_TEXT, dev.description))
   state.tmux_layout['Current'] = {'y': 15, 'Check': True}
 
   # Create monitor pane
   test.io_benchmark_out = '{}/io_benchmark_{}.out'.format(
-    global_vars['LogDir'], test.dev.name)
+    global_vars['LogDir'], dev.name)
   state.panes['io_benchmark'] = tmux_split_window(
     percent=75, vertical=True,
     watch=test.io_benchmark_out, watch_cmd='tail')
@@ -1121,7 +1080,7 @@ def run_io_benchmark(state, test):
 
   # Show disk details
   clear_screen()
-  show_report(test.dev.generate_attribute_report())
+  show_report(dev.generate_attribute_report())
   print_standard(' ')
 
   # Start I/O Benchmark
@@ -1129,23 +1088,23 @@ def run_io_benchmark(state, test):
   try:
     test.merged_rates = []
     test.read_rates = []
-    test.dev.calc_io_dd_values()
+    dev.calc_io_dd_values()
 
     # Run dd read tests
     offset = 0
-    for i in range(test.dev.dd_chunks):
+    for i in range(dev.dd_chunks):
       # Build cmd
       i += 1
-      skip = test.dev.dd_skip_count
-      if test.dev.dd_skip_extra and i % test.dev.dd_skip_extra == 0:
+      skip = dev.dd_skip_count
+      if dev.dd_skip_extra and i % dev.dd_skip_extra == 0:
         skip += 1
       cmd = [
         'sudo', 'dd',
         'bs={}'.format(IO_VARS['Block Size']),
         'skip={}'.format(offset+skip),
-        'count={}'.format(test.dev.dd_chunk_blocks),
+        'count={}'.format(dev.dd_chunk_blocks),
         'iflag=direct',
-        'if={}'.format(test.dev.path),
+        'if={}'.format(dev.path),
         'of=/dev/null']
 
       # Run cmd and get read rate
@@ -1159,12 +1118,12 @@ def run_io_benchmark(state, test):
       # Show progress
       if i % IO_VARS['Progress Refresh Rate'] == 0:
         update_io_progress(
-          percent=(i/test.dev.dd_chunks)*100,
+          percent=(i/dev.dd_chunks)*100,
           rate=cur_rate,
           progress_file=test.io_benchmark_out)
 
       # Update offset
-      offset += test.dev.dd_chunk_blocks + skip
+      offset += dev.dd_chunk_blocks + skip
 
   except DeviceTooSmallError:
     # Device too small, skipping test
@@ -1190,7 +1149,7 @@ def run_io_benchmark(state, test):
   else:
     # Merge rates for horizontal graph
     offset = 0
-    width = int(test.dev.dd_chunks / IO_VARS['Graph Horizontal Width'])
+    width = int(dev.dd_chunks / IO_VARS['Graph Horizontal Width'])
     for i in range(IO_VARS['Graph Horizontal Width']):
       test.merged_rates.append(
         sum(test.read_rates[offset:offset+width])/width)
@@ -1211,7 +1170,7 @@ def run_io_benchmark(state, test):
     test.report.append(avg_min_max)
 
     # Compare read speeds to thresholds
-    if test.dev.lsblk['rota']:
+    if dev.lsblk['rota']:
       # Use HDD scale
       thresh_min = IO_VARS['Threshold HDD Min']
       thresh_high_avg = IO_VARS['Threshold HDD High Avg']
@@ -1252,6 +1211,8 @@ def run_keyboard_test():
 
 def run_mprime_test(state, test):
   """Test CPU with Prime95 and track temps."""
+  dev = test.dev
+
   # Bail early
   if test.disabled:
     return
@@ -1262,11 +1223,12 @@ def run_mprime_test(state, test):
   test.update_status()
   update_progress_pane(state)
   test.sensor_data = get_sensor_data()
+  test.thermal_abort = False
 
   # Update tmux layout
   tmux_update_pane(
     state.panes['Top'],
-    text='{}\n{}'.format(TOP_PANE_TEXT, test.dev.name))
+    text='{}\n{}'.format(TOP_PANE_TEXT, dev.name))
 
   # Start live sensor monitor
   test.sensors_out = '{}/sensors.out'.format(global_vars['TmpDir'])
@@ -1297,12 +1259,12 @@ def run_mprime_test(state, test):
   # Stress CPU
   print_log('Starting Prime95')
   test.abort_msg = 'If running too hot, press CTRL+c to abort the test'
-  run_program(['apple-fans', 'max'])
+  run_program(['apple-fans', 'max'], check=False)
   tmux_update_pane(
     state.panes['Prime95'],
     command=['hw-diags-prime95', global_vars['TmpDir']],
     working_dir=global_vars['TmpDir'])
-  time_limit = int(MPRIME_LIMIT) * 60
+  time_limit = MPRIME_LIMIT * 60
   try:
     for i in range(time_limit):
       clear_screen()
@@ -1319,15 +1281,19 @@ def run_mprime_test(state, test):
       # Not using print wrappers to avoid flooding the log
       print(_status_str)
       print('{YELLOW}{msg}{CLEAR}'.format(msg=test.abort_msg, **COLORS))
-      update_sensor_data(test.sensor_data)
+      update_sensor_data(test.sensor_data, THERMAL_LIMIT)
 
       # Wait
       sleep(1)
-  except KeyboardInterrupt:
-    # Catch CTRL+C
+  except (KeyboardInterrupt, ThermalLimitReachedError) as err:
+    # CTRL+c pressed or thermal limit reached
     test.aborted = True
-    test.update_status('Aborted')
-    print_warning('\nAborted.')
+    if isinstance(err, KeyboardInterrupt):
+      test.update_status('Aborted')
+    elif isinstance(err, ThermalLimitReachedError):
+      test.failed = True
+      test.thermal_abort = True
+      test.update_status('NS')
     update_progress_pane(state)
 
     # Restart live monitor
@@ -1341,7 +1307,7 @@ def run_mprime_test(state, test):
   tmux_kill_pane(state.panes.pop('Prime95', None))
 
   # Get cooldown temp
-  run_program(['apple-fans', 'auto'])
+  run_program(['apple-fans', 'auto'], check=False)
   clear_screen()
   try_and_print(
     message='Letting CPU cooldown for bit...', indent=0,
@@ -1428,6 +1394,16 @@ def run_mprime_test(state, test):
       test.sensor_data, 'Idle', 'Max', 'Cooldown', core_only=True):
     test.report.append('  {}'.format(line))
 
+  # Add abort message(s)
+  if test.aborted:
+    test.report.append(
+      '  {YELLOW}Aborted{CLEAR}'.format(**COLORS))
+  if test.thermal_abort:
+    test.report.append(
+      '  {RED}CPU reached temperature limit of {temp}°C{CLEAR}'.format(
+        temp=THERMAL_LIMIT,
+        **COLORS))
+
   # Done
   update_progress_pane(state)
 
@@ -1447,15 +1423,19 @@ def run_network_test():
   pause('Press Enter to return to main menu... ')
 
 
-def run_nvme_smart_tests(state, test):
-  """Run NVMe or SMART test for test.dev."""
+def run_nvme_smart_tests(state, test, update_mode=False):
+  """Run NVMe or SMART test for test.dev.
+
+  Update mode is used to refresh the attributes and recheck them.
+  (i.e. no self-test and don't disable other tests)"""
+  dev = test.dev
+
   # Bail early
   if test.disabled:
     return
 
   # Prep
-  print_log('Starting NVMe/SMART test for {}'.format(test.dev.path))
-  _include_short_test = False
+  print_log('Starting NVMe/SMART test for {}'.format(dev.path))
   test.started = True
   test.update_status()
   update_progress_pane(state)
@@ -1464,120 +1444,121 @@ def run_nvme_smart_tests(state, test):
   tmux_update_pane(
     state.panes['Top'],
     text='{}\n{}'.format(
-      TOP_PANE_TEXT, test.dev.description))
+      TOP_PANE_TEXT, dev.description))
 
-  # NVMe
-  if test.dev.nvme_attributes:
-    # NOTE: Pass/Fail is just the attribute check
-    if test.dev.disk_ok:
+  # SMART short self-test
+  if dev.smart_attributes and not (state.quick_mode or update_mode):
+    run_smart_short_test(state, test)
+
+  # Attribute check
+  dev.check_attributes()
+
+  # Check results
+  if dev.nvme_attributes or state.quick_mode:
+    if dev.disk_ok:
       test.passed = True
       test.update_status('CS')
     else:
-      # NOTE: Other test(s) should've been disabled by DiskObj.safety_check()
       test.failed = True
       test.update_status('NS')
-
-  # SMART
-  elif test.dev.smart_attributes:
-    # NOTE: Pass/Fail based on both attributes and SMART short self-test
-    if not (test.dev.disk_ok or 'OVERRIDE' in test.status):
+  elif dev.smart_attributes:
+    if dev.disk_ok and dev.self_test_passed and 'OVERRIDE' not in test.status:
+      test.passed = True
+      test.update_status('CS')
+    elif test.aborted:
+      test.update_status('Aborted')
+      raise GenericAbort('Aborted')
+    elif dev.self_test_timed_out:
+      test.failed = True
+      test.update_status('TimedOut')
+    elif dev.override_disabled or 'OVERRIDE' not in test.status:
+      # override_disabled is set to True if one or more critical attributes
+      # have exceeded the Error threshold. This overrules an override.
       test.failed = True
       test.update_status('NS')
-    elif state.quick_mode:
-      if test.dev.disk_ok:
-        test.passed = True
-        test.update_status('CS')
-      else:
-        test.failed = True
-        test.update_status('NS')
-    else:
-      # Prep
-      test.timeout = test.dev.smart_self_test['polling_minutes'].get(
-        'short', 5)
-      test.timeout = int(test.timeout) + 5
-      _include_short_test = True
-      _self_test_started = False
-      _self_test_finished = False
+  else:
+    # This dev lacks both NVMe and SMART data. This test should've been
+    # disabled during the safety_check().
+    pass
 
-      # Create monitor pane
-      test.smart_out = '{}/smart_{}.out'.format(
-        global_vars['LogDir'], test.dev.name)
-      with open(test.smart_out, 'w') as f:
-        f.write('SMART self-test status:\n  Starting...')
-      state.panes['SMART'] = tmux_split_window(
-        lines=3, vertical=True, watch=test.smart_out)
-
-      # Show attributes
-      clear_screen()
-      show_report(test.dev.generate_attribute_report())
-      print_standard(' ')
-
-      # Start short test
-      print_standard('Running self-test...')
-      cmd = ['sudo', 'smartctl', '--test=short', test.dev.path]
-      run_program(cmd, check=False)
-
-      # Monitor progress
-      try:
-        for i in range(int(test.timeout*60/5)):
-          sleep(5)
-
-          # Update SMART data
-          test.dev.get_smart_details()
-
-          if _self_test_started:
-            # Update progress file
-            with open(test.smart_out, 'w') as f:
-              f.write('SMART self-test status:\n  {}'.format(
-                test.dev.smart_self_test['status'].get(
-                  'string', 'UNKNOWN').capitalize()))
-
-            # Check if test has finished
-            if 'remaining_percent' not in test.dev.smart_self_test['status']:
-              _self_test_finished = True
-              break
-
-          else:
-            # Check if test has started
-            if 'remaining_percent' in test.dev.smart_self_test['status']:
-              _self_test_started = True
-
-      except KeyboardInterrupt:
-        test.aborted = True
-        test.report = test.dev.generate_attribute_report()
-        test.report.append('{BLUE}SMART Short self-test{CLEAR}'.format(
-          **COLORS))
-        test.report.append('  {YELLOW}Aborted{CLEAR}'.format(**COLORS))
-        test.update_status('Aborted')
-        raise GenericAbort('Aborted')
-
-      # Check if timed out
-      if _self_test_finished:
-        if test.dev.smart_self_test['status'].get('passed', False):
-          if 'OVERRIDE' not in test.status:
-            test.passed = True
-            test.update_status('CS')
-        else:
-          test.failed = True
-          test.update_status('NS')
-      else:
-        test.dev.smart_timeout = True
-        test.update_status('TimedOut')
-
-      # Disable other drive tests if necessary
-      if test.failed:
-        for t in ['badblocks', 'I/O Benchmark']:
-          test.dev.disable_test(t, 'Denied')
-
-      # Cleanup
-      tmux_kill_pane(state.panes.pop('SMART', None))
-
-  # Save report
-  test.report = test.dev.generate_attribute_report(
-    short_test=_include_short_test)
+  # Disable other disk tests if necessary
+  if test.failed and not update_mode:
+    for t in ['badblocks', 'I/O Benchmark']:
+      dev.disable_test(t, 'Denied')
 
   # Done
   update_progress_pane(state)
+
+
+def run_smart_short_test(state, test):
+  """Run SMART short self-test for test.dev."""
+  dev = test.dev
+  dev.self_test_started = False
+  dev.self_test_finished = False
+  dev.self_test_passed = False
+  dev.self_test_timed_out = False
+  test.timeout = dev.smart_self_test['polling_minutes'].get('short', 5)
+  test.timeout = int(test.timeout) + 5
+
+  # Create monitor pane
+  test.smart_out = '{}/smart_{}.out'.format(global_vars['LogDir'], dev.name)
+  with open(test.smart_out, 'w') as f:
+    f.write('SMART self-test status:\n  Starting...')
+  state.panes['SMART'] = tmux_split_window(
+    lines=3, vertical=True, watch=test.smart_out)
+
+  # Show attributes
+  clear_screen()
+  show_report(dev.generate_attribute_report())
+  print_standard(' ')
+
+  # Start short test
+  print_standard('Running self-test...')
+  cmd = ['sudo', 'smartctl', '--test=short', dev.path]
+  run_program(cmd, check=False)
+
+  # Monitor progress
+  try:
+    for i in range(int(test.timeout*60/5)):
+      sleep(5)
+
+      # Update SMART data
+      dev.get_smart_details()
+
+      if dev.self_test_started:
+        # Update progress file
+        with open(test.smart_out, 'w') as f:
+          f.write('SMART self-test status:\n  {}'.format(
+            dev.smart_self_test['status'].get(
+              'string', 'UNKNOWN').capitalize()))
+
+        # Check if test has finished
+        if 'remaining_percent' not in dev.smart_self_test['status']:
+          dev.self_test_finished = True
+          break
+
+      else:
+        # Check if test has started
+        if 'remaining_percent' in dev.smart_self_test['status']:
+          dev.self_test_started = True
+  except KeyboardInterrupt:
+    # Will be handled in run_nvme_smart_tests()
+    test.aborted = True
+
+  # Save report
+  test.report.append('{BLUE}SMART Short self-test{CLEAR}'.format(**COLORS))
+  test.report.append('  {}'.format(
+    dev.smart_self_test['status'].get('string', 'UNKNOWN').capitalize()))
+  if dev.self_test_finished:
+    dev.self_test_passed = dev.smart_self_test['status'].get('passed', False)
+  elif test.aborted:
+    test.report.append('  {YELLOW}Aborted{CLEAR}'.format(**COLORS))
+  else:
+    dev.self_test_timed_out = True
+    test.report.append('  {YELLOW}Timed out{CLEAR}'.format(**COLORS))
+
+  # Cleanup
+  tmux_kill_pane(state.panes.pop('SMART', None))
 
 
 def secret_screensaver(screensaver=None):

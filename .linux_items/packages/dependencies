@@ -4,8 +4,10 @@ base-devel
 curl
 dos2unix
 git
+gtk-doc
 hwloc
 imlib2
+json-glib
 lhasa
 libbsd
 libewf

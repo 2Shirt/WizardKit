@@ -1,103 +1,10 @@
 # Wizard Kit: Functions - Data
 
 import ctypes
-import json
 
-from functions.common import *
+from functions.json import *
 from operator import itemgetter
-
-
-# STATIC VARIABLES
-FAST_COPY_EXCLUDES = [
-  r'\*.esd',
-  r'\*.swm',
-  r'\*.wim',
-  r'\*.dd',
-  r'\*.dd.tgz',
-  r'\*.dd.txz',
-  r'\*.map',
-  r'\*.dmg',
-  r'\*.image',
-  r'$RECYCLE.BIN',
-  r'$Recycle.Bin',
-  r'.AppleDB',
-  r'.AppleDesktop',
-  r'.AppleDouble',
-  r'.com.apple.timemachine.supported',
-  r'.dbfseventsd',
-  r'.DocumentRevisions-V100*',
-  r'.DS_Store',
-  r'.fseventsd',
-  r'.PKInstallSandboxManager',
-  r'.Spotlight*',
-  r'.SymAV*',
-  r'.symSchedScanLockxz',
-  r'.TemporaryItems',
-  r'.Trash*',
-  r'.vol',
-  r'.VolumeIcon.icns',
-  r'desktop.ini',
-  r'Desktop?DB',
-  r'Desktop?DF',
-  r'hiberfil.sys',
-  r'lost+found',
-  r'Network?Trash?Folder',
-  r'pagefile.sys',
-  r'Recycled',
-  r'RECYCLER',
-  r'System?Volume?Information',
-  r'Temporary?Items',
-  r'Thumbs.db',
-  ]
-FAST_COPY_ARGS = [
-  '/cmd=noexist_only',
-  '/utf8',
-  '/skip_empty_dir',
-  '/linkdest',
-  '/no_ui',
-  '/auto_close',
-  '/exclude={}'.format(';'.join(FAST_COPY_EXCLUDES)),
-  ]
-# Code borrowed from: https://stackoverflow.com/a/29075319
-SEM_NORMAL = ctypes.c_uint()
-SEM_FAILCRITICALERRORS = 1
-SEM_NOOPENFILEERRORBOX = 0x8000
-SEM_FAIL = SEM_NOOPENFILEERRORBOX | SEM_FAILCRITICALERRORS
-
-
-# Regex
-REGEX_EXCL_ITEMS = re.compile(
-  r'^(\.(AppleDB|AppleDesktop|AppleDouble'
-  r'|com\.apple\.timemachine\.supported|dbfseventsd'
-  r'|DocumentRevisions-V100.*|DS_Store|fseventsd|PKInstallSandboxManager'
-  r'|Spotlight.*|SymAV.*|symSchedScanLockxz|TemporaryItems|Trash.*'
-  r'|vol|VolumeIcon\.icns)|desktop\.(ini|.*DB|.*DF)'
-  r'|(hiberfil|pagefile)\.sys|lost\+found|Network\.*Trash\.*Folder'
-  r'|Recycle[dr]|System\.*Volume\.*Information|Temporary\.*Items'
-  r'|Thumbs\.db)$',
-  re.IGNORECASE)
-REGEX_EXCL_ROOT_ITEMS = re.compile(
-  r'^(boot(mgr|nxt)$|Config.msi'
-  r'|(eula|globdata|install|vc_?red)'
-  r'|.*.sys$|System Volume Information|RECYCLER?|\$Recycle\.bin'
-  r'|\$?Win(dows(.old.*|\.  BT|)$|RE_)|\$GetCurrent|Windows10Upgrade'
-  r'|PerfLogs|Program Files|SYSTEM.SAV'
-  r'|.*\.(esd|swm|wim|dd|map|dmg|image)$)',
-  re.IGNORECASE)
-REGEX_INCL_ROOT_ITEMS = re.compile(
-  r'^(AdwCleaner|(My\s*|)(Doc(uments?( and Settings|)|s?)|Downloads'
-  r'|Media|Music|Pic(ture|)s?|Vid(eo|)s?)'
-  r'|{prefix}(-?Info|-?Transfer|)'
-  r'|(ProgramData|Recovery|Temp.*|Users)$'
-  r'|.*\.(log|txt|rtf|qb\w*|avi|m4a|m4v|mp4|mkv|jpg|png|tiff?)$)'
-  r''.format(prefix=KIT_NAME_SHORT),
-  re.IGNORECASE)
-REGEX_WIM_FILE = re.compile(
-  r'\.wim$',
-  re.IGNORECASE)
-REGEX_WINDOWS_OLD = re.compile(
-  r'^Win(dows|)\.old',
-  re.IGNORECASE)
+from settings.data import *
 
 
 # Classes
@@ -170,8 +77,7 @@ def find_core_storage_volumes(device_path=None):
     '--output', 'NAME,PARTTYPE']
   if device_path:
     cmd.append(device_path)
-  result = run_program(cmd)
-  json_data = json.loads(result.stdout.decode())
+  json_data = get_json_from_command(cmd)
   devs = json_data.get('blockdevices', [])
   devs = [d for d in devs if d.get('parttype', '') == corestorage_uuid]
   if devs:
@@ -251,8 +157,7 @@ def get_mounted_volumes():
       'devtmpfs,hugetlbfs,mqueue,proc,pstore,securityfs,sysfs,tmpfs'
       ),
     '-o', 'SOURCE,TARGET,FSTYPE,LABEL,SIZE,AVAIL,USED']
-  result = run_program(cmd)
-  json_data = json.loads(result.stdout.decode())
+  json_data = get_json_from_command(cmd)
   mounted_volumes = []
   for item in json_data.get('filesystems', []):
     mounted_volumes.append(item)
@@ -277,8 +182,7 @@ def mount_volumes(
     find_core_storage_volumes(device_path)
 
   # Get list of block devices
-  result = run_program(cmd)
-  json_data = json.loads(result.stdout.decode())
+  json_data = get_json_from_command(cmd)
   devs = json_data.get('blockdevices', [])
 
   # Get list of volumes

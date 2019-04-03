@@ -67,6 +67,22 @@ def download_to_temp(out_name, source_url):
   download_generic(global_vars['TmpDir'], out_name, source_url)
 
 
+def download_windows_updates():
+  """Download stand alone Windows Update installers."""
+  # Prep
+  dest = r'{}\Installers\Extras\Windows Updates'.format(
+    global_vars['BaseDir'])
+
+
+  # Download
+  for kb, v in WINDOWS_UPDATE_SOURCES.items():
+    for winver, v2 in v.items():
+      for arch, url in v2.items():
+        name = 'KB{}-Windows{}-x{}.msu'.format(kb, winver, arch)
+        if not os.path.exists(r'{}\{}'.format(dest, name)):
+          download_generic(dest, name, url)
+
+
 def extract_generic(source, dest, mode='x', sz_args=[]):
   """Extract a file to a destination."""
   cmd = [
@@ -827,8 +843,13 @@ def update_wiztree():
 
   # Extract files
   extract_temp_to_cbin('wiztree.zip', 'WizTree')
+  ## NOTE: It's double-zipped for some reason?
+  extract_generic(
+    r'{}\WizTree\wiztree'.format(global_vars['CBinDir']),
+    r'{}\WizTree'.format(global_vars['CBinDir']))
 
   # Cleanup
+  remove_item(r'{}\WizTree\wiztree'.format(global_vars['CBinDir']))
   remove_from_temp('wiztree.zip')
 
 

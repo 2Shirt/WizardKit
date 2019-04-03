@@ -43,8 +43,14 @@ if __name__ == '__main__':
     if global_vars['OS']['Version'] == '10':
       try_and_print(message='Explorer...',
         function=config_explorer_system, cs='Done')
+      try_and_print(message='Windows Updates...',
+        function=config_windows_updates, cs='Done')
     try_and_print(message='Updating Clock...',
       function=update_clock, cs='Done')
+
+    # Restart Explorer
+    try_and_print(message='Restarting Explorer...',
+      function=restart_explorer, cs='Done')
 
     # Cleanup
     print_info('Cleanup')

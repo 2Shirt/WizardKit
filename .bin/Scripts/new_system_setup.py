@@ -93,18 +93,24 @@ if __name__ == '__main__':
     if global_vars['OS']['Version'] == '10':
       try_and_print(message='ClassicStart...',
         function=config_classicstart, cs='Done')
-      try_and_print(message='Explorer...',
+      try_and_print(message='Explorer (user)...',
         function=config_explorer_user, cs='Done')
 
     # Configure system
     print_info('Configuring system')
     if global_vars['OS']['Version'] == '10':
-      try_and_print(message='Explorer...',
+      try_and_print(message='Explorer (system)...',
         function=config_explorer_system, cs='Done')
       try_and_print(message='Disabling telemetry...',
         function=disable_windows_telemetry, cs='Done')
+      try_and_print(message='Windows Updates...',
+        function=config_windows_updates, cs='Done')
     try_and_print(message='Updating Clock...',
       function=update_clock, cs='Done')
+
+    # Restart Explorer
+    try_and_print(message='Restarting Explorer...',
+      function=restart_explorer, cs='Done')
 
     # Summary
     print_info('Summary')

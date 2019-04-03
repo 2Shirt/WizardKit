@@ -143,11 +143,11 @@ function help () {
 [[ "${__usage+x}" ]] || read -r -d '' __usage <<-'EOF' || true # exits non-zero when EOF encountered
   OPTIONS:
   -u --ufd-device [arg] Device to which the kit will be applied
-  -m --main-kit   [arg] Path to the Main Kit
   -l --linux-iso  [arg] Path to the Linux ISO
-  -w --winpe-iso  [arg] Path to the WinPE ISO
 
   -e --extra-dir  [arg] Path to the Extra folder (optional)
+  -m --main-kit   [arg] Path to the Main Kit (optional)
+  -w --winpe-iso  [arg] Path to the WinPE ISO (optional)
   -h --help             This page
 
   ADVANCED:
@@ -390,15 +390,11 @@ if [[ "${arg_h:?}" == 1 ]]; then
 else
     # Print warning line
     [[ "${arg_u:-}" ]] || echo " -u or --ufd-device is required"
-    [[ "${arg_m:-}" ]] || echo " -m or --main-kit is required"
     [[ "${arg_l:-}" ]] || echo " -l or --linux-iso is required"
-    [[ "${arg_w:-}" ]] || echo " -w or --winpe-iso is required"
 
     # Bail if necessary
     [[ "${arg_u:-}" ]] || help "${__usage_example}"
     [[ "${arg_l:-}" ]] || help "${__usage_example}"
-    [[ "${arg_m:-}" ]] || help "${__usage_example}"
-    [[ "${arg_w:-}" ]] || help "${__usage_example}"
 fi
 [[ "${LOG_LEVEL:-}" ]] || emergency "Cannot continue without LOG_LEVEL. "
 
@@ -492,26 +488,30 @@ echo ""
 
 # Verify sources
 [[ -b "${DEST_DEV}" ]] || abort "${DEST_DEV} is not a valid device."
-[[ -d "${MAIN_KIT}/.bin" ]] || abort "Invalid Main Kit, ${MAIN_KIT}/.bin not found."
 [[ -e "${LINUX_ISO}" ]] || abort "Linux ISO not found."
-[[ -e "${WINPE_ISO}" ]] || abort "WinPE ISO not found."
+if [[ ! -z "${arg_m:-}" ]]; then
+  [[ -d "${MAIN_KIT}/.bin" ]] || abort "Invalid Main Kit, ${MAIN_KIT}/.bin not found."
+fi
+if [[ ! -z "${arg_w:-}" ]]; then
+  [[ -e "${WINPE_ISO}" ]] || abort "WinPE ISO not found."
+fi
 if [[ ! -z "${arg_e:-}" ]]; then
     [[ -d "${EXTRA_DIR}" ]] || abort "Extra Dir not found."
 fi
 
 # Print Info
-echo -e "${BLUE}Sources${CLEAR}"
-echo "Main Kit:  ${MAIN_KIT}"
-echo "Linux ISO: ${LINUX_ISO}"
-echo "WinPE ISO: ${WINPE_ISO}"
-echo "Extra Dir: ${EXTRA_DIR:-(Not Specified)}"
-echo ""
-echo -e "${BLUE}Destination${CLEAR}"
-lsblk -n -o NAME,LABEL,SIZE,MODEL,SERIAL "${DEST_DEV}"
+echo -e "${BLUE}Sources${CLEAR}" | tee -a "${LOG_FILE}"
+echo "Main Kit:  ${MAIN_KIT}" | tee -a "${LOG_FILE}"
+echo "Linux ISO: ${LINUX_ISO}" | tee -a "${LOG_FILE}"
+echo "WinPE ISO: ${WINPE_ISO}" | tee -a "${LOG_FILE}"
+echo "Extra Dir: ${EXTRA_DIR:-(Not Specified)}" | tee -a "${LOG_FILE}"
+echo "" | tee -a "${LOG_FILE}"
+echo -e "${BLUE}Destination${CLEAR}" | tee -a "${LOG_FILE}"
+lsblk -n -o NAME,LABEL,SIZE,MODEL,SERIAL "${DEST_DEV}" | tee -a "${LOG_FILE}"
 if [[ "${USE_MBR}" == "True" ]]; then
-    echo -e "${YELLOW}Formatting using legacy MBR${CLEAR}"
+    echo -e "${YELLOW}Formatting using legacy MBR${CLEAR}" | tee -a "${LOG_FILE}"
 fi
-echo ""
+echo "" | tee -a "${LOG_FILE}"
 
 # Ask before starting job
 echo ""
@@ -528,8 +528,8 @@ else
 fi
 
 # Start Build
-echo ""
-echo -e "${GREEN}Building Kit${CLEAR}"
+echo "" | tee -a "${LOG_FILE}"
+echo -e "${GREEN}Building Kit${CLEAR}" | tee -a "${LOG_FILE}"
 touch "${LOG_FILE}"
 tmux split-window -dl 10 tail -f "${LOG_FILE}"
 
@@ -537,7 +537,7 @@ tmux split-window -dl 10 tail -f "${LOG_FILE}"
 dd bs=4M count=16 if=/dev/zero of="${DEST_DEV}" >> "${LOG_FILE}" 2>&1
 
 # Format
-echo "Formatting drive..."
+echo "Formatting drive..." | tee -a "${LOG_FILE}"
 if [[ "${USE_MBR}" == "True" ]]; then
     parted "${DEST_DEV}" --script -- mklabel msdos mkpart primary fat32 4MiB -1s >> "${LOG_FILE}" 2>&1
     parted "${DEST_DEV}" set 1 boot on >> "${LOG_FILE}" 2>&1
@@ -550,45 +550,94 @@ fi
 mkfs.vfat -F 32 -n "${UFD_LABEL}" "${DEST_PAR}" >> "${LOG_FILE}" 2>&1
 
 # Mount sources and dest
-echo "Mounting sources and destination..."
+echo "Mounting sources and destination..." | tee -a "${LOG_FILE}"
 mkdir /mnt/{Dest,Linux,WinPE} -p >> "${LOG_FILE}" 2>&1
 mount ${DEST_PAR} /mnt/Dest >> "${LOG_FILE}" 2>&1
 mount "${LINUX_ISO}" /mnt/Linux -r >> "${LOG_FILE}" 2>&1
-mount "${WINPE_ISO}" /mnt/WinPE -r >> "${LOG_FILE}" 2>&1
+if [[ ! -z "${arg_w:-}" ]]; then
+  mount "${WINPE_ISO}" /mnt/WinPE -r >> "${LOG_FILE}" 2>&1
+fi
+
+# Find WinPE source
+w_boot="$(find /mnt/WinPE -iwholename "/mnt/WinPE/Boot")"
+w_boot_bcd="$(find /mnt/WinPE -iwholename "/mnt/WinPE/Boot/BCD")"
+w_boot_sdi="$(find /mnt/WinPE -iwholename "/mnt/WinPE/Boot/boot.sdi")"
+w_bootmgr="$(find /mnt/WinPE -iwholename "/mnt/WinPE/bootmgr")"
+w_bootmgr_efi="$(find /mnt/WinPE -iwholename "/mnt/WinPE/bootmgr.efi")"
+w_efi_boot="$(find /mnt/WinPE -iwholename "/mnt/WinPE/EFI/Boot")"
+w_efi_microsoft="$(find /mnt/WinPE -iwholename "/mnt/WinPE/EFI/Microsoft")"
+w_en_us="$(find /mnt/WinPE -iwholename "/mnt/WinPE/en-us")"
+w_sources="$(find /mnt/WinPE -iwholename "/mnt/WinPE/sources")"
 
 # Copy files
-echo "Copying Linux files..."
+echo "Copying Linux files..." | tee -a "${LOG_FILE}"
 rsync ${RSYNC_ARGS} /mnt/Linux/* /mnt/Dest/ >> "${LOG_FILE}" 2>&1
 sed -i "s/${ISO_LABEL}/${UFD_LABEL}/" /mnt/Dest/EFI/boot/refind.conf
-sed -i "s/#UFD#//" /mnt/Dest/EFI/boot/refind.conf
 sed -i "s/${ISO_LABEL}/${UFD_LABEL}/" /mnt/Dest/arch/boot/syslinux/*cfg
-sed -i "s/#UFD#//" /mnt/Dest/arch/boot/syslinux/*cfg
 
-echo "Copying WinPE files..."
-rsync ${RSYNC_ARGS} /mnt/WinPE/{Boot,bootmgr{,.efi},en-us,sources} /mnt/Dest/ >> "${LOG_FILE}" 2>&1
-rsync ${RSYNC_ARGS} /mnt/WinPE/EFI/Microsoft /mnt/Dest/EFI/ >> "${LOG_FILE}" 2>&1
-rsync ${RSYNC_ARGS} /mnt/WinPE/EFI/Boot/* /mnt/Dest/EFI/Microsoft/ >> "${LOG_FILE}" 2>&1
-rsync ${RSYNC_ARGS} /mnt/WinPE/{Boot/{BCD,boot.sdi},bootmgr} /mnt/Dest/sources/ >> "${LOG_FILE}" 2>&1
+echo "Copying WinPE files..." | tee -a "${LOG_FILE}"
+if [[ ! -z "${arg_w:-}" ]]; then
+  if [[ ! -z "${w_bootmgr:-}" ]]; then
+    rsync ${RSYNC_ARGS} "${w_bootmgr}" /mnt/Dest/ >> "${LOG_FILE}" 2>&1
+  fi
+  if [[ ! -z "${w_bootmgr_efi:-}" ]]; then
+    rsync ${RSYNC_ARGS} "${w_bootmgr_efi}" /mnt/Dest/ >> "${LOG_FILE}" 2>&1
+  fi
+  if [[ ! -z "${w_en_us:-}" ]]; then
+    rsync ${RSYNC_ARGS} "${w_en_us}" /mnt/Dest/ >> "${LOG_FILE}" 2>&1
+  fi
+  if [[ ! -z "${w_boot:-}" ]]; then
+    rsync ${RSYNC_ARGS} "${w_boot}"/* /mnt/Dest/Boot/ >> "${LOG_FILE}" 2>&1
+  fi
+  if [[ ! -z "${w_efi_boot:-}" ]]; then
+    rsync ${RSYNC_ARGS} "${w_efi_boot}"/* /mnt/Dest/EFI/Microsoft/ >> "${LOG_FILE}" 2>&1
+  fi
+  if [[ ! -z "${w_efi_microsoft:-}" ]]; then
+    rsync ${RSYNC_ARGS} "${w_efi_microsoft}"/* /mnt/Dest/EFI/Microsoft/ >> "${LOG_FILE}" 2>&1
+  fi
+  if [[ ! -z "${w_boot_bcd:-}" ]]; then
+    rsync ${RSYNC_ARGS} "${w_boot_bcd}" /mnt/Dest/sources/ >> "${LOG_FILE}" 2>&1
+  fi
+  if [[ ! -z "${w_boot_sdi:-}" ]]; then
+    rsync ${RSYNC_ARGS} "${w_boot_sdi}" /mnt/Dest/sources/ >> "${LOG_FILE}" 2>&1
+  fi
+  if [[ ! -z "${w_bootmgr:-}" ]]; then
+    rsync ${RSYNC_ARGS} "${w_bootmgr}" /mnt/Dest/sources/ >> "${LOG_FILE}" 2>&1
+  fi
+  if [[ ! -z "${w_sources:-}" ]]; then
+    rsync ${RSYNC_ARGS} "${w_sources}"/* /mnt/Dest/sources/ >> "${LOG_FILE}" 2>&1
+  fi
 
-echo "Copying Main Kit..."
-rsync ${RSYNC_ARGS} "${MAIN_KIT}/" "/mnt/Dest/${KIT_NAME_FULL}/" >> "${LOG_FILE}" 2>&1
+  # Uncomment boot entries
+  sed -i "s/#UFD-WINPE#//" /mnt/Dest/EFI/boot/refind.conf
+  sed -i "s/#UFD-WINPE#//" /mnt/Dest/arch/boot/syslinux/*cfg
+fi
+
+echo "Copying Main Kit..." | tee -a "${LOG_FILE}"
+if [[ ! -z "${arg_m:-}" ]]; then
+  rsync ${RSYNC_ARGS} \
+    "${MAIN_KIT}/" \
+    "/mnt/Dest/${KIT_NAME_FULL}/" >> "${LOG_FILE}" 2>&1
+fi
 
 if [[ ! -z "${EXTRA_DIR:-}" ]]; then
-    echo "Copying Extra files..."
-    rsync ${RSYNC_ARGS} "${EXTRA_DIR}"/ /mnt/Dest/ >> "${LOG_FILE}" 2>&1
+    echo "Copying Extra files..." | tee -a "${LOG_FILE}"
+    rsync ${RSYNC_ARGS} \
+      "${EXTRA_DIR}"/ \
+      /mnt/Dest/ >> "${LOG_FILE}" 2>&1
 fi
 
 # Install syslinux
-echo "Copying Syslinux files..."
+echo "Copying Syslinux files..." | tee -a "${LOG_FILE}"
 rsync ${RSYNC_ARGS} /usr/lib/syslinux/bios/*.c32 /mnt/Dest/arch/boot/syslinux/ >> "${LOG_FILE}" 2>&1
 syslinux --install -d /arch/boot/syslinux/ ${DEST_PAR} >> "${LOG_FILE}" 2>&1
 
-echo "Unmounting destination..."
+echo "Unmounting destination..." | tee -a "${LOG_FILE}"
 umount /mnt/Dest >> "${LOG_FILE}" 2>&1
 rmdir /mnt/Dest >> "${LOG_FILE}" 2>&1
 sync
 
-echo "Installing Syslinux MBR..."
+echo "Installing Syslinux MBR..." | tee -a "${LOG_FILE}"
 if [[ "${USE_MBR}" == "True" ]]; then
     dd bs=440 count=1 if=/usr/lib/syslinux/bios/mbr.bin of=${DEST_DEV} >> "${LOG_FILE}" 2>&1
 else
@@ -597,7 +646,7 @@ fi
 sync
 
 # Cleanup
-echo "Hiding boot files..."
+echo "Hiding boot files..." | tee -a "${LOG_FILE}"
 echo "drive s: file=\"${DEST_PAR}\"" > /root/.mtoolsrc
 echo 'mtools_skip_check=1' >> /root/.mtoolsrc
 for item in arch Boot bootmgr{,.efi} EFI en-us images isolinux sources "${KIT_NAME_FULL}"/{.bin,.cbin}; do
@@ -606,7 +655,7 @@ done
 sync
 
 # Unmount Sources
-echo "Unmounting sources..."
+echo "Unmounting sources..." | tee -a "${LOG_FILE}"
 for d in Linux WinPE; do
     umount "/mnt/${d}" >> "${LOG_FILE}" 2>&1 || true
     rmdir "/mnt/${d}" >> "${LOG_FILE}" 2>&1 || true
@@ -616,7 +665,7 @@ done
 pkill -f "tail.*${LOG_FILE}"
 
 # Done
-echo ""
-echo "Done."
+echo "" | tee -a "${LOG_FILE}"
+echo "Done." | tee -a "${LOG_FILE}"
 echo ""
 exit 0

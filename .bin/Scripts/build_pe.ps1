@@ -131,25 +131,25 @@ if ($MyInvocation.InvocationName -ne ".") {
         ## Download Tools ##
         $ToolSources = @(
             # 7-Zip
-            @("7z-installer.msi", "https://www.7-zip.org/a/7z1806.msi"),
-            @("7z-extra.7z", "https://www.7-zip.org/a/7z1806-extra.7z"),
+            @("7z-installer.msi", "https://www.7-zip.org/a/7z1900.msi"),
+            @("7z-extra.7z", "https://www.7-zip.org/a/7z1900-extra.7z"),
             # Blue Screen View
             @("bluescreenview32.zip", "http://www.nirsoft.net/utils/bluescreenview.zip"),
             @("bluescreenview64.zip", "http://www.nirsoft.net/utils/bluescreenview-x64.zip"),
             # ConEmu
-            @("ConEmuPack.7z", "https://github.com/Maximus5/ConEmu/releases/download/v18.06.26/ConEmuPack.180626.7z"),
+            @("ConEmuPack.7z", "https://github.com/Maximus5/ConEmu/releases/download/v19.03.10/ConEmuPack.190310.7z"),
             # Fast Copy
-            @("fastcopy.zip", "http://ftp.vector.co.jp/70/93/2323/FastCopy361_installer.exe"),
+            @("fastcopy.zip", "http://ftp.vector.co.jp/71/31/2323/FastCopy363_installer.exe"),
             # HWiNFO
-            @("hwinfo.zip", "https://www.fosshub.com/HWiNFO.html?dwl=hwi_600.zip"),
+            @("hwinfo.zip", "http://files2.majorgeeks.com/377527622c5325acc1cb937fb149d0de922320c0/systeminfo/hwi_602.zip"),
             # Killer Network Drivers
             @(
                 "killerinf.zip",
                 ("https://www.killernetworking.com"+(FindDynamicUrl "https://www.killernetworking.com/killersupport/category/other-downloads" "Download Killer-Ethernet").replace('&amp;', '&'))
             ),
             # Notepad++
-            @("npp_x86.7z", "https://notepad-plus-plus.org/repository/7.x/7.6.2/npp.7.6.2.bin.minimalist.7z"),
-            @("npp_amd64.7z", "https://notepad-plus-plus.org/repository/7.x/7.6.2/npp.7.6.2.bin.minimalist.x64.7z"),
+            @("npp_x86.7z", "https://notepad-plus-plus.org/repository/7.x/7.6.4/npp.7.6.4.bin.minimalist.7z"),
+            @("npp_amd64.7z", "https://notepad-plus-plus.org/repository/7.x/7.6.4/npp.7.6.4.bin.minimalist.x64.7z"),
             # NT Password Editor
             @("ntpwed.zip", "http://cdslow.org.ru/files/ntpwedit/ntpwed07.zip"),
             # Prime95
