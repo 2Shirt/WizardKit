@@ -49,30 +49,38 @@ BOOT_ENTRIES = {
 # Definitions: Sources and Destinations
 ## NOTES: Paths are relative to the root of the ISO/UFD
 ##        Sources use rsync's trailing slash syntax
-ITEMS_LINUX_FULL = (
-  ('/arch',           '/'),
-  ('/isolinux',       '/'),
-  ('/EFI/boot',       '/EFI/'),
-  ('/EFI/memtest86',  '/EFI/'),
-  )
-ITEMS_LINUX_MINIMAL = (
-  ('/arch/boot/archiso.img',    '/arch_minimal/'),
-  ('/arch/boot/vmlinuz',        '/arch_minimal/'),
-  ('/arch/pkglist.x86_64.txt',  '/arch_minimal/'),
-  ('/arch/x86_64',              '/arch_minimal/'),
-  )
-ITEMS_WINPE = (
-  ('/bootmgr',          '/'),
-  ('/bootmgr.efi',      '/'),
-  ('/en_us',            '/'),
-  ('/Boot/',            '/boot/'),
-  ('/EFI/Boot/',        '/EFI/Microsoft/'),
-  ('/EFI/Microsoft/',   '/EFI/Microsoft/'),
-  ('/Boot/BCD',         '/sources/'),
-  ('/Boot/boot.sdi',    '/sources/'),
-  ('/bootmgr',          '/sources/'),
-  ('/sources/boot.wim', '/sources/'),
-  )
+ITEMS = {
+  'Extra Dir': (
+    ('/',                         '/'),
+    ),
+  'Linux': (
+    ('/arch',                     '/'),
+    ('/isolinux',                 '/'),
+    ('/EFI/boot',                 '/EFI/'),
+    ('/EFI/memtest86',            '/EFI/'),
+    ),
+  'Linux (Minimal)': (
+    ('/arch/boot/archiso.img',    '/arch_minimal/'),
+    ('/arch/boot/vmlinuz',        '/arch_minimal/'),
+    ('/arch/pkglist.x86_64.txt',  '/arch_minimal/'),
+    ('/arch/x86_64',              '/arch_minimal/'),
+    ),
+  'Main Kit': (
+    ('/',                         '/{}/'.format(KIT_NAME_FULL)),
+    ),
+  'WinPE': (
+    ('/bootmgr',                  '/'),
+    ('/bootmgr.efi',              '/'),
+    ('/en_us',                    '/'),
+    ('/Boot/',                    '/boot/'),
+    ('/EFI/Boot/',                '/EFI/Microsoft/'),
+    ('/EFI/Microsoft/',           '/EFI/Microsoft/'),
+    ('/Boot/BCD',                 '/sources/'),
+    ('/Boot/boot.sdi',            '/sources/'),
+    ('/bootmgr',                  '/sources/'),
+    ('/sources/boot.wim',         '/sources/'),
+    ),
+  }
 
 if __name__ == '__main__':
   print("This file is not meant to be called directly.")
