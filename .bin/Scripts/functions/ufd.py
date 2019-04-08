@@ -40,7 +40,11 @@ def find_path(path):
 
   # Fix case
   for part in parts:
-    real_path = case_insensitive_search(real_path, part)
+    try:
+      real_path = case_insensitive_search(real_path, part)
+    except NotADirectoryError:
+      # Reclassify error
+      raise FileNotFoundError(path)
 
   # Raise error if path doesn't exist
   path_obj = pathlib.Path(real_path)
