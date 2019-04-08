@@ -111,7 +111,7 @@ def find_core_storage_volumes(device_path=None):
 
     # Check log for found volumes
     cs_vols = {}
-    with open(log_path, 'r') as f:
+    with open(log_path, 'r', encoding='utf-8', errors='ignore') as f:
       for line in f.readlines():
         r = re.match(
           r'^.*echo "([^"]+)" . dmsetup create test(\d)$',
