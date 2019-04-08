@@ -1,0 +1,89 @@
+#!/bin/env python3
+#
+## Wizard Kit: UFD build tool
+
+# Init
+import os
+import sys
+
+sys.path.append(os.path.dirname(os.path.realpath(__file__)))
+
+from docopt import docopt
+from functions.common import *
+
+set_log_file('Build UFD ({Date-Time}).log'.format(**global_vars['Env']))
+
+
+# STATIC VARIABLES
+DOCSTRING = '''Build UFD.
+
+Usage:
+  build-ufd [options] --ufd-device PATH --linux-iso PATH
+            [--linux-minimal-iso PATH]
+            [--main-kit PATH]
+            [--winpe-iso PATH]
+            [--extra-dir PATH]
+  build-ufd (-h | --help)
+
+Options:
+  -e PATH, --extra-dir PATH
+  -k PATH, --main-kit PATH
+  -l PATH, --linux-iso PATH
+  -m PATH, --linux-minimal-iso PATH
+  -u PATH, --ufd-device PATH
+  -w PATH, --winpe-iso PATH
+
+  -d --debug            Enable debug mode
+  -h --help             Show this page
+  -v --verbose          Enable verbose mode
+  -M --use-mbr          Use real MBR instead of GPT w/ Protective MBR
+  -F --force            Bypass all confirmation messages. USE WITH EXTREME CAUTION!
+  -U --update           Don't format device, just update
+'''
+ISO_LABEL = '{}_LINUX'.format(KIT_NAME_SHORT)
+UFD_LABEL = '{}_UFD'.format(KIT_NAME_SHORT)
+
+
+# Functions
+def get_full_path(item):
+  """Get full path to item, returns str."""
+  #TODO
+  pass
+
+
+def is_block_device(item):
+  """Verify item is a block device, returns bool."""
+  #TODO
+  pass
+
+
+def is_valid_main_kit(path):
+  """Verify path contains the main kit, returns bool."""
+
+
+# Main section
+if __name__ == '__main__':
+  args = docopt(DOCSTRING)
+
+  # Verify selections
+
+  # Show selections
+
+  # Double-check if formating device
+
+  # Format and partition device
+
+  # Mount sources
+
+  # Copy sources
+
+  # Update boot entries
+
+  # Install syslinux
+
+  # Hide items
+
+  # Unmount sources
+
+
+# vim: sts=2 sw=2 ts=2
