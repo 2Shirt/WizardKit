@@ -60,9 +60,19 @@ def find_path(path):
   return path_obj
 
 
-def is_valid_main_kit(path_obj):
-  """Verify PathObj contains the main kit, returns bool."""
-  return path_obj.is_dir() and path_obj.joinpath('.bin').exists()
+def is_valid_path(path_obj, path_type):
+  """Verify path_obj is valid by type, returns bool."""
+  valid_path = False
+  if path_type == 'DIR':
+    valid_path = path_obj.is_dir()
+  elif path_type == 'KIT':
+    valid_path = path_obj.is_dir() and path_obj.joinpath('.bin').exists()
+  elif path_type == 'ISO':
+    valid_path = path_obj.is_file() and path_obj.suffix.lower() == '.iso'
+  elif path_type == 'UFD':
+    valid_path = path_obj.is_block_device()
+
+  return valid_path
 
 
 if __name__ == '__main__':

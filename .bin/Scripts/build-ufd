@@ -7,6 +7,7 @@ import sys
 
 # Init
 sys.path.append(os.path.dirname(os.path.realpath(__file__)))
+from collections import OrderedDict
 from docopt import docopt
 from functions.ufd import *
 from settings.ufd import *
@@ -18,33 +19,39 @@ set_log_file('Build UFD ({Date-Time}).log'.format(**global_vars))
 if __name__ == '__main__':
   try:
     args = docopt(DOCSTRING)
-    sources = ()
+    sources = OrderedDict()
 
     # Verify selections
     ## UFD
     try:
-      ufd_dev = get_full_path(args['--ufd-device'])
-      if not is_block_device(ufd_dev):
-        print_error('Invalid UFD device: {}'.format(ufd_dev))
-        abort()
-    except Exception:
-      # TODO Catch FileNotFound exception and abort accordingly
-      raise
+      ufd_dev = find_path(args['--ufd-device'])
+    except FileNotFoundError:
+      print_error('ERROR: UFD device not found: {}'.format(
+        args['--ufd-device']))
+      abort()
+    if not is_valid_path(ufd_dev, 'UFD'):
+      print_error('ERROR: Invalid UFD device: {}'.format(ufd_dev))
+      abort()
     ## Sources
-    for label, source in UFD_SOURCES:
-      if args[source]:
+    for label, data in UFD_SOURCES.items():
+      s_path = args[data['Arg']]
+      if s_path:
         try:
-          sources.append((label, get_full_path(source)))
-        except Exception:
-          # TODO Catch FileNotFound exception and abort accordingly
-          raise
+          s_path_obj = find_path(s_path)
+        except FileNotFoundError:
+          print_error('ERROR: {} not found: {}'.format(label, s_path))
+          abort()
+        if not is_valid_path(s_path_obj, data['Type']):
+          print_error('ERROR: Invalid {} source: {}'.format(label, s_path))
+          abort()
+        sources[label] = s_path_obj
 
     # Show selections
     # TODO FIXME
     print_standard('UFD: {}'.format(ufd_dev))
     print_standard('Sources:')
-    for s in sources:
-      print_standard('  {}: {}'.format(*s))
+    for label, s_path in sources.items():
+      print_standard('  {:<16} {}'.format(label+':', s_path))
 
     # Double-check if formating device
 
