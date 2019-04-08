@@ -6,37 +6,48 @@ from functions.common import *
 
 def case_insensitive_search(path, item):
   """Search path for item case insensitively, returns str."""
+  regex_match = '^{}$'.format(item)
+  real_path = ''
+
+  # Quick check first
   if os.path.exists('{}/{}'.format(path, item)):
-    # Easy mode
-    return '{}/{}'.format(path, item)
+    real_path = '{}{}{}'.format(
+      path,
+      '' if path == '/' else '/',
+      item,
+      )
 
   # Check all items in dir
   for entry in os.scandir(path):
-    if re.match(entry.name, item, re.IGNORECASE):
-      return '{}/{}'.format(path, entry.name)
+    if re.match(regex_match, entry.name, re.IGNORECASE):
+      real_path = '{}{}{}'.format(
+        path,
+        '' if path == '/' else '/',
+        entry.name,
+        )
 
-  # If we get here the item wasn't found
-  raise FileNotFoundError('{}/{}'.format(path, item))
-
-
-def find_source_item(source_dir, item):
-  """Find item relative to source dir, returns str."""
-  path = source_dir
-  if item.startswith('/'):
-    item = item[1:]
-
-  for part in item.split('/'):
-    path = case_insensitive_search(path, part)
-
-  return path
+  # Done
+  if real_path:
+    return real_path
+  else:
+    raise FileNotFoundError('{}/{}'.format(path, item))
 
 
-def get_full_path(item):
-  """Get full path to item, returns pathlib.Path obj."""
-  path_obj = pathlib.Path(item).resolve()
+def find_path(path):
+  """Find path case-insensitively, returns pathlib.Path obj."""
+  parts = pathlib.Path(path).resolve().relative_to('/').parts
+  real_path = '/'
+
+  # Fix case
+  for part in parts:
+    real_path = case_insensitive_search(real_path, part)
+
+  # Raise error if path doesn't exist
+  path_obj = pathlib.Path(real_path)
   if not path_obj.exists():
     raise FileNotFoundError(path_obj)
 
+  # Done
   return path_obj
 
 
