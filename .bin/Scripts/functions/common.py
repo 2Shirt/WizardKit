@@ -904,7 +904,7 @@ def set_linux_vars():
   global_vars['Date-Time'] =        time.strftime("%Y-%m-%d_%H%M_%z")
   global_vars['Env'] =              os.environ.copy()
   global_vars['BinDir'] =           '/usr/local/bin'
-  global_vars['LogDir'] =           '{}/Logs',format(global_vars['Env']['HOME'])
+  global_vars['LogDir'] =           '{}/Logs'.format(global_vars['Env']['HOME'])
   global_vars['Tools'] = {
     'wimlib-imagex': 'wimlib-imagex',
     'SevenZip': '7z',

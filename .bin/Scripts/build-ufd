@@ -11,7 +11,7 @@ from docopt import docopt
 from functions.ufd import *
 from settings.ufd import *
 init_global_vars()
-set_log_file('Build UFD ({Date-Time}).log'.format(**global_vars['Env']))
+set_log_file('Build UFD ({Date-Time}).log'.format(**global_vars))
 
 
 # Main section
