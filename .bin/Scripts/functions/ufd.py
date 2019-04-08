@@ -75,6 +75,46 @@ def is_valid_path(path_obj, path_type):
   return valid_path
 
 
+def recursive_copy(source, dest, overwrite=True):
+  """Copy source to dest recursively.
+
+  NOTE: This uses rsync style source/dest syntax.
+  If the source has a trailing slash then it's contents are copied,
+  otherwise the source itself is copied.
+
+  Examples assuming "ExDir/ExFile.txt" exists:
+  recursive_copy("ExDir", "Dest/") results in "Dest/ExDir/ExFile.txt"
+  recursive_copy("ExDir/", "Dest/") results in "Dest/ExFile.txt"
+
+  NOTE 2: dest does not use find_path because it might not exist.
+  """
+  copy_contents = source.endswith('/')
+  source = find_path(source)
+  dest = pathlib.Path(dest)
+
+  if copy_contents:
+    for item in os.scandir(source):
+      recursive_copy(item.path, dest, overwrite=overwrite)
+  elif source.is_dir():
+    if not dest.exists():
+      shutil.copytree(source, dest.joinpath('source.name'))
+    elif not dest.is_dir():
+      raise GenericError('Unexpected item in dest: {}'.format(dest))
+    else:
+      # Dest exists and is a dir
+      for item in os.scandir(source):
+        recursive_copy(
+          item.path,
+          dest.joinpath(source.name),
+          overwrite=overwrite,
+          )
+  elif source.is_file():
+    # TODO FIXME
+    if dest.exists():
+      # TODO FIXME
+      pass
+
+
 if __name__ == '__main__':
   print("This file is not meant to be called directly.")
 
