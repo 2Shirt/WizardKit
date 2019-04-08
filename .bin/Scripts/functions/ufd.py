@@ -35,10 +35,15 @@ def case_insensitive_search(path, item):
 
 def find_path(path):
   """Find path case-insensitively, returns pathlib.Path obj."""
-  parts = pathlib.Path(path).resolve().relative_to('/').parts
-  real_path = '/'
+  path_obj = pathlib.Path(path).resolve()
+
+  # Quick check first
+  if path_obj.exists():
+    return path_obj
 
   # Fix case
+  parts = path_obj.relative_to('/').parts
+  real_path = '/'
   for part in parts:
     try:
       real_path = case_insensitive_search(real_path, part)
