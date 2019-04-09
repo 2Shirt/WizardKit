@@ -47,6 +47,60 @@ if __name__ == '__main__':
         sources[label] = s_path_obj
 
     # Show selections
+    ## Header
+    clear_screen()
+    print_success(KIT_NAME_FULL)
+    print_standard('UFD Build Tool')
+    print_standard(' ')
+    ## Sources
+    print_info('Sources')
+    for label in UFD_SOURCES.keys():
+      if label in sources:
+        print_standard('  {label:<18} {path}'.format(
+          label=label+':',
+          path=sources[label],
+          ))
+      else:
+        print_standard('  {label:<18} {YELLOW}Not Specified{CLEAR}'.format(
+          label=label+':',
+          **COLORS,
+          ))
+    ## Destination
+    print_standard(' ')
+    print_info('Destination')
+    cmd = [
+      'lsblk', '--nodeps', '--noheadings',
+      '--output', 'NAME,TRAN,SIZE,VENDOR,MODEL,SERIAL',
+      ]
+    result = run_program(cmd, check=False, encoding='utf-8', errors='ignore')
+    print_standard(result.stdout.strip())
+    cmd = [
+      'lsblk', '--noheadings',
+      '--output', 'NAME,SIZE,FSTYPE,LABEL,MOUNTPOINT',
+      ]
+    result = run_program(cmd, check=False, encoding='utf-8', errors='ignore')
+    for line in result.stdout.splitlines()[1:]:
+      print_standard(line)
+    if args['--use-mbr'] and not args['--update']:
+      print_warning('Formatting using legacy MBR')
+    print_standard(' ')
+    if not ask('Is the above information correct?'):
+      abort()
+    ## Safety check
+    print_standard(' ')
+    print_warning('SAFETY CHECK')
+    print_standard(
+      'All data will be DELETED from the disk and partition(s) listed above.')
+    print_standard(
+      'This is irreversible and will lead to {RED}DATA LOSS.{CLEAR}'.format(
+        **COLORS))
+    if not ask('Asking again to confirm, is this correct?'):
+      abort()
+
+    print_standard(' ')
+    print_success("It's go-time!")
+    exit_script(1)
+
     # TODO FIXME
     print_standard('UFD: {}'.format(ufd_dev))
     print_standard('Sources:')
