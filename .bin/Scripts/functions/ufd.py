@@ -90,29 +90,38 @@ def recursive_copy(source, dest, overwrite=True):
   """
   copy_contents = source.endswith('/')
   source = find_path(source)
-  dest = pathlib.Path(dest)
+  dest = pathlib.Path(dest).resolve().joinpath(source.name)
+  os.makedirs(dest.parent, exist_ok=True)
 
-  if copy_contents:
-    for item in os.scandir(source):
-      recursive_copy(item.path, dest, overwrite=overwrite)
-  elif source.is_dir():
-    if not dest.exists():
-      shutil.copytree(source, dest.joinpath('source.name'))
-    elif not dest.is_dir():
-      raise GenericError('Unexpected item in dest: {}'.format(dest))
-    else:
-      # Dest exists and is a dir
+  if source.is_dir():
+    if copy_contents:
+      # Trailing slash syntax
       for item in os.scandir(source):
-        recursive_copy(
-          item.path,
-          dest.joinpath(source.name),
-          overwrite=overwrite,
-          )
+        recursive_copy(item.path, dest.parent, overwrite=overwrite)
+    elif not dest.exists():
+      # No conflict, copying whole tree (no merging needed)
+      shutil.copytree(source, dest)
+    elif not dest.is_dir():
+      # Refusing to replace file with dir
+      raise GenericError('Refusing to replace file with dir: {}'.format(dest))
+    else:
+      # Dest exists and is a dir, merge dirs
+      for item in os.scandir(source):
+        recursive_copy(item.path, dest, overwrite=overwrite)
   elif source.is_file():
-    # TODO FIXME
-    if dest.exists():
-      # TODO FIXME
-      pass
+    if not dest.exists():
+      # No conflict, copying file
+      shutil.copy2(source, dest)
+    elif not dest.is_file():
+      # Refusing to replace dir with file
+      raise GenericError('Refusing to replace dir with file: {}'.format(dest))
+    elif overwrite:
+      # Dest file exists, deleting and replacing file
+      os.remove(dest)
+      shutil.copy2(source, dest)
+    else:
+      # Refusing to delete file when overwrite=False
+      raise GenericError('Refusing to delete file: {}'.format(dest))
 
 
 if __name__ == '__main__':
