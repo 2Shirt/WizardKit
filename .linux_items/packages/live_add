@@ -32,6 +32,7 @@ p7zip
 progsreiserfs
 python
 python-psutil
+python-pytz
 python-requests
 reiserfsprogs
 rfkill
