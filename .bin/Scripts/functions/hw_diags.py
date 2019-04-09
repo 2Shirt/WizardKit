@@ -350,7 +350,7 @@ class DiskObj():
   def get_smart_details(self):
     """Get data from smartctl."""
     cmd = ['sudo', 'smartctl', '--all', '--json', self.path]
-    self.smartctl = get_json_from_command(cmd)
+    self.smartctl = get_json_from_command(cmd, check=False)
 
     # Check for attributes
     if KEY_NVME in self.smartctl:
