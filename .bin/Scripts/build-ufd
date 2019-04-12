@@ -20,6 +20,13 @@ set_log_file('Build UFD ({Date-Time}).log'.format(**global_vars))
 if __name__ == '__main__':
   try:
     args = docopt(DOCSTRING)
+  except SystemExit as err:
+    # Catch docopt exits
+    print(err)
+    exit_script()
+  except:
+    major_exception()
+  try:
     sources = OrderedDict()
 
     # Verify selections
