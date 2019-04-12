@@ -1,7 +1,9 @@
 # Wizard Kit: Functions - UFD
 
+import os
+import re
+import shutil
 import pathlib
-from functions.common import *
 
 
 def case_insensitive_search(path, item):
@@ -27,10 +29,10 @@ def case_insensitive_search(path, item):
         )
 
   # Done
-  if real_path:
-    return real_path
-  else:
+  if not real_path:
     raise FileNotFoundError('{}/{}'.format(path, item))
+
+  return real_path
 
 
 def find_path(path):
@@ -103,7 +105,7 @@ def recursive_copy(source, dest, overwrite=True):
       shutil.copytree(source, dest)
     elif not dest.is_dir():
       # Refusing to replace file with dir
-      raise GenericError('Refusing to replace file with dir: {}'.format(dest))
+      raise FileExistsError('Refusing to replace file: {}'.format(dest))
     else:
       # Dest exists and is a dir, merge dirs
       for item in os.scandir(source):
@@ -114,14 +116,14 @@ def recursive_copy(source, dest, overwrite=True):
       shutil.copy2(source, dest)
     elif not dest.is_file():
       # Refusing to replace dir with file
-      raise GenericError('Refusing to replace dir with file: {}'.format(dest))
+      raise FileExistsError('Refusing to replace dir: {}'.format(dest))
     elif overwrite:
       # Dest file exists, deleting and replacing file
       os.remove(dest)
       shutil.copy2(source, dest)
     else:
       # Refusing to delete file when overwrite=False
-      raise GenericError('Refusing to delete file: {}'.format(dest))
+      raise FileExistsError('Refusing to delete file: {}'.format(dest))
 
 
 if __name__ == '__main__':

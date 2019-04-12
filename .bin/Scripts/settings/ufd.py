@@ -1,7 +1,9 @@
-# Wizard Kit: Settings - UFD
+'''Wizard Kit: Settings - UFD'''
+# pylint: disable=C0326,E0611
+# vim: sts=2 sw=2 ts=2
 
 from collections import OrderedDict
-from settings.main import *
+from settings.main import KIT_NAME_FULL,KIT_NAME_SHORT
 
 # General
 DOCSTRING = '''WizardKit: Build UFD
@@ -31,7 +33,7 @@ Options:
 '''
 ISO_LABEL = '{}_LINUX'.format(KIT_NAME_SHORT)
 UFD_LABEL = '{}_UFD'.format(KIT_NAME_SHORT)
-UFD_SOURCES = ({
+UFD_SOURCES = OrderedDict({
   'Linux':            {'Arg': '--linux',          'Type': 'ISO'},
   'Linux (Minimal)':  {'Arg': '--linux-minimal',  'Type': 'ISO'},
   'WinPE':            {'Arg': '--winpe',          'Type': 'ISO'},
@@ -84,5 +86,3 @@ ITEMS = {
 
 if __name__ == '__main__':
   print("This file is not meant to be called directly.")
-
-# vim: sts=2 sw=2 ts=2
