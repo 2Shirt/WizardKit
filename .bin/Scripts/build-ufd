@@ -82,31 +82,28 @@ if __name__ == '__main__':
     result = run_program(cmd, check=False, encoding='utf-8', errors='ignore')
     for line in result.stdout.splitlines()[1:]:
       print_standard(line)
-    if args['--use-mbr'] and not args['--update']:
+    if args['--update']:
+      print_warning('Updating kit in-place')
+    elif args['--use-mbr']:
       print_warning('Formatting using legacy MBR')
     print_standard(' ')
     if not ask('Is the above information correct?'):
       abort()
     ## Safety check
-    print_standard(' ')
-    print_warning('SAFETY CHECK')
-    print_standard(
-      'All data will be DELETED from the disk and partition(s) listed above.')
-    print_standard(
-      'This is irreversible and will lead to {RED}DATA LOSS.{CLEAR}'.format(
-        **COLORS))
-    if not ask('Asking again to confirm, is this correct?'):
-      abort()
+    if not args['--update']:
+      print_standard(' ')
+      print_warning('SAFETY CHECK')
+      print_standard(
+        'All data will be DELETED from the disk and partition(s) listed above.')
+      print_standard(
+        'This is irreversible and will lead to {RED}DATA LOSS.{CLEAR}'.format(
+          **COLORS))
+      if not ask('Asking again to confirm, is this correct?'):
+        abort()
 
     print_standard(' ')
     print_success("It's go-time!")
     exit_script(1)
-
-    # TODO FIXME
-    print_standard('UFD: {}'.format(ufd_dev))
-    print_standard('Sources:')
-    for label, s_path in sources.items():
-      print_standard('  {:<16} {}'.format(label+':', s_path))
 
     # Double-check if formating device
 
