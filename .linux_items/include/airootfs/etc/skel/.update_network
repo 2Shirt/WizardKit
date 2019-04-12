@@ -11,10 +11,12 @@ IP="$(ip a show scope global \
   | grep inet \
   | head -1 \
   | sed -r 's#.*inet ([0-9]+.[0-9]+.[0-9]+.[0-9]+.)/.*#\1#')"
-HOSTNAME="$(dig +noall +answer +short -x "$IP" \
-  | grep -v ';' \
-  | head -1 \
-  | sed 's/\.$//')"
+if [[ "${IP:+x}" ]]; then
+  HOSTNAME="$(dig +noall +answer +short -x "$IP" \
+    | grep -v ';' \
+    | head -1 \
+    | sed 's/\.$//')"
+fi
 
 # Set hostname
 if [[ "${HOSTNAME:+x}" ]]; then
