@@ -21,9 +21,6 @@ QUICKBOOKS_SERVER_IP='10.0.0.10'
 # Time Zones
 LINUX_TIME_ZONE='America/Denver'            # See 'timedatectl list-timezones' for valid values
 WINDOWS_TIME_ZONE='Mountain Standard Time'  # See 'tzutil /l' for valid values
-# WiFi
-WIFI_SSID='SomeWiFi'
-WIFI_PASSWORD='Abracadabra'
 
 # SERVER VARIABLES
 ## NOTE: Windows can only use one user per server. This means that if

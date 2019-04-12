@@ -15,27 +15,6 @@ REGEX_VALID_IP = re.compile(
   re.IGNORECASE)
 
 
-def connect_to_network():
-  """Connect to network if not already connected."""
-  net_ifs = psutil.net_if_addrs()
-  net_ifs = [i[:2] for i in net_ifs.keys()]
-
-  # Bail if currently connected
-  if is_connected():
-    return
-
-  # WiFi
-  if 'wl' in net_ifs:
-    cmd = [
-      'nmcli', 'dev', 'wifi',
-      'connect', WIFI_SSID,
-      'password', WIFI_PASSWORD]
-    try_and_print(
-      message = 'Connecting to {}...'.format(WIFI_SSID),
-      function = run_program,
-      cmd = cmd)
-
-
 def is_connected():
   """Check for a valid private IP."""
   devs = psutil.net_if_addrs()
