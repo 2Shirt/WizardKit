@@ -1,18 +1,24 @@
 #!/bin/bash
 
-IF_LIST=($(ip l | egrep '^[0-9]+:\s+(eth|en|wl)' | sed -r 's/^[0-9]+:\s+(\w+):.*/\1/' | sort))
+IF_LIST=($(ip l \
+  | egrep '^[0-9]+:\s+(eth|en|wl)' \
+  | sed -r 's/^[0-9]+:\s+(\w+):.*/\1/' \
+  | sort))
+
+# Reset conkyrc to default
+rm "${HOME}/.conkyrc"
+cp "${HOME}/.conkyrc_base" "${HOME}/.conkyrc"
 
 # Add interfaces to conkyrc
-if fgrep '#Network' $HOME/.conkyrc; then
-    for i in "${IF_LIST[@]}"; do
-        if [[ "${i:0:1}" == "e" ]]; then
-            sed -i -r "s/#Network/Wired:\${alignr}\${addr $i}\n#Network/" $HOME/.conkyrc
-        else
-            sed -i -r "s/#Network/Wireless:\${alignr}\${addr $i}\n#Network/" $HOME/.conkyrc
-        fi
-    done
+for i in "${IF_LIST[@]}"; do
+  if [[ "${i:0:1}" == "e" ]]; then
+    sed -i -r "s/#Network/Wired:\${alignr}\${addr $i}\n#Network/" $HOME/.conkyrc
+  else
+    sed -i -r "s/#Network/Wireless:\${alignr}\${addr $i}\n#Network/" $HOME/.conkyrc
+  fi
+done
 
-    # Remove '#Network' line to prevent duplicating lines if this script is re-run
-    sed -i -r "s/#Network//" $HOME/.conkyrc
-fi
+# Remove '#Network' line to prevent duplicating lines if this script is re-run
+sed -i -r "s/#Network//" $HOME/.conkyrc
 
+# vim: sts=2 sw=2 ts=2

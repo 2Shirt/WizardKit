@@ -1,0 +1,10 @@
+[Unit]
+Description=Conky config update timer
+
+[Timer]
+OnBootSec=5s
+OnUnitActiveSec=30s
+Unit=update-conky.service
+
+[Install]
+WantedBy=timers.target
