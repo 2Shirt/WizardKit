@@ -32,10 +32,10 @@ offset_urxvt="24"
 # Update settings if necessary
 if [[ "${dpi}" -ge 192 ]]; then
   # Conky
-  sed -i 's/minimum_size 180 0/minimum_size 360 0/' "${HOME}/.conkyrc"
-  sed -i 's/maximum_width 180/maximum_width 360/' "${HOME}/.conkyrc"
-  sed -i 's/gap_x 20/gap_x 40/' "${HOME}/.conkyrc"
-  sed -i 's/gap_y 24/gap_y 48/' "${HOME}/.conkyrc"
+  sed -i 's/minimum_size 180 0/minimum_size 360 0/' "${HOME}/.conkyrc_base"
+  sed -i 's/maximum_width 180/maximum_width 360/' "${HOME}/.conkyrc_base"
+  sed -i 's/gap_x 20/gap_x 40/' "${HOME}/.conkyrc_base"
+  sed -i 's/gap_y 24/gap_y 48/' "${HOME}/.conkyrc_base"
 
   # Fonts
   sed -i 's/!Xft.dpi: 192/Xft.dpi: 192/' "${HOME}/.Xresources"
@@ -66,6 +66,9 @@ fi
 # Update URxvt (Always)
 urxvt_geometry="${width_urxvt}x${height_urxvt}+${offset_urxvt}+${offset_urxvt}"
 sed -i -r "s/${REGEX_URXVT}/\1${urxvt_geometry}/" "${HOME}/.Xresources"
+
+# Update conky
+$HOME/.update_conky
 
 # Update X
 xset s off

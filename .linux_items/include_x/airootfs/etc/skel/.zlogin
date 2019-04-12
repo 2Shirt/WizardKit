@@ -9,9 +9,6 @@ if [ "$(fgconsole 2>/dev/null)" -eq "1" ]; then
         sed -i -r 's/openbox-session/i3/' ~/.xinitrc
     fi
 
-    # Update Conky
-    $HOME/.update_conky
-
     # Start X or HW-diags
     if ! fgrep -q "nox" /proc/cmdline; then
         # Kill Xorg after 30 seconds if it doesn't fully initialize
