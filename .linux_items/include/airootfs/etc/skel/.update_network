@@ -3,9 +3,9 @@
 #
 ## Connect to network and update hostname
 
-# Connect
-connect-to-network
-sleep 2s
+# Add saved networks to NetworkManager
+sudo setup-wifi
+sudo systemctl restart NetworkManager
 
 IP="$(ip a show scope global \
   | grep inet \
