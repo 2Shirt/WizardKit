@@ -1,25 +1,23 @@
-## .update_network ##
 #!/bin/env bash
 #
-## Connect to network and update hostname
+## Setup network and update hostname
 
 # Add saved networks to NetworkManager
 sudo setup-wifi
 sudo systemctl restart NetworkManager
 
+# Set hostname
 IP="$(ip a show scope global \
   | grep inet \
   | head -1 \
   | sed -r 's#.*inet ([0-9]+.[0-9]+.[0-9]+.[0-9]+.)/.*#\1#')"
 if [[ "${IP:+x}" ]]; then
-  HOSTNAME="$(dig +noall +answer +short -x "$IP" \
+  NEW_HOSTNAME="$(dig +noall +answer +short -x "$IP" \
     | grep -v ';' \
     | head -1 \
     | sed 's/\.$//')"
 fi
-
-# Set hostname
-if [[ "${HOSTNAME:+x}" ]]; then
-  sudo hostnamectl set-hostname "${HOSTNAME}"
+if [[ "${NEW_HOSTNAME:+x}" ]]; then
+  sudo hostnamectl set-hostname "${NEW_HOSTNAME}"
 fi
 
