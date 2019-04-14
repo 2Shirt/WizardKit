@@ -33,9 +33,9 @@ def get_user_name():
   """Get real user name, returns str."""
   user = None
   if 'SUDO_USER' in os.environ:
-    user = os.environ.get('SUDO_USER')
+    user = os.environ.get('SUDO_USER', 'Unknown')
   else:
-    user = os.environ.get('USER')
+    user = os.environ.get('USER', 'Unknown')
 
   return user
 
