@@ -13,11 +13,36 @@ from functions.common import *
 from functions.ufd import *
 from settings.ufd import *
 init_global_vars(silent=True)
-set_log_file('Build UFD ({Date-Time}).log'.format(**global_vars))
+
+# Functions
+def get_user_home(user):
+  """Get path to user's home dir, returns str."""
+  home_dir = None
+  cmd = ['getent', 'passwd', user]
+  result = run_program(cmd, encoding='utf-8', errors='ignore', check=False)
+  try:
+    home_dir = result.stdout.split(':')[5]
+  except Exception:
+    # Just use HOME from ENV (or '/root' if that fails)
+    home_dir = os.environ.get('HOME', '/root')
+
+  return home_dir
+
+
+def get_user_name():
+  """Get real user name, returns str."""
+  user = None
+  if 'SUDO_USER' in os.environ:
+    user = os.environ.get('SUDO_USER')
+  else:
+    user = os.environ.get('USER')
+
+  return user
 
 
 # Main section
 if __name__ == '__main__':
+  # Docopt
   try:
     args = docopt(DOCSTRING)
   except SystemExit as err:
@@ -26,10 +51,15 @@ if __name__ == '__main__':
     exit_script()
   except:
     major_exception()
+
   try:
-    sources = OrderedDict()
+    # Set log
+    global_vars['LogDir'] = '{}/Logs'.format(
+      get_user_home(get_user_name()))
+    set_log_file('Build UFD ({Date-Time}).log'.format(**global_vars))
 
     # Verify selections
+    sources = OrderedDict()
     ## UFD
     try:
       ufd_dev = find_path(args['--ufd-device'])
