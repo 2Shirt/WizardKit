@@ -1,4 +1,6 @@
-# Wizard Kit: Functions - UFD
+"""Wizard Kit: Functions - UFD"""
+# pylint: disable=broad-except,wildcard-import
+# vim: sts=2 sw=2 ts=2
 
 import os
 import re
@@ -260,5 +262,3 @@ def verify_ufd(dev_path):
 
 if __name__ == '__main__':
   print("This file is not meant to be called directly.")
-
-# vim: sts=2 sw=2 ts=2

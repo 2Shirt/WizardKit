@@ -1,6 +1,8 @@
 #!/bin/env python3
 #
-## Wizard Kit: UFD build tool
+# pylint: disable=no-name-in-module,wildcard-import
+# vim: sts=2 sw=2 ts=2
+"""Wizard Kit: UFD build tool"""
 
 import os
 import sys
@@ -15,12 +17,13 @@ init_global_vars(silent=True)
 
 # Main section
 if __name__ == '__main__':
+  # pylint: disable=invalid-name
   # Set log
   try:
     global_vars['LogDir'] = '{}/Logs'.format(
       get_user_home(get_user_name()))
     set_log_file('Build UFD ({Date-Time}).log'.format(**global_vars))
-  except:
+  except: # pylint: disable=bare-except
     major_exception()
 
   # Header
@@ -39,7 +42,7 @@ if __name__ == '__main__':
   except SystemExit as sys_exit:
     # Catch docopt exits
     exit_script(sys_exit.code)
-  except:
+  except: # pylint: disable=bare-except
     major_exception()
 
   try:
@@ -74,7 +77,5 @@ if __name__ == '__main__':
     exit_script()
   except SystemExit as sys_exit:
     exit_script(sys_exit.code)
-  except:
+  except: # pylint: disable=bare-except
     major_exception()
-
-# vim: sts=2 sw=2 ts=2
