@@ -90,12 +90,13 @@ class SecureBootUnknownError(Exception):
 
 
 # General functions
-def abort():
+def abort(show_prompt=True):
   """Abort script."""
   print_warning('Aborted.')
-  sleep(1)
-  pause(prompt='Press Enter to exit... ')
-  exit_script()
+  if show_prompt:
+    sleep(timeout)
+    pause(prompt='Press Enter to exit... ')
+  exit_script(1)
 
 
 def ask(prompt='Kotaero!'):

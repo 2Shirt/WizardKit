@@ -66,10 +66,10 @@ if __name__ == '__main__':
     except FileNotFoundError:
       print_error('ERROR: UFD device not found: {}'.format(
         args['--ufd-device']))
-      abort()
+      abort(False)
     if not is_valid_path(ufd_dev, 'UFD'):
       print_error('ERROR: Invalid UFD device: {}'.format(ufd_dev))
-      abort()
+      abort(False)
     ## Sources
     for label, data in UFD_SOURCES.items():
       s_path = args[data['Arg']]
@@ -78,10 +78,10 @@ if __name__ == '__main__':
           s_path_obj = find_path(s_path)
         except FileNotFoundError:
           print_error('ERROR: {} not found: {}'.format(label, s_path))
-          abort()
+          abort(False)
         if not is_valid_path(s_path_obj, data['Type']):
           print_error('ERROR: Invalid {} source: {}'.format(label, s_path))
-          abort()
+          abort(False)
         sources[label] = s_path_obj
 
     # Show selections
@@ -125,7 +125,7 @@ if __name__ == '__main__':
       print_warning('Formatting using legacy MBR')
     print_standard(' ')
     if not ask('Is the above information correct?'):
-      abort()
+      abort(False)
     ## Safety check
     if not args['--update']:
       print_standard(' ')
@@ -136,7 +136,7 @@ if __name__ == '__main__':
         'This is irreversible and will lead to {RED}DATA LOSS.{CLEAR}'.format(
           **COLORS))
       if not ask('Asking again to confirm, is this correct?'):
-        abort()
+        abort(False)
 
     print_standard(' ')
     print_success("It's go-time!")
