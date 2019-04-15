@@ -42,7 +42,6 @@ def get_user_name():
 
 # Main section
 if __name__ == '__main__':
-  return_code = 0
   # Set log
   try:
     global_vars['LogDir'] = '{}/Logs'.format(
@@ -170,11 +169,9 @@ if __name__ == '__main__':
       print_standard('\nDone.')
       pause('Press Enter to exit...')
     exit_script()
-  except SystemExit as e:
-    return_code = e.code
+  except SystemExit as sys_exit:
+    exit_script(sys_exit.code)
   except:
     major_exception()
-
-  exit_script(return_code)
 
 # vim: sts=2 sw=2 ts=2
