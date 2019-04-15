@@ -42,6 +42,11 @@ def get_user_name():
 
 # Main section
 if __name__ == '__main__':
+  # Check if running as root
+  if os.geteuid() != 0:
+    print_error('ERROR: This script is meant to be run as root.')
+    abort(False)
+
   # Docopt
   try:
     args = docopt(DOCSTRING)
