@@ -200,12 +200,14 @@ def show_selections(args, sources, ufd_dev, ufd_sources):
   cmd = [
     'lsblk', '--nodeps', '--noheadings',
     '--output', 'NAME,TRAN,SIZE,VENDOR,MODEL,SERIAL',
+    ufd_dev,
     ]
   result = run_program(cmd, check=False, encoding='utf-8', errors='ignore')
   print_standard(result.stdout.strip())
   cmd = [
     'lsblk', '--noheadings',
     '--output', 'NAME,SIZE,FSTYPE,LABEL,MOUNTPOINT',
+    ufd_dev,
     ]
   result = run_program(cmd, check=False, encoding='utf-8', errors='ignore')
   for line in result.stdout.splitlines()[1:]:
@@ -246,8 +248,7 @@ def verify_ufd(dev_path):
   try:
     ufd_dev = find_path(dev_path)
   except FileNotFoundError:
-    print_error('ERROR: UFD device not found: {}'.format(
-      args['--ufd-device']))
+    print_error('ERROR: UFD device not found: {}'.format(dev_path))
     abort(False)
 
   if not is_valid_path(ufd_dev, 'UFD'):
