@@ -4,6 +4,8 @@ import os
 import re
 import shutil
 import pathlib
+from collections import OrderedDict
+from functions.common import *
 
 
 def case_insensitive_search(path, item):
@@ -35,6 +37,25 @@ def case_insensitive_search(path, item):
   return real_path
 
 
+def confirm_selections(args):
+  """Ask tech to confirm selections, twice if necessary."""
+  if not ask('Is the above information correct?'):
+    abort(False)
+  ## Safety check
+  if not args['--update']:
+    print_standard(' ')
+    print_warning('SAFETY CHECK')
+    print_standard(
+      'All data will be DELETED from the disk and partition(s) listed above.')
+    print_standard(
+      'This is irreversible and will lead to {RED}DATA LOSS.{CLEAR}'.format(
+        **COLORS))
+    if not ask('Asking again to confirm, is this correct?'):
+      abort(False)
+
+  print_standard(' ')
+
+
 def find_path(path):
   """Find path case-insensitively, returns pathlib.Path obj."""
   path_obj = pathlib.Path(path).resolve()
@@ -60,6 +81,31 @@ def find_path(path):
 
   # Done
   return path_obj
+
+
+def get_user_home(user):
+  """Get path to user's home dir, returns str."""
+  home_dir = None
+  cmd = ['getent', 'passwd', user]
+  result = run_program(cmd, encoding='utf-8', errors='ignore', check=False)
+  try:
+    home_dir = result.stdout.split(':')[5]
+  except Exception:
+    # Just use HOME from ENV (or '/root' if that fails)
+    home_dir = os.environ.get('HOME', '/root')
+
+  return home_dir
+
+
+def get_user_name():
+  """Get real user name, returns str."""
+  user = None
+  if 'SUDO_USER' in os.environ:
+    user = os.environ.get('SUDO_USER', 'Unknown')
+  else:
+    user = os.environ.get('USER', 'Unknown')
+
+  return user
 
 
 def is_valid_path(path_obj, path_type):
@@ -124,6 +170,91 @@ def recursive_copy(source, dest, overwrite=True):
     else:
       # Refusing to delete file when overwrite=False
       raise FileExistsError('Refusing to delete file: {}'.format(dest))
+
+
+def running_as_root():
+  """Check if running with effective UID of 0, returns bool."""
+  return os.geteuid() == 0
+
+
+def show_selections(args, sources, ufd_dev, ufd_sources):
+  """Show selections including non-specified options."""
+
+  # Sources
+  print_info('Sources')
+  for label in ufd_sources.keys():
+    if label in sources:
+      print_standard('  {label:<18} {path}'.format(
+        label=label+':',
+        path=sources[label],
+        ))
+    else:
+      print_standard('  {label:<18} {YELLOW}Not Specified{CLEAR}'.format(
+        label=label+':',
+        **COLORS,
+        ))
+  print_standard(' ')
+
+  # Destination
+  print_info('Destination')
+  cmd = [
+    'lsblk', '--nodeps', '--noheadings',
+    '--output', 'NAME,TRAN,SIZE,VENDOR,MODEL,SERIAL',
+    ]
+  result = run_program(cmd, check=False, encoding='utf-8', errors='ignore')
+  print_standard(result.stdout.strip())
+  cmd = [
+    'lsblk', '--noheadings',
+    '--output', 'NAME,SIZE,FSTYPE,LABEL,MOUNTPOINT',
+    ]
+  result = run_program(cmd, check=False, encoding='utf-8', errors='ignore')
+  for line in result.stdout.splitlines()[1:]:
+    print_standard(line)
+
+  # Notes
+  if args['--update']:
+    print_warning('Updating kit in-place')
+  elif args['--use-mbr']:
+    print_warning('Formatting using legacy MBR')
+  print_standard(' ')
+
+
+def verify_sources(args, ufd_sources):
+  """Check all sources and abort if necessary, returns dict."""
+  sources = OrderedDict()
+
+  for label, data in ufd_sources.items():
+    s_path = args[data['Arg']]
+    if s_path:
+      try:
+        s_path_obj = find_path(s_path)
+      except FileNotFoundError:
+        print_error('ERROR: {} not found: {}'.format(label, s_path))
+        abort(False)
+      if not is_valid_path(s_path_obj, data['Type']):
+        print_error('ERROR: Invalid {} source: {}'.format(label, s_path))
+        abort(False)
+      sources[label] = s_path_obj
+
+  return sources
+
+
+def verify_ufd(dev_path):
+  """Check that dev_path is a valid UFD, returns pathlib.Path obj."""
+  ufd_dev = None
+
+  try:
+    ufd_dev = find_path(dev_path)
+  except FileNotFoundError:
+    print_error('ERROR: UFD device not found: {}'.format(
+      args['--ufd-device']))
+    abort(False)
+
+  if not is_valid_path(ufd_dev, 'UFD'):
+    print_error('ERROR: Invalid UFD device: {}'.format(ufd_dev))
+    abort(False)
+
+  return ufd_dev
 
 
 if __name__ == '__main__':

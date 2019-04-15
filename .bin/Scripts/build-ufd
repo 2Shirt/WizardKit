@@ -7,38 +7,11 @@ import sys
 
 # Init
 sys.path.append(os.path.dirname(os.path.realpath(__file__)))
-from collections import OrderedDict
 from docopt import docopt
 from functions.common import *
 from functions.ufd import *
 from settings.ufd import *
 init_global_vars(silent=True)
-
-# Functions
-def get_user_home(user):
-  """Get path to user's home dir, returns str."""
-  home_dir = None
-  cmd = ['getent', 'passwd', user]
-  result = run_program(cmd, encoding='utf-8', errors='ignore', check=False)
-  try:
-    home_dir = result.stdout.split(':')[5]
-  except Exception:
-    # Just use HOME from ENV (or '/root' if that fails)
-    home_dir = os.environ.get('HOME', '/root')
-
-  return home_dir
-
-
-def get_user_name():
-  """Get real user name, returns str."""
-  user = None
-  if 'SUDO_USER' in os.environ:
-    user = os.environ.get('SUDO_USER', 'Unknown')
-  else:
-    user = os.environ.get('USER', 'Unknown')
-
-  return user
-
 
 # Main section
 if __name__ == '__main__':
@@ -56,7 +29,7 @@ if __name__ == '__main__':
   print_standard(' ')
 
   # Check if running as root
-  if os.geteuid() != 0:
+  if not running_as_root():
     print_error('ERROR: This script is meant to be run as root.')
     abort(False)
 
@@ -71,81 +44,12 @@ if __name__ == '__main__':
 
   try:
     # Verify selections
-    sources = OrderedDict()
-    ## UFD
-    try:
-      ufd_dev = find_path(args['--ufd-device'])
-    except FileNotFoundError:
-      print_error('ERROR: UFD device not found: {}'.format(
-        args['--ufd-device']))
-      abort(False)
-    if not is_valid_path(ufd_dev, 'UFD'):
-      print_error('ERROR: Invalid UFD device: {}'.format(ufd_dev))
-      abort(False)
-    ## Sources
-    for label, data in UFD_SOURCES.items():
-      s_path = args[data['Arg']]
-      if s_path:
-        try:
-          s_path_obj = find_path(s_path)
-        except FileNotFoundError:
-          print_error('ERROR: {} not found: {}'.format(label, s_path))
-          abort(False)
-        if not is_valid_path(s_path_obj, data['Type']):
-          print_error('ERROR: Invalid {} source: {}'.format(label, s_path))
-          abort(False)
-        sources[label] = s_path_obj
+    ufd_dev = verify_ufd(args['--ufd-device'])
+    sources = verify_sources(args, UFD_SOURCES)
+    show_selections(args, sources, ufd_dev, UFD_SOURCES)
+    confirm_selections(args)
 
-    # Show selections
-    ## Sources
-    print_info('Sources')
-    for label in UFD_SOURCES.keys():
-      if label in sources:
-        print_standard('  {label:<18} {path}'.format(
-          label=label+':',
-          path=sources[label],
-          ))
-      else:
-        print_standard('  {label:<18} {YELLOW}Not Specified{CLEAR}'.format(
-          label=label+':',
-          **COLORS,
-          ))
-    ## Destination
-    print_standard(' ')
-    print_info('Destination')
-    cmd = [
-      'lsblk', '--nodeps', '--noheadings',
-      '--output', 'NAME,TRAN,SIZE,VENDOR,MODEL,SERIAL',
-      ]
-    result = run_program(cmd, check=False, encoding='utf-8', errors='ignore')
-    print_standard(result.stdout.strip())
-    cmd = [
-      'lsblk', '--noheadings',
-      '--output', 'NAME,SIZE,FSTYPE,LABEL,MOUNTPOINT',
-      ]
-    result = run_program(cmd, check=False, encoding='utf-8', errors='ignore')
-    for line in result.stdout.splitlines()[1:]:
-      print_standard(line)
-    if args['--update']:
-      print_warning('Updating kit in-place')
-    elif args['--use-mbr']:
-      print_warning('Formatting using legacy MBR')
-    print_standard(' ')
-    if not ask('Is the above information correct?'):
-      abort(False)
-    ## Safety check
-    if not args['--update']:
-      print_standard(' ')
-      print_warning('SAFETY CHECK')
-      print_standard(
-        'All data will be DELETED from the disk and partition(s) listed above.')
-      print_standard(
-        'This is irreversible and will lead to {RED}DATA LOSS.{CLEAR}'.format(
-          **COLORS))
-      if not ask('Asking again to confirm, is this correct?'):
-        abort(False)
-
-    print_standard(' ')
+    # TODO: DELETEME
     print_success("It's go-time!")
     exit_script()
 
