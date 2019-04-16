@@ -125,6 +125,59 @@ def is_valid_path(path_obj, path_type):
   return valid_path
 
 
+def prep_device(dev_path, label, use_mbr=False):
+  """Format device in preparation for applying the WizardKit components
+
+  This is done is four steps:
+  1. Zero-out first 64MB (this deletes the partition table and/or bootloader)
+  2. Create a new partition table (GPT by default, optionally MBR)
+  3. Set boot flag
+  4. Format partition (FAT32, 4K aligned)
+  """
+  # Zero-out first 64MB
+  cmd = 'dd bs=4M count=16 if=/dev/zero of={}'.format(dev_path).split()
+  try_and_print(
+    message='Zeroing first 64MB...',
+    function=run_program,
+    cmd=cmd,
+    )
+
+  # Create partition table
+  cmd = 'parted {} --script -- mklabel {} primary fat32 4MiB {}'.format(
+    dev_path,
+    'msdos' if use_mbr else 'gpt',
+    '-1s' if use_mbr else '-4MiB',
+    ).split()
+  try_and_print(
+    message='Creating partition table...',
+    function=run_program,
+    cmd=cmd,
+    )
+
+  # Set boot flag
+  cmd = 'parted {} set 1 {} on'.format(
+    dev_path,
+    'boot' if use_mbr else 'legacy_boot',
+    ).split()
+  try_and_print(
+    message='Setting boot flag...',
+    function=run_program,
+    cmd=cmd,
+    )
+
+  # Format partition
+  cmd = [
+    'mkfs.vfat', '-F', '32',
+    '-n', label,
+    '{}1'.format(dev_path),
+    ]
+  try_and_print(
+    message='Formatting partition...',
+    function=run_program,
+    cmd=cmd,
+    )
+
+
 def recursive_copy(source, dest, overwrite=True):
   """Copy source to dest recursively.
 

@@ -56,9 +56,9 @@ if __name__ == '__main__':
     print_success("It's go-time!")
     exit_script()
 
-    # Double-check if formating device
-
     # Format and partition device
+    if not args['--update']:
+      prep_device(ufd_dev, UFD_LABEL, use_mbr=args['--use-mbr'])
 
     # Copy sources
 
