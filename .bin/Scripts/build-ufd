@@ -86,6 +86,12 @@ if __name__ == '__main__':
       )
 
     # Install syslinux
+    try_and_print(
+      message='Installing Syslinux...',
+      function=install_syslinux,
+      ufd_dev=ufd_dev,
+      use_mbr=args['--use-mbr'],
+      )
 
     # Hide items
 

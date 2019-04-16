@@ -159,6 +159,20 @@ def get_user_name():
   return user
 
 
+def install_syslinux(ufd_dev, use_mbr):
+  """Install Syslinux to UFD."""
+  cmd = [
+    'dd',
+    'bs=440',
+    'count=1',
+    'if=/usr/lib/syslinux/bios/{}.bin'.format(
+      'mbr' if use_mbr else 'gptmbr',
+      ),
+    'of={}'.format(ufd_dev),
+    ]
+  run_program(cmd)
+
+
 def is_valid_path(path_obj, path_type):
   """Verify path_obj is valid by type, returns bool."""
   valid_path = False
