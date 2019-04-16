@@ -68,8 +68,8 @@ def copy_source(source, items, overwrite=False):
   unmount('/mnt/Source')
 
 
-def enable_boot_entries(boot_entries, boot_files):
-  """Enable boot entries if related paths exist."""
+def update_boot_entries(boot_entries, boot_files, iso_label, ufd_label):
+  """Update boot files for UFD usage"""
   configs = []
 
   # Find config files
@@ -79,7 +79,17 @@ def enable_boot_entries(boot_entries, boot_files):
       if item.name.lower().endswith(c_ext.lower()):
         configs.append(item.path)
 
-  # Uncomment found entries
+  # Update Linux labels
+  cmd = [
+    'sed',
+    '--in-place',
+    '--regexp-extended',
+    's/{}/{}/'.format(iso_label, ufd_label),
+    *configs,
+    ]
+  run_program(cmd)
+
+  # Uncomment extra entries if present
   for b_path, b_comment in boot_entries:
     try:
       find_path('/mnt/UFD{}'.format(b_path))
@@ -87,7 +97,7 @@ def enable_boot_entries(boot_entries, boot_files):
       # Entry not found, continue to next entry
       continue
 
-    # Update config files
+    # Entry found, update config files
     cmd = [
       'sed',
       '--in-place',

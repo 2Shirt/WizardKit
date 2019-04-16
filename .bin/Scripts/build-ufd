@@ -77,10 +77,12 @@ if __name__ == '__main__':
 
     # Update boot entries
     try_and_print(
-      message='Enabling boot entries...',
-      function=enable_boot_entries,
+      message='Updating boot entries...',
+      function=update_boot_entries,
       boot_entries=BOOT_ENTRIES,
       boot_files=BOOT_FILES,
+      iso_label=ISO_LABEL,
+      ufd_label=UFD_LABEL,
       )
 
     # Install syslinux
