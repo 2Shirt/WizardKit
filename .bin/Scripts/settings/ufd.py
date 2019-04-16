@@ -63,6 +63,12 @@ ITEMS = {
     ('/EFI/boot',                 '/EFI/'),
     ('/EFI/memtest86',            '/EFI/'),
     ),
+  'Linux (dGPU)': (
+    ('/arch/boot/archiso.img',    '/dgpu/'),
+    ('/arch/boot/vmlinuz',        '/dgpu/'),
+    ('/arch/pkglist.x86_64.txt',  '/dgpu/'),
+    ('/arch/x86_64',              '/dgpu/'),
+    ),
   'Linux (Minimal)': (
     ('/arch/boot/archiso.img',    '/arch_minimal/'),
     ('/arch/boot/vmlinuz',        '/arch_minimal/'),
