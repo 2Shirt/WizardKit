@@ -52,13 +52,13 @@ if __name__ == '__main__':
     show_selections(args, sources, ufd_dev, UFD_SOURCES)
     confirm_selections(args)
 
-    # TODO: DELETEME
-    print_success("It's go-time!")
-    exit_script()
-
     # Format and partition device
     if not args['--update']:
       prep_device(ufd_dev, UFD_LABEL, use_mbr=args['--use-mbr'])
+
+    # TODO: DELETEME
+    print_success("It's go-time!")
+    exit_script()
 
     # Copy sources
 

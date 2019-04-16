@@ -143,7 +143,7 @@ def prep_device(dev_path, label, use_mbr=False):
     )
 
   # Create partition table
-  cmd = 'parted {} --script -- mklabel {} primary fat32 4MiB {}'.format(
+  cmd = 'parted {} --script -- mklabel {} mkpart primary fat32 4MiB {}'.format(
     dev_path,
     'msdos' if use_mbr else 'gpt',
     '-1s' if use_mbr else '-4MiB',
@@ -165,11 +165,23 @@ def prep_device(dev_path, label, use_mbr=False):
     cmd=cmd,
     )
 
+  # Find partition
+  cmd = [
+    'lsblk',
+    '--list',
+    '--noheadings',
+    '--output', 'name',
+    '--paths',
+    dev_path,
+    ]
+  result = run_program(cmd, encoding='utf-8', errors='ignore')
+  part_path = result.stdout.splitlines()[-1].strip()
+
   # Format partition
   cmd = [
     'mkfs.vfat', '-F', '32',
     '-n', label,
-    '{}1'.format(dev_path),
+    part_path,
     ]
   try_and_print(
     message='Formatting partition...',
