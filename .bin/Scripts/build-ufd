@@ -101,6 +101,12 @@ if __name__ == '__main__':
       )
 
     # Hide items
+    try_and_print(
+      message='Hiding items...',
+      function=hide_items,
+      ufd_dev=ufd_dev,
+      items=ITEMS_HIDDEN,
+      )
 
     # Done
     if not args['--force']:

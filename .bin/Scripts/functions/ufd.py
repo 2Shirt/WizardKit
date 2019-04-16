@@ -175,6 +175,20 @@ def get_user_name():
   return user
 
 
+def hide_items(ufd_dev, items):
+  """Set FAT32 hidden flag for items."""
+  # pylint: disable=invalid-name
+  with open('/root/.mtoolsrc', 'w') as f:
+    f.write('drive U: file="{}"\n'.format(
+      find_first_partition(ufd_dev)))
+    f.write('mtools_skip_check=1\n')
+
+  # Hide items
+  for item in items:
+    cmd = ['yes | mattrib +h "U:/{}"'.format(item)]
+    run_program(cmd, check=False, shell=True)
+
+
 def install_syslinux(ufd_dev, use_mbr):
   """Install Syslinux to UFD."""
   cmd = [

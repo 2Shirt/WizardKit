@@ -95,6 +95,21 @@ ITEMS = {
     ('/sources/boot.wim',         '/sources/'),
     ),
   }
+ITEMS_HIDDEN = (
+  # Linux (all versions)
+  'arch',
+  'arch_minimal',
+  'dgpu',
+  'EFI',
+  'isolinux',
+  # WinPE
+  'boot',
+  'bootmgr',
+  'bootmgr.efi',
+  'en-us',
+  'images',
+  'sources',
+  )
 
 if __name__ == '__main__':
   print("This file is not meant to be called directly.")
