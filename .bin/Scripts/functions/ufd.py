@@ -327,6 +327,14 @@ def recursive_copy(source, dest, overwrite=False):
       raise FileExistsError('Refusing to delete file: {}'.format(dest))
 
 
+def remove_arch():
+  """Remove arch dir from UFD.
+
+  This ensures a clean installation to the UFD and resets the boot files
+  """
+  shutil.rmtree(find_path('/mnt/UFD/arch'))
+
+
 def running_as_root():
   """Check if running with effective UID of 0, returns bool."""
   return os.geteuid() == 0

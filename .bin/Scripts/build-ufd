@@ -53,8 +53,15 @@ if __name__ == '__main__':
     if not args['--force']:
       confirm_selections(args)
 
-    # Format and partition device
-    if not args['--update']:
+    # Prep UFD
+    if args['--update']:
+      # Remove arch folder
+      try_and_print(
+        message='Removing Linux...',
+        function=remove_arch,
+        )
+    else:
+      # Format and partition
       prep_device(ufd_dev, UFD_LABEL, use_mbr=args['--use-mbr'])
 
     # Mount UFD
