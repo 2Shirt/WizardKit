@@ -17,17 +17,15 @@ Usage:
   build-ufd (-h | --help)
 
 Options:
+  -d PATH, --linux-dgpu PATH
   -e PATH, --extra-dir PATH
-  -g PATH, --linux-dgpu PATH
   -k PATH, --main-kit PATH
   -l PATH, --linux PATH
   -m PATH, --linux-minimal PATH
   -u PATH, --ufd-device PATH
   -w PATH, --winpe PATH
 
-  -d --debug            Enable debug mode
   -h --help             Show this page
-  -v --verbose          Enable verbose mode
   -M --use-mbr          Use real MBR instead of GPT w/ Protective MBR
   -F --force            Bypass all confirmation messages. USE WITH EXTREME CAUTION!
   -U --update           Don't format device, just update
