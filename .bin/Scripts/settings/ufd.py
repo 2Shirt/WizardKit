@@ -46,7 +46,8 @@ UFD_SOURCES = OrderedDict({
 # Definitions: Boot entries
 ## NOTE: if key path exists uncomment #value# lines
 BOOT_ENTRIES = {
-  'arch_minimal': 'MINIMAL',
+  'arch_minimal':     'MINIMAL',
+  'dgpu':             'DGPU',
   'sources/boot.wim': 'WINPE',
   }
 
