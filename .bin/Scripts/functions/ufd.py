@@ -68,45 +68,6 @@ def copy_source(source, items, overwrite=False):
   unmount('/mnt/Source')
 
 
-def update_boot_entries(boot_entries, boot_files, iso_label, ufd_label):
-  """Update boot files for UFD usage"""
-  configs = []
-
-  # Find config files
-  for c_path, c_ext in boot_files.items():
-    c_path = find_path(c_path)
-    for item in os.scandir(c_path):
-      if item.name.lower().endswith(c_ext.lower()):
-        configs.append(item.path)
-
-  # Update Linux labels
-  cmd = [
-    'sed',
-    '--in-place',
-    '--regexp-extended',
-    's/{}/{}/'.format(iso_label, ufd_label),
-    *configs,
-    ]
-  run_program(cmd)
-
-  # Uncomment extra entries if present
-  for b_path, b_comment in boot_entries:
-    try:
-      find_path('/mnt/UFD{}'.format(b_path))
-    except (FileNotFoundError, NotADirectoryError):
-      # Entry not found, continue to next entry
-      continue
-
-    # Entry found, update config files
-    cmd = [
-      'sed',
-      '--in-place',
-      '"s/#{}#//"'.format(b_comment),
-      *configs,
-      ]
-    run_program(cmd)
-
-
 def find_first_partition(dev_path):
   """Find path to first partition of dev, returns str."""
   cmd = [
@@ -388,6 +349,45 @@ def unmount(mount_point):
   """Unmount mount_point."""
   cmd = ['umount', mount_point]
   run_program(cmd)
+
+
+def update_boot_entries(boot_entries, boot_files, iso_label, ufd_label):
+  """Update boot files for UFD usage"""
+  configs = []
+
+  # Find config files
+  for c_path, c_ext in boot_files.items():
+    c_path = find_path(c_path)
+    for item in os.scandir(c_path):
+      if item.name.lower().endswith(c_ext.lower()):
+        configs.append(item.path)
+
+  # Update Linux labels
+  cmd = [
+    'sed',
+    '--in-place',
+    '--regexp-extended',
+    's/{}/{}/'.format(iso_label, ufd_label),
+    *configs,
+    ]
+  run_program(cmd)
+
+  # Uncomment extra entries if present
+  for b_path, b_comment in boot_entries:
+    try:
+      find_path('/mnt/UFD{}'.format(b_path))
+    except (FileNotFoundError, NotADirectoryError):
+      # Entry not found, continue to next entry
+      continue
+
+    # Entry found, update config files
+    cmd = [
+      'sed',
+      '--in-place',
+      '"s/#{}#//"'.format(b_comment),
+      *configs,
+      ]
+    run_program(cmd)
 
 
 def verify_sources(args, ufd_sources):
