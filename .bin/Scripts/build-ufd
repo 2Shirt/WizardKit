@@ -50,7 +50,8 @@ if __name__ == '__main__':
     ufd_dev = verify_ufd(args['--ufd-device'])
     sources = verify_sources(args, UFD_SOURCES)
     show_selections(args, sources, ufd_dev, UFD_SOURCES)
-    confirm_selections(args)
+    if not args['--force']:
+      confirm_selections(args)
 
     # Format and partition device
     if not args['--update']:
