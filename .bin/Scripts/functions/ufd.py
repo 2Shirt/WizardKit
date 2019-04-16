@@ -107,6 +107,22 @@ def update_boot_entries(boot_entries, boot_files, iso_label, ufd_label):
     run_program(cmd)
 
 
+def find_first_partition(dev_path):
+  """Find path to first partition of dev, returns str."""
+  cmd = [
+    'lsblk',
+    '--list',
+    '--noheadings',
+    '--output', 'name',
+    '--paths',
+    dev_path,
+    ]
+  result = run_program(cmd, encoding='utf-8', errors='ignore')
+  part_path = result.stdout.splitlines()[-1].strip()
+
+  return part_path
+
+
 def find_path(path):
   """Find path case-insensitively, returns pathlib.Path obj."""
   path_obj = pathlib.Path(path).resolve()
@@ -235,23 +251,11 @@ def prep_device(dev_path, label, use_mbr=False):
     cmd=cmd,
     )
 
-  # Find partition
-  cmd = [
-    'lsblk',
-    '--list',
-    '--noheadings',
-    '--output', 'name',
-    '--paths',
-    dev_path,
-    ]
-  result = run_program(cmd, encoding='utf-8', errors='ignore')
-  part_path = result.stdout.splitlines()[-1].strip()
-
   # Format partition
   cmd = [
     'mkfs.vfat', '-F', '32',
     '-n', label,
-    part_path,
+    find_first_partition(dev_path),
     ]
   try_and_print(
     message='Formatting partition...',
