@@ -85,6 +85,13 @@ if __name__ == '__main__':
       ufd_label=UFD_LABEL,
       )
 
+    # Unmount UFD
+    try_and_print(
+      message='Unmounting UFD...',
+      function=mount,
+      mount_point='/mnt/UFD',
+      )
+
     # Install syslinux
     try_and_print(
       message='Installing Syslinux...',
