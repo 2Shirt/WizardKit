@@ -265,14 +265,14 @@ def show_selections(args, sources, ufd_dev, ufd_sources):
   # Destination
   print_info('Destination')
   cmd = [
-    'lsblk', '--nodeps', '--noheadings',
-    '--output', 'NAME,TRAN,SIZE,VENDOR,MODEL,SERIAL',
+    'lsblk', '--nodeps', '--noheadings', '--paths',
+    '--output', 'NAME,FSTYPE,TRAN,SIZE,VENDOR,MODEL,SERIAL',
     ufd_dev,
     ]
   result = run_program(cmd, check=False, encoding='utf-8', errors='ignore')
   print_standard(result.stdout.strip())
   cmd = [
-    'lsblk', '--noheadings',
+    'lsblk', '--noheadings', '--paths',
     '--output', 'NAME,SIZE,FSTYPE,LABEL,MOUNTPOINT',
     ufd_dev,
     ]
