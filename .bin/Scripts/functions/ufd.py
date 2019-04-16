@@ -60,7 +60,6 @@ def confirm_selections(args):
 
 def copy_source(source, items, overwrite=False):
   """Mount source and copy items to /mnt/UFD."""
-  os.makedirs('/mnt/Source', exist_ok=True)
   mount(source, '/mnt/Source')
   for i_source, i_dest in items:
     i_source = '/mnt/Source{}'.format(i_source)
@@ -140,12 +139,6 @@ def mount(mount_source, mount_point):
   """Mount mount_source on mount_point."""
   os.makedirs(mount_point, exist_ok=True)
   cmd = ['mount', mount_source, mount_point]
-  run_program(cmd)
-
-
-def unmount(mount_point):
-  """Unmount mount_point."""
-  cmd = ['umount', mount_point]
   run_program(cmd)
 
 
@@ -310,6 +303,12 @@ def show_selections(args, sources, ufd_dev, ufd_sources):
   elif args['--use-mbr']:
     print_warning('Formatting using legacy MBR')
   print_standard(' ')
+
+
+def unmount(mount_point):
+  """Unmount mount_point."""
+  cmd = ['umount', mount_point]
+  run_program(cmd)
 
 
 def verify_sources(args, ufd_sources):
