@@ -18,6 +18,7 @@ Usage:
 
 Options:
   -e PATH, --extra-dir PATH
+  -g PATH, --linux-dgpu PATH
   -k PATH, --main-kit PATH
   -l PATH, --linux PATH
   -m PATH, --linux-minimal PATH
@@ -35,6 +36,7 @@ ISO_LABEL = '{}_LINUX'.format(KIT_NAME_SHORT)
 UFD_LABEL = '{}_UFD'.format(KIT_NAME_SHORT)
 UFD_SOURCES = OrderedDict({
   'Linux':            {'Arg': '--linux',          'Type': 'ISO'},
+  'Linux (dGPU)':     {'Arg': '--linux-dgpu',     'Type': 'ISO'},
   'Linux (Minimal)':  {'Arg': '--linux-minimal',  'Type': 'ISO'},
   'WinPE':            {'Arg': '--winpe',          'Type': 'ISO'},
   'Main Kit':         {'Arg': '--main-kit',       'Type': 'KIT'},
