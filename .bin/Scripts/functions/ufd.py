@@ -190,7 +190,7 @@ def prep_device(dev_path, label, use_mbr=False):
     )
 
 
-def recursive_copy(source, dest, overwrite=True):
+def recursive_copy(source, dest, overwrite=False):
   """Copy source to dest recursively.
 
   NOTE: This uses rsync style source/dest syntax.
