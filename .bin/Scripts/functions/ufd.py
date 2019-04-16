@@ -125,6 +125,19 @@ def is_valid_path(path_obj, path_type):
   return valid_path
 
 
+def mount(mount_source, mount_point):
+  """Mount mount_source on mount_point."""
+  os.makedirs(mount_point, exist_ok=True)
+  cmd = ['mount', mount_source, mount_point]
+  run_program(cmd)
+
+
+def unmount(mount_point):
+  """Unmount mount_point."""
+  cmd = ['umount', mount_point]
+  run_program(cmd)
+
+
 def prep_device(dev_path, label, use_mbr=False):
   """Format device in preparation for applying the WizardKit components
 

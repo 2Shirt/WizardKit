@@ -56,9 +56,13 @@ if __name__ == '__main__':
     if not args['--update']:
       prep_device(ufd_dev, UFD_LABEL, use_mbr=args['--use-mbr'])
 
-    # TODO: DELETEME
-    print_success("It's go-time!")
-    exit_script()
+    # Mount UFD
+    try_and_print(
+      message='Mounting UFD...',
+      function=mount,
+      mount_source=ufd_dev,
+      mount_point='/mnt/UFD',
+      )
 
     # Copy sources
 
@@ -67,8 +71,6 @@ if __name__ == '__main__':
     # Install syslinux
 
     # Hide items
-
-    # Unmount sources
 
     # Done
     if not args['--force']:
