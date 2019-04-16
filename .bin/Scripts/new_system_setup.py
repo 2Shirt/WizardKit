@@ -100,8 +100,6 @@ if __name__ == '__main__':
     if global_vars['OS']['Version'] == '10':
       try_and_print(message='Explorer (system)...',
         function=config_explorer_system, cs='Done')
-      try_and_print(message='Disabling telemetry...',
-        function=disable_windows_telemetry, cs='Done')
       try_and_print(message='Windows Updates...',
         function=config_windows_updates, cs='Done')
     try_and_print(message='Updating Clock...',

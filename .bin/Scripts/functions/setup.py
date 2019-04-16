@@ -73,16 +73,6 @@ def config_windows_updates():
   write_registry_settings(SETTINGS_WINDOWS_UPDATES, all_users=True)
 
 
-def disable_windows_telemetry():
-  """Disable Windows 10 telemetry settings with O&O ShutUp10."""
-  extract_item('ShutUp10', silent=True)
-  cmd = [
-    r'{BinDir}\ShutUp10\OOSU10.exe'.format(**global_vars),
-    r'{BinDir}\ShutUp10\1201.cfg'.format(**global_vars),
-    '/quiet']
-  run_program(cmd)
-
-
 def update_clock():
   """Set Timezone and sync clock."""
   run_program(['tzutil' ,'/s', WINDOWS_TIME_ZONE], check=False)
