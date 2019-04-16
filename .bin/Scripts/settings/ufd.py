@@ -44,11 +44,16 @@ UFD_SOURCES = OrderedDict({
   })
 
 # Definitions: Boot entries
-## NOTE: if key path exists uncomment #value# lines
 BOOT_ENTRIES = {
-  'arch_minimal':     'MINIMAL',
-  'dgpu':             'DGPU',
-  'sources/boot.wim': 'WINPE',
+  # Path to check:      Comment to remove
+  '/arch_minimal':      'UFD-MINIMAL',
+  '/dgpu':              'UFD-DGPU',
+  '/sources/boot.wim':  'UFD-WINPE',
+  }
+BOOT_FILES = {
+  # Directory:            extension
+  '/arch/boot/syslinux':  'cfg',
+  '/EFI/boot':            'conf',
   }
 
 # Definitions: Sources and Destinations

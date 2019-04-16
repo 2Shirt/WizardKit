@@ -68,6 +68,35 @@ def copy_source(source, items, overwrite=False):
   unmount('/mnt/Source')
 
 
+def enable_boot_entries(boot_entries, boot_files):
+  """Enable boot entries if related paths exist."""
+  configs = []
+
+  # Find config files
+  for c_path, c_ext in boot_files.items():
+    c_path = find_path(c_path)
+    for item in os.scandir(c_path):
+      if item.name.lower().endswith(c_ext.lower()):
+        configs.append(item.path)
+
+  # Uncomment found entries
+  for b_path, b_comment in boot_entries:
+    try:
+      find_path('/mnt/UFD{}'.format(b_path))
+    except (FileNotFoundError, NotADirectoryError):
+      # Entry not found, continue to next entry
+      continue
+
+    # Update config files
+    cmd = [
+      'sed',
+      '--in-place',
+      '"s/#{}#//"'.format(b_comment),
+      *configs,
+      ]
+    run_program(cmd)
+
+
 def find_path(path):
   """Find path case-insensitively, returns pathlib.Path obj."""
   path_obj = pathlib.Path(path).resolve()
