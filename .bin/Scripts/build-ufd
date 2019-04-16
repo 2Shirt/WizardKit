@@ -65,6 +65,14 @@ if __name__ == '__main__':
       )
 
     # Copy sources
+    for s_label, s_path in sources.items():
+      try_and_print(
+        message='Copying {} files...'.format(s_label),
+        function=copy_source,
+        source=s_path,
+        items=ITEMS[s_label],
+        overwrite=True,
+        )
 
     # Update boot entries
 

@@ -58,6 +58,17 @@ def confirm_selections(args):
   print_standard(' ')
 
 
+def copy_source(source, items, overwrite=False):
+  """Mount source and copy items to /mnt/UFD."""
+  os.makedirs('/mnt/Source', exist_ok=True)
+  mount(source, '/mnt/Source')
+  for i_source, i_dest in items:
+    i_source = '/mnt/Source{}'.format(i_source)
+    i_dest = '/mnt/UFD{}'.format(i_dest)
+    recursive_copy(i_source, i_dest, overwrite=overwrite)
+  unmount('/mnt/Source')
+
+
 def find_path(path):
   """Find path case-insensitively, returns pathlib.Path obj."""
   path_obj = pathlib.Path(path).resolve()
