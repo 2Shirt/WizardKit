@@ -391,7 +391,7 @@ def update_boot_entries(boot_entries, boot_files, iso_label, ufd_label):
       '"s/#{}#//"'.format(b_comment),
       *configs,
       ]
-    run_program(cmd)
+    run_program(cmd, check=False)
 
 
 def verify_sources(args, ufd_sources):
