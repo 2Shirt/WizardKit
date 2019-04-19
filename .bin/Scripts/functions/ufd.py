@@ -202,7 +202,7 @@ def mount(mount_source, mount_point):
   run_program(cmd)
 
 
-def prep_device(dev_path, label, use_mbr=False):
+def prep_device(dev_path, label, use_mbr=False, indent=2):
   """Format device in preparation for applying the WizardKit components
 
   This is done is four steps:
@@ -214,6 +214,7 @@ def prep_device(dev_path, label, use_mbr=False):
   # Zero-out first 64MB
   cmd = 'dd bs=4M count=16 if=/dev/zero of={}'.format(dev_path).split()
   try_and_print(
+    indent=indent,
     message='Zeroing first 64MB...',
     function=run_program,
     cmd=cmd,
@@ -226,6 +227,7 @@ def prep_device(dev_path, label, use_mbr=False):
     '-1s' if use_mbr else '-4MiB',
     ).split()
   try_and_print(
+    indent=indent,
     message='Creating partition table...',
     function=run_program,
     cmd=cmd,
@@ -237,6 +239,7 @@ def prep_device(dev_path, label, use_mbr=False):
     'boot' if use_mbr else 'legacy_boot',
     ).split()
   try_and_print(
+    indent=indent,
     message='Setting boot flag...',
     function=run_program,
     cmd=cmd,
@@ -249,6 +252,7 @@ def prep_device(dev_path, label, use_mbr=False):
     find_first_partition(dev_path),
     ]
   try_and_print(
+    indent=indent,
     message='Formatting partition...',
     function=run_program,
     cmd=cmd,

@@ -54,9 +54,11 @@ if __name__ == '__main__':
       confirm_selections(args)
 
     # Prep UFD
+    print_info('Prep UFD')
     if args['--update']:
       # Remove arch folder
       try_and_print(
+        indent=2,
         message='Removing Linux...',
         function=remove_arch,
         )
@@ -66,6 +68,7 @@ if __name__ == '__main__':
 
     # Mount UFD
     try_and_print(
+      indent=2,
       message='Mounting UFD...',
       function=mount,
       mount_source=find_first_partition(ufd_dev),
@@ -73,9 +76,12 @@ if __name__ == '__main__':
       )
 
     # Copy sources
+    print_standard(' ')
+    print_info('Copy Sources')
     for s_label, s_path in sources.items():
       try_and_print(
-        message='Copying {} files...'.format(s_label),
+        indent=2,
+        message='Copying {}...'.format(s_label),
         function=copy_source,
         source=s_path,
         items=ITEMS[s_label],
@@ -83,7 +89,10 @@ if __name__ == '__main__':
         )
 
     # Update boot entries
+
+    print_info('Boot Setup')
     try_and_print(
+      indent=2,
       message='Updating boot entries...',
       function=update_boot_entries,
       boot_entries=BOOT_ENTRIES,
@@ -94,6 +103,7 @@ if __name__ == '__main__':
 
     # Install syslinux (to partition)
     try_and_print(
+      indent=2,
       message='Syslinux (partition)...',
       function=install_syslinux_to_partition,
       partition=find_first_partition(ufd_dev),
@@ -101,6 +111,7 @@ if __name__ == '__main__':
 
     # Unmount UFD
     try_and_print(
+      indent=2,
       message='Unmounting UFD...',
       function=unmount,
       mount_point='/mnt/UFD',
@@ -108,6 +119,7 @@ if __name__ == '__main__':
 
     # Install syslinux (to device)
     try_and_print(
+      indent=2,
       message='Syslinux (device)...',
       function=install_syslinux_to_dev,
       ufd_dev=ufd_dev,
@@ -115,7 +127,10 @@ if __name__ == '__main__':
       )
 
     # Hide items
+    print_standard(' ')
+    print_info('Final Touches')
     try_and_print(
+      indent=2,
       message='Hiding items...',
       function=hide_items,
       ufd_dev=ufd_dev,
