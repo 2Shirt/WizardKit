@@ -281,6 +281,9 @@ function update_live_env() {
       mkdir -p "$LIVE_DIR/airootfs/usr/share/wallpaper"
       cp "$ROOT_DIR/Images/Linux.png" "$LIVE_DIR/airootfs/usr/share/wallpaper/burned.in"
     fi
+
+    # WiFi
+    cp "$ROOT_DIR/.linux_items/known_networks" "/root/known_networks"
 }
 
 function update_repo() {
