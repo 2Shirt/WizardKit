@@ -95,7 +95,7 @@ if __name__ == '__main__':
     # Unmount UFD
     try_and_print(
       message='Unmounting UFD...',
-      function=mount,
+      function=unmount,
       mount_point='/mnt/UFD',
       )
 
