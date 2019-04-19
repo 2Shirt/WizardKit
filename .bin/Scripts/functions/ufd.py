@@ -64,7 +64,11 @@ def copy_source(source, items, overwrite=False):
   for i_source, i_dest in items:
     i_source = '/mnt/Source{}'.format(i_source)
     i_dest = '/mnt/UFD{}'.format(i_dest)
-    recursive_copy(i_source, i_dest, overwrite=overwrite)
+    try:
+      recursive_copy(i_source, i_dest, overwrite=overwrite)
+    except FileNotFoundError:
+      # Going to assume (hope) that this is fine
+      pass
   unmount('/mnt/Source')
 
 
