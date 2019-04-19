@@ -154,8 +154,8 @@ def hide_items(ufd_dev, items):
     run_program(cmd, check=False, shell=True)
 
 
-def install_syslinux(ufd_dev, use_mbr):
-  """Install Syslinux to UFD."""
+def install_syslinux_to_dev(ufd_dev, use_mbr):
+  """Install Syslinux to UFD (dev)."""
   cmd = [
     'dd',
     'bs=440',
@@ -164,6 +164,18 @@ def install_syslinux(ufd_dev, use_mbr):
       'mbr' if use_mbr else 'gptmbr',
       ),
     'of={}'.format(ufd_dev),
+    ]
+  run_program(cmd)
+
+
+def install_syslinux_to_partition(partition):
+  """Install Syslinux to UFD (partition)."""
+  cmd = [
+    'syslinux',
+    '--install',
+    '--directory',
+    '/arch/boot/syslinux/',
+    partition,
     ]
   run_program(cmd)
 

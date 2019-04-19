@@ -92,6 +92,13 @@ if __name__ == '__main__':
       ufd_label=UFD_LABEL,
       )
 
+    # Install syslinux (to partition)
+    try_and_print(
+      message='Syslinux (partition)...',
+      function=install_syslinux_to_partition,
+      partition=find_first_partition(ufd_dev),
+      )
+
     # Unmount UFD
     try_and_print(
       message='Unmounting UFD...',
@@ -99,10 +106,10 @@ if __name__ == '__main__':
       mount_point='/mnt/UFD',
       )
 
-    # Install syslinux
+    # Install syslinux (to device)
     try_and_print(
-      message='Installing Syslinux...',
-      function=install_syslinux,
+      message='Syslinux (device)...',
+      function=install_syslinux_to_dev,
       ufd_dev=ufd_dev,
       use_mbr=args['--use-mbr'],
       )
