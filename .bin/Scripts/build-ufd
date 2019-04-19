@@ -68,7 +68,7 @@ if __name__ == '__main__':
     try_and_print(
       message='Mounting UFD...',
       function=mount,
-      mount_source=ufd_dev,
+      mount_source=find_first_partition(ufd_dev),
       mount_point='/mnt/UFD',
       )
 
