@@ -404,7 +404,7 @@ def update_boot_entries(boot_entries, boot_files, iso_label, ufd_label):
     cmd = [
       'sed',
       '--in-place',
-      '"s/#UFD-{}#//"'.format(b_comment),
+      's/#{}#//'.format(b_comment),
       *configs,
       ]
     run_program(cmd, check=False)

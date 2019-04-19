@@ -89,7 +89,7 @@ if __name__ == '__main__':
         )
 
     # Update boot entries
-
+    print_standard(' ')
     print_info('Boot Setup')
     try_and_print(
       indent=2,
