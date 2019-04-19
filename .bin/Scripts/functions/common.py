@@ -94,7 +94,7 @@ def abort(show_prompt=True):
   """Abort script."""
   print_warning('Aborted.')
   if show_prompt:
-    sleep(timeout)
+    sleep(1)
     pause(prompt='Press Enter to exit... ')
   exit_script(1)
 
