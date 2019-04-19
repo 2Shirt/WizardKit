@@ -361,7 +361,7 @@ def update_boot_entries(boot_entries, boot_files, iso_label, ufd_label):
 
   # Find config files
   for c_path, c_ext in boot_files.items():
-    c_path = find_path(c_path)
+    c_path = find_path('/mnt/UFD{}'.format(c_path))
     for item in os.scandir(c_path):
       if item.name.lower().endswith(c_ext.lower()):
         configs.append(item.path)
@@ -377,7 +377,7 @@ def update_boot_entries(boot_entries, boot_files, iso_label, ufd_label):
   run_program(cmd)
 
   # Uncomment extra entries if present
-  for b_path, b_comment in boot_entries:
+  for b_path, b_comment in boot_entries.items():
     try:
       find_path('/mnt/UFD{}'.format(b_path))
     except (FileNotFoundError, NotADirectoryError):
