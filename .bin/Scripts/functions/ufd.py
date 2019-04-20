@@ -59,17 +59,29 @@ def confirm_selections(args):
 
 
 def copy_source(source, items, overwrite=False):
-  """Mount source and copy items to /mnt/UFD."""
-  mount(source, '/mnt/Source')
+  """Copy source items to /mnt/UFD."""
+  is_iso = source.name.lower().endswith('.iso')
+
+  # Mount source if necessary
+  if is_iso:
+    mount(source, '/mnt/Source')
+
+  # Copy items
   for i_source, i_dest in items:
-    i_source = '/mnt/Source{}'.format(i_source)
+    i_source = '{}{}'.format(
+      '/mnt/Source' if is_iso else source,
+      i_source,
+      )
     i_dest = '/mnt/UFD{}'.format(i_dest)
     try:
       recursive_copy(i_source, i_dest, overwrite=overwrite)
     except FileNotFoundError:
       # Going to assume (hope) that this is fine
       pass
-  unmount('/mnt/Source')
+
+  # Unmount source if necessary
+  if is_iso:
+    unmount('/mnt/Source')
 
 
 def find_first_partition(dev_path):
