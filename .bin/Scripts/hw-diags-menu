@@ -22,9 +22,8 @@ if __name__ == '__main__':
     print_standard(' ')
     sleep(1)
     pause('Press Enter to exit...')
-  except SystemExit:
-    # Normal exit
-    pass
+  except SystemExit as sys_exit:
+    exit_script(sys_exit.code)
   except:
     # Cleanup
     tmux_kill_all_panes()

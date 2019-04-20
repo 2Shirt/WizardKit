@@ -59,8 +59,8 @@ if __name__ == '__main__':
         other_results=other_results)
     print_standard('\nDone.')
     exit_script()
-  except SystemExit:
-    pass
+  except SystemExit as sys_exit:
+    exit_script(sys_exit.code)
   except:
     major_exception()
 
