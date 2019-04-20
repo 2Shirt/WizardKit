@@ -90,12 +90,13 @@ class SecureBootUnknownError(Exception):
 
 
 # General functions
-def abort():
+def abort(show_prompt=True):
   """Abort script."""
   print_warning('Aborted.')
-  sleep(1)
-  pause(prompt='Press Enter to exit... ')
-  exit_script()
+  if show_prompt:
+    sleep(1)
+    pause(prompt='Press Enter to exit... ')
+  exit_script(1)
 
 
 def ask(prompt='Kotaero!'):
@@ -879,25 +880,19 @@ def make_tmp_dirs():
 
 def set_common_vars():
   """Set common variables."""
-  global_vars['Date'] =         time.strftime("%Y-%m-%d")
-  global_vars['Date-Time'] =      time.strftime("%Y-%m-%d_%H%M_%z")
-  global_vars['Env'] =        os.environ.copy()
+  global_vars['Date'] =             time.strftime("%Y-%m-%d")
+  global_vars['Date-Time'] =        time.strftime("%Y-%m-%d_%H%M_%z")
+  global_vars['Env'] =              os.environ.copy()
 
   global_vars['ArchivePassword'] =  ARCHIVE_PASSWORD
-  global_vars['BinDir'] =       r'{BaseDir}\.bin'.format(
-    **global_vars)
-  global_vars['CBinDir'] =      r'{BaseDir}\.cbin'.format(
-    **global_vars)
-  global_vars['ClientDir'] =      r'{SYSTEMDRIVE}\{prefix}'.format(
-    prefix=KIT_NAME_SHORT, **global_vars['Env'])
-  global_vars['BackupDir'] =      r'{ClientDir}\Backups'.format(
-    **global_vars)
-  global_vars['LogDir'] =       r'{ClientDir}\Logs\{Date}'.format(
-    **global_vars)
-  global_vars['QuarantineDir'] =    r'{ClientDir}\Quarantine'.format(
-    **global_vars)
-  global_vars['TmpDir'] =       r'{BinDir}\tmp'.format(
-    **global_vars)
+  global_vars['BinDir'] =           r'{BaseDir}\.bin'.format(**global_vars)
+  global_vars['CBinDir'] =          r'{BaseDir}\.cbin'.format(**global_vars)
+  global_vars['ClientDir'] =        r'{SYSTEMDRIVE}\{prefix}'.format(
+                                      prefix=KIT_NAME_SHORT, **global_vars['Env'])
+  global_vars['BackupDir'] =        r'{ClientDir}\Backups'.format(**global_vars)
+  global_vars['LogDir'] =           r'{ClientDir}\Logs\{Date}'.format(**global_vars)
+  global_vars['QuarantineDir'] =    r'{ClientDir}\Quarantine'.format(**global_vars)
+  global_vars['TmpDir'] =           r'{BinDir}\tmp'.format(**global_vars)
 
 
 def set_linux_vars():
@@ -905,12 +900,12 @@ def set_linux_vars():
 
   These assume we're running under a WK-Linux build."""
   result = run_program(['mktemp', '-d'])
-  global_vars['TmpDir'] =       result.stdout.decode().strip()
-  global_vars['Date'] =         time.strftime("%Y-%m-%d")
-  global_vars['Date-Time'] =      time.strftime("%Y-%m-%d_%H%M_%z")
-  global_vars['Env'] =        os.environ.copy()
-  global_vars['BinDir'] =       '/usr/local/bin'
-  global_vars['LogDir'] =       global_vars['TmpDir']
+  global_vars['TmpDir'] =           result.stdout.decode().strip()
+  global_vars['Date'] =             time.strftime("%Y-%m-%d")
+  global_vars['Date-Time'] =        time.strftime("%Y-%m-%d_%H%M_%z")
+  global_vars['Env'] =              os.environ.copy()
+  global_vars['BinDir'] =           '/usr/local/bin'
+  global_vars['LogDir'] =           '{}/Logs'.format(global_vars['Env']['HOME'])
   global_vars['Tools'] = {
     'wimlib-imagex': 'wimlib-imagex',
     'SevenZip': '7z',
@@ -919,10 +914,13 @@ def set_linux_vars():
 
 def set_log_file(log_name):
   """Sets global var LogFile and creates path as needed."""
-  folder_path = '{}{}{}'.format(
-    global_vars['LogDir'],
-    os.sep,
-    KIT_NAME_FULL)
+  if psutil.LINUX:
+    folder_path = global_vars['LogDir']
+  else:
+    folder_path = '{}{}{}'.format(
+      global_vars['LogDir'],
+      os.sep,
+      KIT_NAME_FULL)
   log_file = '{}{}{}'.format(
     folder_path,
     os.sep,

@@ -32,6 +32,7 @@ networkmanager
 p7zip
 progsreiserfs
 python
+python-docopt
 python-psutil
 python-pytz
 python-requests
