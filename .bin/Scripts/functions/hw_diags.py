@@ -1634,6 +1634,17 @@ def show_results(state):
   # Update progress
   update_progress_pane(state)
 
+  # Ask for review
+  if ENABLED_UPLOAD_DATA and ask('Upload results for review?'):
+    try_and_print(
+      message='Saving debug reports...',
+      function=save_debug_reports,
+      state=state, global_vars=global_vars)
+    try_and_print(
+      message='Uploading Data...',
+      function=upload_logdir,
+      global_vars=global_vars)
+
 
 def update_main_options(state, selection, main_options):
   """Update menu and state based on selection."""
