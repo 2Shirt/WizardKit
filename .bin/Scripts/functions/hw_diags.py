@@ -84,7 +84,15 @@ class DiskObj():
     self.get_size()
 
     # Try enabling SMART
-    run_program(['sudo', 'smartctl', '--smart=on', self.path], check=False)
+    run_program(
+      cmd=[
+        'sudo',
+        'smartctl',
+        '--tolerance=permissive',
+        '--smart=on',
+        self.path,
+        ],
+      check=False)
 
     # Get NVMe/SMART data and set description
     self.get_smart_details()
@@ -349,7 +357,14 @@ class DiskObj():
 
   def get_smart_details(self):
     """Get data from smartctl."""
-    cmd = ['sudo', 'smartctl', '--all', '--json', self.path]
+    cmd = [
+      'sudo',
+      'smartctl',
+      '--tolerance=verypermissive',
+      '--all',
+      '--json',
+      self.path,
+      ]
     self.smartctl = get_json_from_command(cmd, check=False)
 
     # Check for attributes
@@ -1514,7 +1529,13 @@ def run_smart_short_test(state, test):
 
   # Start short test
   print_standard('Running self-test...')
-  cmd = ['sudo', 'smartctl', '--test=short', dev.path]
+  cmd = [
+    'sudo',
+    'smartctl',
+    '--tolerance=normal',
+    '--test=short',
+    dev.path,
+    ]
   run_program(cmd, check=False)
 
   # Monitor progress
