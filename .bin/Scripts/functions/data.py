@@ -238,9 +238,13 @@ def mount_volumes(
         vol_data['mount_point'] = None
       else:
         size_used = human_readable_size(
-          mounted_volumes[vol_path]['used'])
+          mounted_volumes[vol_path]['used'],
+          decimals=1,
+          )
         size_avail = human_readable_size(
-          mounted_volumes[vol_path]['avail'])
+          mounted_volumes[vol_path]['avail'],
+          decimals=1,
+          )
         vol_data['size_avail'] = size_avail
         vol_data['size_used'] = size_used
         vol_data['mount_point'] = mounted_volumes[vol_path]['target']
