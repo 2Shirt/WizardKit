@@ -47,6 +47,9 @@ if [[ "${dpi}" -ge 192 ]]; then
   # i3
   sed -i -r 's/(height\s+) 26/\1 52/' "${HOME}/.config/i3/config"
 
+  # Rofi
+  sed -i -r 's/Noto Sans 12/Noto Sans 24/' "${HOME}/.config/rofi/config"
+
   # Tint2
   sed -i 's/panel_size = 100% 30/panel_size = 100% 60/' \
     "${HOME}/.config/tint2/tint2rc"
