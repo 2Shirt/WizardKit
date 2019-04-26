@@ -102,6 +102,9 @@ ITEMS_HIDDEN = (
   'dgpu',
   'EFI',
   'isolinux',
+  # Main Kit
+  '{}/.bin'.format(KIT_NAME_FULL),
+  '{}/.cbin'.format(KIT_NAME_FULL),
   # WinPE
   'boot',
   'bootmgr',
