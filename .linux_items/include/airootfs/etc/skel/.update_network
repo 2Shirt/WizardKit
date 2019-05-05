@@ -2,9 +2,8 @@
 #
 ## Setup network and update hostname
 
-# Add saved networks to NetworkManager
-sudo setup-wifi
-sudo systemctl restart NetworkManager
+# Wait for WiFi
+sleep 1s
 
 # Set hostname
 IP="$(ip a show scope global \
