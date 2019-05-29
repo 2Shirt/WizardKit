@@ -82,6 +82,10 @@ class MenuState():
           )
         valid_answers.pop(_prefix)
 
+      # Hide action entry if necessary
+      if details['Kind'] == 'Action' and details.get('Hidden', False):
+        display_list.pop()
+
     # Show Menu and make selection
     _answer = ''
     while _answer.upper() not in valid_answers:
