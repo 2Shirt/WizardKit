@@ -4,6 +4,19 @@
 import os
 from collections import OrderedDict
 
+# STATIC VARIABLES
+COLORS = {
+  'CLEAR':  '\033[0m',
+  'RED':    '\033[31m',
+  'ORANGE': '\033[31;1m',
+  'GREEN':  '\033[32m',
+  'YELLOW': '\033[33m',
+  'BLUE':   '\033[34m',
+  'PURPLE': '\033[35m',
+  'CYAN':   '\033[36m',
+  }
+
+
 # Classes
 class MenuState():
   """Class to track various parts of a menu."""
@@ -60,6 +73,14 @@ class MenuState():
         _prefix = name[0:1].upper()
       display_list.append('{}: {}'.format(_prefix, name))
       valid_answers[_prefix] = name
+
+      # Disable entry if necessary
+      if details['Disabled']:
+        display_list[-1] = '{ORANGE}{text}{CLEAR}'.format(
+          text=display_list[-1],
+          **COLORS,
+          )
+        valid_answers.pop(_prefix)
 
     # Show Menu and make selection
     _answer = ''
