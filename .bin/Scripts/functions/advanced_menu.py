@@ -80,6 +80,10 @@ class MenuState():
     # Safety Check
     assert self.entries, 'No menu entries defined.'
 
+    # Reset selections
+    for entry in self.entries.values():
+      entry.selected = False
+
     # Build Menu
     i = 1
     for name, entry in self.entries.items():
@@ -120,7 +124,8 @@ class MenuState():
       print('\n'.join(display_list))
       _answer = input('Please make a selection: ')
 
-    # Save last selection
+    # Mark and save selection
+    self.entries[valid_answers[_answer.upper()]].selected = True
     self.last_sel = valid_answers[_answer.upper()]
 
   def make_multiple_selections(self):
