@@ -15,11 +15,43 @@ COLORS = {
   'PURPLE': '\033[35m',
   'CYAN':   '\033[36m',
   }
+VALID_ENTRY_TYPES = (
+  'Action',
+  'Option',
+  'Set',
+  'Toggle',
+  )
 
 
 # Classes
+class MenuEntry():
+  """Class for advanced menu entries"""
+  # pylint: disable=too-few-public-methods
+  def __init__(self, **kwargs):
+    kwargs = {str(k).lower(): v for k, v in kwargs.items()}
+    self.name = kwargs.pop('name', None)
+    self.type = kwargs.pop('type', None)
+    self.disabled = kwargs.pop('disabled', False)
+    self.hidden = kwargs.pop('hidden', False)
+    self.selected = kwargs.pop('selected', False)
+    self.separator = kwargs.pop('separator', False)
+
+    # Other attributes
+    for _key, _value in kwargs.items():
+      setattr(self, _key, kwargs.get(_key))
+    del kwargs
+
+    # Check attributes
+    self.check()
+
+  def check(self):
+    """Check for invalid or missing attributes."""
+    assert self.name, 'Invalid menu entry name.'
+    assert self.type in VALID_ENTRY_TYPES, 'Invalid menu entry type.'
+
+
 class MenuState():
-  """Class to track various parts of a menu."""
+  """Class to track various parts of the advanced menu."""
   def __init__(self, title):
     self.checkmark = '✓' if 'DISPLAY' in os.environ else '*'
     self.entries = OrderedDict({})
@@ -28,21 +60,16 @@ class MenuState():
     self.sep_len = 0
     self.title = title
 
-  def add_entry(self, name, kind, **kwargs):
+  def add_entry(self, **kwargs):
     """Add entry and update state."""
-    if name in self.entries:
-      raise Exception('Entry {} already exists.'.format(name))
+    _e = MenuEntry(**kwargs)
+    assert _e.name not in self.entries, 'Duplicate menu entry.'
 
     # Add to entries
-    self.entries[name] = {
-      'Kind': kind,
-      'Selected': False,
-      'Disabled': kwargs.get('Disabled', False),
-      }
-    self.entries[name].update(**kwargs)
+    self.entries[_e.name] = _e
 
     # Update sep length
-    self.sep_len = max(len(name), self.sep_len)
+    self.sep_len = max(len(_e.name), self.sep_len)
 
   def make_single_selection(self):
     """Select single entry."""
@@ -51,31 +78,31 @@ class MenuState():
     valid_answers = {}
 
     # Safety Check
-    assert self.entries, "No menu entries defined."
+    assert self.entries, 'No menu entries defined.'
 
     # Build Menu
     i = 1
-    for name, details in self.entries.items():
+    for name, entry in self.entries.items():
       # Skip sets
-      if details['Kind'] in ('Set', 'Toggle'):
+      if entry.type in ('Set', 'Toggle'):
         continue
 
       # Separators
-      if details.get('Separator', False):
+      if entry.separator:
         display_list.append(self.sep * _sep_len)
 
       # Entries
       _prefix = None
-      if details['Kind'] == 'Option':
+      if entry.type == 'Option':
         _prefix = str(i)
         i += 1
-      elif details['Kind'] == 'Action':
+      elif entry.type == 'Action':
         _prefix = name[0:1].upper()
       display_list.append('{}: {}'.format(_prefix, name))
       valid_answers[_prefix] = name
 
       # Disable entry if necessary
-      if details['Disabled']:
+      if entry.disabled:
         display_list[-1] = '{ORANGE}{text}{CLEAR}'.format(
           text=display_list[-1],
           **COLORS,
@@ -83,7 +110,7 @@ class MenuState():
         valid_answers.pop(_prefix)
 
       # Hide action entry if necessary
-      if details['Kind'] == 'Action' and details.get('Hidden', False):
+      if entry.type == 'Action' and entry.hidden:
         display_list.pop()
 
     # Show Menu and make selection
@@ -110,4 +137,4 @@ def clear():
     os.system('clear')
 
 if __name__ == '__main__':
-  print("This file is not meant to be called directly.")
+  print('This file is not meant to be called directly.')
