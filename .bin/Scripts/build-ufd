@@ -54,16 +54,8 @@ if __name__ == '__main__':
       confirm_selections(args)
 
     # Prep UFD
-    print_info('Prep UFD')
-    if args['--update']:
-      # Remove arch folder
-      try_and_print(
-        indent=2,
-        message='Removing Linux...',
-        function=remove_arch,
-        )
-    else:
-      # Format and partition
+    if not args['--update']:
+      print_info('Prep UFD')
       prep_device(ufd_dev, UFD_LABEL, use_mbr=args['--use-mbr'])
 
     # Mount UFD
@@ -73,7 +65,16 @@ if __name__ == '__main__':
       function=mount,
       mount_source=find_first_partition(ufd_dev),
       mount_point='/mnt/UFD',
+      read_write=True,
       )
+
+    # Remove Arch folder
+    if args['--update']:
+      try_and_print(
+        indent=2,
+        message='Removing Linux...',
+        function=remove_arch,
+        )
 
     # Copy sources
     print_standard(' ')
