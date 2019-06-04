@@ -283,8 +283,8 @@ function update_live_env() {
     fi
 
     # WiFi
-    cp "$ROOT_DIR/.linux_items/known_networks" "/root/known_networks"
-    echo "add-known-networks" >> "$LIVE_DIR/airootfs/root/customize_airootfs.sh"
+    cp "$ROOT_DIR/.linux_items/known_networks" "$LIVE_DIR/airootfs/root/known_networks"
+    echo "add-known-networks --user=$username" >> "$LIVE_DIR/airootfs/root/customize_airootfs.sh"
 }
 
 function update_repo() {
