@@ -63,7 +63,7 @@ if __name__ == '__main__':
   for ssid, password in known_networks.items():
     out_path = '{}/{}.nmconnection'.format(
       '/etc/NetworkManager/system-connections',
-      password,
+      ssid,
       )
     if not os.path.exists(out_path):
       with open(out_path, 'w') as f:
