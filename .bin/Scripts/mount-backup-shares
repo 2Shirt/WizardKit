@@ -16,9 +16,6 @@ if __name__ == '__main__':
     # Prep
     clear_screen()
 
-    # Connect
-    connect_to_network()
-
     # Mount
     if is_connected():
       mount_backup_shares(read_write=True)
