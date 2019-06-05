@@ -125,6 +125,13 @@ SETTINGS_EXPLORER_USER = {
       'LaunchTo': 1,
       },
     },
+  r'SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced': {
+  # Dup path so it Will be applied to all modes
+    'DWORD Items': {
+      # Launch Folder Windows in a Separate Process
+      'SeparateProcess': 1,
+      },
+    },
   # Hide People bar
   r'Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced\People': {
     'DWORD Items': {'PeopleBand': 0},
