@@ -32,8 +32,8 @@ def archive_all_users():
     user_path = os.path.join(users_root, user_name)
     appdata_local = os.path.join(user_path, r'AppData\Local')
     appdata_roaming = os.path.join(user_path, r'AppData\Roaming')
-    valid_user &= os.path.exists(appdata_local)
-    valid_user &= os.path.exists(appdata_roaming)
+    valid_user = valid_user and os.path.exists(appdata_local)
+    valid_user = valid_user and os.path.exists(appdata_roaming)
     if valid_user:
       user_envs.append({
         'USERNAME': user_name,

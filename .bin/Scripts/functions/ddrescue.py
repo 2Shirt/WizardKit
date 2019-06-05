@@ -318,7 +318,7 @@ class RecoveryState():
     """Checks if pass is done for all block-pairs, returns bool."""
     done = True
     for bp in self.block_pairs:
-      done &= bp.pass_done[self.current_pass]
+      done = done and bp.pass_done[self.current_pass]
     return done
 
   def current_pass_min(self):
@@ -376,7 +376,8 @@ class RecoveryState():
     self.total_size = 0
     for bp in self.block_pairs:
       bp.self_check()
-      self.resumed |= bp.resumed
+      if bp.resumed:
+        self.resumed = True
       self.total_size += bp.size
 
   def set_pass_num(self):
@@ -386,7 +387,7 @@ class RecoveryState():
       # Iterate backwards through passes
       pass_done = True
       for bp in self.block_pairs:
-        pass_done &= bp.pass_done[pass_num]
+        pass_done = pass_done and bp.pass_done[pass_num]
       if pass_done:
         # All block-pairs reported being done
         # Set to next pass, unless we're on the last pass (2)
@@ -742,9 +743,9 @@ def is_writable_dir(dir_obj):
   """Check if we have read-write-execute permissions, returns bool."""
   is_ok = True
   path_st_mode = os.stat(dir_obj.path).st_mode
-  is_ok == is_ok and path_st_mode & stat.S_IRUSR
-  is_ok == is_ok and path_st_mode & stat.S_IWUSR
-  is_ok == is_ok and path_st_mode & stat.S_IXUSR
+  is_ok = is_ok and path_st_mode & stat.S_IRUSR
+  is_ok = is_ok and path_st_mode & stat.S_IWUSR
+  is_ok = is_ok and path_st_mode & stat.S_IXUSR
   return is_ok
 
 

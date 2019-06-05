@@ -186,8 +186,8 @@ class DiskObj():
             disk_ok = False
 
             # Disable override if necessary
-            self.override_disabled |= ATTRIBUTES[attr_type][k].get(
-              'Critical', False)
+            if ATTRIBUTES[attr_type][k].get('Critical', False):
+              self.override_disabled = True
 
     # SMART overall assessment
     ## NOTE: Only fail drives if the overall value exists and reports failed
@@ -788,7 +788,7 @@ def menu_diags(state, args):
       # If so, verify no other tests are enabled and set quick_mode
       state.quick_mode = True
       for opt in main_options[3:4] + main_options[5:]:
-        state.quick_mode &= not opt['Enabled']
+        state.quick_mode = state.quick_mode and not opt['Enabled']
     else:
       state.quick_mode = False
 
@@ -1001,7 +1001,8 @@ def run_hw_tests(state):
   # Run disk safety checks (if necessary)
   _disk_tests_enabled = False
   for k in TESTS_DISK:
-    _disk_tests_enabled |= state.tests[k]['Enabled']
+    if state.tests[k]['Enabled']:
+      _disk_tests_enabled = True
   if _disk_tests_enabled:
     for disk in state.disks:
       try:
@@ -1611,7 +1612,8 @@ def show_results(state):
   # CPU tests
   _enabled = False
   for k in TESTS_CPU:
-    _enabled |= state.tests[k]['Enabled']
+    if state.tests[k]['Enabled']:
+      _enabled = True
   if _enabled:
     print_success('CPU:'.format(k))
     show_report(state.cpu.generate_cpu_report(), log_report=True)
@@ -1620,7 +1622,8 @@ def show_results(state):
   # Disk tests
   _enabled = False
   for k in TESTS_DISK:
-    _enabled |= state.tests[k]['Enabled']
+    if state.tests[k]['Enabled']:
+      _enabled = True
   if _enabled:
     print_success('Disk{}:'.format(
       '' if len(state.disks) == 1 else 's'))
