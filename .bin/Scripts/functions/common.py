@@ -167,18 +167,22 @@ def clear_screen():
 def convert_to_bytes(size):
   """Convert human-readable size str to bytes and return an int."""
   size = str(size)
-  tmp = re.search(r'(\d+\.?\d*)\s+([KMGT]B)', size.upper())
+  tmp = re.search(r'(\d+\.?\d*)\s+([PTGMKB])B?', size.upper())
   if tmp:
     size = float(tmp.group(1))
     units = tmp.group(2)
-    if units == 'TB':
-      size *= 1099511627776
-    elif units == 'GB':
-      size *= 1073741824
-    elif units == 'MB':
-      size *= 1048576
-    elif units == 'KB':
-      size *= 1024
+    if units == 'P':
+      size *= 1024 ** 5
+    if units == 'T':
+      size *= 1024 ** 4
+    elif units == 'G':
+      size *= 1024 ** 3
+    elif units == 'M':
+      size *= 1024 ** 2
+    elif units == 'K':
+      size *= 1024 ** 1
+    elif units == 'B':
+      size *= 1024 ** 0
     size = int(size)
   else:
     return -1
@@ -297,20 +301,24 @@ def human_readable_size(size, decimals=0):
     return '{size:>{width}} b'.format(size='???', width=width)
 
   # Convert to sensible units
-  if size >= 1099511627776:
-    size /= 1099511627776
-    units = 'Tb'
-  elif size >= 1073741824:
-    size /= 1073741824
-    units = 'Gb'
-  elif size >= 1048576:
-    size /= 1048576
-    units = 'Mb'
-  elif size >= 1024:
-    size /= 1024
-    units = 'Kb'
+  if size >= 1024 ** 5:
+    size /= 1024 ** 5
+    units = 'PB'
+  elif size >= 1024 ** 4:
+    size /= 1024 ** 4
+    units = 'TB'
+  elif size >= 1024 ** 3:
+    size /= 1024 ** 3
+    units = 'GB'
+  elif size >= 1024 ** 2:
+    size /= 1024 ** 2
+    units = 'MB'
+  elif size >= 1024 ** 1:
+    size /= 1024 ** 1
+    units = 'KB'
   else:
-    units = ' b'
+    size /= 1024 ** 0
+    units = ' B'
 
   # Return
   return '{size:>{width}.{decimals}f} {units}'.format(
