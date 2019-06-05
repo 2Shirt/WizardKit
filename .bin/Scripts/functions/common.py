@@ -433,6 +433,8 @@ def non_clobber_rename(full_path):
 
 def pause(prompt='Press Enter to continue... '):
   """Simple pause implementation."""
+  if prompt[-1] != ' ':
+    prompt += ' '
   input(prompt)
 
 
