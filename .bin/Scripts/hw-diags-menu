@@ -49,7 +49,7 @@ if __name__ == '__main__':
           global_vars=global_vars)
 
       # Done
-      sleep(10)
+      sleep(1)
       pause('Press Enter to exit...')
       exit_script(1)
 
