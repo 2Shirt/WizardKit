@@ -1,13 +1,19 @@
-# Wizard Kit: Settings - Setup
+'''Wizard Kit: Settings - Setup'''
+# pylint: disable=bad-continuation,line-too-long
+# vim: sts=2 sw=2 ts=2
 
 import os
-import winreg
+try:
+  import winreg
+  HKU = winreg.HKEY_USERS
+  HKCR = winreg.HKEY_CLASSES_ROOT
+  HKCU = winreg.HKEY_CURRENT_USER
+  HKLM = winreg.HKEY_LOCAL_MACHINE
+except ImportError:
+  if os.name != 'posix':
+    raise
 
 # General
-HKU =  winreg.HKEY_USERS
-HKCR = winreg.HKEY_CLASSES_ROOT
-HKCU = winreg.HKEY_CURRENT_USER
-HKLM = winreg.HKEY_LOCAL_MACHINE
 OTHER_RESULTS = {
   'Error': {
     'CalledProcessError':   'Unknown Error',
@@ -92,6 +98,15 @@ SETTINGS_EXPLORER_SYSTEM = {
     },
   }
 SETTINGS_EXPLORER_USER = {
+  # Desktop theme
+  r'Software\Microsoft\Windows\CurrentVersion\Themes\Personalize': {
+    'Invalid modes': ['Cur'],
+    'DWORD Items': {
+      # <= v1809 default
+      'AppsUseLightTheme': 1,
+      'SystemUsesLightTheme': 0,
+      },
+    },
   # Disable features
   r'Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager': {
     'DWORD Items': {
@@ -104,6 +119,7 @@ SETTINGS_EXPLORER_USER = {
     },
   # File Explorer
   r'Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced': {
+    'Invalid modes': ['Cur'],
     'DWORD Items': {
       # Change default Explorer view to "Computer"
       'LaunchTo': 1,
@@ -157,5 +173,3 @@ SETTINGS_WINDOWS_UPDATES = {
 
 if __name__ == '__main__':
   print("This file is not meant to be called directly.")
-
-# vim: sts=2 sw=2 ts=2
