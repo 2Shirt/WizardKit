@@ -48,6 +48,37 @@ def check_connection():
         abort()
 
 
+def check_os_support_status():
+  """Check if current OS is supported."""
+  msg = ''
+  outdated = False
+  unsupported = False
+
+  # Check OS version/notes
+  os_info = global_vars['OS'].copy()
+  if os_info['Notes'] == 'unsupported':
+    msg = 'The installed version of Windows is no longer supported'
+    unsupported = True
+  elif os_info['Notes'] == 'preview build':
+    msg = 'Preview builds are not officially supported'
+    unsupported = True
+  elif os_info['Version'] == '10' and os_info['Notes'] == 'outdated':
+    msg = 'The installed version of Windows is outdated'
+    outdated = True
+  if 'Preview' not in msg:
+    msg += '\n\nPlease consider upgrading before continuing setup.'
+
+  # Show alert
+  if outdated or unsupported:
+    show_alert_box(msg)
+
+  # Raise exception if necessary
+  if outdated:
+    raise WindowsOutdatedError
+  if unsupported:
+    raise WindowsUnsupportedError
+
+
 def check_secure_boot_status(show_alert=False):
   """Checks UEFI Secure Boot status via PowerShell."""
   boot_mode = get_boot_mode()
@@ -108,33 +139,6 @@ def get_boot_mode():
     type_str = 'UEFI'
 
   return type_str
-
-
-def os_is_unsupported(show_alert=False):
-  """Checks if the current OS is unsupported, returns bool."""
-  msg = ''
-  unsupported = False
-
-  # Check OS version/notes
-  os_info = global_vars['OS'].copy()
-  if os_info['Notes'] == 'unsupported':
-    msg = 'The installed version of Windows is no longer supported'
-    unsupported = True
-  elif os_info['Notes'] == 'preview build':
-    msg = 'Preview builds are not officially supported'
-    unsupported = True
-  elif os_info['Version'] == '10' and os_info['Notes'] == 'outdated':
-    msg = 'The installed version of Windows is outdated'
-    unsupported = True
-  if 'Preview' not in msg:
-    msg += '\n\nPlease consider upgrading before continuing setup.'
-
-  # Show alert
-  if unsupported and show_alert:
-    show_alert_box(msg)
-
-  # Done
-  return unsupported
 
 
 def run_autoruns():
@@ -226,8 +230,10 @@ def run_rkill():
         shutil.move(item.path, dest)
 
 
-def show_alert_box(message, title='Wizard Kit Warning'):
+def show_alert_box(message, title=None):
   """Show Windows alert box with message."""
+  if not title:
+    title = '{} Warning'.format(KIT_NAME_FULL)
   message_box = ctypes.windll.user32.MessageBoxW
   message_box(None, message, title, 0x00001030)
 
