@@ -75,7 +75,7 @@ def config_windows_updates():
 
 def update_clock():
   """Set Timezone and sync clock."""
-  run_program(['tzutil' ,'/s', WINDOWS_TIME_ZONE], check=False)
+  run_program(['tzutil', '/s', WINDOWS_TIME_ZONE], check=False)
   run_program(['net', 'stop', 'w32ime'], check=False)
   run_program(
     ['w32tm', '/config', '/syncfromflags:manual',
