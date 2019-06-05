@@ -218,7 +218,7 @@ def mount_volumes(
       report[vol_path] = vol_data
     elif 'children' in vol_data:
       # Skip LVM/RAID partitions (the real volume is mounted separately)
-      vol_data['show_data']['data'] = vol_data.get('fstype', 'UNKNOWN')
+      vol_data['show_data']['data'] = vol_data.get('fstype', 'Unknown')
       if vol_data.get('label', None):
         vol_data['show_data']['data'] += ' "{}"'.format(vol_data['label'])
       vol_data['show_data']['info'] = True
@@ -243,7 +243,7 @@ def mount_volumes(
       if vol_data['show_data']['data'] == 'Failed to mount':
         vol_data['mount_point'] = None
       else:
-        fstype = vol_data.get('fstype', 'UNKNOWN FS')
+        fstype = vol_data.get('fstype', 'Unknown FS')
         size_used = human_readable_size(
           mounted_volumes[vol_path]['used'],
           decimals=1,
