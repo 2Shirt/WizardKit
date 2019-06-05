@@ -307,6 +307,11 @@ class DiskObj():
         attr_type=self.attr_type, **COLORS))
       report.extend(sorted(self.nvme_smart_notes.keys()))
 
+    # 4K alignment check
+    if not self.is_4k_aligned():
+      report.append('{YELLOW}Warning{CLEAR}'.format(**COLORS))
+      report.append('  One or more partitions are not 4K aligned')
+
     # Tests
     for test in self.tests.values():
       report.extend(test.report)
@@ -410,6 +415,26 @@ class DiskObj():
             'self_test', {}).get(
             k, {})
 
+  def is_4k_aligned(self):
+    """Check if partitions are 4K aligned, returns bool."""
+    cmd = [
+      'sudo',
+      'sfdisk',
+      '--json',
+      self.path,
+      ]
+    aligned = True
+
+    # Get partition details
+    json_data = get_json_from_command(cmd)
+
+    # Check partitions
+    for part in json_data.get('partitiontable', {}).get('partitions', []):
+      aligned = aligned and part.get('start', -1) % 4096 == 0
+
+    # Done
+    return aligned
+
   def safety_check(self, silent=False):
     """Run safety checks and disable tests if necessary."""
     test_running = False
@@ -453,7 +478,6 @@ class DiskObj():
           log_report=True)
         disk_ok = OVERRIDES_FORCED or ask('Run tests on this device anyway?')
         print_standard(' ')
-
 
     # Disable tests if necessary (statuses won't be overwritten)
     if test_running:

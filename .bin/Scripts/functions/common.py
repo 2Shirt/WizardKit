@@ -64,10 +64,13 @@ class GenericRepair(Exception):
 class MultipleInstallationsError(Exception):
   pass
 
-class NotInstalledError(Exception):
+class NoProfilesError(Exception):
   pass
 
-class NoProfilesError(Exception):
+class Not4KAlignedError(Exception):
+  pass
+
+class NotInstalledError(Exception):
   pass
 
 class OSInstalledLegacyError(Exception):

@@ -6,6 +6,35 @@ from functions.common import *
 from settings.sw_diags import *
 
 
+def check_4k_alignment(show_alert=False):
+  """Check that all partitions are 4K aligned."""
+  aligned = True
+  cmd = ['WMIC', 'partition', 'get', 'StartingOffset']
+  offsets = []
+
+  # Get offsets
+  result = run_program(cmd, encoding='utf-8', errors='ignore', check=False)
+  offsets = result.stdout.splitlines()
+
+  # Check offsets
+  for off in offsets:
+    off = off.strip()
+    if not off.isnumeric():
+      # Skip
+      continue
+
+    try:
+      aligned = aligned and int(off) % 4096 == 0
+    except ValueError:
+      # Ignore, this check is low priority
+      pass
+
+  # Show alert
+  if show_alert:
+    show_alert_box('One or more partitions are not 4K aligned')
+    raise Not4KAlignedError
+
+
 def check_connection():
   """Check if the system is online and optionally abort the script."""
   while True:
