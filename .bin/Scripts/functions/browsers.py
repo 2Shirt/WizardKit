@@ -325,7 +325,6 @@ def install_adblock(indent=8, width=32, just_firefox=False):
     if just_firefox and browser_data[browser]['base'] != 'mozilla':
       continue
     exe_path = browser_data[browser].get('exe_path', None)
-    function=run_program
     if not exe_path:
       if browser_data[browser]['profiles']:
         print_standard(
@@ -375,7 +374,6 @@ def install_adblock(indent=8, width=32, just_firefox=False):
 
       elif browser_data[browser]['base'] == 'ie':
         urls.append(IE_GALLERY)
-        function=popen_program
 
       # By using check=False we're skipping any return codes so
       # it should only fail if the program can't be run
@@ -384,8 +382,14 @@ def install_adblock(indent=8, width=32, just_firefox=False):
       #   installation status.
       try_and_print(message='{}...'.format(browser),
         indent=indent, width=width,
-        cs='Done', function=function,
+        cs='Started', function=popen_program,
         cmd=[exe_path, *urls], check=False)
+
+
+def is_installed(browser_name):
+  """Checks if browser is installed based on exe_path, returns bool."""
+  browser_name = browser_name.replace(' Chromium', '')
+  return bool(browser_data.get(browser_name, {}).get('exe_path', False))
 
 
 def list_homepages(indent=8, width=32):
@@ -419,6 +423,12 @@ def list_homepages(indent=8, width=32):
             indent=' '*indent, width=width, name=name, page=page))
 
 
+def profile_present(browser_name):
+  """Checks if a profile was detected for browser, returns bool."""
+  browser_name = browser_name.replace(' Chromium', '')
+  return bool(browser_data.get(browser_name, {}).get('profiles', False))
+
+
 def reset_browsers(indent=8, width=32):
   """Reset all detected browsers to safe defaults."""
   browser_list = [k for k, v in sorted(browser_data.items()) if v['profiles']]
@@ -437,14 +447,21 @@ def reset_browsers(indent=8, width=32):
         other_results=other_results, profile=profile)
 
 
-def scan_for_browsers(just_firefox=False):
+def scan_for_browsers(just_firefox=False, silent=False):
   """Scan system for any supported browsers."""
   for name, details in sorted(SUPPORTED_BROWSERS.items()):
     if just_firefox and details['base'] != 'mozilla':
       continue
-    try_and_print(message='{}...'.format(name),
-      function=get_browser_details, cs='Detected',
-      other_results=other_results, name=name)
+    if silent:
+      try:
+        get_browser_details(name)
+      except Exception:
+        # Ignore errors in silent mode
+        pass
+    else:
+      try_and_print(message='{}...'.format(name),
+        function=get_browser_details, cs='Detected',
+        other_results=other_results, name=name)
 
 
 if __name__ == '__main__':
