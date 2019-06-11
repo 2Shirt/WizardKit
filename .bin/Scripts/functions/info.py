@@ -95,7 +95,7 @@ def get_installed_antivirus():
     out = out.stdout.decode().strip()
     state = out.split('=')[1]
     state = hex(int(state))
-    if str(state)[3:5] != '10':
+    if str(state)[3:5] not in ['10', '11']:
       programs.append('[Disabled] {}'.format(prod))
     else:
       programs.append(prod)
@@ -446,16 +446,19 @@ def show_os_name():
 
 def show_temp_files_size():
   """Show total size of temp files identified by BleachBit."""
-  size = None
+  size_str = None
+  total = 0
   with open(r'{LogDir}\Tools\BleachBit.log'.format(**global_vars), 'r') as f:
     for line in f.readlines():
-      if re.search(r'^disk space to be recovered:', line, re.IGNORECASE):
+      if re.search(r'^Disk space (to be |)recovered:', line, re.IGNORECASE):
         size = re.sub(r'.*: ', '', line.strip())
         size = re.sub(r'(\w)iB$', r' \1b', size)
-  if size is None:
-    print_warning(size, timestamp=False)
+        total += convert_to_bytes(size)
+        size_str = human_readable_size(total, decimals=1)
+  if size_str is None:
+    print_warning('UNKNOWN', timestamp=False)
   else:
-    print_standard(size, timestamp=False)
+    print_standard(size_str, timestamp=False)
 
 
 def show_user_data_summary(indent=8, width=32):
