@@ -47,73 +47,74 @@ OTHER_RESULTS = {
 SETUP_ACTIONS = OrderedDict({
   # Install software
   'Installing Programs':    {'Info': True},
-  'VCR':                    {'New': True,   'Fab': True,  'Cur': True,  'HW': False, 'Function': install_vcredists, 'Just run': True,},
-  'LibreOffice':            {'New': True,   'Fab': True,  'Cur': True,  'HW': False, 'Function': install_libreoffice,
+  'VCR':                    {'New': True,   'Dat': True,  'Cur': True,  'HW': False, 'Function': install_vcredists, 'Just run': True,},
+  'LibreOffice':            {'New': True,   'Dat': True,  'Cur': True,  'HW': False, 'Function': install_libreoffice,
                              'If answer': 'LibreOffice', 'KWArgs': {'quickstart': False, 'register_mso_types': True, 'use_mso_formats': False, 'vcredist': False},
                              },
-  'Ninite bundle':          {'New': True,   'Fab': True,  'Cur': True,  'HW': False, 'Function': install_ninite_bundle, 'KWArgs': {'cs': 'STARTED'},},
+  'Ninite bundle':          {'New': True,   'Dat': True,  'Cur': True,  'HW': False, 'Function': install_ninite_bundle, 'KWArgs': {'cs': 'STARTED'},},
 
   # Browsers
   'Scanning for browsers':  {'Info': True},
-  'Scan':                   {'New': True,   'Fab': True,  'Cur': True,  'HW': False, 'Function': scan_for_browsers, 'Just run': True, 'KWArgs': {'skip_ie': True},},
+  'Scan':                   {'New': True,   'Dat': True,  'Cur': True,  'HW': False, 'Function': scan_for_browsers, 'Just run': True, 'KWArgs': {'skip_ie': True},},
   'Backing up browsers':    {'Info': True},
-  'Backup browsers':        {'New': False,  'Fab': True,  'Cur': True,  'HW': False, 'Function': backup_browsers, 'Just run': True,},
+  'Backup browsers':        {'New': False,  'Dat': True,  'Cur': True,  'HW': False, 'Function': backup_browsers, 'Just run': True,},
 
   # Install extensions
   'Installing Extensions':  {'Info': True},
-  'Classic Shell skin':     {'New': True,   'Fab': True,  'Cur': False, 'HW': False, 'Function': install_classicstart_skin, 'Win10 only': True,},
-  'Chrome extensions':      {'New': True,   'Fab': True,  'Cur': True,  'HW': False, 'Function': install_chrome_extensions,},
-  'Firefox extensions':     {'New': True,   'Fab': True,  'Cur': True,  'HW': False, 'Function': install_firefox_extensions,},
+  'Classic Shell skin':     {'New': True,   'Dat': True,  'Cur': False, 'HW': False, 'Function': install_classicstart_skin, 'Win10 only': True,},
+  'Chrome extensions':      {'New': True,   'Dat': True,  'Cur': True,  'HW': False, 'Function': install_chrome_extensions,},
+  'Firefox extensions':     {'New': True,   'Dat': True,  'Cur': True,  'HW': False, 'Function': install_firefox_extensions,},
 
   # Configure software'
   'Configuring Programs':   {'Info': True},
-  'Browser add-ons':        {'New': True,   'Fab': True,  'Cur': True,  'HW': False, 'Function': install_adblock, 'Just run': True,
+  'Browser add-ons':        {'New': True,   'Dat': True,  'Cur': True,  'HW': False, 'Function': install_adblock, 'Just run': True,
                              'Pause': 'Please enable uBlock Origin for all browsers',
                              },
-  'Classic Start':          {'New': True,   'Fab': True,  'Cur': False, 'HW': False, 'Function': config_classicstart, 'Win10 only': True,},
-  'Config Windows Updates': {'New': True,   'Fab': True,  'Cur': True,  'HW': True,  'Function': config_windows_updates, 'Win10 only': True,},
-  'Enable Windows Updates': {'New': True,   'Fab': True,  'Cur': True,  'HW': True,  'Function': enable_windows_updates, 'KWArgs': {'silent': True},},
-  'Explorer (system)':      {'New': True,   'Fab': True,  'Cur': True,  'HW': False, 'Function': config_explorer_system, 'Win10 only': True,},
-  'Explorer (user)':        {'New': True,   'Fab': True,  'Cur': True,  'HW': False, 'Function': config_explorer_user, 'Win10 only': True,},
-  'Restart Explorer':       {'New': True,   'Fab': True,  'Cur': True,  'HW': False, 'Function': restart_explorer,},
-  'Update Clock':           {'New': True,   'Fab': True,  'Cur': True,  'HW': False, 'Function': update_clock,},
+  'Classic Start':          {'New': True,   'Dat': True,  'Cur': False, 'HW': False, 'Function': config_classicstart, 'Win10 only': True,},
+  'Config Windows Updates': {'New': True,   'Dat': True,  'Cur': True,  'HW': True,  'Function': config_windows_updates, 'Win10 only': True,},
+  'Enable Windows Updates': {'New': True,   'Dat': True,  'Cur': True,  'HW': True,  'Function': enable_windows_updates, 'KWArgs': {'silent': True},},
+  'Explorer (system)':      {'New': True,   'Dat': True,  'Cur': True,  'HW': False, 'Function': config_explorer_system, 'Win10 only': True,},
+  'Explorer (user)':        {'New': True,   'Dat': True,  'Cur': True,  'HW': False, 'Function': config_explorer_user, 'Win10 only': True,},
+  'Restart Explorer':       {'New': True,   'Dat': True,  'Cur': True,  'HW': False, 'Function': restart_explorer,},
+  'Restore default UAC':    {'New': True,   'Dat': True,  'Cur': True,  'HW': False, 'Function': restore_default_uac,},
+  'Update Clock':           {'New': True,   'Dat': True,  'Cur': True,  'HW': False, 'Function': update_clock,},
 
   # Cleanup
   'Cleaning up':            {'Info': True},
-  'AdwCleaner':             {'New': True,   'Fab': True,  'Cur': True,  'HW': False, 'Function': cleanup_adwcleaner,},
-  'Desktop':                {'New': True,   'Fab': True,  'Cur': True,  'HW': False, 'Function': cleanup_desktop,},
-  'KIT_NAME_FULL':          {'New': True,   'Fab': True,  'Cur': True,  'HW': True,  'Function': delete_empty_folders,},
+  'AdwCleaner':             {'New': True,   'Dat': True,  'Cur': True,  'HW': False, 'Function': cleanup_adwcleaner,},
+  'Desktop':                {'New': True,   'Dat': True,  'Cur': True,  'HW': False, 'Function': cleanup_desktop,},
+  'KIT_NAME_FULL':          {'New': True,   'Dat': True,  'Cur': True,  'HW': True,  'Function': delete_empty_folders,},
 
   # System Info
   'Exporting system info':  {'Info': True},
-  'AIDA64 Report':          {'New': True,   'Fab': True,  'Cur': True,  'HW': False, 'Function': run_aida64,},
-  'File listing':           {'New': True,   'Fab': True,  'Cur': True,  'HW': False, 'Function': backup_file_list,},
-  'Power plans':            {'New': True,   'Fab': True,  'Cur': True,  'HW': True,  'Function': backup_power_plans,},
-  'Product Keys':           {'New': True,   'Fab': True,  'Cur': True,  'HW': True,  'Function': run_produkey,},
-  'Registry':               {'New': True,   'Fab': True,  'Cur': True,  'HW': True,  'Function': backup_registry,},
+  'AIDA64 Report':          {'New': True,   'Dat': True,  'Cur': True,  'HW': False, 'Function': run_aida64,},
+  'File listing':           {'New': True,   'Dat': True,  'Cur': True,  'HW': False, 'Function': backup_file_list,},
+  'Power plans':            {'New': True,   'Dat': True,  'Cur': True,  'HW': True,  'Function': backup_power_plans,},
+  'Product Keys':           {'New': True,   'Dat': True,  'Cur': True,  'HW': True,  'Function': run_produkey,},
+  'Registry':               {'New': True,   'Dat': True,  'Cur': True,  'HW': True,  'Function': backup_registry,},
 
   # Show Summary
   'Summary':                {'Info': True},
-  'Operating System':       {'New': True,   'Fab': True,  'Cur': True,  'HW': True,  'Function': show_os_name, 'KWArgs': {'ns': 'UNKNOWN', 'silent_function': False},},
-  'Activation':             {'New': True,   'Fab': True,  'Cur': True,  'HW': True,  'Function': show_os_activation, 'KWArgs': {'ns': 'UNKNOWN', 'silent_function': False},},
-  'BIOS Activation':        {'New': True,   'Fab': True,  'Cur': True,  'HW': False, 'Function': activate_with_bios, 'If not activated': True,},
-  'Secure Boot':            {'New': True,   'Fab': True,  'Cur': True,  'HW': True,  'Function': check_secure_boot_status, 'KWArgs': {'show_alert': False},},
-  'Installed RAM':          {'New': True,   'Fab': True,  'Cur': True,  'HW': True,  'Function': show_installed_ram, 'KWArgs': {'ns': 'UNKNOWN', 'silent_function': False},},
-  'Temp size':              {'New': False,  'Fab': False, 'Cur': True,  'HW': False, 'Function': show_temp_files_size, 'KWArgs': {'ns': 'UNKNOWN', 'silent_function': False},},
-  'Show free space':        {'New': True,   'Fab': True,  'Cur': True,  'HW': True,  'Function': show_free_space, 'Just run': True,},
-  'Installed AV':           {'New': True,   'Fab': True,  'Cur': True,  'HW': True,  'Function': get_installed_antivirus, 'KWArgs': {'ns': 'UNKNOWN', 'print_return': True},},
-  'Installed Office':       {'New': True,   'Fab': True,  'Cur': True,  'HW': False, 'Function': get_installed_office, 'KWArgs': {'ns': 'UNKNOWN', 'print_return': True},},
-  'Partitions 4K aligned':  {'New': True,   'Fab': True,  'Cur': True,  'HW': True,  'Function': check_4k_alignment, 'KWArgs': {'cs': 'TRUE', 'ns': 'FALSE'},},
+  'Operating System':       {'New': True,   'Dat': True,  'Cur': True,  'HW': True,  'Function': show_os_name, 'KWArgs': {'ns': 'UNKNOWN', 'silent_function': False},},
+  'Activation':             {'New': True,   'Dat': True,  'Cur': True,  'HW': True,  'Function': show_os_activation, 'KWArgs': {'ns': 'UNKNOWN', 'silent_function': False},},
+  'BIOS Activation':        {'New': True,   'Dat': True,  'Cur': True,  'HW': False, 'Function': activate_with_bios, 'If not activated': True,},
+  'Secure Boot':            {'New': True,   'Dat': True,  'Cur': True,  'HW': True,  'Function': check_secure_boot_status, 'KWArgs': {'show_alert': False},},
+  'Installed RAM':          {'New': True,   'Dat': True,  'Cur': True,  'HW': True,  'Function': show_installed_ram, 'KWArgs': {'ns': 'UNKNOWN', 'silent_function': False},},
+  'Temp size':              {'New': False,  'Dat': False, 'Cur': True,  'HW': False, 'Function': show_temp_files_size, 'KWArgs': {'ns': 'UNKNOWN', 'silent_function': False},},
+  'Show free space':        {'New': True,   'Dat': True,  'Cur': True,  'HW': True,  'Function': show_free_space, 'Just run': True,},
+  'Installed AV':           {'New': True,   'Dat': True,  'Cur': True,  'HW': True,  'Function': get_installed_antivirus, 'KWArgs': {'ns': 'UNKNOWN', 'print_return': True},},
+  'Installed Office':       {'New': True,   'Dat': True,  'Cur': True,  'HW': False, 'Function': get_installed_office, 'KWArgs': {'ns': 'UNKNOWN', 'print_return': True},},
+  'Partitions 4K aligned':  {'New': True,   'Dat': True,  'Cur': True,  'HW': True,  'Function': check_4k_alignment, 'KWArgs': {'cs': 'TRUE', 'ns': 'FALSE'},},
 
   # Open things
   'Opening Programs':       {'Info': True},
-  'Device Manager':         {'New': True,   'Fab': True,  'Cur': True,  'HW': True,  'Function': open_device_manager, 'KWArgs': {'cs': 'STARTED'},},
-  'HWiNFO sensors':         {'New': True,   'Fab': True,  'Cur': True,  'HW': True,  'Function': run_hwinfo_sensors, 'KWArgs': {'cs': 'STARTED'},},
-  'Speed test':             {'New': True,   'Fab': True,  'Cur': True,  'HW': True,  'Function': open_speedtest, 'KWArgs': {'cs': 'STARTED'},},
-  'Windows Updates':        {'New': True,   'Fab': True,  'Cur': True,  'HW': False, 'Function': open_windows_updates, 'KWArgs': {'cs': 'STARTED'},},
-  'Windows Activation':     {'New': True,   'Fab': True,  'Cur': True,  'HW': False, 'Function': open_windows_activation, 'If not activated': True, 'KWArgs': {'cs': 'STARTED'},},
-  'Sleep':                  {'New': True,   'Fab': True,  'Cur': True,  'HW': True,  'Function': sleep, 'Just run': True, 'KWArgs': {'seconds': 3},},
-  'XMPlay':                 {'New': True,   'Fab': True,  'Cur': True,  'HW': True,  'Function': run_xmplay, 'KWArgs': {'cs': 'STARTED'},},
+  'Device Manager':         {'New': True,   'Dat': True,  'Cur': True,  'HW': True,  'Function': open_device_manager, 'KWArgs': {'cs': 'STARTED'},},
+  'HWiNFO sensors':         {'New': True,   'Dat': True,  'Cur': True,  'HW': True,  'Function': run_hwinfo_sensors, 'KWArgs': {'cs': 'STARTED'},},
+  'Speed test':             {'New': True,   'Dat': True,  'Cur': True,  'HW': True,  'Function': open_speedtest, 'KWArgs': {'cs': 'STARTED'},},
+  'Windows Updates':        {'New': True,   'Dat': True,  'Cur': True,  'HW': False, 'Function': open_windows_updates, 'KWArgs': {'cs': 'STARTED'},},
+  'Windows Activation':     {'New': True,   'Dat': True,  'Cur': True,  'HW': False, 'Function': open_windows_activation, 'If not activated': True, 'KWArgs': {'cs': 'STARTED'},},
+  'Sleep':                  {'New': True,   'Dat': True,  'Cur': True,  'HW': True,  'Function': sleep, 'Just run': True, 'KWArgs': {'seconds': 3},},
+  'XMPlay':                 {'New': True,   'Dat': True,  'Cur': True,  'HW': True,  'Function': run_xmplay, 'KWArgs': {'cs': 'STARTED'},},
   })
 SETUP_ACTION_KEYS = (
   'Function',
@@ -125,15 +126,15 @@ SETUP_ACTION_KEYS = (
   )
 SETUP_QUESTIONS = {
   # AV
-  'MSE':          {'New': None,   'Fab': None,  'Cur': None,  'HW': False, 'Ninite': True},
+  'MSE':          {'New': None,   'Dat': None,  'Cur': None,  'HW': False, 'Ninite': True},
 
   # LibreOffice
-  'LibreOffice':  {'New': None,   'Fab': None,  'Cur': None,  'HW': False, 'Ninite': True},
+  'LibreOffice':  {'New': None,   'Dat': None,  'Cur': None,  'HW': False, 'Ninite': True},
 
   # Ninite
-  'Base':         {'New': True,   'Fab': True,  'Cur': True,  'HW': False, 'Ninite': True},
-  'Missing':      {'New': False,  'Fab': True,  'Cur': False, 'HW': False, 'Ninite': True},
-  'Standard':     {'New': True,   'Fab': True,  'Cur': False, 'HW': False, 'Ninite': True},
+  'Base':         {'New': True,   'Dat': True,  'Cur': True,  'HW': False, 'Ninite': True},
+  'Missing':      {'New': False,  'Dat': True,  'Cur': False, 'HW': False, 'Ninite': True},
+  'Standard':     {'New': True,   'Dat': True,  'Cur': False, 'HW': False, 'Ninite': True},
   }
 # pylint: enable=bad-whitespace,line-too-long
 
@@ -247,7 +248,7 @@ def get_mode():
   setup_mode = None
   mode_options = [
     {'Name': 'New', 'Display Name': 'New / Clean install (no data)'},
-    {'Name': 'Data', 'Display Name': 'Clean install with data migration'},
+    {'Name': 'Dat', 'Display Name': 'Clean install with data migration'},
     {'Name': 'Cur', 'Display Name': 'Original OS (post-repair or overinstall)'},
     {'Name': 'HW', 'Display Name': 'Hardware service (i.e. no software work)'},
     ]
