@@ -1,7 +1,9 @@
-# Wizard Kit: Functions - Cleanup
+'''Wizard Kit: Functions - Cleanup'''
+# pylint: disable=no-name-in-module,wildcard-import
+# vim: sts=2 sw=2 ts=2
 
-from functions.common import *
-
+from functions.setup import *
+from settings.cleanup import *
 
 def cleanup_adwcleaner():
   """Move AdwCleaner folders into the ClientDir."""
@@ -75,8 +77,7 @@ def cleanup_desktop():
 
   desktop_path = r'{USERPROFILE}\Desktop'.format(**global_vars['Env'])
   for entry in os.scandir(desktop_path):
-    # JRT, RKill, Shortcut cleaner
-    if re.search(r'^(JRT|RKill|sc-cleaner)', entry.name, re.IGNORECASE):
+    if DESKTOP_ITEMS.search(entry.name):
       dest_name = r'{}\{}'.format(dest_folder, entry.name)
       dest_name = non_clobber_rename(dest_name)
       shutil.move(entry.path, dest_name)
@@ -130,7 +131,14 @@ def delete_registry_value(hive, key, value):
     winreg.DeleteValue(k, value)
 
 
+def restore_default_uac():
+  """Restores default UAC settings via the registry."""
+  if global_vars['OS']['Version'] == '10':
+    write_registry_settings(UAC_DEFAULTS_WIN10, all_users=True)
+  else:
+    # Haven't checked Win8 settings, only applying minimum set
+    write_registry_settings(UAC_DEFAULTS_WIN7, all_users=True)
+
+
 if __name__ == '__main__':
   print("This file is not meant to be called directly.")
-
-# vim: sts=2 sw=2 ts=2

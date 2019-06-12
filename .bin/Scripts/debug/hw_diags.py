@@ -149,11 +149,14 @@ def save_debug_reports(state, global_vars):
         f.write('{}\n'.format(line))
 
 
-def upload_logdir(global_vars):
+def upload_logdir(global_vars, reason='Crash'):
   """Upload compressed LogDir to CRASH_SERVER."""
   source = global_vars['LogDir']
   source = source[source.rfind('/')+1:]
-  dest = '{}.txz'.format(source)
+  dest = 'HW-Diags_{reason}_{Date-Time}.txz'.format(
+    reason=reason,
+    **global_vars,
+    )
   data = None
 
   # Compress LogDir
@@ -166,7 +169,7 @@ def upload_logdir(global_vars):
     data = f.read()
 
   # Upload data
-  url = '{}/Crash_{}.txz'.format(CRASH_SERVER['Url'], source)
+  url = '{}/{}'.format(CRASH_SERVER['Url'], dest)
   r = requests.put(
     url,
     data=data,

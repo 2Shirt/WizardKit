@@ -4,6 +4,7 @@
 
 import os
 import re
+import sys
 import uuid
 
 KNOWN_NETWORKS = '/root/known_networks'
@@ -34,12 +35,20 @@ method=auto
 '''
 
 def get_user_name():
-  """Get real user name, returns str."""
+  """Get user name, returns str."""
   user = None
+
+  # Get running user
   if 'SUDO_USER' in os.environ:
     user = os.environ.get('SUDO_USER')
   else:
     user = os.environ.get('USER')
+
+  # Check if user manually specified
+  for a in sys.argv:
+    a = a.strip().lower()
+    if a.startswith('--user='):
+      user = a.replace('--user=', '')
 
   return user
 
@@ -54,7 +63,7 @@ if __name__ == '__main__':
   for ssid, password in known_networks.items():
     out_path = '{}/{}.nmconnection'.format(
       '/etc/NetworkManager/system-connections',
-      password,
+      ssid,
       )
     if not os.path.exists(out_path):
       with open(out_path, 'w') as f:

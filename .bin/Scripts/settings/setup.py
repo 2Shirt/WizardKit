@@ -1,13 +1,19 @@
-# Wizard Kit: Settings - Setup
+'''Wizard Kit: Settings - Setup'''
+# pylint: disable=bad-continuation,line-too-long
+# vim: sts=2 sw=2 ts=2
 
 import os
-import winreg
+try:
+  import winreg
+  HKU = winreg.HKEY_USERS
+  HKCR = winreg.HKEY_CLASSES_ROOT
+  HKCU = winreg.HKEY_CURRENT_USER
+  HKLM = winreg.HKEY_LOCAL_MACHINE
+except ImportError:
+  if os.name != 'posix':
+    raise
 
 # General
-HKU =  winreg.HKEY_USERS
-HKCR = winreg.HKEY_CLASSES_ROOT
-HKCU = winreg.HKEY_CURRENT_USER
-HKLM = winreg.HKEY_LOCAL_MACHINE
 OTHER_RESULTS = {
   'Error': {
     'CalledProcessError':   'Unknown Error',
@@ -92,6 +98,15 @@ SETTINGS_EXPLORER_SYSTEM = {
     },
   }
 SETTINGS_EXPLORER_USER = {
+  # Desktop theme
+  r'Software\Microsoft\Windows\CurrentVersion\Themes\Personalize': {
+    'Invalid modes': ['Cur'],
+    'DWORD Items': {
+      # <= v1809 default
+      'AppsUseLightTheme': 1,
+      'SystemUsesLightTheme': 0,
+      },
+    },
   # Disable features
   r'Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager': {
     'DWORD Items': {
@@ -104,20 +119,40 @@ SETTINGS_EXPLORER_USER = {
     },
   # File Explorer
   r'Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced': {
+    'Invalid modes': ['Cur'],
     'DWORD Items': {
       # Change default Explorer view to "Computer"
       'LaunchTo': 1,
       },
     },
+  r'SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced': {
+  # Dup path so it Will be applied to all modes
+    'DWORD Items': {
+      # Launch Folder Windows in a Separate Process
+      'SeparateProcess': 1,
+      },
+    },
   # Hide People bar
   r'Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced\People': {
+    'Invalid modes': ['Cur'],
     'DWORD Items': {'PeopleBand': 0},
     },
   # Hide Search button / box
   r'Software\Microsoft\Windows\CurrentVersion\Search': {
+    'Invalid modes': ['Cur'],
     'DWORD Items': {'SearchboxTaskbarMode': 0},
     },
   }
+
+# LibreOffice
+LIBREOFFICE_XCU_DATA = '''<?xml version="1.0" encoding="UTF-8"?>
+<oor:items xmlns:oor="http://openoffice.org/2001/registry" xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+<item oor:path="/org.openoffice.Setup/Office/Factories/org.openoffice.Setup:Factory['com.sun.star.presentation.PresentationDocument']"><prop oor:name="ooSetupFactoryDefaultFilter" oor:op="fuse"><value>Impress MS PowerPoint 2007 XML</value></prop></item>
+<item oor:path="/org.openoffice.Setup/Office/Factories/org.openoffice.Setup:Factory['com.sun.star.sheet.SpreadsheetDocument']"><prop oor:name="ooSetupFactoryDefaultFilter" oor:op="fuse"><value>Calc MS Excel 2007 XML</value></prop></item>
+<item oor:path="/org.openoffice.Setup/Office/Factories/org.openoffice.Setup:Factory['com.sun.star.text.TextDocument']"><prop oor:name="ooSetupFactoryDefaultFilter" oor:op="fuse"><value>MS Word 2007 XML</value></prop></item>
+<item oor:path="/org.openoffice.Office.Common/Save/Document"><prop oor:name="WarnAlienFormat" oor:op="fuse"><value>false</value></prop></item>
+</oor:items>
+'''
 
 # Visual C++ Runtimes
 VCR_REDISTS = [
@@ -157,5 +192,3 @@ SETTINGS_WINDOWS_UPDATES = {
 
 if __name__ == '__main__':
   print("This file is not meant to be called directly.")
-
-# vim: sts=2 sw=2 ts=2

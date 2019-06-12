@@ -1,4 +1,6 @@
-# Wizard Kit: Settings - Sources
+'''Wizard Kit: Settings - Sources'''
+# pylint: disable=line-too-long
+# vim: sts=2 sw=2 ts=2 tw=0
 
 SOURCE_URLS = {
   'Adobe Reader DC': 'http://ardownload.adobe.com/pub/adobe/reader/win/AcrobatDC/1901020098/AcroRdrDC1901020098_en_US.exe',
@@ -15,7 +17,7 @@ SOURCE_URLS = {
   'ERUNT': 'http://www.aumha.org/downloads/erunt.zip',
   'Everything32': 'https://www.voidtools.com/Everything-1.4.1.935.x86.en-US.zip',
   'Everything64': 'https://www.voidtools.com/Everything-1.4.1.935.x64.en-US.zip',
-  'FastCopy': 'http://ftp.vector.co.jp/71/31/2323/FastCopy363_installer.exe',
+  'FastCopy': 'https://fastcopy.jp/archive/FastCopy380_installer.exe',
   'Firefox uBO': 'https://addons.mozilla.org/firefox/downloads/file/1709472/ublock_origin-1.18.6-an+fx.xpi',
   'HitmanPro32': 'https://dl.surfright.nl/HitmanPro.exe',
   'HitmanPro64': 'https://dl.surfright.nl/HitmanPro_x64.exe',
@@ -23,6 +25,7 @@ SOURCE_URLS = {
   'Intel SSD Toolbox': r'https://downloadmirror.intel.com/28593/eng/Intel%20SSD%20Toolbox%20-%20v3.5.9.exe',
   'IOBit_Uninstaller': r'https://portableapps.com/redirect/?a=IObitUninstallerPortable&s=s&d=pa&f=IObitUninstallerPortable_7.5.0.7.paf.exe',
   'KVRT': 'http://devbuilds.kaspersky-labs.com/devbuilds/KVRT/latest/full/KVRT.exe',
+  'LibreOffice': 'https://download.documentfoundation.org/libreoffice/stable/6.2.4/win/x86_64/LibreOffice_6.2.4_Win_x64.msi',
   'Macs Fan Control': 'https://www.crystalidea.com/downloads/macsfancontrol_setup.exe',
   'NirCmd32': 'https://www.nirsoft.net/utils/nircmd.zip',
   'NirCmd64': 'https://www.nirsoft.net/utils/nircmd-x64.zip',
@@ -37,8 +40,8 @@ SOURCE_URLS = {
   'SDIO Torrent': 'http://snappy-driver-installer.org/downloads/SDIO_Update.torrent',
   'TDSSKiller': 'https://media.kaspersky.com/utilities/VirusUtilities/EN/tdsskiller.exe',
   'TestDisk': 'https://www.cgsecurity.org/testdisk-7.1-WIP.win.zip',
-  'wimlib32': 'https://wimlib.net/downloads/wimlib-1.13.0-windows-i686-bin.zip',
-  'wimlib64': 'https://wimlib.net/downloads/wimlib-1.13.0-windows-x86_64-bin.zip',
+  'wimlib32': 'https://wimlib.net/downloads/wimlib-1.13.1-windows-i686-bin.zip',
+  'wimlib64': 'https://wimlib.net/downloads/wimlib-1.13.1-windows-x86_64-bin.zip',
   'Winapp2': 'https://github.com/MoscaDotTo/Winapp2/archive/master.zip',
   'WizTree': 'https://antibody-software.com/files/wiztree_3_28_portable.zip',
   'XMPlay 7z': 'https://support.xmplay.com/files/16/xmp-7z.zip?v=800962',
@@ -66,10 +69,18 @@ VCREDIST_SOURCES = {
     '64': 'https://aka.ms/vs/15/release/vc_redist.x64.exe',
     },
   }
+NINITE_REGEX = {
+  'base': ['7-Zip', 'VLC'],
+  'standard': ['Google Chrome', 'Mozilla Firefox', 'SumatraPDF'],
+  'standard7': ['Google Chrome', 'Mozilla Firefox', 'SumatraPDF'],
+  }
 NINITE_SOURCES = {
   'Bundles': {
-    'Legacy.exe': '.net4.7.2-7zip-chrome-firefox-vlc',
-    'Modern.exe': '.net4.7.2-7zip-chrome-classicstart-firefox-vlc',
+    'base.exe': '.net4.7.2-7zip-vlc',
+    'base-standard.exe': '.net4.7.2-7zip-chrome-classicstart-firefox-sumatrapdf-vlc',
+    'base-standard7.exe': '.net4.7.2-7zip-chrome-firefox-sumatrapdf-vlc',
+    'standard.exe': 'chrome-classicstart-firefox-sumatrapdf',
+    'standard7.exe': 'chrome-firefox-sumatrapdf',
     },
   'Audio-Video': {
     'AIMP.exe': 'aimp',
@@ -216,5 +227,3 @@ WINDOWS_UPDATE_SOURCES = {
 
 if __name__ == '__main__':
   print("This file is not meant to be called directly.")
-
-# vim: sts=2 sw=2 ts=2 tw=0

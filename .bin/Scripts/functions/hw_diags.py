@@ -36,6 +36,7 @@ class CpuObj():
     self.tests = OrderedDict()
     self.get_details()
     self.name = self.lscpu.get('Model name', 'Unknown CPU')
+    self.description = self.name
 
   def get_details(self):
     """Get CPU details from lscpu."""
@@ -56,6 +57,13 @@ class CpuObj():
     report = []
     report.append('{BLUE}Device{CLEAR}'.format(**COLORS))
     report.append('  {}'.format(self.name))
+
+    # Include RAM details
+    ram_details = get_ram_details()
+    ram_total = human_readable_size(ram_details.pop('Total', 0)).strip()
+    ram_dimms = ['{}x {}'.format(v, k) for k, v in sorted(ram_details.items())]
+    report.append('{BLUE}RAM{CLEAR}'.format(**COLORS))
+    report.append('  {} ({})'.format(ram_total, ', '.join(ram_dimms)))
 
     # Tests
     for test in self.tests.values():
@@ -186,8 +194,8 @@ class DiskObj():
             disk_ok = False
 
             # Disable override if necessary
-            self.override_disabled |= ATTRIBUTES[attr_type][k].get(
-              'Critical', False)
+            if ATTRIBUTES[attr_type][k].get('Critical', False):
+              self.override_disabled = True
 
     # SMART overall assessment
     ## NOTE: Only fail drives if the overall value exists and reports failed
@@ -220,11 +228,12 @@ class DiskObj():
     # Done
     return test_running
 
-  def disable_test(self, name, status):
+  def disable_test(self, name, status, test_failed=False):
     """Disable test by name and update status."""
     if name in self.tests:
       self.tests[name].update_status(status)
       self.tests[name].disabled = True
+      self.tests[name].failed = test_failed
 
   def generate_attribute_report(
       self, description=False, timestamp=False):
@@ -306,6 +315,11 @@ class DiskObj():
       report.append('{BLUE}{attr_type} Notes{CLEAR}'.format(
         attr_type=self.attr_type, **COLORS))
       report.extend(sorted(self.nvme_smart_notes.keys()))
+
+    # 4K alignment check
+    if not self.is_4k_aligned():
+      report.append('{YELLOW}Warning{CLEAR}'.format(**COLORS))
+      report.append('  One or more partitions are not 4K aligned')
 
     # Tests
     for test in self.tests.values():
@@ -410,6 +424,26 @@ class DiskObj():
             'self_test', {}).get(
             k, {})
 
+  def is_4k_aligned(self):
+    """Check if partitions are 4K aligned, returns bool."""
+    cmd = [
+      'sudo',
+      'sfdisk',
+      '--json',
+      self.path,
+      ]
+    aligned = True
+
+    # Get partition details
+    json_data = get_json_from_command(cmd)
+
+    # Check partitions
+    for part in json_data.get('partitiontable', {}).get('partitions', []):
+      aligned = aligned and part.get('start', -1) % 4096 == 0
+
+    # Done
+    return aligned
+
   def safety_check(self, silent=False):
     """Run safety checks and disable tests if necessary."""
     test_running = False
@@ -454,7 +488,6 @@ class DiskObj():
         disk_ok = OVERRIDES_FORCED or ask('Run tests on this device anyway?')
         print_standard(' ')
 
-
     # Disable tests if necessary (statuses won't be overwritten)
     if test_running:
       if not silent:
@@ -463,7 +496,7 @@ class DiskObj():
       for t in ['badblocks', 'I/O Benchmark']:
         self.disable_test(t, 'Denied')
     elif not disk_ok:
-      self.disable_test('NVMe / SMART', 'NS')
+      self.disable_test('NVMe / SMART', 'NS', test_failed=True)
       for t in ['badblocks', 'I/O Benchmark']:
         self.disable_test(t, 'Denied')
 
@@ -471,6 +504,7 @@ class DiskObj():
 class State():
   """Object to track device objects and overall state."""
   def __init__(self):
+    self.args = None
     self.cpu = None
     self.disks = []
     self.panes = {}
@@ -498,6 +532,83 @@ class State():
         },
       })
 
+  def build_outer_panes(self):
+    """Build top and side panes."""
+    clear_screen()
+
+    # Top
+    self.panes['Top'] = tmux_split_window(
+      behind=True, lines=2, vertical=True,
+      text=TOP_PANE_TEXT)
+
+    # Started
+    self.panes['Started'] = tmux_split_window(
+      lines=SIDE_PANE_WIDTH, target_pane=self.panes['Top'],
+      text='{BLUE}Started{CLEAR}\n{s}'.format(
+        s=time.strftime("%Y-%m-%d %H:%M %Z"),
+        **COLORS))
+
+    # Progress
+    self.panes['Progress'] = tmux_split_window(
+      lines=SIDE_PANE_WIDTH,
+      watch=self.progress_out)
+
+  def fix_tmux_panes(self):
+    """Fix pane sizes if the window has been resized."""
+    needs_fixed = False
+
+    # Bail?
+    if not self.panes:
+      return
+
+    # Check layout
+    for k, v in self.tmux_layout.items():
+      if not  v.get('Check'):
+        # Not concerned with the size of this pane
+        continue
+      # Get target
+      target = None
+      if k != 'Current':
+        if k not in self.panes:
+          # Skip missing panes
+          continue
+        else:
+          target = self.panes[k]
+
+      # Check pane size
+      x, y = tmux_get_pane_size(pane_id=target)
+      if v.get('x', False) and v['x'] != x:
+        needs_fixed = True
+      if v.get('y', False) and v['y'] != y:
+        needs_fixed = True
+
+    # Bail?
+    if not needs_fixed:
+      return
+
+    # Update layout
+    for k, v in self.tmux_layout.items():
+      # Get target
+      target = None
+      if k != 'Current':
+        if k not in self.panes:
+          # Skip missing panes
+          continue
+        else:
+          target = self.panes[k]
+
+      # Resize pane
+      tmux_resize_pane(pane_id=target, **v)
+
+  def fix_tmux_panes_loop(self):
+    while True:
+      try:
+        self.fix_tmux_panes()
+        sleep(1)
+      except RuntimeError:
+        # Assuming layout definitions changes mid-run, ignoring
+        pass
+
   def init(self):
     """Remove test objects, set log, and add devices."""
     self.disks = []
@@ -505,14 +616,18 @@ class State():
       v['Objects'] = []
 
     # Update LogDir
-    if not self.quick_mode:
+    if self.quick_mode:
+      global_vars['LogDir'] = '{}/Logs/{}'.format(
+        global_vars['Env']['HOME'],
+        time.strftime('%Y-%m-%d_%H%M_%z'))
+    else:
       global_vars['LogDir'] = '{}/Logs/{}_{}'.format(
         global_vars['Env']['HOME'],
         get_ticket_number(),
         time.strftime('%Y-%m-%d_%H%M_%z'))
-      os.makedirs(global_vars['LogDir'], exist_ok=True)
-      global_vars['LogFile'] = '{}/Hardware Diagnostics.log'.format(
-        global_vars['LogDir'])
+    os.makedirs(global_vars['LogDir'], exist_ok=True)
+    global_vars['LogFile'] = '{}/Hardware Diagnostics.log'.format(
+      global_vars['LogDir'])
     self.progress_out = '{}/progress.out'.format(global_vars['LogDir'])
 
     # Add CPU
@@ -541,7 +656,13 @@ class State():
 
     # Start tmux thread
     self.tmux_layout = TMUX_LAYOUT.copy()
-    start_thread(fix_tmux_panes_loop, args=[self])
+    start_thread(self.fix_tmux_panes_loop)
+
+  def set_top_pane_text(self, text):
+    """Set top pane text using TOP_PANE_TEXT and provided text."""
+    tmux_update_pane(
+      self.panes['Top'],
+      text='{}\n{}'.format(TOP_PANE_TEXT, text))
 
 
 class TestObj():
@@ -576,28 +697,6 @@ class TestObj():
 
 
 # Functions
-def build_outer_panes(state):
-  """Build top and side panes."""
-  clear_screen()
-
-  # Top
-  state.panes['Top'] = tmux_split_window(
-    behind=True, lines=2, vertical=True,
-    text=TOP_PANE_TEXT)
-
-  # Started
-  state.panes['Started'] = tmux_split_window(
-    lines=SIDE_PANE_WIDTH, target_pane=state.panes['Top'],
-    text='{BLUE}Started{CLEAR}\n{s}'.format(
-      s=time.strftime("%Y-%m-%d %H:%M %Z"),
-      **COLORS))
-
-  # Progress
-  state.panes['Progress'] = tmux_split_window(
-    lines=SIDE_PANE_WIDTH,
-    watch=state.progress_out)
-
-
 def build_status_string(label, status, info_label=False):
   """Build status string with appropriate colors."""
   status_color = COLORS['CLEAR']
@@ -612,64 +711,6 @@ def build_status_string(label, status, info_label=False):
     s=status,
     s_w=SIDE_PANE_WIDTH-len(label),
     **COLORS)
-
-
-def fix_tmux_panes_loop(state):
-  while True:
-    try:
-      fix_tmux_panes(state)
-      sleep(1)
-    except RuntimeError:
-      # Assuming layout definitions changes mid-run, ignoring
-      pass
-
-
-def fix_tmux_panes(state):
-  """Fix pane sizes if the window has been resized."""
-  needs_fixed = False
-
-  # Bail?
-  if not state.panes:
-    return
-
-  # Check layout
-  for k, v in state.tmux_layout.items():
-    if not  v.get('Check'):
-      # Not concerned with the size of this pane
-      continue
-    # Get target
-    target = None
-    if k != 'Current':
-      if k not in state.panes:
-        # Skip missing panes
-        continue
-      else:
-        target = state.panes[k]
-
-    # Check pane size
-    x, y = tmux_get_pane_size(pane_id=target)
-    if v.get('x', False) and v['x'] != x:
-      needs_fixed = True
-    if v.get('y', False) and v['y'] != y:
-      needs_fixed = True
-
-  # Bail?
-  if not needs_fixed:
-    return
-
-  # Update layout
-  for k, v in state.tmux_layout.items():
-    # Get target
-    target = None
-    if k != 'Current':
-      if k not in state.panes:
-        # Skip missing panes
-        continue
-      else:
-        target = state.panes[k]
-
-    # Resize pane
-    tmux_resize_pane(pane_id=target, **v)
 
 
 def generate_horizontal_graph(rates, oneline=False):
@@ -731,6 +772,44 @@ def get_graph_step(rate, scale=16):
   return step
 
 
+def get_ram_details():
+  """Get RAM details via dmidecode, returns dict."""
+  cmd = ['sudo', 'dmidecode', '--type', 'memory']
+  manufacturer = 'UNKNOWN'
+  ram_details = {'Total': 0}
+  size = 0
+
+  # Get DMI data
+  result = run_program(cmd, encoding='utf-8', errors='ignore')
+  dmi_data = result.stdout.splitlines()
+
+  # Parse data
+  for line in dmi_data:
+    line = line.strip()
+    if line == 'Memory Device':
+      # Reset vars
+      manufacturer = 'UNKNOWN'
+      size = 0
+    elif line.startswith('Size:'):
+      size = convert_to_bytes(line.replace('Size: ', ''))
+    elif line.startswith('Manufacturer:'):
+      manufacturer = line.replace('Manufacturer: ', '')
+      if size > 0:
+        # Add RAM to list if slot populated
+        ram_str = '{} {}'.format(
+          human_readable_size(size).strip(),
+          manufacturer,
+          )
+        ram_details['Total'] += size
+        if ram_str in ram_details:
+          ram_details[ram_str] += 1
+        else:
+          ram_details[ram_str] = 1
+
+  # Done
+  return ram_details
+
+
 def get_read_rate(s):
   """Get read rate in bytes/s from dd progress output."""
   real_rate = None
@@ -743,6 +822,7 @@ def get_read_rate(s):
 def menu_diags(state, args):
   """Main menu to select and run HW tests."""
   args = [a.lower() for a in args]
+  state.args = args
   checkmark = '*'
   if 'DISPLAY' in global_vars['Env']:
     checkmark = '✓'
@@ -788,7 +868,7 @@ def menu_diags(state, args):
       # If so, verify no other tests are enabled and set quick_mode
       state.quick_mode = True
       for opt in main_options[3:4] + main_options[5:]:
-        state.quick_mode &= not opt['Enabled']
+        state.quick_mode = state.quick_mode and not opt['Enabled']
     else:
       state.quick_mode = False
 
@@ -884,10 +964,7 @@ def run_badblocks_test(state, test):
   update_progress_pane(state)
 
   # Update tmux layout
-  tmux_update_pane(
-    state.panes['Top'],
-    text='{}\n{}'.format(
-      TOP_PANE_TEXT, dev.description))
+  state.set_top_pane_text(dev.description)
 
   # Create monitor pane
   test.badblocks_out = '{}/badblocks_{}.out'.format(
@@ -970,10 +1047,11 @@ def run_hw_tests(state):
   """Run enabled hardware tests."""
   print_standard('Scanning devices...')
   state.init()
+  tests_enabled = False
 
   # Build Panes
   update_progress_pane(state)
-  build_outer_panes(state)
+  state.build_outer_panes()
 
   # Show selected tests and create TestObj()s
   print_info('Selected Tests:')
@@ -985,6 +1063,8 @@ def run_hw_tests(state):
       COLORS['CLEAR'],
       QUICK_LABEL if state.quick_mode and 'NVMe' in k else ''))
     if v['Enabled']:
+      tests_enabled = True
+
       # Create TestObj and track under both CpuObj/DiskObj and State
       if k in TESTS_CPU:
         test_obj = TestObj(
@@ -998,10 +1078,16 @@ def run_hw_tests(state):
           v['Objects'].append(test_obj)
   print_standard('')
 
+  # Bail if no tests selected
+  if not tests_enabled:
+    tmux_kill_pane(*state.panes.values())
+    return
+
   # Run disk safety checks (if necessary)
   _disk_tests_enabled = False
   for k in TESTS_DISK:
-    _disk_tests_enabled |= state.tests[k]['Enabled']
+    if state.tests[k]['Enabled']:
+      _disk_tests_enabled = True
   if _disk_tests_enabled:
     for disk in state.disks:
       try:
@@ -1039,7 +1125,7 @@ def run_hw_tests(state):
 
     # Rebuild panes
     update_progress_pane(state)
-    build_outer_panes(state)
+    state.build_outer_panes()
 
     # Mark unfinished tests as aborted
     for k, v in state.tests.items():
@@ -1051,8 +1137,22 @@ def run_hw_tests(state):
     # Update side pane
     update_progress_pane(state)
 
-  # Done
+  # Show results
   show_results(state)
+
+  # Upload for review
+  if ENABLED_UPLOAD_DATA and ask('Upload results for review?'):
+    try_and_print(
+      message='Saving debug reports...',
+      function=save_debug_reports,
+      state=state, global_vars=global_vars)
+    try_and_print(
+      message='Uploading Data...',
+      function=upload_logdir,
+      global_vars=global_vars,
+      reason='Review')
+
+  # Done
   sleep(1)
   if state.quick_mode:
     pause('Press Enter to exit... ')
@@ -1079,10 +1179,7 @@ def run_io_benchmark(state, test):
   update_progress_pane(state)
 
   # Update tmux layout
-  tmux_update_pane(
-    state.panes['Top'],
-    text='{}\n{}'.format(
-      TOP_PANE_TEXT, dev.description))
+  state.set_top_pane_text(dev.description)
   state.tmux_layout['Current'] = {'y': 15, 'Check': True}
 
   # Create monitor pane
@@ -1241,9 +1338,7 @@ def run_mprime_test(state, test):
   test.thermal_abort = False
 
   # Update tmux layout
-  tmux_update_pane(
-    state.panes['Top'],
-    text='{}\n{}'.format(TOP_PANE_TEXT, dev.name))
+  state.set_top_pane_text(dev.name)
 
   # Start live sensor monitor
   test.sensors_out = '{}/sensors.out'.format(global_vars['TmpDir'])
@@ -1406,7 +1501,7 @@ def run_mprime_test(state, test):
   # Add temps to report
   test.report.append('{BLUE}Temps{CLEAR}'.format(**COLORS))
   for line in generate_sensor_report(
-      test.sensor_data, 'Idle', 'Max', 'Cooldown', core_only=True):
+      test.sensor_data, 'Idle', 'Max', 'Cooldown', cpu_only=True):
     test.report.append('  {}'.format(line))
 
   # Add abort message(s)
@@ -1456,10 +1551,7 @@ def run_nvme_smart_tests(state, test, update_mode=False):
   update_progress_pane(state)
 
   # Update tmux layout
-  tmux_update_pane(
-    state.panes['Top'],
-    text='{}\n{}'.format(
-      TOP_PANE_TEXT, dev.description))
+  state.set_top_pane_text(dev.description)
 
   # SMART short self-test
   if dev.smart_attributes and not (state.quick_mode or update_mode):
@@ -1604,14 +1696,13 @@ def show_report(report, log_report=False):
 def show_results(state):
   """Show results for all tests."""
   clear_screen()
-  tmux_update_pane(
-    state.panes['Top'],
-    text='{}\nResults'.format(TOP_PANE_TEXT))
+  state.set_top_pane_text('Results')
 
   # CPU tests
   _enabled = False
   for k in TESTS_CPU:
-    _enabled |= state.tests[k]['Enabled']
+    if state.tests[k]['Enabled']:
+      _enabled = True
   if _enabled:
     print_success('CPU:'.format(k))
     show_report(state.cpu.generate_cpu_report(), log_report=True)
@@ -1620,7 +1711,8 @@ def show_results(state):
   # Disk tests
   _enabled = False
   for k in TESTS_DISK:
-    _enabled |= state.tests[k]['Enabled']
+    if state.tests[k]['Enabled']:
+      _enabled = True
   if _enabled:
     print_success('Disk{}:'.format(
       '' if len(state.disks) == 1 else 's'))
@@ -1633,17 +1725,6 @@ def show_results(state):
 
   # Update progress
   update_progress_pane(state)
-
-  # Ask for review
-  if ENABLED_UPLOAD_DATA and ask('Upload results for review?'):
-    try_and_print(
-      message='Saving debug reports...',
-      function=save_debug_reports,
-      state=state, global_vars=global_vars)
-    try_and_print(
-      message='Uploading Data...',
-      function=upload_logdir,
-      global_vars=global_vars)
 
 
 def update_main_options(state, selection, main_options):

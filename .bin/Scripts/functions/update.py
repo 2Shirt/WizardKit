@@ -615,6 +615,22 @@ def update_adobe_reader_dc():
     dest, 'Adobe Reader DC.exe', SOURCE_URLS['Adobe Reader DC'])
 
 
+def update_libreoffice():
+  # Prep
+  dest = r'{}\Installers\Extras\Office'.format(
+    global_vars['BaseDir'])
+
+  # Remove existing installer
+  try:
+    os.remove(r'{}\LibreOffice.msi'.format(dest))
+  except FileNotFoundError:
+    pass
+
+  # Download
+  download_generic(
+    dest, 'LibreOffice.msi', SOURCE_URLS['LibreOffice'])
+
+
 def update_macs_fan_control():
   # Prep
   dest = r'{}\Installers'.format(

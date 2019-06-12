@@ -38,7 +38,7 @@ if __name__ == '__main__':
       if repair:
         cs = 'Scheduled'
       else:
-        cs = 'CS'
+        cs = 'No issues'
       message = 'CHKDSK ({SYSTEMDRIVE})...'.format(**global_vars['Env'])
       try_and_print(message=message, function=run_chkdsk,
         cs=cs, other_results=other_results, repair=repair)

@@ -60,16 +60,16 @@ def confirm_selections(args):
 
 def copy_source(source, items, overwrite=False):
   """Copy source items to /mnt/UFD."""
-  is_iso = source.name.lower().endswith('.iso')
+  is_image = source.is_file()
 
   # Mount source if necessary
-  if is_iso:
+  if is_image:
     mount(source, '/mnt/Source')
 
   # Copy items
   for i_source, i_dest in items:
     i_source = '{}{}'.format(
-      '/mnt/Source' if is_iso else source,
+      '/mnt/Source' if is_image else source,
       i_source,
       )
     i_dest = '/mnt/UFD{}'.format(i_dest)
@@ -80,7 +80,7 @@ def copy_source(source, items, overwrite=False):
       pass
 
   # Unmount source if necessary
-  if is_iso:
+  if is_image:
     unmount('/mnt/Source')
 
 
@@ -199,6 +199,8 @@ def is_valid_path(path_obj, path_type):
     valid_path = path_obj.is_dir()
   elif path_type == 'KIT':
     valid_path = path_obj.is_dir() and path_obj.joinpath('.bin').exists()
+  elif path_type == 'IMG':
+    valid_path = path_obj.is_file() and path_obj.suffix.lower() == '.img'
   elif path_type == 'ISO':
     valid_path = path_obj.is_file() and path_obj.suffix.lower() == '.iso'
   elif path_type == 'UFD':
@@ -207,10 +209,16 @@ def is_valid_path(path_obj, path_type):
   return valid_path
 
 
-def mount(mount_source, mount_point):
+def mount(mount_source, mount_point, read_write=False):
   """Mount mount_source on mount_point."""
   os.makedirs(mount_point, exist_ok=True)
-  cmd = ['mount', mount_source, mount_point]
+  cmd = [
+    'mount',
+    mount_source,
+    mount_point,
+    '-o',
+    'rw' if read_write else 'ro',
+    ]
   run_program(cmd)
 
 

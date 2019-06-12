@@ -1,25 +1,25 @@
-# Wizard Kit: Functions - ddrescue-tui
+# pylint: disable=no-name-in-module,too-many-lines,wildcard-import
+# vim: sts=2 sw=2 ts=2
+'''Wizard Kit: Functions - ddrescue-tui'''
 
 import datetime
 import pathlib
-import psutil
-import pytz
 import re
-import signal
 import stat
 import time
+from operator import itemgetter
 
-from collections import OrderedDict
+import pytz
 from functions.data import *
 from functions.hw_diags import *
 from functions.json import *
 from functions.tmux import *
-from operator import itemgetter
 from settings.ddrescue import *
 
 
 # Clases
 class BaseObj():
+  # pylint: disable=missing-docstring
   """Base object used by DevObj, DirObj, and ImageObj."""
   def __init__(self, path):
     self.type = 'base'
@@ -44,6 +44,7 @@ class BaseObj():
 
 
 class BlockPair():
+  # pylint: disable=too-many-instance-attributes
   """Object to track data and methods together for source and dest."""
   def __init__(self, mode, source, dest):
     self.mode = mode
@@ -60,9 +61,10 @@ class BlockPair():
     if self.mode == 'clone':
       # Cloning
       self.dest_path = dest.path
-      self.map_path = '{pwd}/Clone_{prefix}.map'.format(
-        pwd=os.path.realpath(global_vars['Env']['PWD']),
-        prefix=source.prefix)
+      self.map_path = '{cwd}/Clone_{prefix}.map'.format(
+        cwd=os.path.realpath(os.getcwd()),
+        prefix=source.prefix,
+        )
     else:
       # Imaging
       self.dest_path = '{path}/{prefix}.dd'.format(
@@ -105,19 +107,19 @@ class BlockPair():
   def load_map_data(self):
     """Load data from map file and set progress."""
     map_data = read_map_file(self.map_path)
-    self.rescued_percent = map_data['rescued']
-    self.rescued = (self.rescued_percent * self.size) / 100
+    self.rescued = map_data.get('rescued', 0)
+    self.rescued_percent = (self.rescued / self.size) * 100
     if map_data['full recovery']:
       self.pass_done = [True, True, True]
       self.rescued = self.size
       self.status = ['Skipped', 'Skipped', 'Skipped']
-    elif map_data['non-tried'] > 0:
+    elif map_data.get('non-tried', 0) > 0:
       # Initial pass incomplete
       pass
-    elif map_data['non-trimmed'] > 0:
+    elif map_data.get('non-trimmed', 0) > 0:
       self.pass_done = [True, False, False]
       self.status = ['Skipped', 'Pending', 'Pending']
-    elif map_data['non-scraped'] > 0:
+    elif map_data.get('non-scraped', 0) > 0:
       self.pass_done = [True, True, False]
       self.status = ['Skipped', 'Skipped', 'Pending']
     else:
@@ -145,14 +147,15 @@ class BlockPair():
     """Update progress using map file."""
     if os.path.exists(self.map_path):
       map_data = read_map_file(self.map_path)
-      self.rescued_percent = map_data.get('rescued', 0)
-      self.rescued = (self.rescued_percent * self.size) / 100
+      self.rescued = map_data.get('rescued', 0)
+      self.rescued_percent = (self.rescued / self.size) * 100
       self.status[pass_num] = get_formatted_status(
         label='Pass {}'.format(pass_num+1),
         data=(self.rescued/self.size)*100)
 
 
 class DevObj(BaseObj):
+  # pylint: disable=too-many-instance-attributes
   """Block device object."""
   def self_check(self):
     """Verify that self.path points to a block device."""
@@ -186,6 +189,7 @@ class DevObj(BaseObj):
     self.update_filename_prefix()
 
   def update_filename_prefix(self):
+    # pylint: disable=attribute-defined-outside-init
     """Set filename prefix based on details."""
     self.prefix = '{m_size}_{model}'.format(
       m_size=self.model_size,
@@ -205,6 +209,7 @@ class DevObj(BaseObj):
 
 
 class DirObj(BaseObj):
+  """Directory object."""
   def self_check(self):
     """Verify that self.path points to a directory."""
     if not pathlib.Path(self.path).is_dir():
@@ -222,6 +227,7 @@ class DirObj(BaseObj):
 
 
 class ImageObj(BaseObj):
+  """Image file object."""
   def self_check(self):
     """Verify that self.path points to a file."""
     if not pathlib.Path(self.path).is_file():
@@ -243,10 +249,11 @@ class ImageObj(BaseObj):
     self.report = get_device_report(self.loop_dev)
     self.report = self.report.replace(
       self.loop_dev[self.loop_dev.rfind('/')+1:], '(Img)')
-    run_program(['losetup', '--detach', self.loop_dev], check=False)
+    run_program(['sudo', 'losetup', '--detach', self.loop_dev], check=False)
 
 
 class RecoveryState():
+  # pylint: disable=too-many-instance-attributes
   """Object to track BlockPair objects and overall state."""
   def __init__(self, mode, source, dest):
     self.mode = mode.lower()
@@ -270,6 +277,7 @@ class RecoveryState():
     if mode not in ('clone', 'image'):
       raise GenericError('Unsupported mode')
     self.get_smart_source()
+    self.set_working_dir()
 
   def add_block_pair(self, source, dest):
     """Run safety checks and append new BlockPair to internal list."""
@@ -314,19 +322,133 @@ class RecoveryState():
     # Safety checks passed
     self.block_pairs.append(BlockPair(self.mode, source, dest))
 
+  def build_outer_panes(self):
+    """Build top and side panes."""
+    clear_screen()
+
+    # Top
+    self.panes['Source'] = tmux_split_window(
+      behind=True, vertical=True, lines=2,
+      text='{BLUE}Source{CLEAR}'.format(**COLORS))
+
+    # Started
+    self.panes['Started'] = tmux_split_window(
+      lines=SIDE_PANE_WIDTH, target_pane=self.panes['Source'],
+      text='{BLUE}Started{CLEAR}\n{s}'.format(
+        s=time.strftime("%Y-%m-%d %H:%M %Z"),
+        **COLORS))
+
+    # Destination
+    self.panes['Destination'] = tmux_split_window(
+      percent=50, target_pane=self.panes['Source'],
+      text='{BLUE}Destination{CLEAR}'.format(**COLORS))
+
+    # Progress
+    update_sidepane(self)
+    self.panes['Progress'] = tmux_split_window(
+      lines=SIDE_PANE_WIDTH, watch=self.progress_out)
+
   def current_pass_done(self):
     """Checks if pass is done for all block-pairs, returns bool."""
     done = True
-    for bp in self.block_pairs:
-      done &= bp.pass_done[self.current_pass]
+    for b_pair in self.block_pairs:
+      done = done and b_pair.pass_done[self.current_pass]
     return done
 
   def current_pass_min(self):
     """Gets minimum pass rescued percentage, returns float."""
     min_percent = 100
-    for bp in self.block_pairs:
-      min_percent = min(min_percent, bp.rescued_percent)
+    for b_pair in self.block_pairs:
+      min_percent = min(min_percent, b_pair.rescued_percent)
     return min_percent
+
+  def fix_tmux_panes(self, forced=False):
+    # pylint: disable=too-many-branches,too-many-locals
+    """Fix pane sizes if the winodw has been resized."""
+    needs_fixed = False
+
+    # Check layout
+    for pane, pane_data in TMUX_LAYOUT.items():
+      if not  pane_data.get('Check'):
+        # Not concerned with the size of this pane
+        continue
+      # Get target
+      target = None
+      if pane != 'Current':
+        if pane not in self.panes:
+          # Skip missing panes
+          continue
+        else:
+          target = self.panes[pane]
+
+      # Check pane size
+      size_x, size_y = tmux_get_pane_size(pane_id=target)
+      if pane_data.get('x', False) and pane_data['x'] != size_x:
+        needs_fixed = True
+      if pane_data.get('y', False) and pane_data['y'] != size_y:
+        needs_fixed = True
+
+    # Bail?
+    if not needs_fixed and not forced:
+      return
+
+    # Remove Destination pane (temporarily)
+    tmux_kill_pane(self.panes['Destination'])
+
+    # Update layout
+    for pane, pane_data in TMUX_LAYOUT.items():
+      # Get target
+      target = None
+      if pane != 'Current':
+        if pane not in self.panes:
+          # Skip missing panes
+          continue
+        else:
+          target = self.panes[pane]
+
+      # Resize pane
+      tmux_resize_pane(pane_id=target, **pane_data)
+
+    # Calc Source/Destination pane sizes
+    width, height = tmux_get_pane_size()
+    width = int(width / 2) - 1
+
+    # Update Source string
+    source_str = self.source.name
+    if len(source_str) > width:
+      source_str = '{}...'.format(source_str[:width-3])
+
+    # Update Destination string
+    dest_str = self.dest.name
+    if len(dest_str) > width:
+      if self.mode == 'clone':
+        dest_str = '{}...'.format(dest_str[:width-3])
+      else:
+        dest_str = '...{}'.format(dest_str[-width+3:])
+
+    # Rebuild Source/Destination panes
+    tmux_update_pane(
+      pane_id=self.panes['Source'],
+      text='{BLUE}Source{CLEAR}\n{s}'.format(
+        s=source_str, **COLORS))
+    self.panes['Destination'] = tmux_split_window(
+      percent=50, target_pane=self.panes['Source'],
+      text='{BLUE}Destination{CLEAR}\n{s}'.format(
+        s=dest_str, **COLORS))
+
+    if 'SMART' in self.panes:
+      # Calc SMART/ddrescue/Journal panes sizes
+      ratio = [12, 22, 4]
+      width, height = tmux_get_pane_size(pane_id=self.panes['Progress'])
+      height -= 2
+      total = sum(ratio)
+      p_ratio = [int((x/total) * height) for x in ratio]
+      p_ratio[1] = height - p_ratio[0] - p_ratio[2]
+
+      # Resize SMART/Journal panes
+      tmux_resize_pane(self.panes['SMART'], y=ratio[0])
+      tmux_resize_pane(y=ratio[1])
+      tmux_resize_pane(self.panes['Journal'], y=ratio[2])
 
   def get_smart_source(self):
     """Get source for SMART dispay."""
@@ -339,18 +461,15 @@ class RecoveryState():
   def retry_all_passes(self):
     """Mark all passes as pending for all block-pairs."""
     self.finished = False
-    for bp in self.block_pairs:
-      bp.pass_done = [False, False, False]
-      bp.status = ['Pending', 'Pending', 'Pending']
-      bp.fix_status_strings()
+    for b_pair in self.block_pairs:
+      b_pair.pass_done = [False, False, False]
+      b_pair.status = ['Pending', 'Pending', 'Pending']
+      b_pair.fix_status_strings()
     self.set_pass_num()
 
   def self_checks(self):
     """Run self-checks and update state values."""
     cmd = ['findmnt', '--json', '--target', os.getcwd()]
-    map_allowed_fstypes = RECOMMENDED_FSTYPES.copy()
-    map_allowed_fstypes.extend(['cifs', 'ext2', 'vfat'])
-    map_allowed_fstypes.sort()
     json_data = get_json_from_command(cmd)
 
     # Abort if json_data is empty
@@ -361,23 +480,24 @@ class RecoveryState():
     # Avoid saving map to non-persistent filesystem
     fstype = json_data.get(
       'filesystems', [{}])[0].get(
-      'fstype', 'unknown')
-    if fstype not in map_allowed_fstypes:
+        'fstype', 'unknown')
+    if fstype not in RECOMMENDED_MAP_FSTYPES:
       print_error(
         "Map isn't being saved to a recommended filesystem ({})".format(
           fstype.upper()))
       print_info('Recommended types are: {}'.format(
-        ' / '.join(map_allowed_fstypes).upper()))
+        ' / '.join(RECOMMENDED_MAP_FSTYPES).upper()))
       print_standard(' ')
       if not ask('Proceed anyways? (Strongly discouraged)'):
         raise GenericAbort()
 
     # Run BlockPair self checks and get total size
     self.total_size = 0
-    for bp in self.block_pairs:
-      bp.self_check()
-      self.resumed |= bp.resumed
-      self.total_size += bp.size
+    for b_pair in self.block_pairs:
+      b_pair.self_check()
+      if b_pair.resumed:
+        self.resumed = True
+      self.total_size += b_pair.size
 
   def set_pass_num(self):
     """Set current pass based on all block-pair's progress."""
@@ -385,8 +505,8 @@ class RecoveryState():
     for pass_num in (2, 1, 0):
       # Iterate backwards through passes
       pass_done = True
-      for bp in self.block_pairs:
-        pass_done &= bp.pass_done[pass_num]
+      for b_pair in self.block_pairs:
+        pass_done = pass_done and b_pair.pass_done[pass_num]
       if pass_done:
         # All block-pairs reported being done
         # Set to next pass, unless we're on the last pass (2)
@@ -404,6 +524,34 @@ class RecoveryState():
     elif self.current_pass == 2:
       self.current_pass_str = '3 "Scraping bad areas"'
 
+  def set_working_dir(self):
+    # pylint: disable=no-self-use
+    """Set working dir to MAP_DIR if possible.
+
+    NOTE: This is to help ensure the map file
+          is saved to non-volatile storage."""
+    map_dir = '{}/{}'.format(MAP_DIR, global_vars['Date-Time'])
+
+    # Mount backup shares
+    mount_backup_shares(read_write=True)
+
+    # Get MAP_DIR filesystem type
+    # NOTE: If the backup share fails to mount then this will
+    #       likely be the type of /
+    cmd = [
+      'findmnt',
+      '--noheadings',
+      '--target', MAP_DIR,
+      '--output', 'FSTYPE',
+      ]
+    result = run_program(cmd, check=False, encoding='utf-8', errors='ingnore')
+    map_dir_type = result.stdout.strip().lower()
+
+    # Change working dir if map_dir_type is acceptable
+    if map_dir_type in RECOMMENDED_MAP_FSTYPES:
+      os.makedirs(map_dir, exist_ok=True)
+      os.chdir(map_dir)
+
   def update_etoc(self):
     """Search ddrescue output for the current EToC, returns str."""
     now = datetime.datetime.now(tz=self.timezone)
@@ -413,7 +561,7 @@ class RecoveryState():
       # Just set to N/A (NOTE: this overrules the refresh rate below)
       self.etoc = 'N/A'
       return
-    elif 'In Progress' not in self.status:
+    if 'In Progress' not in self.status:
       # Don't update when EToC is hidden
       return
     if now.second % ETOC_REFRESH_RATE != 0:
@@ -427,13 +575,14 @@ class RecoveryState():
     # Capture main tmux pane
     try:
       text = tmux_capture_pane()
-    except Exception:
+    except Exception: # pylint: disable=broad-except
       # Ignore
       pass
 
     # Search for EToC delta
     matches = re.findall(r'remaining time:.*$', text, re.MULTILINE)
     if matches:
+      # pylint: disable=invalid-name
       r = REGEX_REMAINING_TIME.search(matches[-1])
       if r.group('na'):
         self.etoc = 'N/A'
@@ -450,7 +599,7 @@ class RecoveryState():
             minutes=int(minutes),
             seconds=int(seconds),
             )
-        except Exception:
+        except Exception: # pylint: disable=broad-except
           # Ignore and leave as raw string
           pass
 
@@ -460,15 +609,16 @@ class RecoveryState():
         now = datetime.datetime.now(tz=self.timezone)
         _etoc = now + etoc_delta
         self.etoc = _etoc.strftime('%Y-%m-%d %H:%M %Z')
-      except Exception:
+      except Exception: # pylint: disable=broad-except
         # Ignore and leave as current string
         pass
 
   def update_progress(self):
+    # pylint: disable=attribute-defined-outside-init
     """Update overall progress using block_pairs."""
     self.rescued = 0
-    for bp in self.block_pairs:
-      self.rescued += bp.rescued
+    for b_pair in self.block_pairs:
+      self.rescued += b_pair.rescued
     self.rescued_percent = (self.rescued / self.total_size) * 100
     self.status_percent = get_formatted_status(
       label='Recovered:', data=self.rescued_percent)
@@ -477,26 +627,6 @@ class RecoveryState():
 
 
 # Functions
-def build_outer_panes(state):
-  """Build top and side panes."""
-  state.panes['Source'] = tmux_split_window(
-    behind=True, vertical=True, lines=2,
-    text='{BLUE}Source{CLEAR}'.format(**COLORS))
-  state.panes['Started'] = tmux_split_window(
-    lines=SIDE_PANE_WIDTH, target_pane=state.panes['Source'],
-    text='{BLUE}Started{CLEAR}\n{s}'.format(
-      s=time.strftime("%Y-%m-%d %H:%M %Z"),
-      **COLORS))
-  state.panes['Destination'] = tmux_split_window(
-    percent=50, target_pane=state.panes['Source'],
-    text='{BLUE}Destination{CLEAR}'.format(**COLORS))
-
-  # Side pane
-  update_sidepane(state)
-  state.panes['Progress'] = tmux_split_window(
-    lines=SIDE_PANE_WIDTH, watch=state.progress_out)
-
-
 def create_path_obj(path):
   """Create Dev, Dir, or Image obj based on path given."""
   obj = None
@@ -514,99 +644,14 @@ def create_path_obj(path):
 def double_confirm_clone():
   """Display warning and get 2nd confirmation, returns bool."""
   print_standard('\nSAFETY CHECK')
-  print_warning('All data will be DELETED from the '
-          'destination device and partition(s) listed above.')
-  print_warning('This is irreversible and will lead '
-          'to {CLEAR}{RED}DATA LOSS.'.format(**COLORS))
+  print_warning(
+    'All data will be DELETED from the '
+    'destination device and partition(s) listed above.'
+    )
+  print_warning(
+    'This is irreversible and will lead to {CLEAR}{RED}DATA LOSS.'.format(
+      **COLORS))
   return ask('Asking again to confirm, is this correct?')
-
-
-def fix_tmux_panes(state, forced=False):
-  """Fix pane sizes if the winodw has been resized."""
-  needs_fixed = False
-
-  # Check layout
-  for k, v in TMUX_LAYOUT.items():
-    if not  v.get('Check'):
-      # Not concerned with the size of this pane
-      continue
-    # Get target
-    target = None
-    if k != 'Current':
-      if k not in state.panes:
-        # Skip missing panes
-        continue
-      else:
-        target = state.panes[k]
-
-    # Check pane size
-    x, y = tmux_get_pane_size(pane_id=target)
-    if v.get('x', False) and v['x'] != x:
-      needs_fixed = True
-    if v.get('y', False) and v['y'] != y:
-      needs_fixed = True
-
-  # Bail?
-  if not needs_fixed and not forced:
-    return
-
-  # Remove Destination pane (temporarily)
-  tmux_kill_pane(state.panes['Destination'])
-
-  # Update layout
-  for k, v in TMUX_LAYOUT.items():
-    # Get target
-    target = None
-    if k != 'Current':
-      if k not in state.panes:
-        # Skip missing panes
-        continue
-      else:
-        target = state.panes[k]
-
-    # Resize pane
-    tmux_resize_pane(pane_id=target, **v)
-
-  # Calc Source/Destination pane sizes
-  width, height = tmux_get_pane_size()
-  width = int(width / 2) - 1
-
-  # Update Source string
-  source_str = state.source.name
-  if len(source_str) > width:
-    source_str = '{}...'.format(source_str[:width-3])
-
-  # Update Destination string
-  dest_str = state.dest.name
-  if len(dest_str) > width:
-    if state.mode == 'clone':
-      dest_str = '{}...'.format(dest_str[:width-3])
-    else:
-      dest_str = '...{}'.format(dest_str[-width+3:])
-
-  # Rebuild Source/Destination panes
-  tmux_update_pane(
-    pane_id=state.panes['Source'],
-    text='{BLUE}Source{CLEAR}\n{s}'.format(
-      s=source_str, **COLORS))
-  state.panes['Destination'] = tmux_split_window(
-    percent=50, target_pane=state.panes['Source'],
-    text='{BLUE}Destination{CLEAR}\n{s}'.format(
-      s=dest_str, **COLORS))
-
-  if 'SMART' in state.panes:
-    # Calc SMART/ddrescue/Journal panes sizes
-    ratio = [12, 22, 4]
-    width, height = tmux_get_pane_size(pane_id=state.panes['Progress'])
-    height -= 2
-    total = sum(ratio)
-    p_ratio = [int((x/total) * height) for x in ratio]
-    p_ratio[1] = height - p_ratio[0] - p_ratio[2]
-
-    # Resize SMART/Journal panes
-    tmux_resize_pane(state.panes['SMART'], y=ratio[0])
-    tmux_resize_pane(y=ratio[1])
-    tmux_resize_pane(state.panes['Journal'], y=ratio[2])
 
 
 def get_device_details(dev_path):
@@ -677,22 +722,22 @@ def get_dir_report(dir_path):
       output.append('{BLUE}{label:<{width}}{line}{CLEAR}'.format(
         label='PATH',
         width=width,
-        line=line.replace('\n',''),
+        line=line.replace('\n', ''),
         **COLORS))
     else:
       output.append('{path:<{width}}{line}'.format(
         path=dir_path,
         width=width,
-        line=line.replace('\n','')))
+        line=line.replace('\n', '')))
 
   # Done
   return '\n'.join(output)
 
 
-def get_size_in_bytes(s):
+def get_size_in_bytes(size):
   """Convert size string from lsblk string to bytes, returns int."""
-  s = re.sub(r'(\d+\.?\d*)\s*([KMGTB])B?', r'\1 \2B', s, re.IGNORECASE)
-  return convert_to_bytes(s)
+  size = re.sub(r'(\d+\.?\d*)\s*([KMGTB])B?', r'\1 \2B', size, re.IGNORECASE)
+  return convert_to_bytes(size)
 
 
 def get_formatted_status(label, data):
@@ -700,13 +745,15 @@ def get_formatted_status(label, data):
   data_width = SIDE_PANE_WIDTH - len(label)
   try:
     data_str = '{data:>{data_width}.2f} %'.format(
-    data=data,
-    data_width=data_width-2)
+      data=data,
+      data_width=data_width-2,
+      )
   except ValueError:
     # Assuming non-numeric data
     data_str = '{data:>{data_width}}'.format(
-    data=data,
-    data_width=data_width)
+      data=data,
+      data_width=data_width,
+      )
   status = '{label}{s_color}{data_str}{CLEAR}'.format(
     label=label,
     s_color=get_status_color(data),
@@ -715,19 +762,19 @@ def get_formatted_status(label, data):
   return status
 
 
-def get_status_color(s, t_success=99, t_warn=90):
+def get_status_color(status, t_success=99, t_warn=90):
   """Get color based on status, returns str."""
   color = COLORS['CLEAR']
   p_recovered = -1
   try:
-    p_recovered = float(s)
+    p_recovered = float(status)
   except ValueError:
     # Status is either in lists below or will default to red
     pass
 
-  if s in ('Pending',) or str(s)[-2:] in (' b', 'Kb', 'Mb', 'Gb', 'Tb'):
+  if status == 'Pending' or str(status)[-2:] in (' b', 'Kb', 'Mb', 'Gb', 'Tb'):
     color = COLORS['CLEAR']
-  elif s in ('Skipped', 'Unknown'):
+  elif status in ('Skipped', 'Unknown'):
     color = COLORS['YELLOW']
   elif p_recovered >= t_success:
     color = COLORS['GREEN']
@@ -742,9 +789,9 @@ def is_writable_dir(dir_obj):
   """Check if we have read-write-execute permissions, returns bool."""
   is_ok = True
   path_st_mode = os.stat(dir_obj.path).st_mode
-  is_ok == is_ok and path_st_mode & stat.S_IRUSR
-  is_ok == is_ok and path_st_mode & stat.S_IWUSR
-  is_ok == is_ok and path_st_mode & stat.S_IXUSR
+  is_ok = is_ok and path_st_mode & stat.S_IRUSR
+  is_ok = is_ok and path_st_mode & stat.S_IWUSR
+  is_ok = is_ok and path_st_mode & stat.S_IXUSR
   return is_ok
 
 
@@ -754,6 +801,7 @@ def is_writable_filesystem(dir_obj):
 
 
 def menu_ddrescue(source_path, dest_path, run_mode):
+  # pylint: disable=too-many-branches
   """ddrescue menu."""
   source = None
   dest = None
@@ -797,9 +845,8 @@ def menu_ddrescue(source_path, dest_path, run_mode):
     raise GenericAbort()
 
   # Main menu
-  clear_screen()
-  build_outer_panes(state)
-  fix_tmux_panes(state, forced=True)
+  state.build_outer_panes()
+  state.fix_tmux_panes(forced=True)
   menu_main(state)
 
   # Done
@@ -808,6 +855,7 @@ def menu_ddrescue(source_path, dest_path, run_mode):
 
 
 def menu_main(state):
+  # pylint: disable=too-many-branches,too-many-statements
   """Main menu is used to set ddrescue settings."""
   checkmark = '*'
   if 'DISPLAY' in global_vars['Env']:
@@ -818,16 +866,15 @@ def menu_main(state):
   # Build menu
   main_options = [
     {'Base Name': 'Auto continue (if recovery % over threshold)',
-      'Enabled': True},
+     'Enabled': True},
     {'Base Name': 'Retry (mark non-rescued sectors "non-tried")',
-      'Enabled': False},
+     'Enabled': False},
     {'Base Name': 'Reverse direction', 'Enabled': False},
     ]
   actions = [
     {'Name': 'Start', 'Letter': 'S'},
-    {'Name': 'Change settings {YELLOW}(experts only){CLEAR}'.format(
-      **COLORS),
-      'Letter': 'C'},
+    {'Name': 'Change settings {YELLOW}(experts only){CLEAR}'.format(**COLORS),
+     'Letter': 'C'},
     {'Name': 'Quit', 'Letter': 'Q', 'CRLF': True},
     ]
 
@@ -858,13 +905,13 @@ def menu_main(state):
     elif selection == 'S':
       # Set settings for pass
       pass_settings = []
-      for k, v in state.settings.items():
-        if not v['Enabled']:
+      for option, option_data in state.settings.items():
+        if not option_data['Enabled']:
           continue
-        if 'Value' in v:
-          pass_settings.append('{}={}'.format(k, v['Value']))
+        if 'Value' in option_data:
+          pass_settings.append('{}={}'.format(option, option_data['Value']))
         else:
-          pass_settings.append(k)
+          pass_settings.append(option)
       for opt in main_options:
         if 'Auto' in opt['Base Name']:
           auto_run = opt['Enabled']
@@ -887,7 +934,7 @@ def menu_main(state):
               state.current_pass_min() < AUTO_PASS_1_THRESHOLD):
             auto_run = False
           elif (state.current_pass == 1 and
-              state.current_pass_min() < AUTO_PASS_2_THRESHOLD):
+                state.current_pass_min() < AUTO_PASS_2_THRESHOLD):
             auto_run = False
         else:
           auto_run = False
@@ -916,13 +963,15 @@ def menu_settings(state):
 
   # Build menu
   settings = []
-  for k, v in sorted(state.settings.items()):
-    if not v.get('Hidden', False):
-      settings.append({'Base Name': k, 'Flag': k})
+  for option, option_data in sorted(state.settings.items()):
+    if not option_data.get('Hidden', False):
+      settings.append({'Base Name': option, 'Flag': option})
   actions = [{'Name': 'Main Menu', 'Letter': 'M'}]
 
   # Show menu
   while True:
+    # pylint: disable=invalid-name
+    # TODO: Clean up and/or replace with new menu-select function
     for s in settings:
       s['Name'] = '{}{}{}'.format(
         s['Base Name'],
@@ -959,25 +1008,27 @@ def menu_settings(state):
 
 def read_map_file(map_path):
   """Read map file with ddrescuelog and return data as dict."""
-  map_data = {'full recovery': False}
+  cmd = [
+    'ddrescuelog',
+    '--binary-prefixes',
+    '--show-status',
+    map_path,
+    ]
+  map_data = {'full recovery': False, 'pass completed': False}
   try:
-    result = run_program(['ddrescuelog', '-t', map_path])
+    result = run_program(cmd, encoding='utf-8', errors='ignore')
   except CalledProcessError:
     # (Grossly) assuming map_data hasn't been saved yet, return empty dict
     return map_data
 
   # Parse output
-  for line in result.stdout.decode().splitlines():
-    m = re.match(
-      r'^\s*(?P<key>\S+):.*\(\s*(?P<value>\d+\.?\d*)%.*', line.strip())
-    if m:
-      try:
-        map_data[m.group('key')] = float(m.group('value'))
-      except ValueError:
-        raise GenericError('Failed to read map data')
-    m = re.match(r'.*current status:\s+(?P<status>.*)', line.strip())
-    if m:
-      map_data['pass completed'] = bool(m.group('status') == 'finished')
+  for line in result.stdout.splitlines():
+    line = line.strip()
+    _r = REGEX_DDRESCUE_LOG.search(line)
+    if _r:
+      map_data[_r.group('key')] = convert_to_bytes('{size} {unit}B'.format(
+        **_r.groupdict()))
+    map_data['pass completed'] = 'current status: finished' in line
 
   # Check if 100% done
   try:
@@ -991,6 +1042,7 @@ def read_map_file(map_path):
 
 
 def run_ddrescue(state, pass_settings):
+  # pylint: disable=too-many-branches,too-many-statements
   """Run ddrescue pass."""
   return_code = -1
   aborted = False
@@ -1005,8 +1057,8 @@ def run_ddrescue(state, pass_settings):
   # Create SMART monitor pane
   state.smart_out = '{}/smart_{}.out'.format(
     global_vars['TmpDir'], state.smart_source.name)
-  with open(state.smart_out, 'w') as f:
-    f.write('Initializing...')
+  with open(state.smart_out, 'w') as _f:
+    _f.write('Initializing...')
   state.panes['SMART'] = tmux_split_window(
     behind=True, lines=12, vertical=True, watch=state.smart_out)
 
@@ -1016,19 +1068,19 @@ def run_ddrescue(state, pass_settings):
     command=['sudo', 'journalctl', '-f'])
 
   # Fix layout
-  fix_tmux_panes(state, forced=True)
+  state.fix_tmux_panes(forced=True)
 
   # Run pass for each block-pair
-  for bp in state.block_pairs:
-    if bp.pass_done[state.current_pass]:
+  for b_pair in state.block_pairs:
+    if b_pair.pass_done[state.current_pass]:
       # Skip to next block-pair
       continue
     update_sidepane(state)
 
     # Set ddrescue cmd
     cmd = [
-      'ddrescue', *pass_settings,
-      bp.source_path, bp.dest_path, bp.map_path]
+      'sudo', 'ddrescue', *pass_settings,
+      b_pair.source_path, b_pair.dest_path, b_pair.map_path]
     if state.mode == 'clone':
       cmd.append('--force')
     if state.current_pass == 0:
@@ -1043,36 +1095,36 @@ def run_ddrescue(state, pass_settings):
     # Start ddrescue
     try:
       clear_screen()
-      print_info('Current dev: {}'.format(bp.source_path))
+      print_info('Current dev: {}'.format(b_pair.source_path))
       ddrescue_proc = popen_program(cmd)
       i = 0
       while True:
         # Update SMART display (every 30 seconds)
         if i % 30 == 0:
           state.smart_source.get_smart_details()
-          with open(state.smart_out, 'w') as f:
+          with open(state.smart_out, 'w') as _f:
             report = state.smart_source.generate_attribute_report(
-                timestamp=True)
+              timestamp=True)
             for line in report:
-              f.write('{}\n'.format(line))
+              _f.write('{}\n'.format(line))
         i += 1
 
         # Update progress
-        bp.update_progress(state.current_pass)
+        b_pair.update_progress(state.current_pass)
         update_sidepane(state)
 
         # Fix panes
-        fix_tmux_panes(state)
+        state.fix_tmux_panes()
 
         # Check if ddrescue has finished
         try:
           ddrescue_proc.wait(timeout=1)
           sleep(2)
-          bp.update_progress(state.current_pass)
+          b_pair.update_progress(state.current_pass)
           update_sidepane(state)
           break
         except subprocess.TimeoutExpired:
-          # Catch to update smart/bp/sidepane
+          # Catch to update smart/b_pair/sidepane
           pass
 
     except KeyboardInterrupt:
@@ -1081,7 +1133,7 @@ def run_ddrescue(state, pass_settings):
       ddrescue_proc.wait(timeout=10)
 
     # Update progress/sidepane again
-    bp.update_progress(state.current_pass)
+    b_pair.update_progress(state.current_pass)
     update_sidepane(state)
 
     # Was ddrescue aborted?
@@ -1103,7 +1155,7 @@ def run_ddrescue(state, pass_settings):
       break
     else:
       # Mark pass finished
-      bp.finish_pass(state.current_pass)
+      b_pair.finish_pass(state.current_pass)
       update_sidepane(state)
 
   # Done
@@ -1119,6 +1171,8 @@ def run_ddrescue(state, pass_settings):
 
 
 def select_parts(source_device):
+  # pylint: disable=too-many-branches
+  # TODO: Clean up and/or replace with new menu-select function
   """Select partition(s) or whole device, returns list of DevObj()s."""
   selected_parts = []
   children = source_device.details.get('children', [])
@@ -1180,24 +1234,26 @@ def select_parts(source_device):
         raise GenericAbort()
 
     # Build list of selected parts
-    for d in dev_options:
-      if d['Selected']:
-        d['Dev'].model = source_device.model
-        d['Dev'].model_size = source_device.model_size
-        d['Dev'].update_filename_prefix()
-        selected_parts.append(d['Dev'])
+    for _d in dev_options:
+      if _d['Selected']:
+        _d['Dev'].model = source_device.model
+        _d['Dev'].model_size = source_device.model_size
+        _d['Dev'].update_filename_prefix()
+        selected_parts.append(_d['Dev'])
 
   return selected_parts
 
 
 def select_path(skip_device=None):
+  # pylint: disable=too-many-branches,too-many-locals
+  # TODO: Clean up and/or replace with new menu-select function
   """Optionally mount local dev and select path, returns DirObj."""
-  wd = os.path.realpath(global_vars['Env']['PWD'])
+  work_dir = os.path.realpath(global_vars['Env']['PWD'])
   selected_path = None
 
   # Build menu
   path_options = [
-    {'Name': 'Current directory: {}'.format(wd), 'Path': wd},
+    {'Name': 'Current directory: {}'.format(work_dir), 'Path': work_dir},
     {'Name': 'Local device', 'Path': None},
     {'Name': 'Enter manually', 'Path': None}]
   actions = [{'Name': 'Quit', 'Letter': 'Q'}]
@@ -1212,9 +1268,9 @@ def select_path(skip_device=None):
     raise GenericAbort()
   elif selection.isnumeric():
     index = int(selection) - 1
-    if path_options[index]['Path'] == wd:
+    if path_options[index]['Path'] == work_dir:
       # Current directory
-      selected_path = DirObj(wd)
+      selected_path = DirObj(work_dir)
 
     elif path_options[index]['Name'] == 'Local device':
       # Local device
@@ -1230,15 +1286,15 @@ def select_path(skip_device=None):
 
       # Select volume
       vol_options = []
-      for k, v in sorted(report.items()):
-        disabled = v['show_data']['data'] == 'Failed to mount'
+      for _k, _v in sorted(report.items()):
+        disabled = _v['show_data']['data'] == 'Failed to mount'
         if disabled:
-          name = '{name} (Failed to mount)'.format(**v)
+          name = '{name} (Failed to mount)'.format(**_v)
         else:
-          name = '{name} (mounted on "{mount_point}")'.format(**v)
+          name = '{name} (mounted on "{mount_point}")'.format(**_v)
         vol_options.append({
           'Name': name,
-          'Path': v['mount_point'],
+          'Path': _v['mount_point'],
           'Disabled': disabled})
       selection = menu_select(
         title='Please select a volume',
@@ -1313,15 +1369,17 @@ def select_device(description='device', skip_device=None):
     action_entries=actions,
     disabled_label='ALREADY SELECTED')
 
+  if selection == 'Q':
+    raise GenericAbort()
+
   if selection.isnumeric():
     return dev_options[int(selection)-1]['Dev']
-  elif selection == 'Q':
-    raise GenericAbort()
 
 
 def setup_loopback_device(source_path):
   """Setup loopback device for source_path, returns dev_path as str."""
   cmd = (
+    'sudo',
     'losetup',
     '--find',
     '--partscan',
@@ -1355,6 +1413,7 @@ def show_selection_details(state):
 
 
 def show_usage(script_name):
+  """Show usage."""
   print_info('Usage:')
   print_standard(USAGE.format(script_name=script_name))
   pause()
@@ -1378,14 +1437,14 @@ def update_sidepane(state):
   output.append('─────────────────────')
 
   # Source(s) progress
-  for bp in state.block_pairs:
+  for b_pair in state.block_pairs:
     if state.source.is_image():
       output.append('{BLUE}Image File{CLEAR}'.format(**COLORS))
     else:
       output.append('{BLUE}{source}{CLEAR}'.format(
-        source=bp.source_path,
+        source=b_pair.source_path,
         **COLORS))
-    output.extend(bp.status)
+    output.extend(b_pair.status)
     output.append(' ')
 
   # EToC
@@ -1404,11 +1463,9 @@ def update_sidepane(state):
   # Add line-endings
   output = ['{}\n'.format(line) for line in output]
 
-  with open(state.progress_out, 'w') as f:
-    f.writelines(output)
+  with open(state.progress_out, 'w') as _f:
+    _f.writelines(output)
 
 
 if __name__ == '__main__':
   print("This file is not meant to be called directly.")
-
-# vim: sts=2 sw=2 ts=2
