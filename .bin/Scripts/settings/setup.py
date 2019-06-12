@@ -134,10 +134,12 @@ SETTINGS_EXPLORER_USER = {
     },
   # Hide People bar
   r'Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced\People': {
+    'Invalid modes': ['Cur'],
     'DWORD Items': {'PeopleBand': 0},
     },
   # Hide Search button / box
   r'Software\Microsoft\Windows\CurrentVersion\Search': {
+    'Invalid modes': ['Cur'],
     'DWORD Items': {'SearchboxTaskbarMode': 0},
     },
   }
