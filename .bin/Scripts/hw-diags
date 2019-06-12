@@ -1,46 +1,11 @@
 #!/bin/bash
 #
-## Wizard Kit: HW Diagnostics - Menu Launcher
+## Wizard Kit: HW Diagnostics Launcher
+
+source launch-in-tmux
 
 SESSION_NAME="hw-diags"
 WINDOW_NAME="Hardware Diagnostics"
-MENU="hw-diags-menu"
+TMUX_CMD="hw-diags-menu"
 
-function ask() {
-    while :; do
-        read -p "$1 [Y/N] " -r answer
-        if echo "$answer" | egrep -iq '^(y|yes|sure)$'; then
-            return 0
-        elif echo "$answer" | egrep -iq '^(n|no|nope)$'; then
-            return 1
-        fi
-    done
-}
-
-die () {
-    echo "$0:" "$@" >&2
-    exit 1
-}
-
-# Check for running session
-if tmux list-session | grep -q "$SESSION_NAME"; then
-    echo "WARNING: tmux session $SESSION_NAME already exists."
-    echo ""
-    if ask "Connect to current session?"; then
-        # Do nothing, the command below will attach/connect
-        echo ""
-    elif ask "Kill current session and start new session?"; then
-        tmux kill-session -t "$SESSION_NAME" || \
-            die "Failed to kill session: $SESSION_NAME"
-    else
-        echo "Aborted."
-        echo ""
-        echo -n "Press Enter to exit... "
-        read -r
-        exit 0
-    fi
-fi
-
-# Start session
-tmux new-session -A -s "$SESSION_NAME" -n "$WINDOW_NAME" "$MENU" $*
-
+launch_in_tmux "$@"

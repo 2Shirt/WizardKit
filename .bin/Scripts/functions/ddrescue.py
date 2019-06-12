@@ -278,6 +278,7 @@ class RecoveryState():
       raise GenericError('Unsupported mode')
     self.get_smart_source()
     self.set_working_dir()
+    os.makedirs(global_vars['LogDir'], exist_ok=True)
 
   def add_block_pair(self, source, dest):
     """Run safety checks and append new BlockPair to internal list."""
@@ -850,7 +851,7 @@ def menu_ddrescue(source_path, dest_path, run_mode):
   menu_main(state)
 
   # Done
-  run_program(['tmux', 'kill-window'])
+  tmux_kill_all_panes()
   exit_script()
 
 

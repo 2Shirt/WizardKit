@@ -141,6 +141,18 @@ def tmux_split_window(
   return result.stdout.decode().strip()
 
 
+def tmux_switch_client(target_session=None):
+  """Switch to target tmux session, or previous if none specified."""
+  cmd = ['tmux', 'switch-client']
+  if target_session:
+    cmd.extend(['-t', target_session])
+  else:
+    # Switch to previous instead
+    cmd.append('-p')
+
+  run_program(cmd, check=False)
+
+
 def tmux_update_pane(
     pane_id, command=None, working_dir=None,
     text=None, watch=None, watch_cmd='cat'):

@@ -1141,7 +1141,9 @@ def run_hw_tests(state):
   show_results(state)
 
   # Upload for review
-  if ENABLED_UPLOAD_DATA and ask('Upload results for review?'):
+  if (ENABLED_UPLOAD_DATA
+      and DEBUG_MODE
+      and ask('Upload results for review?')):
     try_and_print(
       message='Saving debug reports...',
       function=save_debug_reports,

@@ -2,42 +2,10 @@
 #
 ## Wizard Kit: ddrescue TUI Launcher
 
+source launch-in-tmux
+
 SESSION_NAME="ddrescue-tui"
 WINDOW_NAME="ddrescue TUI"
-MENU="ddrescue-tui-menu"
+TMUX_CMD="ddrescue-tui-menu"
 
-function ask() {
-    while :; do
-        read -p "$1 " -r answer
-        if echo "$answer" | egrep -iq '^(y|yes|sure)$'; then
-            return 0
-        elif echo "$answer" | egrep -iq '^(n|no|nope)$'; then
-            return 1
-        fi
-    done
-}
-
-die () {
-    echo "$0:" "$@" >&2
-    exit 1
-}
-
-# Check for running session
-if tmux list-session | grep -q "$SESSION_NAME"; then
-    echo "WARNING: tmux session $SESSION_NAME already exists."
-    echo ""
-    if ask "Kill current session?"; then
-        tmux kill-session -t "$SESSION_NAME" || \
-            die "Failed to kill session: $SESSION_NAME"
-    else
-        echo "Aborted."
-        echo ""
-        echo -n "Press Enter to exit... "
-        read -r
-        exit 0
-    fi
-fi
-
-# Start session
-tmux new-session -s "$SESSION_NAME" -n "$WINDOW_NAME" "$MENU" $*
-
+launch_in_tmux "$@"

@@ -23,6 +23,7 @@ if __name__ == '__main__':
     sleep(1)
     pause('Press Enter to exit...')
   except SystemExit as sys_exit:
+    tmux_switch_client()
     exit_script(sys_exit.code)
   except:
     # Cleanup
@@ -59,6 +60,7 @@ if __name__ == '__main__':
 
   # Done
   tmux_kill_all_panes()
+  tmux_switch_client()
   exit_script()
 
 # vim: sts=2 sw=2 ts=2
