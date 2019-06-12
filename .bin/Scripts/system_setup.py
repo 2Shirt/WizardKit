@@ -49,7 +49,7 @@ SETUP_ACTIONS = OrderedDict({
   'Installing Programs':    {'Info': True},
   'VCR':                    {'New': True,   'Fab': True,  'Cur': True,  'HW': False, 'Function': install_vcredists, 'Just run': True,},
   'LibreOffice':            {'New': True,   'Fab': True,  'Cur': True,  'HW': False, 'Function': install_libreoffice,
-                             'If answer': 'LibreOffice', 'KWArgs': {'quickstart': False, 'register_mso_types': True, 'use_mso_formats': True, 'vcredist': False},
+                             'If answer': 'LibreOffice', 'KWArgs': {'quickstart': False, 'register_mso_types': True, 'use_mso_formats': False, 'vcredist': False},
                              },
   'Ninite bundle':          {'New': True,   'Fab': True,  'Cur': True,  'HW': False, 'Function': install_ninite_bundle, 'KWArgs': {'cs': 'STARTED'},},
 
