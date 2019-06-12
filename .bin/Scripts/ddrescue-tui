@@ -8,10 +8,10 @@ MENU="ddrescue-tui-menu"
 
 function ask() {
     while :; do
-        read -p "$1 " -r answer
-        if echo "$answer" | egrep -iq '^(y|yes|sure)$'; then
+        read -p "$1 [Y/N] " -r answer
+        if echo "$answer" | grep -Eiq '^(y|yes|sure)$'; then
             return 0
-        elif echo "$answer" | egrep -iq '^(n|no|nope)$'; then
+        elif echo "$answer" | grep -Eiq '^(n|no|nope)$'; then
             return 1
         fi
     done
@@ -26,7 +26,16 @@ die () {
 if tmux list-session | grep -q "$SESSION_NAME"; then
     echo "WARNING: tmux session $SESSION_NAME already exists."
     echo ""
-    if ask "Kill current session?"; then
+    if ask "Connect to current session?"; then
+        if [[ -n "${TMUX:-}" ]]; then
+            # Running inside TMUX, switch to session
+            tmux switch-client -t "$SESSION_NAME"
+        else
+            # Running outside TMUX, attach to session
+            tmux attach-session -t "$SESSION_NAME"
+        fi
+        exit 0
+    elif ask "Kill current session and start new session?"; then
         tmux kill-session -t "$SESSION_NAME" || \
             die "Failed to kill session: $SESSION_NAME"
     else
@@ -38,6 +47,14 @@ if tmux list-session | grep -q "$SESSION_NAME"; then
     fi
 fi
 
-# Start session
-tmux new-session -s "$SESSION_NAME" -n "$WINDOW_NAME" "$MENU" $*
+# Start/Rename session
+if [[ -n "${TMUX:-}" ]]; then
+    # Running inside TMUX, rename session/window and open the menu
+    tmux rename-session "$SESSION_NAME"
+    tmux rename-window "$WINDOW_NAME"
+    "$MENU" "$@"
+else
+    # Running outside TMUX, start/attach to session
+    tmux new-session -s "$SESSION_NAME" -n "$WINDOW_NAME" "$MENU" "$@"
+fi
 
