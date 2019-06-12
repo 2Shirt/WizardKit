@@ -45,6 +45,7 @@ if __name__ == '__main__':
     # Done
     print_standard('\nDone.')
     pause("Press Enter to exit...")
+    tmux_switch_client()
     exit_script()
   except GenericAbort:
     abort()
@@ -55,6 +56,7 @@ if __name__ == '__main__':
     print_error(msg)
     abort()
   except SystemExit as sys_exit:
+    tmux_switch_client()
     exit_script(sys_exit.code)
   except:
     major_exception()
