@@ -4,7 +4,7 @@ import json
 
 from functions.common import *
 
-def get_json_from_command(cmd, ignore_errors=True):
+def get_json_from_command(cmd, check=True, ignore_errors=True):
   """Capture JSON content from cmd output, returns dict.
 
   If the data can't be decoded then either an exception is raised
@@ -17,7 +17,7 @@ def get_json_from_command(cmd, ignore_errors=True):
     errors = 'ignore'
 
   try:
-    result = run_program(cmd, encoding='utf-8', errors=errors)
+    result = run_program(cmd, check=check, encoding='utf-8', errors=errors)
     json_data = json.loads(result.stdout)
   except (subprocess.CalledProcessError, json.decoder.JSONDecodeError):
     if not ignore_errors:

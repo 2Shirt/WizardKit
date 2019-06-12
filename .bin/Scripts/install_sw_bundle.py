@@ -25,7 +25,6 @@ if __name__ == '__main__':
         'UnsupportedOSError':   'Unsupported OS',
       }}
     answer_extensions = ask('Install Extensions?')
-    answer_adobe_reader = ask('Install Adobe Reader?')
     answer_vcr = ask('Install Visual C++ Runtimes?')
     answer_ninite = ask('Install Ninite Bundle?')
     if answer_ninite and global_vars['OS']['Version'] in ['7']:
@@ -35,9 +34,6 @@ if __name__ == '__main__':
       answer_mse = False
 
     print_info('Installing Programs')
-    if answer_adobe_reader:
-      try_and_print(message='Adobe Reader DC...',
-        function=install_adobe_reader, other_results=other_results)
     if answer_vcr:
       install_vcredists()
     if answer_ninite:
@@ -59,8 +55,8 @@ if __name__ == '__main__':
         other_results=other_results)
     print_standard('\nDone.')
     exit_script()
-  except SystemExit:
-    pass
+  except SystemExit as sys_exit:
+    exit_script(sys_exit.code)
   except:
     major_exception()
 

@@ -111,7 +111,7 @@ def find_core_storage_volumes(device_path=None):
 
     # Check log for found volumes
     cs_vols = {}
-    with open(log_path, 'r') as f:
+    with open(log_path, 'r', encoding='utf-8', errors='ignore') as f:
       for line in f.readlines():
         r = re.match(
           r'^.*echo "([^"]+)" . dmsetup create test(\d)$',
@@ -151,12 +151,16 @@ def is_valid_wim_file(item):
 def get_mounted_volumes():
   """Get mounted volumes, returns dict."""
   cmd = [
-    'findmnt', '-J', '-b', '-i',
-    '-t', (
+    'findmnt',
+    '--list',
+    '--json',
+    '--bytes',
+    '--invert',
+    '--types', (
       'autofs,binfmt_misc,bpf,cgroup,cgroup2,configfs,debugfs,devpts,'
       'devtmpfs,hugetlbfs,mqueue,proc,pstore,securityfs,sysfs,tmpfs'
       ),
-    '-o', 'SOURCE,TARGET,FSTYPE,LABEL,SIZE,AVAIL,USED']
+    '--output', 'SOURCE,TARGET,FSTYPE,LABEL,SIZE,AVAIL,USED']
   json_data = get_json_from_command(cmd)
   mounted_volumes = []
   for item in json_data.get('filesystems', []):
@@ -195,6 +199,8 @@ def mount_volumes(
         volumes.update({child['name']: child})
       for grandchild in child.get('children', []):
         volumes.update({grandchild['name']: grandchild})
+        for great_grandchild in grandchild.get('children', []):
+          volumes.update({great_grandchild['name']: great_grandchild})
 
   # Get list of mounted volumes
   mounted_volumes = get_mounted_volumes()
@@ -212,7 +218,7 @@ def mount_volumes(
       report[vol_path] = vol_data
     elif 'children' in vol_data:
       # Skip LVM/RAID partitions (the real volume is mounted separately)
-      vol_data['show_data']['data'] = vol_data.get('fstype', 'UNKNOWN')
+      vol_data['show_data']['data'] = vol_data.get('fstype', 'Unknown')
       if vol_data.get('label', None):
         vol_data['show_data']['data'] += ' "{}"'.format(vol_data['label'])
       vol_data['show_data']['info'] = True
@@ -237,17 +243,23 @@ def mount_volumes(
       if vol_data['show_data']['data'] == 'Failed to mount':
         vol_data['mount_point'] = None
       else:
+        fstype = vol_data.get('fstype', 'Unknown FS')
         size_used = human_readable_size(
-          mounted_volumes[vol_path]['used'])
+          mounted_volumes[vol_path]['used'],
+          decimals=1,
+          )
         size_avail = human_readable_size(
-          mounted_volumes[vol_path]['avail'])
+          mounted_volumes[vol_path]['avail'],
+          decimals=1,
+          )
         vol_data['size_avail'] = size_avail
         vol_data['size_used'] = size_used
         vol_data['mount_point'] = mounted_volumes[vol_path]['target']
         vol_data['show_data']['data'] = 'Mounted on {}'.format(
           mounted_volumes[vol_path]['target'])
-        vol_data['show_data']['data'] = '{:40} ({} used, {} free)'.format(
+        vol_data['show_data']['data'] = '{:40} ({}, {} used, {} free)'.format(
           vol_data['show_data']['data'],
+          fstype,
           size_used,
           size_avail)
 
@@ -281,6 +293,14 @@ def mount_backup_shares(read_write=False):
 
 def mount_network_share(server, read_write=False):
   """Mount a network share defined by server."""
+  uid = '1000'
+
+  # Get UID
+  cmd = ['id', '--user', 'tech']
+  result = run_program(cmd, check=False, encoding='utf-8', errors='ignore')
+  if result.stdout.strip().isnumeric():
+    uid = result.stdout.strip()
+
   if read_write:
     username = server['RW-User']
     password = server['RW-Pass']
@@ -296,18 +316,35 @@ def mount_network_share(server, read_write=False):
     error = r'Failed to mount \\{Name}\{Share} ({IP})'.format(**server)
     success = 'Mounted {Name}'.format(**server)
   elif psutil.LINUX:
+    # Make mountpoint
     cmd = [
       'sudo', 'mkdir', '-p',
       '/Backups/{Name}'.format(**server)]
     run_program(cmd)
+
+    # Set mount options
+    cmd_options = [
+      # Assuming GID matches UID
+      'gid={}'.format(uid),
+      'uid={}'.format(uid),
+      ]
+    cmd_options.append('rw' if read_write else 'ro')
+    cmd_options.append('username={}'.format(username))
+    if password:
+      cmd_options.append('password={}'.format(password))
+    else:
+      # Skip password check
+      cmd_options.append('guest')
+
+    # Set mount command
     cmd = [
       'sudo', 'mount',
-      '//{IP}/{Share}'.format(**server),
+      '//{IP}/{Share}'.format(**server).replace('\\', '/'),
       '/Backups/{Name}'.format(**server),
-      '-o', '{}username={},password={}'.format(
-        '' if read_write else 'ro,',
-        username,
-        password)]
+      '-o', ','.join(cmd_options),
+      ]
+
+    # Set result messages
     warning = 'Failed to mount /Backups/{Name}, {IP} unreachable.'.format(
       **server)
     error = 'Failed to mount /Backups/{Name}'.format(**server)

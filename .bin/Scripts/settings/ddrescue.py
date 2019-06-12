@@ -5,7 +5,9 @@ import re
 from collections import OrderedDict
 
 # General
+MAP_DIR = '/Backups/ddrescue-tui'
 RECOMMENDED_FSTYPES = ['ext3', 'ext4', 'xfs']
+RECOMMENDED_MAP_FSTYPES = ['cifs', 'ext2', 'ext3', 'ext4', 'vfat', 'xfs']
 USAGE = """  {script_name} clone [source [destination]]
   {script_name} image [source [destination]]
   (e.g. {script_name} clone /dev/sda /dev/sdb)
@@ -36,6 +38,12 @@ DDRESCUE_SETTINGS = {
   '-vvvv':              {'Enabled': True,                 'Hidden': True, },
   }
 ETOC_REFRESH_RATE = 30 # in seconds
+REGEX_DDRESCUE_LOG = re.compile(
+  r'^\s*(?P<key>\S+):\s+'
+  r'(?P<size>\d+)\s+'
+  r'(?P<unit>[PTGMKB])i?B?',
+  re.IGNORECASE,
+  )
 REGEX_REMAINING_TIME = re.compile(
   r'remaining time:'
   r'\s*((?P<days>\d+)d)?'

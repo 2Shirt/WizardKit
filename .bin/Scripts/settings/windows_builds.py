@@ -1,8 +1,10 @@
-# Wizard Kit: Settings - Windows Builds
+'''Wizard Kit: Settings - Windows Builds'''
+# pylint: disable=bad-continuation,bad-whitespace
+# vim: sts=2 sw=2 ts=2
+## NOTE: Data from here: https://en.wikipedia.org/wiki/Windows_10_version_history
 
 WINDOWS_BUILDS = {
   # Build, Version, Release, Codename, Marketing Name, Notes
-   '6000': ('Vista',  'RTM',    'Longhorn',     None,   'unsupported'),
    '6000': ('Vista',  'RTM',    'Longhorn',     None,   'unsupported'),
    '6001': ('Vista',  'SP1',    'Longhorn',     None,   'unsupported'),
    '6002': ('Vista',  'SP2',    'Longhorn',     None,   'unsupported'),
@@ -202,15 +204,22 @@ WINDOWS_BUILDS = {
   '18356': ('10',     None,     '19H1',         None,   'preview build'),
   '18358': ('10',     None,     '19H1',         None,   'preview build'),
   '18361': ('10',     None,     '19H1',         None,   'preview build'),
+  '18362': ('10',     'v1903',  '19H1',         'May 2019 Update', None),
   '18836': ('10',     None,     '20H1',         None,   'preview build'),
   '18841': ('10',     None,     '20H1',         None,   'preview build'),
   '18845': ('10',     None,     '20H1',         None,   'preview build'),
   '18850': ('10',     None,     '20H1',         None,   'preview build'),
   '18855': ('10',     None,     '20H1',         None,   'preview build'),
+  '18860': ('10',     None,     '20H1',         None,   'preview build'),
+  '18865': ('10',     None,     '20H1',         None,   'preview build'),
+  '18875': ('10',     None,     '20H1',         None,   'preview build'),
+  '18885': ('10',     None,     '20H1',         None,   'preview build'),
+  '18890': ('10',     None,     '20H1',         None,   'preview build'),
+  '18894': ('10',     None,     '20H1',         None,   'preview build'),
+  '18895': ('10',     None,     '20H1',         None,   'preview build'),
+  '18898': ('10',     None,     '20H1',         None,   'preview build'),
 }
 
 
 if __name__ == '__main__':
   print("This file is not meant to be called directly.")
-
-# vim: sts=2 sw=2 ts=2

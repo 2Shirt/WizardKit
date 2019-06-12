@@ -1,0 +1,6 @@
+[Unit]
+Description=Conky config update service
+
+[Service]
+Type=oneshot
+ExecStart=%h/.update_conky

@@ -64,10 +64,13 @@ class GenericRepair(Exception):
 class MultipleInstallationsError(Exception):
   pass
 
-class NotInstalledError(Exception):
+class NoProfilesError(Exception):
   pass
 
-class NoProfilesError(Exception):
+class Not4KAlignedError(Exception):
+  pass
+
+class NotInstalledError(Exception):
   pass
 
 class OSInstalledLegacyError(Exception):
@@ -88,14 +91,21 @@ class SecureBootNotAvailError(Exception):
 class SecureBootUnknownError(Exception):
   pass
 
+class WindowsOutdatedError(Exception):
+  pass
+
+class WindowsUnsupportedError(Exception):
+  pass
+
 
 # General functions
-def abort():
+def abort(show_prompt=True):
   """Abort script."""
   print_warning('Aborted.')
-  sleep(1)
-  pause(prompt='Press Enter to exit... ')
-  exit_script()
+  if show_prompt:
+    sleep(1)
+    pause(prompt='Press Enter to exit... ')
+  exit_script(1)
 
 
 def ask(prompt='Kotaero!'):
@@ -163,18 +173,22 @@ def clear_screen():
 def convert_to_bytes(size):
   """Convert human-readable size str to bytes and return an int."""
   size = str(size)
-  tmp = re.search(r'(\d+\.?\d*)\s+([KMGT]B)', size.upper())
+  tmp = re.search(r'(\d+\.?\d*)\s+([PTGMKB])B?', size.upper())
   if tmp:
     size = float(tmp.group(1))
     units = tmp.group(2)
-    if units == 'TB':
-      size *= 1099511627776
-    elif units == 'GB':
-      size *= 1073741824
-    elif units == 'MB':
-      size *= 1048576
-    elif units == 'KB':
-      size *= 1024
+    if units == 'P':
+      size *= 1024 ** 5
+    if units == 'T':
+      size *= 1024 ** 4
+    elif units == 'G':
+      size *= 1024 ** 3
+    elif units == 'M':
+      size *= 1024 ** 2
+    elif units == 'K':
+      size *= 1024 ** 1
+    elif units == 'B':
+      size *= 1024 ** 0
     size = int(size)
   else:
     return -1
@@ -293,20 +307,24 @@ def human_readable_size(size, decimals=0):
     return '{size:>{width}} b'.format(size='???', width=width)
 
   # Convert to sensible units
-  if size >= 1099511627776:
-    size /= 1099511627776
-    units = 'Tb'
-  elif size >= 1073741824:
-    size /= 1073741824
-    units = 'Gb'
-  elif size >= 1048576:
-    size /= 1048576
-    units = 'Mb'
-  elif size >= 1024:
-    size /= 1024
-    units = 'Kb'
+  if size >= 1024 ** 5:
+    size /= 1024 ** 5
+    units = 'PB'
+  elif size >= 1024 ** 4:
+    size /= 1024 ** 4
+    units = 'TB'
+  elif size >= 1024 ** 3:
+    size /= 1024 ** 3
+    units = 'GB'
+  elif size >= 1024 ** 2:
+    size /= 1024 ** 2
+    units = 'MB'
+  elif size >= 1024 ** 1:
+    size /= 1024 ** 1
+    units = 'KB'
   else:
-    units = ' b'
+    size /= 1024 ** 0
+    units = ' B'
 
   # Return
   return '{size:>{width}.{decimals}f} {units}'.format(
@@ -421,6 +439,8 @@ def non_clobber_rename(full_path):
 
 def pause(prompt='Press Enter to continue... '):
   """Simple pause implementation."""
+  if prompt[-1] != ' ':
+    prompt += ' '
   input(prompt)
 
 
@@ -879,25 +899,19 @@ def make_tmp_dirs():
 
 def set_common_vars():
   """Set common variables."""
-  global_vars['Date'] =         time.strftime("%Y-%m-%d")
-  global_vars['Date-Time'] =      time.strftime("%Y-%m-%d_%H%M_%z")
-  global_vars['Env'] =        os.environ.copy()
+  global_vars['Date'] =             time.strftime("%Y-%m-%d")
+  global_vars['Date-Time'] =        time.strftime("%Y-%m-%d_%H%M_%z")
+  global_vars['Env'] =              os.environ.copy()
 
   global_vars['ArchivePassword'] =  ARCHIVE_PASSWORD
-  global_vars['BinDir'] =       r'{BaseDir}\.bin'.format(
-    **global_vars)
-  global_vars['CBinDir'] =      r'{BaseDir}\.cbin'.format(
-    **global_vars)
-  global_vars['ClientDir'] =      r'{SYSTEMDRIVE}\{prefix}'.format(
-    prefix=KIT_NAME_SHORT, **global_vars['Env'])
-  global_vars['BackupDir'] =      r'{ClientDir}\Backups'.format(
-    **global_vars)
-  global_vars['LogDir'] =       r'{ClientDir}\Logs\{Date}'.format(
-    **global_vars)
-  global_vars['QuarantineDir'] =    r'{ClientDir}\Quarantine'.format(
-    **global_vars)
-  global_vars['TmpDir'] =       r'{BinDir}\tmp'.format(
-    **global_vars)
+  global_vars['BinDir'] =           r'{BaseDir}\.bin'.format(**global_vars)
+  global_vars['CBinDir'] =          r'{BaseDir}\.cbin'.format(**global_vars)
+  global_vars['ClientDir'] =        r'{SYSTEMDRIVE}\{prefix}'.format(
+                                      prefix=KIT_NAME_SHORT, **global_vars['Env'])
+  global_vars['BackupDir'] =        r'{ClientDir}\Backups'.format(**global_vars)
+  global_vars['LogDir'] =           r'{ClientDir}\Logs\{Date}'.format(**global_vars)
+  global_vars['QuarantineDir'] =    r'{ClientDir}\Quarantine'.format(**global_vars)
+  global_vars['TmpDir'] =           r'{BinDir}\tmp'.format(**global_vars)
 
 
 def set_linux_vars():
@@ -905,12 +919,12 @@ def set_linux_vars():
 
   These assume we're running under a WK-Linux build."""
   result = run_program(['mktemp', '-d'])
-  global_vars['TmpDir'] =       result.stdout.decode().strip()
-  global_vars['Date'] =         time.strftime("%Y-%m-%d")
-  global_vars['Date-Time'] =      time.strftime("%Y-%m-%d_%H%M_%z")
-  global_vars['Env'] =        os.environ.copy()
-  global_vars['BinDir'] =       '/usr/local/bin'
-  global_vars['LogDir'] =       global_vars['TmpDir']
+  global_vars['TmpDir'] =           result.stdout.decode().strip()
+  global_vars['Date'] =             time.strftime("%Y-%m-%d")
+  global_vars['Date-Time'] =        time.strftime("%Y-%m-%d_%H%M_%z")
+  global_vars['Env'] =              os.environ.copy()
+  global_vars['BinDir'] =           '/usr/local/bin'
+  global_vars['LogDir'] =           '{}/Logs'.format(global_vars['Env']['HOME'])
   global_vars['Tools'] = {
     'wimlib-imagex': 'wimlib-imagex',
     'SevenZip': '7z',
@@ -919,10 +933,13 @@ def set_linux_vars():
 
 def set_log_file(log_name):
   """Sets global var LogFile and creates path as needed."""
-  folder_path = '{}{}{}'.format(
-    global_vars['LogDir'],
-    os.sep,
-    KIT_NAME_FULL)
+  if psutil.LINUX:
+    folder_path = global_vars['LogDir']
+  else:
+    folder_path = '{}{}{}'.format(
+      global_vars['LogDir'],
+      os.sep,
+      KIT_NAME_FULL)
   log_file = '{}{}{}'.format(
     folder_path,
     os.sep,

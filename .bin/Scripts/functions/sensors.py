@@ -1,4 +1,6 @@
-# Wizard Kit: Functions - Sensors
+'''Wizard Kit: Functions - Sensors'''
+# pylint: disable=no-name-in-module,wildcard-import
+# vim: sts=2 sw=2 ts=2
 
 import json
 import re
@@ -9,7 +11,7 @@ from settings.sensors import *
 
 # Error Classes
 class ThermalLimitReachedError(Exception):
-  pass
+  '''Thermal limit reached error.'''
 
 
 def clear_temps(sensor_data):
@@ -20,28 +22,30 @@ def clear_temps(sensor_data):
         _data['Temps'] = []
 
 
-def fix_sensor_str(s):
+def fix_sensor_str(_s):
   """Cleanup string and return str."""
-  s = re.sub(r'^(\w+)-(\w+)-(\w+)', r'\1 (\2 \3)', s, re.IGNORECASE)
-  s = s.title()
-  s = s.replace('Coretemp', 'CoreTemp')
-  s = s.replace('Acpi', 'ACPI')
-  s = s.replace('ACPItz', 'ACPI TZ')
-  s = s.replace('Isa ', 'ISA ')
-  s = s.replace('Id ', 'ID ')
-  s = re.sub(r'(\D+)(\d+)', r'\1 \2', s, re.IGNORECASE)
-  s = s.replace('  ', ' ')
-  return s
+  _s = re.sub(r'^(\w+)-(\w+)-(\w+)', r'\1 (\2 \3)', _s, re.IGNORECASE)
+  _s = _s.title()
+  _s = _s.replace('Coretemp', 'CPUTemp')
+  _s = _s.replace('Acpi', 'ACPI')
+  _s = _s.replace('ACPItz', 'ACPI TZ')
+  _s = _s.replace('Isa ', 'ISA ')
+  _s = _s.replace('Pci ', 'PCI ')
+  _s = _s.replace('Id ', 'ID ')
+  _s = re.sub(r'(\D+)(\d+)', r'\1 \2', _s, re.IGNORECASE)
+  _s = re.sub(r'^K (\d+)Temp', r'AMD K\1 Temps', _s, re.IGNORECASE)
+  _s = re.sub(r'T(ctl|die)', r'CPU (T\1)', _s, re.IGNORECASE)
+  return _s
 
 
 def generate_sensor_report(
     sensor_data, *temp_labels,
-    colors=True, core_only=False):
+    colors=True, cpu_only=False):
   """Generate report based on temp_labels, returns list if str."""
   report = []
   for _section, _adapters in sorted(sensor_data.items()):
-    # CoreTemps then Other temps
-    if core_only and 'Core' not in _section:
+    # CPU temps then Other temps
+    if cpu_only and 'CPU' not in _section:
       continue
     for _adapter, _sources in sorted(_adapters.items()):
       # Adapter
@@ -56,7 +60,7 @@ def generate_sensor_report(
             ': ' if _label != 'Current' else '',
             get_temp_str(_data.get(_label, '???'), colors=colors))
         report.append(_line)
-      if not core_only:
+      if not cpu_only:
         report.append(' ')
 
   # Handle empty reports (i.e. no sensors detected)
@@ -91,17 +95,17 @@ def get_colored_temp_str(temp):
   else:
     color = COLORS['CLEAR']
   return '{color}{prefix}{temp:2.0f}°C{CLEAR}'.format(
-    color = color,
-    prefix = '-' if temp < 0 else '',
-    temp = temp,
+    color=color,
+    prefix='-' if temp < 0 else '',
+    temp=temp,
     **COLORS)
 
 
 def get_raw_sensor_data():
   """Read sensor data and return dict."""
-  data = {}
+  json_data = {}
   cmd = ['sensors', '-j']
-  
+
   # Get raw data
   try:
     result = run_program(cmd)
@@ -122,8 +126,8 @@ def get_raw_sensor_data():
   try:
     json_data = json.loads('\n'.join(raw_data))
   except json.JSONDecodeError:
-    # Still broken, just set to empty dict
-    json_data = {}
+    # Still broken, just return the empty dict
+    pass
 
   # Done
   return json_data
@@ -132,10 +136,10 @@ def get_raw_sensor_data():
 def get_sensor_data():
   """Parse raw sensor data and return new dict."""
   json_data = get_raw_sensor_data()
-  sensor_data = {'CoreTemps': {}, 'Other': {}}
+  sensor_data = {'CPUTemps': {}, 'Other': {}}
   for _adapter, _sources in json_data.items():
-    if 'coretemp' in _adapter:
-      _section = 'CoreTemps'
+    if is_cpu_adapter(_adapter):
+      _section = 'CPUTemps'
     else:
       _section = 'Other'
     sensor_data[_section][_adapter] = {}
@@ -157,8 +161,8 @@ def get_sensor_data():
             }
 
   # Remove empty sections
-  for k, v in sensor_data.items():
-    v = {k2: v2 for k2, v2 in v.items() if v2}
+  for _k, _v in sensor_data.items():
+    _v = {_k2: _v2 for _k2, _v2 in _v.items() if _v2}
 
   # Done
   return sensor_data
@@ -178,14 +182,20 @@ def get_temp_str(temp, colors=True):
       temp)
 
 
+def is_cpu_adapter(adapter):
+  """Checks if adapter is a known CPU adapter, returns bool."""
+  is_cpu = re.search(r'(core|k\d+)temp', adapter, re.IGNORECASE)
+  return bool(is_cpu)
+
+
 def monitor_sensors(monitor_pane, monitor_file):
   """Continually update sensor data and report to screen."""
   sensor_data = get_sensor_data()
   while True:
     update_sensor_data(sensor_data)
-    with open(monitor_file, 'w') as f:
+    with open(monitor_file, 'w') as _f:
       report = generate_sensor_report(sensor_data, 'Current', 'Max')
-      f.write('\n'.join(report))
+      _f.write('\n'.join(report))
     sleep(1)
     if monitor_pane and not tmux_poll_pane(monitor_pane):
       break
@@ -196,7 +206,7 @@ def save_average_temp(sensor_data, temp_label, seconds=10):
   clear_temps(sensor_data)
 
   # Get temps
-  for i in range(seconds):
+  for _i in range(seconds): # pylint: disable=unused-variable
     update_sensor_data(sensor_data)
     sleep(1)
 
@@ -219,24 +229,15 @@ def update_sensor_data(sensor_data, thermal_limit=None):
           _data['Current'] = _temp
           _data['Max'] = max(_temp, _data['Max'])
           _data['Temps'].append(_temp)
-        except Exception:
+        except Exception: # pylint: disable=broad-except
           # Dumb workound for Dell sensors with changing source names
           pass
 
         # Check if thermal limit reached
-        if thermal_limit and _section == 'CoreTemps':
+        if thermal_limit and _section == 'CPUTemps':
           if max(_data['Current'], _data['Max']) >= thermal_limit:
-            raise ThermalLimitReachedError('CoreTemps reached limit')
-
-
-def join_columns(column1, column2, width=55):
-  return '{:<{}}{}'.format(
-    column1,
-    55+len(column1)-len(REGEX_COLORS.sub('', column1)),
-    column2)
+            raise ThermalLimitReachedError('CPU temps reached limit')
 
 
 if __name__ == '__main__':
   print("This file is not meant to be called directly.")
-
-# vim: sts=2 sw=2 ts=2

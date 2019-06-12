@@ -16,6 +16,7 @@ e2fsprogs
 hexedit
 hfsprogs
 htop
+iwd
 ldmtool
 ldns
 lha
@@ -31,7 +32,9 @@ networkmanager
 p7zip
 progsreiserfs
 python
+python-docopt
 python-psutil
+python-pytz
 python-requests
 reiserfsprogs
 rfkill

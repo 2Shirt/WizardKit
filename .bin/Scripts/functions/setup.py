@@ -1,7 +1,10 @@
 # Wizard Kit: Functions - Setup
 
+from functions.browsers import *
+from functions.json import *
 from functions.update import *
 from settings.setup import *
+from settings.sources import *
 
 
 # Configuration
@@ -63,9 +66,13 @@ def config_explorer_system():
   write_registry_settings(SETTINGS_EXPLORER_SYSTEM, all_users=True)
 
 
-def config_explorer_user():
-  """Configure Windows Explorer for current user."""
-  write_registry_settings(SETTINGS_EXPLORER_USER, all_users=False)
+def config_explorer_user(setup_mode='All'):
+  """Configure Windows Explorer for current user per setup_mode."""
+  settings_explorer_user = {
+    k: v for k, v in SETTINGS_EXPLORER_USER.items()
+    if setup_mode not in v.get('Invalid modes', [])
+    }
+  write_registry_settings(settings_explorer_user, all_users=False)
 
 
 def config_windows_updates():
@@ -73,19 +80,9 @@ def config_windows_updates():
   write_registry_settings(SETTINGS_WINDOWS_UPDATES, all_users=True)
 
 
-def disable_windows_telemetry():
-  """Disable Windows 10 telemetry settings with O&O ShutUp10."""
-  extract_item('ShutUp10', silent=True)
-  cmd = [
-    r'{BinDir}\ShutUp10\OOSU10.exe'.format(**global_vars),
-    r'{BinDir}\ShutUp10\1201.cfg'.format(**global_vars),
-    '/quiet']
-  run_program(cmd)
-
-
 def update_clock():
   """Set Timezone and sync clock."""
-  run_program(['tzutil' ,'/s', WINDOWS_TIME_ZONE], check=False)
+  run_program(['tzutil', '/s', WINDOWS_TIME_ZONE], check=False)
   run_program(['net', 'stop', 'w32ime'], check=False)
   run_program(
     ['w32tm', '/config', '/syncfromflags:manual',
@@ -117,6 +114,39 @@ def write_registry_settings(settings, all_users=False):
 
 
 # Installations
+def find_current_software():
+  """Find currently installed software, returns list."""
+  ninite_extras_path = r'{BaseDir}\Installers\Extras'.format(**global_vars)
+  installers = []
+
+  # Browsers
+  scan_for_browsers(silent=True)
+  for browser in ('Google Chrome', 'Mozilla Firefox', 'Opera Chromium'):
+    if is_installed(browser):
+      installers.append(
+        r'{}\Web Browsers\{}.exe'.format(ninite_extras_path, browser))
+
+  # TODO: Add more sections
+
+  return installers
+
+def find_missing_software():
+  """Find missing software based on dirs/files present, returns list."""
+  ninite_extras_path = r'{BaseDir}\Installers\Extras'.format(**global_vars)
+  installers = []
+
+  # Browsers
+  scan_for_browsers(silent=True)
+  for browser in ('Google Chrome', 'Mozilla Firefox', 'Opera Chromium'):
+    if profile_present(browser):
+      installers.append(
+        r'{}\Web Browsers\{}.exe'.format(ninite_extras_path, browser))
+
+  # TODO: Add more sections
+
+  return installers
+
+
 def install_adobe_reader():
   """Install Adobe Reader."""
   cmd = [
@@ -169,29 +199,115 @@ def install_firefox_extensions():
   run_program(cmd)
 
 
-def install_ninite_bundle(mse=False, libreoffice=False):
+def install_libreoffice(
+    quickstart=True, register_mso_types=True,
+    use_mso_formats=False, vcredist=False):
+  """Install LibreOffice using specified settings."""
+  cmd = [
+    'msiexec', '/passive', '/norestart',
+    '/i', r'{}\Installers\Extras\Office\LibreOffice.msi'.format(
+      global_vars['BaseDir']),
+    'REBOOTYESNO=No',
+    'ISCHECKFORPRODUCTUPDATES=0',
+    'QUICKSTART={}'.format(1 if quickstart else 0),
+    'UI_LANGS=en_US',
+    'VC_REDIST={}'.format(1 if vcredist else 0),
+    ]
+  if register_mso_types:
+    cmd.append('REGISTER_ALL_MSO_TYPES=1')
+  else:
+    cmd.append('REGISTER_NO_MSO_TYPES=1')
+  xcu_dir = r'{APPDATA}\LibreOffice\4\user'.format(**global_vars['Env'])
+  xcu_file = r'{}\registrymodifications.xcu'.format(xcu_dir)
+
+  # Set default save format
+  if use_mso_formats and not os.path.exists(xcu_file):
+    os.makedirs(xcu_dir, exist_ok=True)
+    with open(xcu_file, 'w', encoding='utf-8', newline='\n') as f:
+      f.write(LIBREOFFICE_XCU_DATA)
+
+  # Install LibreOffice
+  run_program(cmd, check=True)
+
+def install_ninite_bundle(
+    # pylint: disable=too-many-arguments,too-many-branches
+    base=True,
+    browsers_only=False,
+    libreoffice=False,
+    missing=False,
+    mse=False,
+    standard=True,
+    ):
   """Run Ninite installer(s), returns list of Popen objects."""
   popen_objects = []
-  if global_vars['OS']['Version'] in ('8', '8.1', '10'):
-    # Modern selection
-    popen_objects.append(
-      popen_program(r'{BaseDir}\Installers\Extras\Bundles\Modern.exe'.format(
-        **global_vars)))
-  else:
-    # Legacy selection
-    if mse:
-      cmd = r'{BaseDir}\Installers\Extras\Security'.format(**global_vars)
-      cmd += r'\Microsoft Security Essentials.exe'
-      popen_objects.append(popen_program(cmd))
-    popen_objects.append(
-      popen_program(r'{BaseDir}\Installers\Extras\Bundles\Legacy.exe'.format(
-        **global_vars)))
+  if browsers_only:
+    # This option is deprecated
+    installer_path = r'{BaseDir}\Installers\Extras\Web Browsers'.format(
+      **global_vars)
+    scan_for_browsers(silent=True)
+    for browser in ('Google Chrome', 'Mozilla Firefox', 'Opera Chromium'):
+      if is_installed(browser):
+        cmd = r'{}\{}.exe'.format(installer_path, browser)
+        popen_objects.append(popen_program(cmd))
+
+    # Bail
+    return popen_objects
+
+  # Main selections
+  main_selections = []
+  if base:
+    main_selections.append('base')
+  if standard:
+    if global_vars['OS']['Version'] in ('8', '8.1', '10'):
+      main_selections.append('standard')
+    else:
+      main_selections.append('standard7')
+  if main_selections:
+    # Only run if base and/or standard are enabled
+    cmd = r'{}\Installers\Extras\Bundles\{}.exe'.format(
+      global_vars['BaseDir'],
+      '-'.join(main_selections),
+      )
+    popen_objects.append(popen_program([cmd]))
+
+  # Extra selections
+  extra_selections = {}
+  for cmd in find_current_software():
+    extra_selections[cmd] = True
+  if missing:
+    for cmd in find_missing_software():
+      extra_selections[cmd] = True
+
+  # Remove overlapping selections
+  regex = []
+  for n_name, n_group in NINITE_REGEX.items():
+    if n_name in main_selections:
+      regex.extend(n_group)
+  regex = '({})'.format('|'.join(regex))
+  extra_selections = {
+    cmd: True for cmd in extra_selections
+    if not re.search(regex, cmd, re.IGNORECASE)
+    }
+
+  # Start extra selections
+  for cmd in extra_selections:
+    popen_objects.append(popen_program([cmd]))
+
+  # Microsoft Security Essentials
+  if mse:
+    cmd = r'{}\Installers\Extras\Security\{}'.format(
+      global_vars['BaseDir'],
+      'Microsoft Security Essentials.exe',
+      )
+    popen_objects.append(popen_program([cmd]))
 
   # LibreOffice
   if libreoffice:
-    cmd = r'{BaseDir}\Installers\Extras\Office'.format(**global_vars)
-    cmd += r'\LibreOffice.exe'
-    popen_objects.append(popen_program(cmd))
+    cmd = r'{}\Installers\Extras\Office\{}'.format(
+      global_vars['BaseDir'],
+      'LibreOffice.exe',
+      )
+    popen_objects.append(popen_program([cmd]))
 
   # Done
   return popen_objects
@@ -216,6 +332,10 @@ def install_vcredists():
 # Misc
 def open_device_manager():
   popen_program(['mmc', 'devmgmt.msc'])
+
+
+def open_speedtest():
+  popen_program(['start', '', 'https://fast.com'], shell=True)
 
 
 def open_windows_activation():

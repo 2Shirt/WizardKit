@@ -38,7 +38,7 @@ if __name__ == '__main__':
       if repair:
         cs = 'Scheduled'
       else:
-        cs = 'CS'
+        cs = 'No issues'
       message = 'CHKDSK ({SYSTEMDRIVE})...'.format(**global_vars['Env'])
       try_and_print(message=message, function=run_chkdsk,
         cs=cs, other_results=other_results, repair=repair)
@@ -49,8 +49,8 @@ if __name__ == '__main__':
     print_success('Done.')
     pause("Press Enter to exit...")
     exit_script()
-  except SystemExit:
-    pass
+  except SystemExit as sys_exit:
+    exit_script(sys_exit.code)
   except:
     major_exception()
 

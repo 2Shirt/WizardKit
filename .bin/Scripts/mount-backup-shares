@@ -16,9 +16,6 @@ if __name__ == '__main__':
     # Prep
     clear_screen()
 
-    # Connect
-    connect_to_network()
-
     # Mount
     if is_connected():
       mount_backup_shares(read_write=True)
@@ -30,8 +27,8 @@ if __name__ == '__main__':
     print_standard('\nDone.')
     #pause("Press Enter to exit...")
     exit_script()
-  except SystemExit:
-    pass
+  except SystemExit as sys_exit:
+    exit_script(sys_exit.code)
   except:
     major_exception()
 

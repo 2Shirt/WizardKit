@@ -57,6 +57,7 @@ if __name__ == '__main__':
     # Installers
     print_info('  Installers')
     try_and_print(message='Adobe Reader DC...', function=update_adobe_reader_dc, other_results=other_results, width=40)
+    try_and_print(message='LibreOffice...', function=update_libreoffice, other_results=other_results, width=40)
     try_and_print(message='Macs Fan Control...', function=update_macs_fan_control, other_results=other_results, width=40)
     try_and_print(message='MS Office...', function=update_office, other_results=other_results, width=40)
     try_and_print(message='Visual C++ Runtimes...', function=update_vcredists, other_results=other_results, width=40)
@@ -134,8 +135,8 @@ if __name__ == '__main__':
     print_standard('\nDone.')
     pause("Press Enter to exit...")
     exit_script()
-  except SystemExit:
-    pass
+  except SystemExit as sys_exit:
+    exit_script(sys_exit.code)
   except:
     major_exception()
 

@@ -15,8 +15,8 @@ set_log_file('WinPE.log')
 if __name__ == '__main__':
   try:
     menu_root()
-  except SystemExit:
-    pass
+  except SystemExit as sys_exit:
+    exit_script(sys_exit.code)
   except:
     major_exception()
 
