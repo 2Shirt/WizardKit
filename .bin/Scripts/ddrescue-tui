@@ -2,59 +2,10 @@
 #
 ## Wizard Kit: ddrescue TUI Launcher
 
+source launch-in-tmux
+
 SESSION_NAME="ddrescue-tui"
 WINDOW_NAME="ddrescue TUI"
-MENU="ddrescue-tui-menu"
+TMUX_CMD="ddrescue-tui-menu"
 
-function ask() {
-    while :; do
-        read -p "$1 [Y/N] " -r answer
-        if echo "$answer" | grep -Eiq '^(y|yes|sure)$'; then
-            return 0
-        elif echo "$answer" | grep -Eiq '^(n|no|nope)$'; then
-            return 1
-        fi
-    done
-}
-
-die () {
-    echo "$0:" "$@" >&2
-    exit 1
-}
-
-# Check for running session
-if tmux list-session | grep -q "$SESSION_NAME"; then
-    echo "WARNING: tmux session $SESSION_NAME already exists."
-    echo ""
-    if ask "Connect to current session?"; then
-        if [[ -n "${TMUX:-}" ]]; then
-            # Running inside TMUX, switch to session
-            tmux switch-client -t "$SESSION_NAME"
-        else
-            # Running outside TMUX, attach to session
-            tmux attach-session -t "$SESSION_NAME"
-        fi
-        exit 0
-    elif ask "Kill current session and start new session?"; then
-        tmux kill-session -t "$SESSION_NAME" || \
-            die "Failed to kill session: $SESSION_NAME"
-    else
-        echo "Aborted."
-        echo ""
-        echo -n "Press Enter to exit... "
-        read -r
-        exit 0
-    fi
-fi
-
-# Start/Rename session
-if [[ -n "${TMUX:-}" ]]; then
-    # Running inside TMUX, rename session/window and open the menu
-    tmux rename-session "$SESSION_NAME"
-    tmux rename-window "$WINDOW_NAME"
-    "$MENU" "$@"
-else
-    # Running outside TMUX, start/attach to session
-    tmux new-session -s "$SESSION_NAME" -n "$WINDOW_NAME" "$MENU" "$@"
-fi
-
+launch_in_tmux "$@"
