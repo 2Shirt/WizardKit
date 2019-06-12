@@ -851,7 +851,7 @@ def menu_ddrescue(source_path, dest_path, run_mode):
   menu_main(state)
 
   # Done
-  run_program(['tmux', 'kill-window'])
+  tmux_kill_all_panes()
   exit_script()
 
 
