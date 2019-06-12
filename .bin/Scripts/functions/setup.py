@@ -334,6 +334,10 @@ def open_device_manager():
   popen_program(['mmc', 'devmgmt.msc'])
 
 
+def open_speedtest():
+  popen_program(['start', '', 'https://fast.com'], shell=True)
+
+
 def open_windows_activation():
   popen_program(['slui'])
 

@@ -91,6 +91,12 @@ class SecureBootNotAvailError(Exception):
 class SecureBootUnknownError(Exception):
   pass
 
+class WindowsOutdatedError(Exception):
+  pass
+
+class WindowsUnsupportedError(Exception):
+  pass
+
 
 # General functions
 def abort(show_prompt=True):

@@ -1,35 +1,20 @@
-# Wizard Kit: Settings - Launchers
+'''Wizard Kit: Settings - Launchers'''
+# pylint: disable=line-too-long
+# vim: sts=2 sw=2 ts=2
 
 LAUNCHERS = {
   r'(Root)': {
-    'Activate Windows': {
-      'L_TYPE': 'PyScript',
-      'L_PATH': 'Scripts',
-      'L_ITEM': 'activate.py',
-      'L_ELEV': 'True',
-      },
-    'New System Setup': {
-      'L_TYPE': 'PyScript',
-      'L_PATH': 'Scripts',
-      'L_ITEM': 'new_system_setup.py',
-      'L_ELEV': 'True',
-      },
-    'System Checklist': {
-      'L_TYPE': 'PyScript',
-      'L_PATH': 'Scripts',
-      'L_ITEM': 'system_checklist.py',
-      'L_ELEV': 'True',
-      },
     'System Diagnostics': {
       'L_TYPE': 'PyScript',
       'L_PATH': 'Scripts',
       'L_ITEM': 'system_diagnostics.py',
       'L_ELEV': 'True',
       },
-    'User Checklist': {
+    'System Setup': {
       'L_TYPE': 'PyScript',
       'L_PATH': 'Scripts',
-      'L_ITEM': 'user_checklist.py',
+      'L_ITEM': 'system_setup.py',
+      'L_ELEV': 'True',
       },
     },
   r'Data Recovery': {
@@ -55,6 +40,7 @@ LAUNCHERS = {
       },
     },
   r'Data Transfers': {
+    # pylint: disable=bad-continuation
     'FastCopy (as ADMIN)': {
       'L_TYPE': 'Executable',
       'L_PATH': 'FastCopy',
@@ -257,7 +243,7 @@ LAUNCHERS = {
       'L_TYPE': 'Executable',
       'L_PATH': 'erunt',
       'L_ITEM': 'ERUNT.EXE',
-      'L_ARGS': '%client_dir%\Backups\Registry\%iso_date% sysreg curuser otherusers',
+      'L_ARGS': r'%client_dir%\Backups\Registry\%iso_date% sysreg curuser otherusers',
       'L_ELEV': 'True',
       'Extra Code': [
         r'call "%bin%\Scripts\init_client_dir.cmd" /Logs',
@@ -287,13 +273,13 @@ LAUNCHERS = {
   r'Drivers': {
     'Intel RST (Current Release)': {
       'L_TYPE': 'Executable',
-      'L_PATH': '_Drivers\Intel RST',
+      'L_PATH': r'_Drivers\Intel RST',
       'L_ITEM': 'SetupRST_17.2.exe',
       'L_7ZIP': 'SetupRST_17.2.exe',
       },
     'Intel RST (Previous Releases)': {
       'L_TYPE': 'Folder',
-      'L_PATH': '_Drivers\Intel RST',
+      'L_PATH': r'_Drivers\Intel RST',
       'L_ITEM': '.',
       'L_NCMD': 'True',
       },
@@ -309,7 +295,7 @@ LAUNCHERS = {
       },
     'Snappy Driver Installer Origin': {
       'L_TYPE': 'Executable',
-      'L_PATH': '_Drivers\SDIO',
+      'L_PATH': r'_Drivers\SDIO',
       'L_ITEM': 'SDIO.exe',
       },
     },
@@ -435,6 +421,12 @@ LAUNCHERS = {
       },
     },
   r'Misc': {
+    'Activate Windows': {
+      'L_TYPE': 'PyScript',
+      'L_PATH': 'Scripts',
+      'L_ITEM': 'activate.py',
+      'L_ELEV': 'True',
+      },
     'Cleanup CBS Temp Files': {
       'L_TYPE': 'PyScript',
       'L_PATH': 'Scripts',
@@ -451,6 +443,20 @@ LAUNCHERS = {
       'L_TYPE': 'Executable',
       'L_PATH': 'ConEmu',
       'L_ITEM': 'ConEmu.exe',
+      },
+    'Disable Windows Updates': {
+      'L_TYPE': 'PyScript',
+      'L_PATH': 'Scripts',
+      'L_ITEM': 'windows_updates.py',
+      'L_ARGS': '--disable',
+      'L_ELEV': 'True',
+      },
+    'Enable Windows Updates': {
+      'L_TYPE': 'PyScript',
+      'L_PATH': 'Scripts',
+      'L_ITEM': 'windows_updates.py',
+      'L_ARGS': '--enable',
+      'L_ELEV': 'True',
       },
     'Enter SafeMode': {
       'L_TYPE': 'PyScript',
@@ -491,7 +497,7 @@ LAUNCHERS = {
       'L_TYPE': 'Executable',
       'L_PATH': 'XMPlay',
       'L_ITEM': 'xmplay.exe',
-      'L_ARGS': '"%bin%\XMPlay\music.7z"',
+      'L_ARGS': r'"%bin%\XMPlay\music.7z"',
       },
     },
   r'Repairs': {
@@ -551,7 +557,7 @@ LAUNCHERS = {
       'L_TYPE': 'Executable',
       'L_PATH': 'RKill',
       'L_ITEM': 'RKill.exe',
-      'L_ARGS': '-s -l %log_dir%\Tools\RKill.log',
+      'L_ARGS': r'-s -l %log_dir%\Tools\RKill.log',
       'L_ELEV': 'True',
       'Extra Code': [
         r'call "%bin%\Scripts\init_client_dir.cmd" /Logs',
@@ -594,5 +600,3 @@ LAUNCHERS = {
 
 if __name__ == '__main__':
   print("This file is not meant to be called directly.")
-
-# vim: sts=2 sw=2 ts=2
