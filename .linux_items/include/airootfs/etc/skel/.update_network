@@ -3,7 +3,7 @@
 ## Setup network and update hostname
 
 # Wait for WiFi
-sleep 1s
+sleep 3s
 
 # Set hostname
 IP="$(ip a show scope global \
