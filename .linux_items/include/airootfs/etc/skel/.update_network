@@ -3,9 +3,12 @@
 ## Setup network and update hostname
 
 # Wait for WiFi
+echo -n "Waiting for network... "
 sleep 3s
+echo "Done"
 
 # Set hostname
+echo -n "Updating hostname... "
 IP="$(ip a show scope global \
   | grep inet \
   | head -1 \
@@ -19,4 +22,5 @@ fi
 if [[ "${NEW_HOSTNAME:+x}" ]]; then
   sudo hostnamectl set-hostname "${NEW_HOSTNAME}"
 fi
+echo "Done"
 

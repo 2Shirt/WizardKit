@@ -1,3 +1,5 @@
 #openbox-autostart
 
-$HOME/.update_x &
+/usr/bin/urxvt -title "Initializing..." -e "$HOME/.update_x"
+"$HOME/.start_desktop_apps" &
+
