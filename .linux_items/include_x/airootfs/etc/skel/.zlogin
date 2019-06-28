@@ -1,7 +1,7 @@
 setterm -blank 0 -powerdown 0 2>/dev/null
 if [ "$(fgconsole 2>/dev/null)" -eq "1" ]; then
     # Connect to network and update hostname
-    $HOME/.update_network
+    "${HOME}/.update_network"
 
     # Update settings if using i3
     if fgrep -q "i3" /proc/cmdline; then
@@ -11,18 +11,16 @@ if [ "$(fgconsole 2>/dev/null)" -eq "1" ]; then
 
     # Start X or HW-diags
     if ! fgrep -q "nox" /proc/cmdline; then
-        # Kill Xorg after 30 seconds if it doesn't fully initialize
-        (sleep 30s; if ! [[ -f "/tmp/x_ok" ]]; then pkill '(Xorg|startx)'; fi) &
+        # Show freeze warning
+        echo ""
+        echo "NOTE: Not all GPUs/displays are supported."
+        echo "      If the system is frozen on this screen"
+        echo "      please restart and try CLI mode instead"
+        echo ""
 
-        # Try starting X
-        startx >/dev/null
-
-        # Run Hw-Diags CLI if necessary
-        if ! [[ -f "/tmp/x_ok" ]]; then
-            echo "There was an issue starting Xorg, starting CLI interface..."
-            sleep 2s
-            hw-diags --cli
-        fi
+        # Start x
+        echo "Starting X..."
+        startx >/dev/null 2>&1
     else
         hw-diags --cli
     fi

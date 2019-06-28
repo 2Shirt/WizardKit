@@ -52,6 +52,12 @@ class CpuObj():
         continue
       self.lscpu[_field] = _data
 
+    # Get RAM details as well
+    ram_details = get_ram_details()
+    self.ram_total = human_readable_size(ram_details.pop('Total', 0)).strip()
+    self.ram_dimms = [
+      '{}x {}'.format(v, k) for k, v in sorted(ram_details.items())]
+
   def generate_cpu_report(self):
     """Generate CPU report with data from all tests."""
     report = []
@@ -59,11 +65,8 @@ class CpuObj():
     report.append('  {}'.format(self.name))
 
     # Include RAM details
-    ram_details = get_ram_details()
-    ram_total = human_readable_size(ram_details.pop('Total', 0)).strip()
-    ram_dimms = ['{}x {}'.format(v, k) for k, v in sorted(ram_details.items())]
     report.append('{BLUE}RAM{CLEAR}'.format(**COLORS))
-    report.append('  {} ({})'.format(ram_total, ', '.join(ram_dimms)))
+    report.append('  {} ({})'.format(self.ram_total, ', '.join(self.ram_dimms)))
 
     # Tests
     for test in self.tests.values():

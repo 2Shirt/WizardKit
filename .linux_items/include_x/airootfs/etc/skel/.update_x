@@ -5,6 +5,8 @@
 REGEX_XRANDR='^.* ([0-9]+)x([0-9]+)\+[0-9]+\+[0-9]+.* ([0-9]+)mm x ([0-9]+)mm.*$'
 REGEX_URXVT='(URxvt.geometry:\s+).*'
 
+echo -n "Getting display details... "
+
 # Get screen data
 xrandr_str="$(xrandr | grep mm | head -1)"
 width_px="$(echo "${xrandr_str}" | sed -r "s/${REGEX_XRANDR}/\1/")"
@@ -29,8 +31,12 @@ width_urxvt="$(echo "${width_px} * 112/1280" | bc)"
 height_urxvt="$(echo "${height_px} * 33/720" | bc)"
 offset_urxvt="24"
 
+echo "Done"
+
 # Update settings if necessary
 if [[ "${dpi}" -ge 192 ]]; then
+  echo -n "Updating settings for HiDPI... "
+
   # Conky
   sed -i 's/minimum_size 180 0/minimum_size 360 0/' "${HOME}/.conkyrc_base"
   sed -i 's/maximum_width 180/maximum_width 360/' "${HOME}/.conkyrc_base"
@@ -64,6 +70,9 @@ if [[ "${dpi}" -ge 192 ]]; then
   width_urxvt="$(echo "${width_urxvt} / 2" | bc)"
   height_urxvt="$(echo "${height_urxvt} / 2" | bc)"
   offset_urxvt="$(echo "${offset_urxvt} * 2" | bc)"
+
+  # Done
+  echo "Done"
 fi
 
 # Update URxvt (Always)
@@ -71,33 +80,19 @@ urxvt_geometry="${width_urxvt}x${height_urxvt}+${offset_urxvt}+${offset_urxvt}"
 sed -i -r "s/${REGEX_URXVT}/\1${urxvt_geometry}/" "${HOME}/.Xresources"
 
 # Update conky
+echo -n "Updating conky... "
 $HOME/.update_conky
+echo "Done"
 
 # Update X
+echo -n "Updating X... "
 xset s off
 xset -dpms
 xrdb -merge $HOME/.Xresources
+echo "Done"
 
-# Start common desktop apps
-feh --bg-fill "$HOME/.wallpaper"
-compton --backend xrender --xrender-sync --xrender-sync-fence &
-sleep 1s
-x0vncserver -display :0 -passwordfile $HOME/.vnc/passwd -AlwaysShared &
-conky &
-nm-applet &
-volumeicon &
-
-# Start WM specific apps
+# Start desktop apps for i3
 if fgrep -q "i3" /proc/cmdline; then
-  # i3
-  i3-msg restart
-else
-  # openbox
-  openbox --restart
-  tint2 &
-  cbatticon --hide-notification &
+  i3-msg exec $HOME/.start_desktop_apps
 fi
-
-# Prevent Xorg from being killed by .zlogin
-touch "/tmp/x_ok"
 
