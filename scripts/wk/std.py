@@ -1,6 +1,7 @@
 '''WizardKit: Standard Functions'''
 # vim: sts=2 sw=2 ts=2
 
+import logging
 import os
 import sys
 
@@ -22,6 +23,7 @@ COLORS = {
   'PURPLE': '\033[35m',
   'CYAN':   '\033[36m',
   }
+LOG = logging.getLogger(__name__)
 
 
 # Functions
@@ -38,9 +40,11 @@ def input_text(prompt='Enter text'):
       tcflush(sys.stdin, TCIOFLUSH)
     try:
       response = input(prompt)
+      LOG.debug('%s.input_text response: %s', __name__, response)
     except EOFError:
       # Ignore and try again
-      print('')
+      LOG.warning('Exception occured', exc_info=True)
+      print('', flush=True)
 
   return response
 
