@@ -1,11 +1,11 @@
 '''WizardKit: wk module init'''
 
-import wk.cfg
-import wk.exe
-import wk.hw
-import wk.io
-import wk.kit
-import wk.net
-import wk.os
-import wk.std
-import wk.sw
+from wk import cfg
+from wk import exe
+from wk import hw
+from wk import io
+from wk import kit
+from wk import net
+from wk import os
+from wk import std
+from wk import sw

@@ -1,4 +1,4 @@
 '''WizardKit: cfg module init'''
 
-import wk.cfg.logging
-import wk.cfg.main
+from wk.cfg import logging
+from wk.cfg import main
