@@ -94,9 +94,10 @@ ATTRIBUTES = {
     },
   }
 ATTRIBUTE_COLORS = (
+  # NOTE: The order here is important; least important to most important.
+  ('Warning', 'YELLOW'),
   ('Error', 'RED'),
   ('Maximum', 'PURPLE'),
-  ('Warning', 'YELLOW'),
   )
 KEY_NVME = 'nvme_smart_health_information_log'
 KEY_SMART = 'ata_smart_attributes'
