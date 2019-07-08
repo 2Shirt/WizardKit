@@ -11,10 +11,6 @@ import time
 from . import cfg
 
 
-# STATIC VARIABLES
-LOG = logging.getLogger(__name__)
-
-
 # Functions
 def enable_debug_mode():
   """Configures logging for better debugging."""
@@ -30,10 +26,12 @@ def enable_debug_mode():
 
 def update_log_path(dest_dir, dest_filename=''):
   """Copies current log file to new dir and updates the root logger."""
-  dest = pathlib.Path(dest_dir)
-  dest = dest.expanduser()
   root_logger = logging.getLogger()
   cur_handler = root_logger.handlers[0]
+  dest = pathlib.Path(dest_dir)
+  dest = dest.expanduser()
+  source = pathlib.Path(cur_handler.baseFilename)
+  source = source.resolve()
 
   # Safety checks
   if len(root_logger.handlers) > 1:
@@ -41,16 +39,14 @@ def update_log_path(dest_dir, dest_filename=''):
   if not isinstance(cur_handler, logging.FileHandler):
     raise NotImplementedError('update_log_path() only supports FileHandlers.')
 
-  # Set source
-  source = pathlib.Path(cur_handler.baseFilename)
-  source = source.resolve()
-
   # Copy original log to new location
   if dest_filename:
     dest = dest.joinpath(dest_filename)
   else:
     dest = dest.joinpath(source.name)
   dest = dest.resolve()
+  if dest.exists():
+    raise FileExistsError('Refusing to clobber: {}'.format(dest))
   os.makedirs(dest.parent, exist_ok=True)
   shutil.copy(source, dest)
 
