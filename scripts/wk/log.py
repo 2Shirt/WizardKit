@@ -65,7 +65,7 @@ def start(config=None):
   log_path = '{}/{}_{}.log'.format(
     log_dir,
     cfg.main.KIT_NAME_FULL,
-    time.strftime('%Y-%m-%d_%H%M%z'),
+    time.strftime('%Y-%m-%d_%H%M%S%z'),
     )
   root_logger = logging.getLogger()
 
