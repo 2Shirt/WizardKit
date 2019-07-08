@@ -1,6 +1,7 @@
 '''WizardKit: Log Functions'''
 # vim: sts=2 sw=2 ts=2
 
+import atexit
 import logging
 import os
 import pathlib
@@ -83,6 +84,9 @@ def start(config=None):
 
   # Config logger
   logging.basicConfig(filename=log_path, **config)
+
+  # Register shutdown to run atexit
+  atexit.register(logging.shutdown)
 
 if __name__ == '__main__':
   print("This file is not meant to be called directly.")
