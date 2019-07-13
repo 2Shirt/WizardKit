@@ -61,12 +61,21 @@ def update_log_path(dest_dir, dest_filename=''):
 
 def start(config=None):
   """Configure and start logging using safe defaults."""
-  log_dir = '{}/Logs/'.format(os.path.expanduser('~'))
-  log_path = '{}/{}_{}.log'.format(
-    log_dir,
-    cfg.main.KIT_NAME_FULL,
-    time.strftime('%Y-%m-%d_%H%M%S%z'),
-    )
+  if os.name == 'nt':
+    log_path = '{drive}/{short}/Logs/{date}/{full}/log_{datetime}.log'.format(
+      drive=os.environ.get('SYSTEMDRIVE', 'C:'),
+      short=cfg.main.KIT_NAME_SHORT,
+      date=time.strftime('%y-%m-%d'),
+      full=cfg.main.KIT_NAME_FULL,
+      datetime=time.strftime('%Y-%m-%d_%H%M%S%z'),
+      )
+  else:
+    log_path = '{home}/Logs/{full}_{datetime}.log'.format(
+      home=os.path.expanduser('~'),
+      full=cfg.main.KIT_NAME_FULL,
+      datetime=time.strftime('%Y-%m-%d_%H%M%S%z'),
+      )
+  log_path = pathlib.Path(log_path).resolve()
   root_logger = logging.getLogger()
 
   # Safety checks
@@ -76,7 +85,7 @@ def start(config=None):
     raise UserWarning('Logging already started.')
 
   # Create log_dir
-  os.makedirs(log_dir, exist_ok=True)
+  os.makedirs(log_path.parent, exist_ok=True)
 
   # Config logger
   logging.basicConfig(filename=log_path, **config)
