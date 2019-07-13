@@ -65,7 +65,7 @@ def start(config=None):
     log_path = '{drive}/{short}/Logs/{date}/{full}/log_{datetime}.log'.format(
       drive=os.environ.get('SYSTEMDRIVE', 'C:'),
       short=cfg.main.KIT_NAME_SHORT,
-      date=time.strftime('%y-%m-%d'),
+      date=time.strftime('%Y-%m-%d'),
       full=cfg.main.KIT_NAME_FULL,
       datetime=time.strftime('%Y-%m-%d_%H%M%S%z'),
       )
