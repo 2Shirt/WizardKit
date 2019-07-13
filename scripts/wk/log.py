@@ -62,7 +62,7 @@ def update_log_path(dest_dir, dest_filename=''):
 def start(config=None):
   """Configure and start logging using safe defaults."""
   if os.name == 'nt':
-    log_path = '{drive}/{short}/Logs/{date}/{full}/log_{datetime}.log'.format(
+    log_path = '{drive}/{short}/Logs/{date}/{full}/{datetime}.log'.format(
       drive=os.environ.get('SYSTEMDRIVE', 'C:'),
       short=cfg.main.KIT_NAME_SHORT,
       date=time.strftime('%Y-%m-%d'),
