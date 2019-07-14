@@ -1,6 +1,7 @@
 '''WizardKit: Standard Functions'''
 # vim: sts=2 sw=2 ts=2
 
+import itertools
 import logging
 import os
 import re
@@ -67,6 +68,55 @@ def input_text(prompt='Enter text'):
 def pause(prompt='Press Enter to continue... '):
   """Simple pause implementation."""
   input_text(prompt)
+
+
+def print_colored(strings, colors, **kwargs):
+  """Prints strings in the colors specified and adds to log."""
+  msg = ''
+  print_options = {
+    'end': kwargs.get('end', '\n'),
+    'file': kwargs.get('file', sys.stdout),
+    'flush': kwargs.get('flush', False),
+    }
+
+  # Build new string with color escapes added
+  for string, color in itertools.zip_longest(strings, colors):
+    msg += '{}{}{}'.format(
+      COLORS.get(color, COLORS['CLEAR']),
+      string,
+      COLORS['CLEAR'],
+      )
+
+  print(msg, **print_options)
+  LOG.log(
+    level=logging.getLevelName(kwargs.get('level', 'INFO')),
+    msg=''.join(strings),
+    )
+
+
+def print_error(msg, **kwargs):
+  """Prints message in RED and adds to log."""
+  print_colored([mgs], ['RED'], level='ERROR', **kwargs)
+
+
+def print_info(msg, **kwargs):
+  """Prints message in BLUE and adds to log."""
+  print_colored([mgs], ['BLUE'], **kwargs)
+
+
+def print_standard(msg, **kwargs):
+  """Prints message and adds to log."""
+  print_colored([mgs], [None], **kwargs)
+
+
+def print_success(msg, **kwargs):
+  """Prints message in GREEN and adds to log."""
+  print_colored([mgs], ['GREEN'], **kwargs)
+
+
+def print_warning(msg, **kwargs):
+  """Prints message in YELLOW and adds to log."""
+  print_colored([mgs], ['YELLOW'], level='WARNING', **kwargs)
 
 
 if __name__ == '__main__':
