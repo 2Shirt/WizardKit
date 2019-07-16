@@ -47,6 +47,14 @@ def ask(prompt='Kotaero!'):
   return answer
 
 
+def clear_screen():
+  """Simple wrapper for clear/cls."""
+  if os.name == 'nt':
+    os.system('cls')
+  else:
+    os.system('clear')
+
+
 def input_text(prompt='Enter text'):
   """Get text from user, returns string."""
   prompt = str(prompt)
