@@ -48,6 +48,16 @@ def ask(prompt='Kotaero!'):
   return answer
 
 
+def beep(repeat=1):
+  """Play system bell with optional repeat."""
+  # TODO: Verify Windows functionality
+  while repeat >= 1:
+    # Print bell char without a newline
+    print('\a', end='', flush=True)
+    sleep(0.5)
+    repeat -= 1
+
+
 def clear_screen():
   """Simple wrapper for clear/cls."""
   if os.name == 'nt':
