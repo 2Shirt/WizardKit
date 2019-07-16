@@ -33,12 +33,16 @@ def ask(prompt='Kotaero!'):
   """Prompt the user with a Y/N question, returns bool."""
   answer = None
   prompt = '{} [Y/N]: '.format(prompt)
+
+  # Loop until acceptable answer is given
   while answer is None:
     tmp = input_text(prompt)
-    if re.search(r'^y(es|)$', tmp, re.IGNORECASE):
+    if re.search(r'^y(es|up|)$', tmp, re.IGNORECASE):
       answer = True
     elif re.search(r'^n(o|ope|)$', tmp, re.IGNORECASE):
       answer = False
+
+  # Done
   LOG.info('%s%s', prompt, 'Yes' if answer else 'No')
   return answer
 
@@ -67,11 +71,13 @@ def input_text(prompt='Enter text'):
 
 def pause(prompt='Press Enter to continue... '):
   """Simple pause implementation."""
+  LOG.debug('prompt: %s', prompt)
   input_text(prompt)
 
 
 def print_colored(strings, colors, **kwargs):
-  """Prints strings in the colors specified and adds to log."""
+  """Prints strings in the colors specified."""
+  LOG.debug('strings: %s, colors: %s, kwargs: %s', strings, colors, kwargs)
   msg = ''
   print_options = {
     'end': kwargs.get('end', '\n'),
@@ -88,35 +94,50 @@ def print_colored(strings, colors, **kwargs):
       )
 
   print(msg, **print_options)
-  LOG.log(
-    level=logging.getLevelName(kwargs.get('level', 'INFO')),
-    msg=''.join(strings),
-    )
 
 
 def print_error(msg, **kwargs):
-  """Prints message in RED and adds to log."""
-  print_colored([mgs], ['RED'], level='ERROR', **kwargs)
+  """Prints message in RED."""
+  LOG.debug('msg: %s, kwargs: %s', msg, kwargs)
+  if 'file' not in kwargs:
+    # Only set if not specified
+    kwargs['file'] = sys.stderr
+  print_colored([msg], ['RED'], **kwargs)
 
 
 def print_info(msg, **kwargs):
-  """Prints message in BLUE and adds to log."""
-  print_colored([mgs], ['BLUE'], **kwargs)
+  """Prints message in BLUE."""
+  LOG.debug('msg: %s, kwargs: %s', msg, kwargs)
+  print_colored([msg], ['BLUE'], **kwargs)
 
 
 def print_standard(msg, **kwargs):
-  """Prints message and adds to log."""
-  print_colored([mgs], [None], **kwargs)
+  """Prints message."""
+  LOG.debug('msg: %s, kwargs: %s', msg, kwargs)
+  print_colored([msg], [None], **kwargs)
 
 
 def print_success(msg, **kwargs):
-  """Prints message in GREEN and adds to log."""
-  print_colored([mgs], ['GREEN'], **kwargs)
+  """Prints message in GREEN."""
+  LOG.debug('msg: %s, kwargs: %s', msg, kwargs)
+  print_colored([msg], ['GREEN'], **kwargs)
 
 
 def print_warning(msg, **kwargs):
-  """Prints message in YELLOW and adds to log."""
-  print_colored([mgs], ['YELLOW'], level='WARNING', **kwargs)
+  """Prints message in YELLOW."""
+  LOG.debug('msg: %s, kwargs: %s', msg, kwargs)
+  if 'file' not in kwargs:
+    # Only set if not specified
+    kwargs['file'] = sys.stderr
+  print_colored([msg], ['YELLOW'], **kwargs)
+
+
+def strip_colors(string):
+  """Strip known ANSI color escapes from string, returns str."""
+  LOG.debug('string: %s', string)
+  for color in COLORS.values():
+    string = string.replace(color, '')
+  return string
 
 
 if __name__ == '__main__':
