@@ -30,6 +30,16 @@ LOG = logging.getLogger(__name__)
 
 
 # Functions
+def abort(prompt='Aborted.', show_prompt=True, return_code=1):
+  """Abort script."""
+  print_warning(prompt)
+  LOG.warning(prompt)
+  if show_prompt:
+    sleep(1)
+    pause(prompt='Press Enter to exit... ')
+  sys.exit(return_code)
+
+
 def ask(prompt='Kotaero!'):
   """Prompt the user with a Y/N question, returns bool."""
   answer = None
