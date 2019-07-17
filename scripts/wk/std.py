@@ -68,6 +68,28 @@ def beep(repeat=1):
     repeat -= 1
 
 
+def choice(choices, prompt='答えろ！'):
+  """Choose an option from a provided list, returns str.
+
+  Choices provided will be converted to uppercase and returned as such.
+  Similar to the commands choice (Windows) and select (Linux)."""
+  LOG.debug('choices: %s, prompt: %s', choices, prompt)
+  answer = None
+  choices = [str(c).upper()[:1] for c in choices]
+  prompt = '{} [{}]: '.format(prompt, '/'.join(choices))
+  regex = '^({})$'.format('|'.join(choices))
+
+  # Loop until acceptable answer is given
+  while answer is None:
+    tmp = input_text(prompt=prompt)
+    if re.search(regex, tmp, re.IGNORECASE):
+      answer = tmp.upper()
+
+  # Done
+  LOG.info('%s %s', prompt, answer)
+  return answer
+
+
 def clear_screen():
   """Simple wrapper for clear/cls."""
   if os.name == 'nt':
