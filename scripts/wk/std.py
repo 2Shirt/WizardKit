@@ -90,7 +90,6 @@ def input_text(prompt='Enter text'):
 
 def pause(prompt='Press Enter to continue... '):
   """Simple pause implementation."""
-  LOG.debug('prompt: %s', prompt)
   input_text(prompt)
 
 
@@ -161,7 +160,6 @@ def strip_colors(string):
 
 def sleep(seconds=2):
   """Simple wrapper for time.sleep."""
-  LOG.debug('Sleeping for %s seconds', seconds)
   time.sleep(seconds)
 
 
