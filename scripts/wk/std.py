@@ -182,17 +182,17 @@ def print_warning(msg, **kwargs):
   print_colored([msg], ['YELLOW'], **kwargs)
 
 
+def sleep(seconds=2):
+  """Simple wrapper for time.sleep."""
+  time.sleep(seconds)
+
+
 def strip_colors(string):
   """Strip known ANSI color escapes from string, returns str."""
   LOG.debug('string: %s', string)
   for color in COLORS.values():
     string = string.replace(color, '')
   return string
-
-
-def sleep(seconds=2):
-  """Simple wrapper for time.sleep."""
-  time.sleep(seconds)
 
 
 if __name__ == '__main__':
