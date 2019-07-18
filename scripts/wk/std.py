@@ -211,12 +211,6 @@ def print_info(msg, **kwargs):
   print_colored([msg], ['BLUE'], **kwargs)
 
 
-def print_standard(msg, **kwargs):
-  """Prints message."""
-  LOG.debug('msg: %s, kwargs: %s', msg, kwargs)
-  print_colored([msg], [None], **kwargs)
-
-
 def print_success(msg, **kwargs):
   """Prints message in GREEN."""
   LOG.debug('msg: %s, kwargs: %s', msg, kwargs)
