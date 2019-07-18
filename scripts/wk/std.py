@@ -71,6 +71,53 @@ def beep(repeat=1):
     repeat -= 1
 
 
+def bytes_to_string(size, decimals=0, use_binary=True):
+  """Convert size into a human-readable format, returns str."""
+  LOG.debug(
+    'size: %s, decimals: %s, use_binary: %s',
+    size,
+    decimals,
+    use_binary,
+    )
+  size = float(size)
+
+  # Set scale
+  scale = 1000
+  suffix = 'B'
+  if use_binary:
+    scale = 1024
+    suffix = 'iB'
+
+  # Convert to sensible units
+  if abs(size) >= scale ** 5:
+    size /= scale ** 5
+    units = 'P' + suffix
+  elif abs(size) >= scale ** 4:
+    size /= scale ** 4
+    units = 'T' + suffix
+  elif abs(size) >= scale ** 3:
+    size /= scale ** 3
+    units = 'G' + suffix
+  elif abs(size) >= scale ** 2:
+    size /= scale ** 2
+    units = 'M' + suffix
+  elif abs(size) >= scale ** 1:
+    size /= scale ** 1
+    units = 'K' + suffix
+  else:
+    size /= scale ** 0
+    units = ' {}B'.format(' ' if use_binary else '')
+  size = '{size:0.{decimals}f} {units}'.format(
+    size=size,
+    decimals=decimals,
+    units=units,
+    )
+
+  # Done
+  LOG.debug('string: %s', size)
+  return size
+
+
 def choice(choices, prompt='答えろ！'):
   """Choose an option from a provided list, returns str.
 
