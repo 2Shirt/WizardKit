@@ -24,14 +24,19 @@ def enable_debug_mode():
   root_logger.setLevel('DEBUG')
 
 
-def update_log_path(dest_dir, dest_filename=''):
-  """Copies current log file to new dir and updates the root logger."""
+def update_log_path(dest_dir, dest_name=''):
+  """Copies current log file to new dir and updates the root logger.
+
+  NOTE: A timestamp and extension will be added to dest_name if provided."""
   root_logger = logging.getLogger()
   cur_handler = root_logger.handlers[0]
   dest = pathlib.Path(dest_dir)
   dest = dest.expanduser()
-  source = pathlib.Path(cur_handler.baseFilename)
-  source = source.resolve()
+  if dest_name:
+    dest_name = '{name}_{datetime}.log'.format(
+      name=dest_name,
+      datetime=time.strftime('%Y-%m-%d_%H%M%S%z'),
+      )
 
   # Safety checks
   if len(root_logger.handlers) > 1:
@@ -40,8 +45,10 @@ def update_log_path(dest_dir, dest_filename=''):
     raise NotImplementedError('update_log_path() only supports FileHandlers.')
 
   # Copy original log to new location
-  if dest_filename:
-    dest = dest.joinpath(dest_filename)
+  source = pathlib.Path(cur_handler.baseFilename)
+  source = source.resolve()
+  if dest_name:
+    dest = dest.joinpath(dest_name)
   else:
     dest = dest.joinpath(source.name)
   dest = dest.resolve()
@@ -82,7 +89,7 @@ def start(config=None):
   if not config:
     config = cfg.log.DEFAULT
   if root_logger.hasHandlers():
-    raise UserWarning('Logging already started.')
+    raise UserWarning('Logging already started, results may be unpredictable.')
 
   # Create log_dir
   os.makedirs(log_path.parent, exist_ok=True)
