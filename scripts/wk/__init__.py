@@ -30,7 +30,10 @@ if sys.version_info < (3, 7):
       ))
 
 # Init
-log.start()
+try:
+  log.start()
+except UserWarning as err:
+  std.print_warning(err)
 
 
 if __name__ == '__main__':
