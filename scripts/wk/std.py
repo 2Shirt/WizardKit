@@ -282,5 +282,52 @@ def strip_colors(string):
   return string
 
 
+def upload_debug_report(report, reason='DEBUG'):
+  """Upload debug report to CRASH_SERVER as specified in wk.cfg.net."""
+  import pathlib
+  import requests
+  from wk.cfg.net import CRASH_SERVER as server
+  LOG.info('Uploading debug report to %s', server.get('Name', '?'))
+
+  # Check if the required server details are available
+  if not all(server.get(key, False) for key in ('Name', 'Url', 'User')):
+    msg = 'Server details missing, aborting upload.'
+    LOG.error(msg)
+    print_error(msg)
+    raise UserWarning(msg)
+
+  # Set filename (based on the logging config if possible)
+  ## NOTE: This is using a gross assumption on the logging setup
+  ##       That's why there's such a broad exception if something goes wrong
+  ## TODO: Test under all platforms
+  root_logger = logging.getLogger()
+  try:
+    filename = root_logger.handlers[0].baseFilename
+    filename = pathlib.Path(filename).name
+    filename = re.sub(r'^(.*)_(\d{4}-\d{2}-\d{2}.*)', r'\1', filename)
+  except Exception: #pylint: disable=broad-except
+    filename = 'Unknown'
+  filename = '{base}_{reason}_{datetime}.log'.format(
+    base=filename,
+    reason=reason,
+    datetime=time.strftime('%Y-%m-%d_%H%M%S%z'),
+    )
+  LOG.debug('filename: %s', filename)
+
+  # Upload report
+  url = '{}/{}'.format(server['Url'], filename)
+  response = requests.put(
+    url,
+    data=report,
+    headers=server.get('Headers', {'X-Requested-With': 'XMLHttpRequest'}),
+    auth=(server['User'], server.get('Pass', '')),
+    )
+
+  # Check response
+  if not response.ok:
+    # Using generic exception since we don't care why this failed
+    raise Exception('Failed to upload report')
+
+
 if __name__ == '__main__':
   print("This file is not meant to be called directly.")
