@@ -24,6 +24,41 @@ def enable_debug_mode():
   root_logger.setLevel('DEBUG')
 
 
+def start(config=None):
+  """Configure and start logging using safe defaults."""
+  if os.name == 'nt':
+    log_path = '{drive}/{short}/Logs/{date}/{full}/{datetime}.log'.format(
+      drive=os.environ.get('SYSTEMDRIVE', 'C:'),
+      short=cfg.main.KIT_NAME_SHORT,
+      date=time.strftime('%Y-%m-%d'),
+      full=cfg.main.KIT_NAME_FULL,
+      datetime=time.strftime('%Y-%m-%d_%H%M%S%z'),
+      )
+  else:
+    log_path = '{home}/Logs/{full}_{datetime}.log'.format(
+      home=os.path.expanduser('~'),
+      full=cfg.main.KIT_NAME_FULL,
+      datetime=time.strftime('%Y-%m-%d_%H%M%S%z'),
+      )
+  log_path = pathlib.Path(log_path).resolve()
+  root_logger = logging.getLogger()
+
+  # Safety checks
+  if not config:
+    config = cfg.log.DEFAULT
+  if root_logger.hasHandlers():
+    raise UserWarning('Logging already started, results may be unpredictable.')
+
+  # Create log_dir
+  os.makedirs(log_path.parent, exist_ok=True)
+
+  # Config logger
+  logging.basicConfig(filename=log_path, **config)
+
+  # Register shutdown to run atexit
+  atexit.register(logging.shutdown)
+
+
 def update_log_path(dest_dir, dest_name=''):
   """Copies current log file to new dir and updates the root logger.
 
@@ -65,40 +100,6 @@ def update_log_path(dest_dir, dest_name=''):
   root_logger.removeHandler(cur_handler)
   root_logger.addHandler(new_handler)
 
-
-def start(config=None):
-  """Configure and start logging using safe defaults."""
-  if os.name == 'nt':
-    log_path = '{drive}/{short}/Logs/{date}/{full}/{datetime}.log'.format(
-      drive=os.environ.get('SYSTEMDRIVE', 'C:'),
-      short=cfg.main.KIT_NAME_SHORT,
-      date=time.strftime('%Y-%m-%d'),
-      full=cfg.main.KIT_NAME_FULL,
-      datetime=time.strftime('%Y-%m-%d_%H%M%S%z'),
-      )
-  else:
-    log_path = '{home}/Logs/{full}_{datetime}.log'.format(
-      home=os.path.expanduser('~'),
-      full=cfg.main.KIT_NAME_FULL,
-      datetime=time.strftime('%Y-%m-%d_%H%M%S%z'),
-      )
-  log_path = pathlib.Path(log_path).resolve()
-  root_logger = logging.getLogger()
-
-  # Safety checks
-  if not config:
-    config = cfg.log.DEFAULT
-  if root_logger.hasHandlers():
-    raise UserWarning('Logging already started, results may be unpredictable.')
-
-  # Create log_dir
-  os.makedirs(log_path.parent, exist_ok=True)
-
-  # Config logger
-  logging.basicConfig(filename=log_path, **config)
-
-  # Register shutdown to run atexit
-  atexit.register(logging.shutdown)
 
 if __name__ == '__main__':
   print("This file is not meant to be called directly.")
