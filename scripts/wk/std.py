@@ -28,7 +28,7 @@ COLORS = {
   }
 LOG = logging.getLogger(__name__)
 REGEX_SIZE_STRING = re.compile(
-  r'(?P<size>\d+\.?\d*)\s+(?P<units>[PTGMKB])(?P<binary>I?)B?'
+  r'(?P<size>\-?\d+\.?\d*)\s*(?P<units>[PTGMKB])(?P<binary>I?)B?'
   )
 
 
@@ -197,29 +197,30 @@ def string_to_bytes(size, assume_binary=False):
   size = str(size)
   tmp = REGEX_SIZE_STRING.search(size.upper())
 
+  # Raise exception if string can't be parsed as a size
+  if not tmp:
+    raise ValueError('invalid size string: {}'.format(size))
+
   # Set scale
   if tmp.group('binary') or assume_binary:
     scale = 1024
 
   # Convert to bytes
-  if tmp:
-    size = float(tmp.group('size'))
-    units = tmp.group('units')
-    if units == 'P':
-      size *= scale ** 5
-    if units == 'T':
-      size *= scale ** 4
-    elif units == 'G':
-      size *= scale ** 3
-    elif units == 'M':
-      size *= scale ** 2
-    elif units == 'K':
-      size *= scale ** 1
-    elif units == 'B':
-      size *= scale ** 0
-    size = int(size)
-  else:
-    return -1
+  size = float(tmp.group('size'))
+  units = tmp.group('units')
+  if units == 'P':
+    size *= scale ** 5
+  if units == 'T':
+    size *= scale ** 4
+  elif units == 'G':
+    size *= scale ** 3
+  elif units == 'M':
+    size *= scale ** 2
+  elif units == 'K':
+    size *= scale ** 1
+  elif units == 'B':
+    size *= scale ** 0
+  size = int(size)
 
   # Done
   LOG.debug('bytes: %s', size)
