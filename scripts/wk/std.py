@@ -8,6 +8,8 @@ import re
 import sys
 import time
 
+from wk.cfg.main import CRASH_SERVER
+
 try:
   from termios import tcflush, TCIOFLUSH
 except ImportError:
@@ -277,14 +279,13 @@ def strip_colors(string):
 
 
 def upload_debug_report(report, reason='DEBUG'):
-  """Upload debug report to CRASH_SERVER as specified in wk.cfg.net."""
+  """Upload debug report to CRASH_SERVER as specified in wk.cfg.main."""
   import pathlib
   import requests
-  from wk.cfg.net import CRASH_SERVER as server
-  LOG.info('Uploading debug report to %s', server.get('Name', '?'))
+  LOG.info('Uploading debug report to %s', CRASH_SERVER.get('Name', '?'))
 
   # Check if the required server details are available
-  if not all(server.get(key, False) for key in ('Name', 'Url', 'User')):
+  if not all(CRASH_SERVER.get(key, False) for key in ('Name', 'Url', 'User')):
     msg = 'Server details missing, aborting upload.'
     LOG.error(msg)
     print_error(msg)
@@ -309,12 +310,15 @@ def upload_debug_report(report, reason='DEBUG'):
   LOG.debug('filename: %s', filename)
 
   # Upload report
-  url = '{}/{}'.format(server['Url'], filename)
+  url = '{}/{}'.format(CRASH_SERVER['Url'], filename)
   response = requests.put(
     url,
     data=report,
-    headers=server.get('Headers', {'X-Requested-With': 'XMLHttpRequest'}),
-    auth=(server['User'], server.get('Pass', '')),
+    headers=CRASH_SERVER.get(
+      'Headers',
+      {'X-Requested-With': 'XMLHttpRequest'},
+      ),
+    auth=(CRASH_SERVER['User'], CRASH_SERVER.get('Pass', '')),
     )
 
   # Check response

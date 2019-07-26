@@ -24,6 +24,13 @@ TECH_PASSWORD='Abracadabra'
 LINUX_TIME_ZONE='America/Denver'            # See 'timedatectl list-timezones' for valid values
 WINDOWS_TIME_ZONE='Mountain Standard Time'  # See 'tzutil /l' for valid values
 
+# Misc
+CRASH_SERVER = {
+  #'Name':       'CrashServer',
+  #'Url':        '',
+  #'User':       '',
+  #'Pass':       '',
+  }
 
 if __name__ == '__main__':
   print("This file is not meant to be called directly.")
