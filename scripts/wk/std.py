@@ -7,8 +7,9 @@ import os
 import re
 import sys
 import time
+import traceback
 
-from wk.cfg.main import CRASH_SERVER
+from wk.cfg.main import CRASH_SERVER, ENABLED_UPLOAD_DATA, SUPPORT_MESSAGE
 
 try:
   from termios import tcflush, TCIOFLUSH
@@ -170,6 +171,37 @@ def input_text(prompt='Enter text'):
       print('', flush=True)
 
   return response
+
+
+def major_exception():
+  """Display traceback, optionally upload detailes, and exit."""
+  LOG.critical('Major exception encountered', exc_info=True)
+  print_error('Major exception')
+  print_warning(SUPPORT_MESSAGE)
+  print(traceback.format_exc())
+
+  # Build report
+  ## TODO
+  report = 'TODO\n'
+
+  # Upload details
+  prompt = 'Upload details to {}?'.format(
+    CRASH_SERVER.get('Name', '?'),
+    )
+  if ENABLED_UPLOAD_DATA and ask(prompt):
+    print('Uploading... ', end='', flush=True)
+    try:
+      upload_debug_report(report, reason='CRASH')
+    except Exception: #pylint: disable=broad-except
+      print_colored(['FAILED'], ['RED'])
+      LOG.error('Upload failed')
+    else:
+      print_success('SUCCESS')
+      LOG.info('Upload successful')
+
+  # Done
+  pause('Press Enter to exit... ')
+  raise SystemExit(1)
 
 
 def pause(prompt='Press Enter to continue... '):
