@@ -4,6 +4,7 @@
 import itertools
 import logging
 import os
+import pathlib
 import re
 import sys
 import time
@@ -149,6 +150,24 @@ def clear_screen():
     os.system('cls')
   else:
     os.system('clear')
+
+
+def get_log_filepath():
+  """Get the log filepath from the root logger, returns pathlib.Path obj.
+
+  NOTE: This will use the first handler baseFilename it finds (if any)."""
+  # TODO: Test under all platforms
+  log_filepath = None
+  root_logger = logging.getLogger()
+
+  # Check handlers
+  for handler in root_logger.handlers:
+    if hasattr(handler, 'baseFilename'):
+      log_filepath = pathlib.Path(handler.baseFilename).resolve()
+      break
+
+  # Done
+  return log_filepath
 
 
 def input_text(prompt='Enter text'):
@@ -312,7 +331,6 @@ def strip_colors(string):
 
 def upload_debug_report(report, reason='DEBUG'):
   """Upload debug report to CRASH_SERVER as specified in wk.cfg.main."""
-  import pathlib
   import requests
   LOG.info('Uploading debug report to %s', CRASH_SERVER.get('Name', '?'))
 
@@ -324,18 +342,13 @@ def upload_debug_report(report, reason='DEBUG'):
     raise UserWarning(msg)
 
   # Set filename (based on the logging config if possible)
-  ## NOTE: This is using a gross assumption on the logging setup
-  ##       That's why there's such a broad exception if something goes wrong
-  ## TODO: Test under all platforms
-  root_logger = logging.getLogger()
-  try:
-    filename = root_logger.handlers[0].baseFilename
-    filename = pathlib.Path(filename).name
-    filename = re.sub(r'^(.*)_(\d{4}-\d{2}-\d{2}.*)', r'\1', filename)
-  except Exception: #pylint: disable=broad-except
-    filename = 'Unknown'
-  filename = '{base}_{reason}_{datetime}.log'.format(
-    base=filename,
+  filename = 'Unknown'
+  log_path = get_log_filepath()
+  if log_path:
+    # Strip everything but the prefix
+    filename = re.sub(r'^(.*)_(\d{4}-\d{2}-\d{2}.*)', r'\1', log_path.name)
+  filename = '{prefix}_{reason}_{datetime}.log'.format(
+    prefix=filename,
     reason=reason,
     datetime=time.strftime('%Y-%m-%d_%H%M%S%z'),
     )
