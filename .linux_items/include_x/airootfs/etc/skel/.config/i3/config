@@ -250,6 +250,7 @@ mode "resize" {
 bindsym $mod+Shift+r mode "resize"
 
 # "System" menu
+bindsym $ctrl+$alt+x mode "$mode_system"
 bindsym $mod+x mode "$mode_system"
 set $mode_system (l)ock, (e)xit, (r)eboot, (s)hutdown, (c)onfig, (i)3
 mode "$mode_system" {
