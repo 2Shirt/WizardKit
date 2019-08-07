@@ -5,6 +5,7 @@ import itertools
 import logging
 import os
 import pathlib
+import platform
 import re
 import sys
 import time
@@ -169,6 +170,40 @@ def get_log_filepath():
 
   # Done
   return log_filepath
+
+
+def generate_debug_report():
+  """Generate debug report with various runtime details, returns str."""
+  import socket
+  report = []
+  func_list = (
+    'architecture',
+    'machine',
+    'platform',
+    'python_version',
+    )
+
+  # Platform
+  report.append('[Platform]')
+  report.append('  {:<24} {}'.format(
+    'FQDN',
+    socket.getfqdn(),
+    ))
+  for func in func_list:
+    report.append('  {:<24} {}'.format(
+      func.replace('_', ' ').title(),
+      getattr(platform, func)(),
+      ))
+  report.append('')
+
+  # Environment
+  report.append('[Environment Variables]')
+  for key, value in sorted(os.environ.items()):
+    report.append('  {:<24} {}'.format(key, value))
+  report.append('')
+
+  # Done
+  return '\n'.join(report)
 
 
 def input_text(prompt='Enter text'):
