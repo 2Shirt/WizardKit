@@ -173,7 +173,7 @@ def get_log_filepath():
 
 
 def generate_debug_report():
-  """Generate debug report with various runtime details, returns str."""
+  """Generate debug report, returns str."""
   import socket
   platform_function_list = (
     'architecture',
@@ -183,7 +183,19 @@ def generate_debug_report():
     )
   report = []
 
+  # Logging data
+  log_path = get_log_filepath()
+  if log_path:
+    report.append('------ Start Log -------')
+    report.append('')
+    with open(log_path, 'r') as log_file:
+      report.extend(log_file.read().splitlines())
+    report.append('')
+    report.append('------- End Log --------')
+
   # System
+  report.append('--- Start debug info ---')
+  report.append('')
   report.append('[System]')
   report.append('  {:<24} {}'.format('FQDN', socket.getfqdn()))
   for func in platform_function_list:
@@ -200,6 +212,7 @@ def generate_debug_report():
   report.append('')
 
   # Done
+  report.append('---- End debug info ----')
   return '\n'.join(report)
 
 
