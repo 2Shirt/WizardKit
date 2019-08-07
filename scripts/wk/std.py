@@ -175,25 +175,22 @@ def get_log_filepath():
 def generate_debug_report():
   """Generate debug report with various runtime details, returns str."""
   import socket
-  report = []
-  func_list = (
+  platform_function_list = (
     'architecture',
     'machine',
     'platform',
     'python_version',
     )
+  report = []
 
-  # Platform
-  report.append('[Platform]')
-  report.append('  {:<24} {}'.format(
-    'FQDN',
-    socket.getfqdn(),
-    ))
-  for func in func_list:
-    report.append('  {:<24} {}'.format(
-      func.replace('_', ' ').title(),
-      getattr(platform, func)(),
-      ))
+  # System
+  report.append('[System]')
+  report.append('  {:<24} {}'.format('FQDN', socket.getfqdn()))
+  for func in platform_function_list:
+    func_name = func.replace('_', ' ').capitalize()
+    func_result = getattr(platform, func)()
+    report.append('  {:<24} {}'.format(func_name, func_result))
+  report.append('  {:<24} {}'.format('Python sys.argv', sys.argv))
   report.append('')
 
   # Environment
