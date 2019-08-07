@@ -84,6 +84,7 @@ def bytes_to_string(size, decimals=0, use_binary=True):
     use_binary,
     )
   size = float(size)
+  abs_size = abs(size)
 
   # Set scale
   scale = 1000
@@ -93,19 +94,19 @@ def bytes_to_string(size, decimals=0, use_binary=True):
     suffix = 'iB'
 
   # Convert to sensible units
-  if abs(size) >= scale ** 5:
+  if abs_size >= scale ** 5:
     size /= scale ** 5
     units = 'P' + suffix
-  elif abs(size) >= scale ** 4:
+  elif abs_size >= scale ** 4:
     size /= scale ** 4
     units = 'T' + suffix
-  elif abs(size) >= scale ** 3:
+  elif abs_size >= scale ** 3:
     size /= scale ** 3
     units = 'G' + suffix
-  elif abs(size) >= scale ** 2:
+  elif abs_size >= scale ** 2:
     size /= scale ** 2
     units = 'M' + suffix
-  elif abs(size) >= scale ** 1:
+  elif abs_size >= scale ** 1:
     size /= scale ** 1
     units = 'K' + suffix
   else:
