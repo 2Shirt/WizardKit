@@ -158,7 +158,6 @@ def get_log_filepath():
   """Get the log filepath from the root logger, returns pathlib.Path obj.
 
   NOTE: This will use the first handler baseFilename it finds (if any)."""
-  # TODO: Test under all platforms
   log_filepath = None
   root_logger = logging.getLogger()
 
