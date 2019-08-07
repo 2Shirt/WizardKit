@@ -280,6 +280,14 @@ def print_warning(msg, **kwargs):
   print_colored([msg], ['YELLOW'], **kwargs)
 
 
+def set_title(title):
+  """Set window title."""
+  if os.name == 'nt':
+    os.system('title {}'.format(title))
+  else:
+    raise NotImplementedError
+
+
 def sleep(seconds=2):
   """Simple wrapper for time.sleep."""
   time.sleep(seconds)
