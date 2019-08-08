@@ -245,8 +245,7 @@ def major_exception():
   print(traceback.format_exc())
 
   # Build report
-  ## TODO
-  report = 'TODO\n'
+  report = generate_debug_report()
 
   # Upload details
   prompt = 'Upload details to {}?'.format(
@@ -258,7 +257,7 @@ def major_exception():
       upload_debug_report(report, reason='CRASH')
     except Exception: #pylint: disable=broad-except
       print_colored(['FAILED'], ['RED'])
-      LOG.error('Upload failed')
+      LOG.error('Upload failed', exc_info=True)
     else:
       print_success('SUCCESS')
       LOG.info('Upload successful')
@@ -384,8 +383,8 @@ def strip_colors(string):
 
 def upload_debug_report(report, reason='DEBUG'):
   """Upload debug report to CRASH_SERVER as specified in wk.cfg.main."""
-  import requests
   LOG.info('Uploading debug report to %s', CRASH_SERVER.get('Name', '?'))
+  import requests
 
   # Check if the required server details are available
   if not all(CRASH_SERVER.get(key, False) for key in ('Name', 'Url', 'User')):
