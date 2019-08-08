@@ -26,10 +26,11 @@ WINDOWS_TIME_ZONE='Mountain Standard Time'  # See 'tzutil /l' for valid values
 
 # Misc
 CRASH_SERVER = {
-  #'Name':       'CrashServer',
-  #'Url':        '',
-  #'User':       '',
-  #'Pass':       '',
+  'Name':       'CrashServer',
+  'Url':        '',
+  'User':       '',
+  'Pass':       '',
+  'Headers':    {'X-Requested-With': 'XMLHttpRequest'},
   }
 
 if __name__ == '__main__':

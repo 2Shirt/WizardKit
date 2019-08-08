@@ -3,6 +3,7 @@
 
 import itertools
 import logging
+import lzma
 import os
 import pathlib
 import platform
@@ -381,10 +382,13 @@ def strip_colors(string):
   return string
 
 
-def upload_debug_report(report, reason='DEBUG'):
+def upload_debug_report(report, compress=True, reason='DEBUG'):
   """Upload debug report to CRASH_SERVER as specified in wk.cfg.main."""
   LOG.info('Uploading debug report to %s', CRASH_SERVER.get('Name', '?'))
   import requests
+  headers = CRASH_SERVER.get('Headers', {'X-Requested-With': 'XMLHttpRequest'})
+  if compress:
+    headers['Content-Type'] = 'application/octet-stream'
 
   # Check if the required server details are available
   if not all(CRASH_SERVER.get(key, False) for key in ('Name', 'Url', 'User')):
@@ -406,15 +410,17 @@ def upload_debug_report(report, reason='DEBUG'):
     )
   LOG.debug('filename: %s', filename)
 
+  # Compress report
+  if compress:
+    filename += '.xz'
+    xz_report = lzma.compress(report.encode('utf8'))
+
   # Upload report
   url = '{}/{}'.format(CRASH_SERVER['Url'], filename)
   response = requests.put(
     url,
-    data=report,
-    headers=CRASH_SERVER.get(
-      'Headers',
-      {'X-Requested-With': 'XMLHttpRequest'},
-      ),
+    data=xz_report if compress else report,
+    headers=headers,
     auth=(CRASH_SERVER['User'], CRASH_SERVER.get('Pass', '')),
     )
 
