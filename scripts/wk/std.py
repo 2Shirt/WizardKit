@@ -13,6 +13,7 @@ import time
 import traceback
 
 from wk.cfg.main import CRASH_SERVER, ENABLED_UPLOAD_DATA, SUPPORT_MESSAGE
+from wk.cfg.main import INDENT, WIDTH
 
 try:
   from termios import tcflush, TCIOFLUSH
