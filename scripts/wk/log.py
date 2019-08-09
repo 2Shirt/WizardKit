@@ -62,7 +62,8 @@ def start(config=None):
 def update_log_path(dest_dir, dest_name=''):
   """Copies current log file to new dir and updates the root logger.
 
-  NOTE: A timestamp and extension will be added to dest_name if provided."""
+  NOTE: A timestamp and extension will be added to dest_name if provided.
+  """
   root_logger = logging.getLogger()
   cur_handler = root_logger.handlers[0]
   dest = pathlib.Path(dest_dir)

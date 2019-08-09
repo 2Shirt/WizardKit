@@ -129,7 +129,8 @@ def choice(choices, prompt='答えろ！'):
   """Choose an option from a provided list, returns str.
 
   Choices provided will be converted to uppercase and returned as such.
-  Similar to the commands choice (Windows) and select (Linux)."""
+  Similar to the commands choice (Windows) and select (Linux).
+  """
   LOG.debug('choices: %s, prompt: %s', choices, prompt)
   answer = None
   choices = [str(c).upper()[:1] for c in choices]
@@ -158,7 +159,8 @@ def clear_screen():
 def get_log_filepath():
   """Get the log filepath from the root logger, returns pathlib.Path obj.
 
-  NOTE: This will use the first handler baseFilename it finds (if any)."""
+  NOTE: This will use the first handler baseFilename it finds (if any).
+  """
   log_filepath = None
   root_logger = logging.getLogger()
 
@@ -346,7 +348,7 @@ def string_to_bytes(size, assume_binary=False):
 
   # Raise exception if string can't be parsed as a size
   if not tmp:
-    raise ValueError('invalid size string: {}'.format(size))
+    raise ValueError('Invalid size string: {}'.format(size))
 
   # Set scale
   if tmp.group('binary') or assume_binary:
