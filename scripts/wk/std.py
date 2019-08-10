@@ -349,7 +349,7 @@ def major_exception():
     try:
       upload_debug_report(report, reason='CRASH')
     except Exception: #pylint: disable=broad-except
-      print_colored(['FAILED'], ['RED'])
+      print_error('FAILED')
       LOG.error('Upload failed', exc_info=True)
     else:
       print_success('SUCCESS')
@@ -566,7 +566,7 @@ def upload_debug_report(report, compress=True, reason='DEBUG'):
     msg = 'Server details missing, aborting upload.'
     LOG.error(msg)
     print_error(msg)
-    raise UserWarning(msg)
+    raise RuntimeError(msg)
 
   # Set filename (based on the logging config if possible)
   filename = 'Unknown'
@@ -597,8 +597,7 @@ def upload_debug_report(report, compress=True, reason='DEBUG'):
 
   # Check response
   if not response.ok:
-    # Using generic exception since we don't care why this failed
-    raise Exception('Failed to upload report')
+    raise RuntimeError('Failed to upload report')
 
 
 if __name__ == '__main__':
