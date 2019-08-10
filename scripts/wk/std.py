@@ -13,7 +13,7 @@ import sys
 import time
 import traceback
 
-from subprocess import CompletedProcess
+from subprocess import CalledProcessError, CompletedProcess
 try:
   from termios import tcflush, TCIOFLUSH
 except ImportError:
@@ -160,13 +160,55 @@ def clear_screen():
 
 
 def format_exception_message(_exception, indent=INDENT, width=WIDTH):
-  """TODO"""
-  return 'TODO'
+  """Format using the exception's args or name, returns str."""
+  # pylint: disable=broad-except
+  LOG.debug('Formatting exception: %s', _exception)
+  message = None
+
+  # Use known argument index or first string found
+  try:
+    if isinstance(_exception, CalledProcessError):
+      message = _exception.stderr
+      if not isinstance(message, str):
+        message = message.decode('utf-8')
+      message = message.strip()
+    elif isinstance(_exception, FileNotFoundError):
+      message = _exception.args[1]
+    else:
+      for arg in _exception.args:
+        if isinstance(arg, str):
+          message = arg
+          break
+  except Exception:
+    # Just use the exception name instead
+    pass
+
+  # Safety check
+  if not message:
+    try:
+      message = _exception.__class__.__name__
+    except Exception:
+      message = 'UNKNOWN ERROR'
+
+  # Fix multi-line messages
+  if '\n' in message:
+    try:
+      lines = [
+        f'{" "*(indent+width)}{line.strip()}'
+        for line in message.splitlines() if line.strip()
+        ]
+      lines[0] = lines[0].strip()
+      message = '\n'.join(lines)
+    except Exception:
+      pass
+
+  # Done
+  return message
 
 
 def format_function_output(output, indent=INDENT, width=WIDTH):
   """Format function output for use in try_and_print(), returns str."""
-  LOG.debug('formatting output: %s', output)
+  LOG.debug('Formatting output: %s', output)
 
   # Ensure we're working with a list
   if isinstance(output, CompletedProcess):
