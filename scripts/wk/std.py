@@ -13,6 +13,7 @@ import sys
 import time
 import traceback
 
+from subprocess import CompletedProcess
 try:
   from termios import tcflush, TCIOFLUSH
 except ImportError:
@@ -164,8 +165,32 @@ def format_exception_message(_exception, indent=INDENT, width=WIDTH):
 
 
 def format_function_output(output, indent=INDENT, width=WIDTH):
-  """TODO"""
-  return 'TODO'
+  """Format function output for use in try_and_print(), returns str."""
+  LOG.debug('formatting output: %s', output)
+
+  # Ensure we're working with a list
+  if isinstance(output, CompletedProcess):
+    stdout = output.stdout
+    if not isinstance(stdout, str):
+      stdout = stdout.decode('utf8')
+    output = stdout.strip().splitlines()
+  else:
+    output = list(output)
+
+  # Safety check
+  if not output:
+    # Going to ignore empty function output for now
+    LOG.error('Output is empty')
+    return 'UNKNOWN'
+
+  # Build result_msg
+  result_msg = f'{output.pop(0)}'
+  if output:
+    output = [f'{" "*(indent+width)}{line}' for line in output]
+    result_msg += '\n' + '\n'.join(output)
+
+  # Done
+  return result_msg
 
 
 def get_exception(name):
