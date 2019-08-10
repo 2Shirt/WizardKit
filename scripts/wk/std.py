@@ -20,8 +20,13 @@ except ImportError:
   if os.name == 'posix':
     raise
 
-from wk.cfg.main import CRASH_SERVER, ENABLED_UPLOAD_DATA, SUPPORT_MESSAGE
-from wk.cfg.main import INDENT, WIDTH
+from wk.cfg.main import (
+  CRASH_SERVER,
+  ENABLED_UPLOAD_DATA,
+  INDENT,
+  SUPPORT_MESSAGE,
+  WIDTH,
+  )
 
 
 # STATIC VARIABLES
@@ -40,6 +45,20 @@ REGEX_SIZE_STRING = re.compile(
   r'(?P<size>\-?\d+\.?\d*)\s*(?P<units>[PTGMKB])(?P<binary>I?)B?'
   )
 
+
+# Exception Classes
+class GenericAbort(Exception):
+  """Exception used for aborts selected by the user at runtime."""
+
+class GenericError(Exception):
+  """Exception used when the built-in exceptions don't fit."""
+
+class GenericWarning(Exception):
+  """Exception used to highlight non-critical events.
+
+  NOTE: Avoiding built-in warning exceptions in case the
+        warnings filter has been changed from the default.
+  """
 
 # Functions
 def abort(prompt='Aborted.', show_prompt=True, return_code=1):
