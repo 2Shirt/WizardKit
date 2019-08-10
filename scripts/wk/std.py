@@ -1,5 +1,6 @@
 '''WizardKit: Standard Functions'''
 # vim: sts=2 sw=2 ts=2
+#TODO Replace .format()s with f-strings
 
 import itertools
 import logging
@@ -12,14 +13,14 @@ import sys
 import time
 import traceback
 
-from wk.cfg.main import CRASH_SERVER, ENABLED_UPLOAD_DATA, SUPPORT_MESSAGE
-from wk.cfg.main import INDENT, WIDTH
-
 try:
   from termios import tcflush, TCIOFLUSH
 except ImportError:
   if os.name == 'posix':
     raise
+
+from wk.cfg.main import CRASH_SERVER, ENABLED_UPLOAD_DATA, SUPPORT_MESSAGE
+from wk.cfg.main import INDENT, WIDTH
 
 
 # STATIC VARIABLES
@@ -155,6 +156,27 @@ def clear_screen():
     os.system('cls')
   else:
     os.system('clear')
+
+
+def format_exception_message(_exception, indent=INDENT, width=WIDTH):
+  """TODO"""
+  return 'TODO'
+
+
+def format_function_output(output, indent=INDENT, width=WIDTH):
+  """TODO"""
+  return 'TODO'
+
+
+def get_exception(name):
+  """Get exception by name, returns exception object."""
+  LOG.debug('Getting exception: %s', name)
+  try:
+    obj = getattr(sys.modules[__name__], name)
+  except AttributeError:
+    # Try builtin classes
+    obj = getattr(sys.modules['builtins'], name)
+  return obj
 
 
 def get_log_filepath():
@@ -383,6 +405,85 @@ def strip_colors(string):
   for color in COLORS.values():
     string = string.replace(color, '')
   return string
+
+
+def try_and_print(
+    message, function, *args,
+    msg_good='CS', msg_bad='NS', indent=INDENT, width=WIDTH,
+    w_exceptions=None, e_exceptions=None,
+    catch_all=True, print_return=False, verbose=False,
+    **kwargs):
+  # pylint: disable=catching-non-exception,unused-argument,too-many-locals
+  """Run a function and print the results, returns results as dict.
+
+  If catch_all is True then (nearly) all exceptions will be caught.
+  Otherwise if an exception occurs that wasn't specified it will be
+  re-raised.
+
+  If print_return is True then the output from the function will be used
+  instead of msg_good, msg_bad, or exception text. The output should be
+  a list or a subprocess.CompletedProcess object.
+
+  If verbose is True then exception names or messages will be used for
+  the result message. Otherwise it will simply be set to result_bad.
+
+  If specified w_exceptions and e_exceptions should be lists of
+  exception class names. Details from the excceptions will be used to
+  format more clear result messages.
+  """
+  LOG.debug('function: %s.%s', function.__module__, function.__name__)
+  LOG.debug('args: %s', args)
+  LOG.debug('kwargs: %s', kwargs)
+  LOG.debug('w_exceptions: %s', w_exceptions)
+  LOG.debug('e_exceptions: %s', e_exceptions)
+  LOG.debug(
+    'catch_all: %s, print_return: %s, verbose: %s',
+    catch_all,
+    print_return,
+    verbose,
+    )
+  f_exception = None
+  output = None
+  result_msg = 'UNKNOWN'
+  w_exceptions = tuple(get_exception(e) for e in w_exceptions)
+  e_exceptions = tuple(get_exception(e) for e in e_exceptions)
+
+  # Run function and catch exceptions
+  print(f'{" "*indent}{message:<{width}}', end='', flush=True)
+  LOG.info('Running function: %s.%s', function.__module__, function.__name__)
+  try:
+    output = function(*args, **kwargs)
+    if print_return:
+      result_msg = format_function_output(output, indent, width)
+    else:
+      result_msg = msg_good
+    print_success(result_msg)
+  except w_exceptions as _exception:
+    result_msg = format_exception_message(_exception, indent, width)
+    print_warning(result_msg)
+    f_exception = _exception
+  except e_exceptions as _exception:
+    result_msg = format_exception_message(_exception, indent, width)
+    print_error(result_msg)
+    f_exception = _exception
+  except Exception as _exception: # pylint: disable=broad-except
+    if verbose:
+      result_msg = format_exception_message(_exception, indent, width)
+    else:
+      result_msg = msg_bad
+    print_error(result_msg)
+    f_exception = _exception
+
+  # Re-raise error if necessary
+  if f_exception and not catch_all:
+    raise #pylint: disable=misplaced-bare-raise
+
+  # Done
+  return {
+    'Failed': bool(f_exception),
+    'Exception': f_exception,
+    'Output': output,
+    }
 
 
 def upload_debug_report(report, compress=True, reason='DEBUG'):

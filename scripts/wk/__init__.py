@@ -16,16 +16,10 @@ from wk import sw
 
 
 # Check env
-if sys.version_info < (3, 5):
+if sys.version_info < (3, 7):
   # Unsupported
   raise RuntimeError(
     'This package is unsupported on Python {major}.{minor}'.format(
-      **sys.version_info,
-      ))
-if sys.version_info < (3, 7):
-  # Untested
-  raise UserWarning(
-    'Python {major}.{minor} is untested for this package'.format(
       **sys.version_info,
       ))
 
