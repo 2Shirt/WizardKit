@@ -181,7 +181,10 @@ def clear_screen():
 def format_exception_message(_exception, indent=INDENT, width=WIDTH):
   """Format using the exception's args or name, returns str."""
   # pylint: disable=broad-except
-  LOG.debug('Formatting exception: %s', _exception)
+  LOG.debug(
+    'Formatting exception: %s',
+    _exception.__class__.__name__,
+    )
   message = None
 
   # Use known argument index or first string found
@@ -193,6 +196,8 @@ def format_exception_message(_exception, indent=INDENT, width=WIDTH):
       message = message.strip()
     elif isinstance(_exception, FileNotFoundError):
       message = _exception.args[1]
+    elif isinstance(_exception, ZeroDivisionError):
+      message = 'ZeroDivisionError'
     else:
       for arg in _exception.args:
         if isinstance(arg, str):
@@ -228,6 +233,9 @@ def format_exception_message(_exception, indent=INDENT, width=WIDTH):
 def format_function_output(output, indent=INDENT, width=WIDTH):
   """Format function output for use in try_and_print(), returns str."""
   LOG.debug('Formatting output: %s', output)
+
+  if not output:
+    raise GenericWarning('No output')
 
   # Ensure we're working with a list
   if isinstance(output, CompletedProcess):
@@ -531,6 +539,12 @@ def try_and_print(
   f_exception = None
   output = None
   result_msg = 'UNKNOWN'
+
+  # Build tuples of exceptions
+  if not w_exceptions:
+    w_exceptions = ('GenericWarning',)
+  if not e_exceptions:
+    e_exceptions = ('GenericError',)
   w_exceptions = tuple(get_exception(e) for e in w_exceptions)
   e_exceptions = tuple(get_exception(e) for e in e_exceptions)
 
@@ -541,9 +555,9 @@ def try_and_print(
     output = function(*args, **kwargs)
     if print_return:
       result_msg = format_function_output(output, indent, width)
+      print(result_msg)
     else:
-      result_msg = msg_good
-    print_success(result_msg)
+      print_success(msg_good)
   except w_exceptions as _exception:
     result_msg = format_exception_message(_exception, indent, width)
     print_warning(result_msg)
@@ -559,10 +573,9 @@ def try_and_print(
       result_msg = msg_bad
     print_error(result_msg)
     f_exception = _exception
-
-  # Re-raise error if necessary
-  if f_exception and not catch_all:
-    raise #pylint: disable=misplaced-bare-raise
+    if not catch_all:
+      # Re-raise error as necessary
+      raise
 
   # Done
   return {
