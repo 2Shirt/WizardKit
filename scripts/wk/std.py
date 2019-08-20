@@ -1,6 +1,5 @@
 '''WizardKit: Standard Functions'''
 # vim: sts=2 sw=2 ts=2
-#TODO Replace .format()s with f-strings
 
 import itertools
 import logging
@@ -74,7 +73,7 @@ def abort(prompt='Aborted.', show_prompt=True, return_code=1):
 def ask(prompt='Kotaero!'):
   """Prompt the user with a Y/N question, returns bool."""
   answer = None
-  prompt = '{} [Y/N]: '.format(prompt)
+  prompt = f'{prompt} [Y/N]: '
 
   # Loop until acceptable answer is given
   while answer is None:
@@ -135,12 +134,8 @@ def bytes_to_string(size, decimals=0, use_binary=True):
     units = 'K' + suffix
   else:
     size /= scale ** 0
-    units = ' {}B'.format(' ' if use_binary else '')
-  size = '{size:0.{decimals}f} {units}'.format(
-    size=size,
-    decimals=decimals,
-    units=units,
-    )
+    units = f' {" " if use_binary else ""}B'
+  size = f'{size:0.{decimals}f} {units}'
 
   # Done
   LOG.debug('string: %s', size)
@@ -156,8 +151,8 @@ def choice(choices, prompt='答えろ！'):
   LOG.debug('choices: %s, prompt: %s', choices, prompt)
   answer = None
   choices = [str(c).upper()[:1] for c in choices]
-  prompt = '{} [{}]: '.format(prompt, '/'.join(choices))
-  regex = '^({})$'.format('|'.join(choices))
+  prompt = f'{prompt} [{"/".join(choices)}]'
+  regex = f'^({"|".join(choices)})$'
 
   # Loop until acceptable answer is given
   while answer is None:
@@ -316,18 +311,18 @@ def generate_debug_report():
   report.append('--- Start debug info ---')
   report.append('')
   report.append('[System]')
-  report.append('  {:<24} {}'.format('FQDN', socket.getfqdn()))
+  report.append(f'  {"FQDN":<24} {socket.getfqdn()}')
   for func in platform_function_list:
     func_name = func.replace('_', ' ').capitalize()
     func_result = getattr(platform, func)()
-    report.append('  {:<24} {}'.format(func_name, func_result))
-  report.append('  {:<24} {}'.format('Python sys.argv', sys.argv))
+    report.append(f'  {func_name:<24} {func_result}')
+  report.append(f'  {"Python sys.argv":<24} {sys.argv}')
   report.append('')
 
   # Environment
   report.append('[Environment Variables]')
   for key, value in sorted(os.environ.items()):
-    report.append('  {:<24} {}'.format(key, value))
+    report.append(f'  {key:<24} {value}')
   report.append('')
 
   # Done
@@ -368,9 +363,7 @@ def major_exception():
   report = generate_debug_report()
 
   # Upload details
-  prompt = 'Upload details to {}?'.format(
-    CRASH_SERVER.get('Name', '?'),
-    )
+  prompt = f'Upload details to {CRASH_SERVER.get("Name", "?")}?'
   if ENABLED_UPLOAD_DATA and ask(prompt):
     print('Uploading... ', end='', flush=True)
     try:
@@ -395,6 +388,7 @@ def pause(prompt='Press Enter to continue... '):
 def print_colored(strings, colors, **kwargs):
   """Prints strings in the colors specified."""
   LOG.debug('strings: %s, colors: %s, kwargs: %s', strings, colors, kwargs)
+  clear_code = COLORS['CLEAR']
   msg = ''
   print_options = {
     'end': kwargs.get('end', '\n'),
@@ -404,11 +398,8 @@ def print_colored(strings, colors, **kwargs):
 
   # Build new string with color escapes added
   for string, color in itertools.zip_longest(strings, colors):
-    msg += '{}{}{}'.format(
-      COLORS.get(color, COLORS['CLEAR']),
-      string,
-      COLORS['CLEAR'],
-      )
+    color_code = COLORS.get(color, clear_code)
+    msg += f'{color_code}{string}{clear_code}'
 
   print(msg, **print_options)
 
@@ -446,7 +437,7 @@ def print_warning(msg, **kwargs):
 def set_title(title):
   """Set window title."""
   if os.name == 'nt':
-    os.system('title {}'.format(title))
+    os.system(f'title {title}')
   else:
     raise NotImplementedError
 
@@ -465,7 +456,7 @@ def string_to_bytes(size, assume_binary=False):
 
   # Raise exception if string can't be parsed as a size
   if not tmp:
-    raise ValueError('Invalid size string: {}'.format(size))
+    raise ValueError(f'Invalid size string: {size}')
 
   # Set scale
   if tmp.group('binary') or assume_binary:
@@ -606,11 +597,7 @@ def upload_debug_report(report, compress=True, reason='DEBUG'):
   if log_path:
     # Strip everything but the prefix
     filename = re.sub(r'^(.*)_(\d{4}-\d{2}-\d{2}.*)', r'\1', log_path.name)
-  filename = '{prefix}_{reason}_{datetime}.log'.format(
-    prefix=filename,
-    reason=reason,
-    datetime=time.strftime('%Y-%m-%d_%H%M%S%z'),
-    )
+  filename = f'{filename}_{reason}_{time.strftime("%Y-%m-%d_%H%M%S%z")}.log'
   LOG.debug('filename: %s', filename)
 
   # Compress report
@@ -619,7 +606,7 @@ def upload_debug_report(report, compress=True, reason='DEBUG'):
     xz_report = lzma.compress(report.encode('utf8'))
 
   # Upload report
-  url = '{}/{}'.format(CRASH_SERVER['Url'], filename)
+  url = f'{CRASH_SERVER["Url"]}/{filename}'
   response = requests.put(
     url,
     data=xz_report if compress else report,

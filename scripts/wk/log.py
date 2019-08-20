@@ -69,16 +69,13 @@ def update_log_path(dest_dir, dest_name=''):
   dest = pathlib.Path(dest_dir)
   dest = dest.expanduser()
   if dest_name:
-    dest_name = '{name}_{datetime}.log'.format(
-      name=dest_name,
-      datetime=time.strftime('%Y-%m-%d_%H%M%S%z'),
-      )
+    dest_name = f'{dest_name}_{time.strftime("%Y-%m-%d_%H%M%S%z")}.log'
 
   # Safety checks
   if len(root_logger.handlers) > 1:
-    raise NotImplementedError('update_log_path() only supports a single handler.')
+    raise NotImplementedError('Multiple handlers not supported')
   if not isinstance(cur_handler, logging.FileHandler):
-    raise NotImplementedError('update_log_path() only supports FileHandlers.')
+    raise NotImplementedError('Only FileHandlers are supported')
 
   # Copy original log to new location
   source = pathlib.Path(cur_handler.baseFilename)
@@ -89,7 +86,7 @@ def update_log_path(dest_dir, dest_name=''):
     dest = dest.joinpath(source.name)
   dest = dest.resolve()
   if dest.exists():
-    raise FileExistsError('Refusing to clobber: {}'.format(dest))
+    raise FileExistsError(f'Refusing to clobber: {dest}')
   os.makedirs(dest.parent, exist_ok=True)
   shutil.copy(source, dest)
 

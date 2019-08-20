@@ -1,7 +1,7 @@
 '''WizardKit: wk module init'''
 # vim: sts=2 sw=2 ts=2
 
-import sys
+from sys import version_info as version
 
 from wk import cfg
 from wk import exe
@@ -16,12 +16,11 @@ from wk import sw
 
 
 # Check env
-if sys.version_info < (3, 7):
+if version < (3, 7):
   # Unsupported
   raise RuntimeError(
-    'This package is unsupported on Python {major}.{minor}'.format(
-      **sys.version_info,
-      ))
+    f'This package is unsupported on Python {version.major}.{version.minor}'
+    )
 
 # Init
 try:
