@@ -12,11 +12,13 @@ import sys
 import time
 import traceback
 
+from collections import OrderedDict
 from subprocess import CalledProcessError, CompletedProcess
 try:
   from termios import tcflush, TCIOFLUSH
 except ImportError:
   if os.name == 'posix':
+    # Not worried about this under Windows
     raise
 
 from wk.cfg.main import (
@@ -58,6 +60,94 @@ class GenericWarning(Exception):
   NOTE: Avoiding built-in warning exceptions in case the
         warnings filter has been changed from the default.
   """
+
+
+# Classes
+class Menu():
+  """Object for tracking menu specific data and methods.
+
+  Menu items are added to an OrderedDict so the order is preserved."""
+  def __init__(self, title='[Untitled Menu]'):
+    self.actions = OrderedDict()
+    self.options = OrderedDict()
+    self.sets = OrderedDict()
+    self.toggles = OrderedDict()
+    self.disabled_str = 'DISABLED'
+    self.separator = '─'
+    self.title = title
+
+  def add_action(self, name, details=None):
+    """Add action to menu."""
+    details = details if details else {}
+    details['Enabled'] = details.get('Enabled', True)
+    self.actions[name] = details
+
+  def add_option(self, name, details=None):
+    """Add option to menu."""
+    details = details if details else {}
+    details['Enabled'] = details.get('Enabled', True)
+    self.options[name] = details
+
+  def add_set(self, name, details=None):
+    """Add set to menu."""
+    details = details if details else {}
+    details['Enabled'] = details.get('Enabled', True)
+
+    # Safety check
+    if 'Targets' not in details:
+      raise KeyError('Menu set has no targets')
+
+    # Add set
+    self.sets[name] = details
+
+  def add_toggle(self, name, details=None):
+    """Add toggle to menu."""
+    details = details if details else {}
+    details['Enabled'] = details.get('Enabled', True)
+    self.toggles[name] = details
+
+  def get_separator_string(self):
+    """Format separator length based on name lengths, returns str."""
+    separator_length = 0
+
+    # Loop over all item names
+    for section in (self.actions, self.options, self.sets, self.toggles):
+      for name in section.keys():
+        separator_length = max(separator_length, len(name))
+    separator_length += 1
+
+    # Done
+    return self.separator * separator_length
+
+  def show(self):
+    """Print menu to screen."""
+    separator_string = self.get_separator_string()
+    menu_lines = [self.title, separator_string]
+
+    # Sets & toggles
+    if self.sets:
+      for items in self.sets.items():
+        menu_lines.append(items)
+    if self.toggles:
+      for items in self.toggles.items():
+        menu_lines.append(items)
+    if self.sets or self.toggles:
+      menu_lines.append(separator_string)
+
+    # Options
+    if self.options:
+      for items in self.options.items():
+        menu_lines.append(items)
+      menu_lines.append(separator_string)
+
+    # Actions
+    for items in self.actions.items():
+      menu_lines.append(items)
+
+    # Show menu
+    menu_lines = [str(line) for line in menu_lines]
+    print('\n'.join(menu_lines))
+
 
 # Functions
 def abort(prompt='Aborted.', show_prompt=True, return_code=1):
