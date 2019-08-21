@@ -79,15 +79,21 @@ class Menu():
   def _get_display_name(self, name, details, index=None, no_checkboxes=True):
     # pylint: disable=no-self-use
     """Format display name based on details and args, returns str."""
+    disabled = details.get('Disabled', False)
     checkmark = '✓' if 'DISPLAY' in os.environ else '*'
-    display_name = f'{index if index else name[:1].upper()}: '
+    clear_code = COLORS['CLEAR']
+    color_code = COLORS['YELLOW'] if disabled else ''
+    display_name = f'{color_code}{index if index else name[:1].upper()}: '
 
     # Add enabled status if necessary
     if not no_checkboxes:
       display_name += f'[{checkmark if details["Enabled"] else " "}] '
 
     # Add name
-    display_name += name
+    if disabled:
+      display_name += f'{name} ({self.disabled_str}){clear_code}'
+    else:
+      display_name += name
 
     # Done
     return display_name
@@ -111,30 +117,27 @@ class Menu():
     menu_lines = [self.title, separator_string]
 
     # Sets & toggles
-    if self.sets:
-      for items in self.sets.items():
-        menu_lines.append(items)
-    if self.toggles:
-      for items in self.toggles.items():
-        menu_lines.append(items)
+    for section in (self.sets, self.toggles):
+      for details in section.values():
+        menu_lines.append(details['Display Name'])
     if self.sets or self.toggles:
       menu_lines.append(separator_string)
 
     # Options
+    for details in self.options.values():
+      menu_lines.append(details['Display Name'])
     if self.options:
-      for items in self.options.items():
-        menu_lines.append(items)
       menu_lines.append(separator_string)
 
     # Actions
-    for items in self.actions.items():
-      menu_lines.append(items)
+    for details in self.actions.values():
+      menu_lines.append(details['Display Name'])
 
     # Show menu
     menu_lines = [str(line) for line in menu_lines]
     print('\n'.join(menu_lines))
 
-  def _update_menu(self, single_selection=True):
+  def _update(self, single_selection=True):
     """Update menu items in preparation for printing to screen."""
     index = 0
 
