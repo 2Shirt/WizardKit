@@ -128,10 +128,14 @@ class Menu():
     """Format separator length based on name lengths, returns str."""
     separator_length = 0
 
+    # Check title line(s)
+    for line in self.title.split('\n'):
+      separator_length = max(separator_length, len(line))
+
     # Loop over all item names
     for section in (self.actions, self.options, self.sets, self.toggles):
-      for name in section.keys():
-        separator_length = max(separator_length, len(name))
+      for details in section.values():
+        separator_length = max(separator_length, len(details['Display Name']))
     separator_length += 1
 
     # Done
