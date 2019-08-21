@@ -76,37 +76,11 @@ class Menu():
     self.separator = '─'
     self.title = title
 
-  def add_action(self, name, details=None):
-    """Add action to menu."""
-    details = details if details else {}
-    details['Enabled'] = details.get('Enabled', True)
-    self.actions[name] = details
 
-  def add_option(self, name, details=None):
-    """Add option to menu."""
-    details = details if details else {}
-    details['Enabled'] = details.get('Enabled', True)
-    self.options[name] = details
 
-  def add_set(self, name, details=None):
-    """Add set to menu."""
-    details = details if details else {}
-    details['Enabled'] = details.get('Enabled', True)
 
-    # Safety check
-    if 'Targets' not in details:
-      raise KeyError('Menu set has no targets')
 
-    # Add set
-    self.sets[name] = details
-
-  def add_toggle(self, name, details=None):
-    """Add toggle to menu."""
-    details = details if details else {}
-    details['Enabled'] = details.get('Enabled', True)
-    self.toggles[name] = details
-
-  def get_separator_string(self):
+  def _get_separator_string(self):
     """Format separator length based on name lengths, returns str."""
     separator_length = 0
 
@@ -119,9 +93,9 @@ class Menu():
     # Done
     return self.separator * separator_length
 
-  def show(self):
+  def _show(self):
     """Print menu to screen."""
-    separator_string = self.get_separator_string()
+    separator_string = self._get_separator_string()
     menu_lines = [self.title, separator_string]
 
     # Sets & toggles
@@ -147,6 +121,36 @@ class Menu():
     # Show menu
     menu_lines = [str(line) for line in menu_lines]
     print('\n'.join(menu_lines))
+
+  def add_action(self, name, details=None):
+    """Add action to menu."""
+    details = details if details else {}
+    details['Enabled'] = details.get('Enabled', False)
+    self.actions[name] = details
+
+  def add_option(self, name, details=None):
+    """Add option to menu."""
+    details = details if details else {}
+    details['Enabled'] = details.get('Enabled', False)
+    self.options[name] = details
+
+  def add_set(self, name, details=None):
+    """Add set to menu."""
+    details = details if details else {}
+    details['Enabled'] = details.get('Enabled', False)
+
+    # Safety check
+    if 'Targets' not in details:
+      raise KeyError('Menu set has no targets')
+
+    # Add set
+    self.sets[name] = details
+
+  def add_toggle(self, name, details=None):
+    """Add toggle to menu."""
+    details = details if details else {}
+    details['Enabled'] = details.get('Enabled', False)
+    self.toggles[name] = details
 
 
 # Functions
