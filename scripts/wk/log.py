@@ -73,9 +73,9 @@ def update_log_path(dest_dir, dest_name=''):
 
   # Safety checks
   if len(root_logger.handlers) > 1:
-    raise NotImplementedError('Multiple handlers not supported')
+    raise RuntimeError('Multiple handlers not supported')
   if not isinstance(cur_handler, logging.FileHandler):
-    raise NotImplementedError('Only FileHandlers are supported')
+    raise RuntimeError('Only FileHandlers are supported')
 
   # Copy original log to new location
   source = pathlib.Path(cur_handler.baseFilename)

@@ -439,7 +439,7 @@ def set_title(title):
   if os.name == 'nt':
     os.system(f'title {title}')
   else:
-    raise NotImplementedError
+    print_error('Setting the title is only supported under Windows.')
 
 
 def sleep(seconds=2):
