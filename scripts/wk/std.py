@@ -137,6 +137,23 @@ class Menu():
     # Done
     return self.separator * separator_length
 
+  def _get_valid_answers(self):
+    """Get valid answers based on menu items, returns list."""
+    valid_answers = []
+
+    # Numbered items
+    max_value = 0
+    for section in (self.sets, self.toggles, self.options):
+      max_value += len(section)
+    valid_answers.extend([str(x+1) for x in range(max_value)])
+
+    # Action items
+    for name in self.actions.keys():
+      valid_answers.append(name[:1].upper())
+
+    # Done
+    return valid_answers
+
   def _update(self, single_selection=True):
     """Update menu items in preparation for printing to screen."""
     index = 0
