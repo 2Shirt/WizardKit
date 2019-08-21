@@ -142,14 +142,17 @@ class Menu():
     valid_answers = []
 
     # Numbered items
-    max_value = 0
+    index = 0
     for section in (self.sets, self.toggles, self.options):
-      max_value += len(section)
-    valid_answers.extend([str(x+1) for x in range(max_value)])
+      for details in section.values():
+        index += 1
+        if not details.get('Disabled', False):
+          valid_answers.append(str(index))
 
     # Action items
-    for name in self.actions.keys():
-      valid_answers.append(name[:1].upper())
+    for name, details in self.actions.items():
+      if not details.get('Disabled', False):
+        valid_answers.append(name[:1].upper())
 
     # Done
     return valid_answers
