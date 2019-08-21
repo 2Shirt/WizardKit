@@ -76,6 +76,32 @@ class Menu():
     self.separator = '─'
     self.title = title
 
+  def _generate_menu_text(self):
+    """Generate menu text, returns str."""
+    separator_string = self._get_separator_string()
+    menu_lines = [self.title, separator_string]
+
+    # Sets & toggles
+    for section in (self.sets, self.toggles):
+      for details in section.values():
+        menu_lines.append(details['Display Name'])
+    if self.sets or self.toggles:
+      menu_lines.append(separator_string)
+
+    # Options
+    for details in self.options.values():
+      menu_lines.append(details['Display Name'])
+    if self.options:
+      menu_lines.append(separator_string)
+
+    # Actions
+    for details in self.actions.values():
+      menu_lines.append(details['Display Name'])
+
+    # Show menu
+    menu_lines = [str(line) for line in menu_lines]
+    return '\n'.join(menu_lines)
+
   def _get_display_name(self, name, details, index=None, no_checkboxes=True):
     # pylint: disable=no-self-use
     """Format display name based on details and args, returns str."""
@@ -110,32 +136,6 @@ class Menu():
 
     # Done
     return self.separator * separator_length
-
-  def _show(self):
-    """Print menu to screen."""
-    separator_string = self._get_separator_string()
-    menu_lines = [self.title, separator_string]
-
-    # Sets & toggles
-    for section in (self.sets, self.toggles):
-      for details in section.values():
-        menu_lines.append(details['Display Name'])
-    if self.sets or self.toggles:
-      menu_lines.append(separator_string)
-
-    # Options
-    for details in self.options.values():
-      menu_lines.append(details['Display Name'])
-    if self.options:
-      menu_lines.append(separator_string)
-
-    # Actions
-    for details in self.actions.values():
-      menu_lines.append(details['Display Name'])
-
-    # Show menu
-    menu_lines = [str(line) for line in menu_lines]
-    print('\n'.join(menu_lines))
 
   def _update(self, single_selection=True):
     """Update menu items in preparation for printing to screen."""
