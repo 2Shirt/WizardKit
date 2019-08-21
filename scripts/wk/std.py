@@ -76,9 +76,21 @@ class Menu():
     self.separator = '─'
     self.title = title
 
+  def _get_display_name(self, name, details, index=None, no_checkboxes=True):
+    # pylint: disable=no-self-use
+    """Format display name based on details and args, returns str."""
+    checkmark = '✓' if 'DISPLAY' in os.environ else '*'
+    display_name = f'{index if index else name[:1].upper()}: '
 
+    # Add enabled status if necessary
+    if not no_checkboxes:
+      display_name += f'[{checkmark if details["Enabled"] else " "}] '
 
+    # Add name
+    display_name += name
 
+    # Done
+    return display_name
 
   def _get_separator_string(self):
     """Format separator length based on name lengths, returns str."""
@@ -121,6 +133,29 @@ class Menu():
     # Show menu
     menu_lines = [str(line) for line in menu_lines]
     print('\n'.join(menu_lines))
+
+  def _update_menu(self, single_selection=True):
+    """Update menu items in preparation for printing to screen."""
+    index = 0
+
+    # Numbered sections
+    for section in (self.sets, self.toggles, self.options):
+      for name, details in section.items():
+        index += 1
+        details['Display Name'] = self._get_display_name(
+          name,
+          details,
+          index=index,
+          no_checkboxes=single_selection,
+          )
+
+    # Actions
+    for name, details in self.actions.items():
+      details['Display Name'] = self._get_display_name(
+        name,
+        details,
+        no_checkboxes=True,
+        )
 
   def add_action(self, name, details=None):
     """Add action to menu."""
