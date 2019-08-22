@@ -725,6 +725,7 @@ def try_and_print(
       raise
 
   # Done
+  LOG.info('Result: %s', result_msg.strip())
   return {
     'Failed': bool(f_exception),
     'Exception': f_exception,
