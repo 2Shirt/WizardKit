@@ -130,12 +130,13 @@ class Menu():
 
     # Check title line(s)
     for line in self.title.split('\n'):
-      separator_length = max(separator_length, len(line))
+      separator_length = max(separator_length, len(strip_colors(line)))
 
     # Loop over all item names
     for section in (self.actions, self.options, self.sets, self.toggles):
       for details in section.values():
-        separator_length = max(separator_length, len(details['Display Name']))
+        line = strip_colors(details['Display Name'])
+        separator_length = max(separator_length, len(line))
     separator_length += 1
 
     # Done
