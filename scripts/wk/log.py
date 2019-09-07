@@ -8,7 +8,7 @@ import pathlib
 import shutil
 import time
 
-from . import cfg
+from wk import cfg
 
 
 # Functions

@@ -255,7 +255,20 @@ def beep(repeat=1):
 
 
 def bytes_to_string(size, decimals=0, use_binary=True):
-  """Convert size into a human-readable format, returns str."""
+  """Convert size into a human-readable format, returns str.
+
+  [Doctest]
+  >>> bytes_to_string(10)
+  '10   B'
+  >>> bytes_to_string(10_000_000)
+  '10 MiB'
+  >>> bytes_to_string(10_000_000, decimals=2)
+  '9.54 MiB'
+  >>> bytes_to_string(10_000_000, decimals=2, use_binary=False)
+  '10.00 MB'
+  >>> bytes_to_string(-10_000_000, decimals=4)
+  '-9.5367 MiB'
+  """
   LOG.debug(
     'size: %s, decimals: %s, use_binary: %s',
     size,
@@ -414,7 +427,16 @@ def format_function_output(output, indent=INDENT, width=WIDTH):
 
 
 def get_exception(name):
-  """Get exception by name, returns exception object."""
+  """Get exception by name, returns exception object.
+
+  [Doctest]
+  >>> get_exception('AttributeError')
+  <class 'AttributeError'>
+  >>> get_exception('CalledProcessError')
+  <class 'subprocess.CalledProcessError'>
+  >>> get_exception('GenericError')
+  <class 'std.GenericError'>
+  """
   LOG.debug('Getting exception: %s', name)
   try:
     obj = getattr(sys.modules[__name__], name)
