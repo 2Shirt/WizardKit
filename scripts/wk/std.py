@@ -8,12 +8,12 @@ import os
 import pathlib
 import platform
 import re
+import subprocess
 import sys
 import time
 import traceback
 
 from collections import OrderedDict
-from subprocess import CalledProcessError, CompletedProcess
 try:
   from termios import tcflush, TCIOFLUSH
 except ImportError:
@@ -337,10 +337,8 @@ def choice(choices, prompt='答えろ！'):
 
 def clear_screen():
   """Simple wrapper for clear/cls."""
-  if os.name == 'nt':
-    os.system('cls')
-  else:
-    os.system('clear')
+  cmd = 'cls' if os.name == 'nt' else 'clear'
+  subprocess.run(cmd, check=False, stderr=subprocess.PIPE)
 
 
 def format_exception_message(_exception, indent=INDENT, width=WIDTH):
@@ -354,7 +352,7 @@ def format_exception_message(_exception, indent=INDENT, width=WIDTH):
 
   # Use known argument index or first string found
   try:
-    if isinstance(_exception, CalledProcessError):
+    if isinstance(_exception, subprocess.CalledProcessError):
       message = _exception.stderr
       if not isinstance(message, str):
         message = message.decode('utf-8')
@@ -403,7 +401,7 @@ def format_function_output(output, indent=INDENT, width=WIDTH):
     raise GenericWarning('No output')
 
   # Ensure we're working with a list
-  if isinstance(output, CompletedProcess):
+  if isinstance(output, subprocess.CompletedProcess):
     stdout = output.stdout
     if not isinstance(stdout, str):
       stdout = stdout.decode('utf8')
