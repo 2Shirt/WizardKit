@@ -162,6 +162,30 @@ class Menu():
     # Done
     return valid_answers
 
+  def _resolve_selection(self, selection):
+    """Get menu item based on user selection, returns tuple."""
+    resolved_selection = None
+    if selection.isnumeric():
+      # Enumerate over numbered entries
+      entries = [
+        *self.sets.items(),
+        *self.toggles.items(),
+        *self.options.items(),
+        ]
+      for _i, details in enumerate(entries):
+        if str(_i+1) == selection:
+          resolved_selection = (details)
+          break
+    else:
+      # Just check actions
+      for action, details in self.actions.items():
+        if action.lower().startswith(selection.lower()):
+          resolved_selection = (action, details)
+          break
+
+    # Done
+    return resolved_selection
+
   def _update(self, single_selection=True):
     """Update menu items in preparation for printing to screen."""
     index = 0
@@ -214,6 +238,24 @@ class Menu():
     details = details if details else {}
     details['Enabled'] = details.get('Enabled', False)
     self.toggles[name] = details
+
+  def simple_select(self, prompt='Please make a selection...'):
+    """Display menu and make a single selection, returns str."""
+    self._update()
+    menu_text = self._generate_menu_text()
+    valid_answers = self._get_valid_answers()
+
+    # Loop until valid answer is given
+    while True:
+      clear_screen()
+      print(menu_text)
+      sleep(0.01)
+      answer = input_text(prompt).strip()
+      if answer.upper() in valid_answers:
+        break
+
+    # Done
+    return self._resolve_selection(answer)
 
 
 # Functions
