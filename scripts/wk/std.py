@@ -67,7 +67,11 @@ class Menu():
   """Object for tracking menu specific data and methods.
 
   Menu items are added to an OrderedDict so the order is preserved.
-  NOTE: This class and its methods assume all entry names are unique."""
+
+  ASSUMPTIONS:
+  1. All entry names are unique.
+  2. All action entry names start with different letters.
+  """
   def __init__(self, title='[Untitled Menu]'):
     self.actions = OrderedDict()
     self.options = OrderedDict()
@@ -314,10 +318,11 @@ class Menu():
     details['Selected'] = details.get('Selected', False)
     self.toggles[name] = details
 
-  def advanced_select(self, prompt='Please make a selection...'):
+  def advanced_select(self, prompt='Please make a selection: '):
     """Display menu and make multiple selections, returns tuple.
 
-    The menu can only be exited by selecting an action."""
+    NOTE: Menu is displayed until an action entry is selected.
+    """
     while True:
       self._update(single_selection=False)
       user_selection = self._user_select(prompt)
@@ -332,7 +337,7 @@ class Menu():
     # Done
     return selected_entry
 
-  def simple_select(self, prompt='Please make a selection...'):
+  def simple_select(self, prompt='Please make a selection: '):
     """Display menu and make a single selection, returns tuple."""
     self._update()
     user_selection = self._user_select(prompt)
