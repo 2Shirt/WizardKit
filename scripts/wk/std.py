@@ -84,18 +84,24 @@ class Menu():
     # Sets & toggles
     for section in (self.sets, self.toggles):
       for details in section.values():
+        if details.get('Hidden', False):
+          continue
         menu_lines.append(details['Display Name'])
     if self.sets or self.toggles:
       menu_lines.append(separator_string)
 
     # Options
     for details in self.options.values():
+      if details.get('Hidden', False):
+        continue
       menu_lines.append(details['Display Name'])
     if self.options:
       menu_lines.append(separator_string)
 
     # Actions
     for details in self.actions.values():
+      if details.get('Hidden', False):
+        continue
       menu_lines.append(details['Display Name'])
 
     # Show menu
@@ -135,6 +141,9 @@ class Menu():
     # Loop over all item names
     for section in (self.actions, self.options, self.sets, self.toggles):
       for details in section.values():
+        if details.get('Hidden', False):
+          # Skip hidden lines
+          continue
         line = strip_colors(details['Display Name'])
         separator_length = max(separator_length, len(line))
     separator_length += 1
@@ -150,6 +159,9 @@ class Menu():
     index = 0
     for section in (self.sets, self.toggles, self.options):
       for details in section.values():
+        if details.get('Hidden', False):
+          # Don't increment counter or add to valid_answers
+          continue
         index += 1
         if not details.get('Disabled', False):
           valid_answers.append(str(index))
@@ -164,6 +176,7 @@ class Menu():
 
   def _resolve_selection(self, selection):
     """Get menu item based on user selection, returns tuple."""
+    offset = 1
     resolved_selection = None
     if selection.isnumeric():
       # Enumerate over numbered entries
@@ -173,7 +186,9 @@ class Menu():
         *self.options.items(),
         ]
       for _i, details in enumerate(entries):
-        if str(_i+1) == selection:
+        if details[1].get('Hidden', False):
+          offset -= 1
+        elif str(_i+offset) == selection:
           resolved_selection = (details)
           break
     else:
@@ -193,6 +208,9 @@ class Menu():
     # Numbered sections
     for section in (self.sets, self.toggles, self.options):
       for name, details in section.items():
+        if details.get('Hidden', False):
+          # Skip hidden lines and don't increment index
+          continue
         index += 1
         details['Display Name'] = self._get_display_name(
           name,
