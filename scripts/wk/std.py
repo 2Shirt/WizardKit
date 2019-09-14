@@ -312,19 +312,18 @@ class Menu():
 
     The menu can only be exited by selecting an action."""
     while True:
-      # Resolve selection status for sets
       self._update(single_selection=False)
       user_selection = self._user_select(prompt)
+      selected_entry = self._resolve_selection(user_selection)
       if user_selection.isnumeric():
         # Update selection(s)
-        entry = self._resolve_selection(user_selection)[0]
-        self._update_entry_selection_status(entry)
+        self._update_entry_selection_status(selected_entry[0])
       else:
         # Action selected
         break
 
     # Done
-    return self._resolve_selection(user_selection)
+    return selected_entry
 
   def simple_select(self, prompt='Please make a selection...'):
     """Display menu and make a single selection, returns tuple."""
