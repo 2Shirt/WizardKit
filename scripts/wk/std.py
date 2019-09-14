@@ -468,7 +468,7 @@ def choice(choices, prompt='答えろ！'):
 def clear_screen():
   """Simple wrapper for clear/cls."""
   cmd = 'cls' if os.name == 'nt' else 'clear'
-  subprocess.run(cmd, check=False, stderr=subprocess.PIPE)
+  subprocess.run(cmd, check=False, shell=True, stderr=subprocess.PIPE)
 
 
 def format_exception_message(_exception, indent=INDENT, width=WIDTH):
