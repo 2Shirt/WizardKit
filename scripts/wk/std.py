@@ -66,13 +66,14 @@ class GenericWarning(Exception):
 class Menu():
   """Object for tracking menu specific data and methods.
 
-  Menu items are added to an OrderedDict so the order is preserved."""
+  Menu items are added to an OrderedDict so the order is preserved.
+  NOTE: This class and its methods assume all entry names are unique."""
   def __init__(self, title='[Untitled Menu]'):
     self.actions = OrderedDict()
     self.options = OrderedDict()
     self.sets = OrderedDict()
     self.toggles = OrderedDict()
-    self.disabled_str = 'DISABLED'
+    self.disabled_str = 'Disabled'
     self.separator = '─'
     self.title = title
 
@@ -119,7 +120,7 @@ class Menu():
 
     # Add enabled status if necessary
     if not no_checkboxes:
-      display_name += f'[{checkmark if details["Enabled"] else " "}] '
+      display_name += f'[{checkmark if details["Selected"] else " "}] '
 
     # Add name
     if disabled:
@@ -160,7 +161,7 @@ class Menu():
     for section in (self.sets, self.toggles, self.options):
       for details in section.values():
         if details.get('Hidden', False):
-          # Don't increment counter or add to valid_answers
+          # Don't increment index or add to valid_answers
           continue
         index += 1
         if not details.get('Disabled', False):
@@ -205,6 +206,17 @@ class Menu():
     """Update menu items in preparation for printing to screen."""
     index = 0
 
+    # Fix selection status for sets
+    for set_details in self.sets.values():
+      set_selected = True
+      set_targets = set_details['Targets']
+      for option, option_details in self.options.items():
+        if option in set_targets and not option_details['Selected']:
+          set_selected = False
+        elif option not in set_targets and option_details['Selected']:
+          set_selected = False
+      set_details['Selected'] = set_selected
+
     # Numbered sections
     for section in (self.sets, self.toggles, self.options):
       for name, details in section.items():
@@ -227,22 +239,60 @@ class Menu():
         no_checkboxes=True,
         )
 
+  def _update_entry_selection_status(self, entry, toggle=True, status=None):
+    """Update entry selection status either directly or by toggling."""
+    if entry in self.sets:
+      # Update targets not the set itself
+      new_status = not self.sets[entry]['Selected'] if toggle else status
+      targets = self.sets[entry]['Targets']
+      self._update_set_selection_status(targets, new_status)
+    for section in (self.toggles, self.options, self.actions):
+      if entry in section:
+        if toggle:
+          section[entry]['Selected'] = not section[entry]['Selected']
+        else:
+          section[entry]['Selected'] = status
+
+  def _update_set_selection_status(self, targets, status):
+    """Select or deselect options based on targets and status."""
+    for option, details in self.options.items():
+      # If (new) status is True and this option is a target then select
+      #   Otherwise deselect
+      details['Selected'] = status and option in targets
+
+  def _user_select(self, prompt):
+    """Show menu and select an entry, returns str."""
+    menu_text = self._generate_menu_text()
+    valid_answers = self._get_valid_answers()
+
+    # Menu loop
+    while True:
+      clear_screen()
+      print(menu_text)
+      sleep(0.01)
+      answer = input_text(prompt).strip()
+      if answer.upper() in valid_answers:
+        break
+
+    # Done
+    return answer
+
   def add_action(self, name, details=None):
     """Add action to menu."""
     details = details if details else {}
-    details['Enabled'] = details.get('Enabled', False)
+    details['Selected'] = details.get('Selected', False)
     self.actions[name] = details
 
   def add_option(self, name, details=None):
     """Add option to menu."""
     details = details if details else {}
-    details['Enabled'] = details.get('Enabled', False)
+    details['Selected'] = details.get('Selected', False)
     self.options[name] = details
 
   def add_set(self, name, details=None):
     """Add set to menu."""
     details = details if details else {}
-    details['Enabled'] = details.get('Enabled', False)
+    details['Selected'] = details.get('Selected', False)
 
     # Safety check
     if 'Targets' not in details:
@@ -254,26 +304,33 @@ class Menu():
   def add_toggle(self, name, details=None):
     """Add toggle to menu."""
     details = details if details else {}
-    details['Enabled'] = details.get('Enabled', False)
+    details['Selected'] = details.get('Selected', False)
     self.toggles[name] = details
 
-  def simple_select(self, prompt='Please make a selection...'):
-    """Display menu and make a single selection, returns str."""
-    self._update()
-    menu_text = self._generate_menu_text()
-    valid_answers = self._get_valid_answers()
+  def advanced_select(self, prompt='Please make a selection...'):
+    """Display menu and make multiple selections, returns tuple.
 
-    # Loop until valid answer is given
+    The menu can only be exited by selecting an action."""
     while True:
-      clear_screen()
-      print(menu_text)
-      sleep(0.01)
-      answer = input_text(prompt).strip()
-      if answer.upper() in valid_answers:
+      # Resolve selection status for sets
+      self._update(single_selection=False)
+      user_selection = self._user_select(prompt)
+      if user_selection.isnumeric():
+        # Update selection(s)
+        entry = self._resolve_selection(user_selection)[0]
+        self._update_entry_selection_status(entry)
+      else:
+        # Action selected
         break
 
     # Done
-    return self._resolve_selection(answer)
+    return self._resolve_selection(user_selection)
+
+  def simple_select(self, prompt='Please make a selection...'):
+    """Display menu and make a single selection, returns tuple."""
+    self._update()
+    user_selection = self._user_select(prompt)
+    return self._resolve_selection(user_selection)
 
 
 # Functions
