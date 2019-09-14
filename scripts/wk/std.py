@@ -87,6 +87,8 @@ class Menu():
       for details in section.values():
         if details.get('Hidden', False):
           continue
+        if details.get('Separator', False):
+          menu_lines.append(separator_string)
         menu_lines.append(details['Display Name'])
     if self.sets or self.toggles:
       menu_lines.append(separator_string)
@@ -95,6 +97,8 @@ class Menu():
     for details in self.options.values():
       if details.get('Hidden', False):
         continue
+      if details.get('Separator', False):
+        menu_lines.append(separator_string)
       menu_lines.append(details['Display Name'])
     if self.options:
       menu_lines.append(separator_string)
@@ -103,9 +107,12 @@ class Menu():
     for details in self.actions.values():
       if details.get('Hidden', False):
         continue
+      if details.get('Separator', False):
+        menu_lines.append(separator_string)
       menu_lines.append(details['Display Name'])
 
     # Show menu
+    menu_lines.append('')
     menu_lines = [str(line) for line in menu_lines]
     return '\n'.join(menu_lines)
 
