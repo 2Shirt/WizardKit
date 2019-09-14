@@ -124,7 +124,9 @@ class Menu():
     # pylint: disable=no-self-use
     """Format display name based on details and args, returns str."""
     disabled = details.get('Disabled', False)
-    checkmark = '✓' if 'DISPLAY' in os.environ else '*'
+    checkmark = '*'
+    if 'DISPLAY' in os.environ or sys.platform == 'darwin':
+      checkmark = '✓'
     clear_code = COLORS['CLEAR']
     color_code = COLORS['YELLOW'] if disabled else ''
     display_name = f'{color_code}{index if index else name[:1].upper()}: '
