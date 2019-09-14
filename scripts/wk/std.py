@@ -128,6 +128,8 @@ class Menu():
     clear_code = COLORS['CLEAR']
     color_code = COLORS['YELLOW'] if disabled else ''
     display_name = f'{color_code}{index if index else name[:1].upper()}: '
+    if not (index and index >= 10):
+      display_name = f' {display_name}'
 
     # Add enabled status if necessary
     if not no_checkboxes:
