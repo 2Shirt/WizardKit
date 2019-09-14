@@ -364,7 +364,6 @@ class TryAndPrint():
 
   def _format_exception_message(self, _exception):
     """Format using the exception's args or name, returns str."""
-    # pylint: disable=broad-except
     LOG.debug(
       'Formatting exception: %s',
       _exception.__class__.__name__,
@@ -387,7 +386,7 @@ class TryAndPrint():
           if isinstance(arg, str):
             message = arg
             break
-    except Exception:
+    except Exception: # pylint: disable=broad-except
       # Just use the exception name instead
       pass
 
@@ -395,7 +394,7 @@ class TryAndPrint():
     if not message:
       try:
         message = _exception.__class__.__name__
-      except Exception:
+      except Exception: # pylint: disable=broad-except
         message = 'UNKNOWN ERROR'
 
     # Fix multi-line messages
@@ -407,7 +406,7 @@ class TryAndPrint():
           ]
         lines[0] = lines[0].strip()
         message = '\n'.join(lines)
-      except Exception:
+      except Exception: # pylint: disable=broad-except
         pass
 
     # Done
