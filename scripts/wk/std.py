@@ -125,7 +125,7 @@ class Menu():
     """Format display name based on details and args, returns str."""
     disabled = details.get('Disabled', False)
     checkmark = '*'
-    if 'DISPLAY' in os.environ or sys.platform == 'darwin':
+    if 'DISPLAY' in os.environ or platform.system() == 'Darwin':
       checkmark = '✓'
     clear_code = COLORS['CLEAR']
     color_code = COLORS['YELLOW'] if disabled else ''
@@ -672,24 +672,6 @@ def clear_screen():
   subprocess.run(cmd, check=False, shell=True, stderr=subprocess.PIPE)
 
 
-def get_log_filepath():
-  """Get the log filepath from the root logger, returns pathlib.Path obj.
-
-  NOTE: This will use the first handler baseFilename it finds (if any).
-  """
-  log_filepath = None
-  root_logger = logging.getLogger()
-
-  # Check handlers
-  for handler in root_logger.handlers:
-    if hasattr(handler, 'baseFilename'):
-      log_filepath = pathlib.Path(handler.baseFilename).resolve()
-      break
-
-  # Done
-  return log_filepath
-
-
 def generate_debug_report():
   """Generate debug report, returns str."""
   import socket
@@ -732,6 +714,24 @@ def generate_debug_report():
   # Done
   report.append('---- End debug info ----')
   return '\n'.join(report)
+
+
+def get_log_filepath():
+  """Get the log filepath from the root logger, returns pathlib.Path obj.
+
+  NOTE: This will use the first handler baseFilename it finds (if any).
+  """
+  log_filepath = None
+  root_logger = logging.getLogger()
+
+  # Check handlers
+  for handler in root_logger.handlers:
+    if hasattr(handler, 'baseFilename'):
+      log_filepath = pathlib.Path(handler.baseFilename).resolve()
+      break
+
+  # Done
+  return log_filepath
 
 
 def input_text(prompt='Enter text'):
