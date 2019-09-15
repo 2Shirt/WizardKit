@@ -21,6 +21,8 @@ except ImportError:
     # Not worried about this under Windows
     raise
 
+import psutil
+
 from wk.cfg.main import (
   CRASH_SERVER,
   ENABLED_UPLOAD_DATA,
@@ -734,6 +736,20 @@ def get_log_filepath():
   return log_filepath
 
 
+def get_procs(name, exact=True):
+  """Get process object(s) based on name, returns list of proc objects."""
+  processes = []
+  regex = f'^{name}$' if exact else name
+
+  # Iterate over all processes
+  for proc in psutil.process_iter():
+    if re.search(regex, proc.name(), re.IGNORECASE):
+      processes.append(proc)
+
+  # Done
+  return processes
+
+
 def input_text(prompt='Enter text'):
   """Get text from user, returns string."""
   prompt = str(prompt)
@@ -754,6 +770,26 @@ def input_text(prompt='Enter text'):
       print('', flush=True)
 
   return response
+
+
+def kill_procs(name, exact=True, force=False, timeout=30):
+  """Kill all processes matching name (case-insensitively).
+
+  NOTE: Under Posix systems this will send SIGINT to allow processes
+        to gracefully exit.
+
+  If force is True then it will wait until timeout specified and then
+  send SIGKILL to any processes still alive.
+  """
+  target_procs = get_procs(name, exact=exact)
+  for proc in target_procs:
+    proc.terminate()
+
+  # Force kill if necesary
+  if force:
+    results = psutil.wait_procs(target_procs, timeout=timeout)
+    for proc in results[1]: # Alive processes
+      proc.kill()
 
 
 def major_exception():
@@ -937,6 +973,16 @@ def upload_debug_report(report, compress=True, reason='DEBUG'):
   # Check response
   if not response.ok:
     raise RuntimeError('Failed to upload report')
+
+
+def wait_for_procs(name, exact=True, timeout=None):
+  """Wait for all process matching name."""
+  target_procs = get_procs(name, exact=exact)
+  results = psutil.wait_procs(target_procs, timeout=timeout)
+
+  # Raise exception if necessary
+  if results[1]: # Alive processes
+    raise psutil.TimeoutExpired(name=name, seconds=timeout)
 
 
 if __name__ == '__main__':
