@@ -589,6 +589,44 @@ def beep(repeat=1):
     repeat -= 1
 
 
+def build_cmd_kwargs(cmd, minimized=False, pipe=True, shell=False, **kwargs):
+  """Build kwargs for use by subprocess functions, returns dict.
+
+  Specifically subprocess.run() and subprocess.Popen().
+  NOTE: If no encoding specified then UTF-8 will be used.
+  """
+  cmd_kwargs = {
+    'args': cmd,
+    'shell': shell,
+    }
+
+  # Add additional kwargs if applicable
+  for key in ('check', 'cwd', 'encoding', 'errors', 'stderr', 'stdout'):
+    if key in kwargs:
+      cmd_kwargs[key] = kwargs[key]
+
+  # Default to UTF-8 encoding
+  if not ('encoding' in cmd_kwargs or 'errors' in cmd_kwargs):
+    cmd_kwargs['encoding'] = 'utf-8'
+    cmd_kwargs['errors'] = 'ignore'
+
+  # Start minimized
+  if minimized:
+    startupinfo = subprocess.STARTUPINFO()
+    startupinfo.dwFlags = subprocess.STARTF_USESHOWWINDOW
+    startupinfo.wShowWindow = 6
+    cmd_kwargs['startupinfo'] = startupinfo
+
+
+  # Pipe output
+  if pipe:
+    cmd_kwargs['stderr'] = subprocess.PIPE
+    cmd_kwargs['stdout'] = subprocess.PIPE
+
+  # Done
+  return cmd_kwargs
+
+
 def bytes_to_string(size, decimals=0, use_binary=True):
   """Convert size into a human-readable format, returns str.
 
@@ -826,6 +864,19 @@ def pause(prompt='Press Enter to continue... '):
   input_text(prompt)
 
 
+def popen_program(cmd, pipe=False, minimized=False, shell=False, **kwargs):
+  """Run program and return a subprocess.Popen object."""
+  cmd_kwargs = build_cmd_kwargs(
+    cmd,
+    minimized=minimized,
+    pipe=pipe,
+    shell=shell,
+    **kwargs)
+
+  # Ready to run program
+  return subprocess.Popen(**cmd_kwargs)
+
+
 def print_colored(strings, colors, **kwargs):
   """Prints strings in the colors specified."""
   LOG.debug('strings: %s, colors: %s, kwargs: %s', strings, colors, kwargs)
@@ -877,24 +928,12 @@ def print_warning(msg, **kwargs):
 
 def run_program(cmd, check=True, pipe=True, shell=False, **kwargs):
   """Run program and return a subprocess.CompletedProcess object."""
-  cmd_kwargs = {
-    'args': cmd,
-    'check': check,
-    'shell': shell,
-    }
-
-  # Add additional kwargs if applicable
-  for key in ('cwd', 'encoding', 'errors', 'stderr', 'stdout'):
-    if key in kwargs:
-      cmd_kwargs[key] = kwargs[key]
-
-  # Finalize cmd_kwargs
-  if pipe:
-    cmd_kwargs['stderr'] = subprocess.PIPE
-    cmd_kwargs['stdout'] = subprocess.PIPE
-  if not ('encoding' in cmd_kwargs or 'errors' in cmd_kwargs):
-    cmd_kwargs['encoding'] = 'utf-8'
-    cmd_kwargs['errors'] = 'ignore'
+  cmd_kwargs = build_cmd_kwargs(
+    cmd,
+    check=check,
+    pipe=pipe,
+    shell=shell,
+    **kwargs)
 
   # Ready to run program
   return subprocess.run(**cmd_kwargs)
