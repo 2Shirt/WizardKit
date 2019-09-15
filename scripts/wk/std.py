@@ -1,4 +1,5 @@
 '''WizardKit: Standard Functions'''
+# pylint: disable=too-many-lines
 # vim: sts=2 sw=2 ts=2
 
 import itertools
@@ -872,6 +873,31 @@ def print_warning(msg, **kwargs):
     # Only set if not specified
     kwargs['file'] = sys.stderr
   print_colored([msg], ['YELLOW'], **kwargs)
+
+
+def run_program(cmd, check=True, pipe=True, shell=False, **kwargs):
+  """Run program and return a subprocess.CompletedProcess object."""
+  cmd_kwargs = {
+    'args': cmd,
+    'check': check,
+    'shell': shell,
+    }
+
+  # Add additional kwargs if applicable
+  for key in ('cwd', 'encoding', 'errors', 'stderr', 'stdout'):
+    if key in kwargs:
+      cmd_kwargs[key] = kwargs[key]
+
+  # Finalize cmd_kwargs
+  if pipe:
+    cmd_kwargs['stderr'] = subprocess.PIPE
+    cmd_kwargs['stdout'] = subprocess.PIPE
+  if not ('encoding' in cmd_kwargs or 'errors' in cmd_kwargs):
+    cmd_kwargs['encoding'] = 'utf-8'
+    cmd_kwargs['errors'] = 'ignore'
+
+  # Ready to run program
+  return subprocess.run(**cmd_kwargs)
 
 
 def set_title(title):
