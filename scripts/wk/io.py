@@ -23,12 +23,29 @@ def delete_empty_folders(path):
     pass
 
 
-def delete_folder(path, force=False):
-  """Delete folder if empty or if forced."""
+def delete_folder(path, force=False, ignore_errors=False):
+  """Delete folder if empty or if forced.
+
+  NOTE: Exceptions are not caught by this function,
+        ignore_errors is passed to shutil.rmtree to allow partial deletions.
+  """
   if force:
-    shutil.rmtree(path)
+    shutil.rmtree(path, ignore_errors=ignore_errors)
   else:
     os.rmdir(path)
+
+
+def delete_item(path, force=False, ignore_errors=False):
+  """Delete file or folder, optionally recursively.
+
+  NOTE: Exceptions are not caught by this function,
+        ignore_errors is passed to delete_folder to allow partial deletions.
+  """
+  path = pathlib.Path(path)
+  if path.is_dir():
+    delete_folder(path, force=force, ignore_errors=ignore_errors)
+  else:
+    os.remove(path)
 
 
 def non_clobbering_path(path):
