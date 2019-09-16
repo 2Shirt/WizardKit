@@ -1,4 +1,4 @@
-'''WizardKit: Log Functions'''
+"""WizardKit: Log Functions"""
 # vim: sts=2 sw=2 ts=2
 
 import atexit

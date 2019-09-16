@@ -1,4 +1,4 @@
-'''WizardKit: Standard Functions'''
+"""WizardKit: Standard Functions"""
 # pylint: disable=too-many-lines
 # vim: sts=2 sw=2 ts=2
 
@@ -476,7 +476,7 @@ class TryAndPrint():
     if exception_name not in self.list_warnings:
       self.list_warnings.append(exception_name)
 
-  def run_function(
+  def run(
       self, message, function, *args,
       catch_all=True, print_return=False, verbose=False, **kwargs):
     # pylint: disable=catching-non-exception

@@ -1,6 +1,6 @@
-'''WizardKit: Config - Main
+"""WizardKit: Config - Main
 
-NOTE: A non-standard format is used for BASH/BATCH/PYTHON compatibility'''
+NOTE: A non-standard format is used for BASH/BATCH/PYTHON compatibility"""
 # pylint: disable=bad-whitespace
 # vim: sts=2 sw=2 ts=2
 

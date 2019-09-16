@@ -1,4 +1,4 @@
-'''WizardKit: wk module init'''
+"""WizardKit: wk module init"""
 # vim: sts=2 sw=2 ts=2
 
 from sys import version_info as version

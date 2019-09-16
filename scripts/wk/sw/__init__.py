@@ -1,1 +1,1 @@
-'''WizardKit: sw module init'''
+"""WizardKit: sw module init"""

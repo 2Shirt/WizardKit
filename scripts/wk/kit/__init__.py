@@ -1,1 +1,1 @@
-'''WizardKit: kit module init'''
+"""WizardKit: kit module init"""
