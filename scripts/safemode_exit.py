@@ -25,7 +25,7 @@ def main():
   # Done
   print('Done.')
   wk.std.pause('Press Enter to reboot...')
-  wk.std.run_program('shutdown -r -t 3'.split(), check=False)
+  wk.exe.run_program('shutdown -r -t 3'.split(), check=False)
 
 
 if __name__ == '__main__':

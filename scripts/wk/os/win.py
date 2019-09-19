@@ -8,12 +8,9 @@ import re
 import time
 
 from wk import cfg
+from wk.exe import run_program
 from wk.io import non_clobber_path
-from wk.std import (
-  GenericError,
-  GenericWarning,
-  run_program,
-  )
+from wk.std import GenericError, GenericWarning
 
 # STATIC VARIABLES
 LOG = logging.getLogger(__name__)

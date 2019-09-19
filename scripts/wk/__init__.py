@@ -4,6 +4,7 @@
 from sys import version_info as version
 
 from wk import cfg
+from wk import exe
 from wk import hw
 from wk import io
 from wk import kit
