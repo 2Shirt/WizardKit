@@ -59,39 +59,47 @@ def start(config=None):
   atexit.register(logging.shutdown)
 
 
-def update_log_path(dest_dir, dest_name=''):
-  """Copies current log file to new dir and updates the root logger.
+def update_log_path(dest_dir=None, dest_name=None):
+  """Moves current log file to new path and updates the root logger.
 
   NOTE: A timestamp and extension will be added to dest_name if provided.
   """
   root_logger = logging.getLogger()
   cur_handler = root_logger.handlers[0]
-  dest = pathlib.Path(dest_dir)
-  dest = dest.expanduser()
-  if dest_name:
-    dest_name = f'{dest_name}_{time.strftime("%Y-%m-%d_%H%M%S%z")}.log'
+  cur_path = pathlib.Path(cur_handler.baseFilename).resolve()
 
   # Safety checks
+  if not (dest_dir or dest_name):
+    raise RuntimeError('Neither a directory nor name specified')
   if len(root_logger.handlers) > 1:
     raise RuntimeError('Multiple handlers not supported')
   if not isinstance(cur_handler, logging.FileHandler):
     raise RuntimeError('Only FileHandlers are supported')
 
-  # Copy original log to new location
-  source = pathlib.Path(cur_handler.baseFilename)
-  source = source.resolve()
-  if dest_name:
-    dest = dest.joinpath(dest_name)
+  # Update dir if specified or use current path
+  if dest_dir:
+    new_path = pathlib.Path(dest_dir).resolve()
   else:
-    dest = dest.joinpath(source.name)
-  dest = dest.resolve()
-  if dest.exists():
-    raise FileExistsError(f'Refusing to clobber: {dest}')
-  os.makedirs(dest.parent, exist_ok=True)
-  shutil.copy(source, dest)
+    new_path = cur_path
+
+  # Update name if specified
+  if dest_name:
+    new_path = new_path.with_name(
+      f'{dest_name}'
+      f'_{time.strftime("%Y-%m-%d_%H%M%S%z")}'
+      f'{"".join(cur_path.suffixes)}'
+      )
+  else:
+    new_path = new_path.with_name(cur_path.name)
+
+  # Copy original log to new location
+  if new_path.exists():
+    raise FileExistsError(f'Refusing to clobber: {new_path}')
+  os.makedirs(new_path.parent, exist_ok=True)
+  shutil.move(cur_path, new_path)
 
   # Create new cur_handler (preserving formatter settings)
-  new_handler = logging.FileHandler(dest, mode='a')
+  new_handler = logging.FileHandler(new_path, mode='a')
   new_handler.setFormatter(cur_handler.formatter)
 
   # Replace current handler

@@ -839,21 +839,21 @@ def print_info(msg, log=True, **kwargs):
   """Prints message in BLUE and log as INFO."""
   print_colored([msg], ['BLUE'], **kwargs)
   if log:
-    LOG.info(msg, log=True)
+    LOG.info(msg)
 
 
 def print_standard(msg, log=True, **kwargs):
   """Prints message and log as INFO."""
-  print(msg, log=True, **kwargs)
+  print(msg, **kwargs)
   if log:
-    LOG.info(msg, log=True)
+    LOG.info(msg)
 
 
 def print_success(msg, log=True, **kwargs):
   """Prints message in GREEN and log as INFO."""
   print_colored([msg], ['GREEN'], **kwargs)
   if log:
-    LOG.info(msg, log=True)
+    LOG.info(msg)
 
 
 def print_warning(msg, log=True, **kwargs):
