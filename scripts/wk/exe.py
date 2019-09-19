@@ -1,10 +1,15 @@
 """WizardKit: Executable functions"""
 #vim: sts=2 sw=2 ts=2
 
+import logging
 import re
 import subprocess
 
 import psutil
+
+
+# STATIC VARIABLES
+LOG = logging.getLogger(__name__)
 
 
 # Functions
@@ -14,6 +19,11 @@ def build_cmd_kwargs(cmd, minimized=False, pipe=True, shell=False, **kwargs):
   Specifically subprocess.run() and subprocess.Popen().
   NOTE: If no encoding specified then UTF-8 will be used.
   """
+  LOG.debug(
+    'cmd: %s, minimized: %s, pipe: %s, shell: %s',
+    cmd, minimized, pipe, shell,
+    )
+  LOG.debug('kwargs: %s', kwargs)
   cmd_kwargs = {
     'args': cmd,
     'shell': shell,
@@ -43,11 +53,13 @@ def build_cmd_kwargs(cmd, minimized=False, pipe=True, shell=False, **kwargs):
     cmd_kwargs['stdout'] = subprocess.PIPE
 
   # Done
+  LOG.debug('cmd_kwargs: %s', cmd_kwargs)
   return cmd_kwargs
 
 
 def get_procs(name, exact=True):
   """Get process object(s) based on name, returns list of proc objects."""
+  LOG.debug('name: %s, exact: %s', name, exact)
   processes = []
   regex = f'^{name}$' if exact else name
 
@@ -69,6 +81,10 @@ def kill_procs(name, exact=True, force=False, timeout=30):
   If force is True then it will wait until timeout specified and then
   send SIGKILL to any processes still alive.
   """
+  LOG.debug(
+    'name: %s, exact: %s, force: %s, timeout: %s',
+    name, exact, force, timeout,
+    )
   target_procs = get_procs(name, exact=exact)
   for proc in target_procs:
     proc.terminate()
@@ -80,8 +96,13 @@ def kill_procs(name, exact=True, force=False, timeout=30):
       proc.kill()
 
 
-def popen_program(cmd, pipe=False, minimized=False, shell=False, **kwargs):
+def popen_program(cmd, minimized=False, pipe=False, shell=False, **kwargs):
   """Run program and return a subprocess.Popen object."""
+  LOG.debug(
+    'cmd: %s, minimized: %s, pipe: %s, shell: %s',
+    cmd, minimized, pipe, shell,
+    )
+  LOG.debug('kwargs: %s', kwargs)
   cmd_kwargs = build_cmd_kwargs(
     cmd,
     minimized=minimized,
@@ -95,6 +116,11 @@ def popen_program(cmd, pipe=False, minimized=False, shell=False, **kwargs):
 
 def run_program(cmd, check=True, pipe=True, shell=False, **kwargs):
   """Run program and return a subprocess.CompletedProcess object."""
+  LOG.debug(
+    'cmd: %s, check: %s, pipe: %s, shell: %s',
+    cmd, check, pipe, shell,
+    )
+  LOG.debug('kwargs: %s', kwargs)
   cmd_kwargs = build_cmd_kwargs(
     cmd,
     check=check,
@@ -108,6 +134,7 @@ def run_program(cmd, check=True, pipe=True, shell=False, **kwargs):
 
 def wait_for_procs(name, exact=True, timeout=None):
   """Wait for all process matching name."""
+  LOG.debug('name: %s, exact: %s, timeout: %s', name, exact, timeout)
   target_procs = get_procs(name, exact=exact)
   results = psutil.wait_procs(target_procs, timeout=timeout)
 

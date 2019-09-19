@@ -1,15 +1,20 @@
 """WizardKit: I/O Functions"""
 # vim: sts=2 sw=2 ts=2
 
+import logging
 import os
+import pathlib
 import shutil
 
-import pathlib
 
+# STATIC VARIABLES
+LOG = logging.getLogger(__name__)
 
 # Functions
 def delete_empty_folders(path):
   """Recursively delete all empty folders in path."""
+  LOG.debug('path: %s', path)
+
   # Delete empty subfolders first
   for item in os.scandir(path):
     if item.is_dir():
@@ -29,6 +34,11 @@ def delete_folder(path, force=False, ignore_errors=False):
   NOTE: Exceptions are not caught by this function,
         ignore_errors is passed to shutil.rmtree to allow partial deletions.
   """
+  LOG.debug(
+    'path: %s, force: %s, ignore_errors: %s',
+    path, force, ignore_errors,
+    )
+
   if force:
     shutil.rmtree(path, ignore_errors=ignore_errors)
   else:
@@ -41,6 +51,11 @@ def delete_item(path, force=False, ignore_errors=False):
   NOTE: Exceptions are not caught by this function,
         ignore_errors is passed to delete_folder to allow partial deletions.
   """
+  LOG.debug(
+    'path: %s, force: %s, ignore_errors: %s',
+    path, force, ignore_errors,
+    )
+
   path = pathlib.Path(path)
   if path.is_dir():
     delete_folder(path, force=force, ignore_errors=ignore_errors)
@@ -50,6 +65,7 @@ def delete_item(path, force=False, ignore_errors=False):
 
 def non_clobbering_path(path):
   """Update path as needed to non-existing path, returns pathlib.Path."""
+  LOG.debug('path: %s', path)
   path = pathlib.Path(path)
   name = path.name
   new_path = None
@@ -71,6 +87,7 @@ def non_clobbering_path(path):
     raise FileExistsError(new_path)
 
   # Done
+  LOG.debug('new path: %s', new_path)
   return new_path
 
 

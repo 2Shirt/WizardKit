@@ -12,6 +12,7 @@ from wk.exe import run_program
 from wk.io import non_clobber_path
 from wk.std import GenericError, GenericWarning
 
+
 # STATIC VARIABLES
 LOG = logging.getLogger(__name__)
 REG_MSISERVER = r'HKLM\SYSTEM\CurrentControlSet\Control\SafeBoot\Network\MSIServer'

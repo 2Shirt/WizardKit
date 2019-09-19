@@ -868,6 +868,7 @@ def print_warning(msg, log=True, **kwargs):
 
 def set_title(title):
   """Set window title."""
+  LOG.debug('title: %s', title)
   if os.name == 'nt':
     os.system(f'title {title}')
   else:
