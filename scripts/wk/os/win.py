@@ -8,17 +8,54 @@ import re
 import time
 
 from wk import cfg
+from wk.borrowed import acpi
 from wk.exe import run_program
 from wk.io import non_clobber_path
-from wk.std import GenericError, GenericWarning
+from wk.std import GenericError, GenericWarning, sleep
 
 
 # STATIC VARIABLES
 LOG = logging.getLogger(__name__)
 REG_MSISERVER = r'HKLM\SYSTEM\CurrentControlSet\Control\SafeBoot\Network\MSIServer'
+SLMGR = pathlib.Path(f'{os.environ("SYSTEMROOT")}/System32/slmgr.vbs')
 
 
 # Functions
+def activate_with_bios():
+  """Attempt to activate Windows with a key stored in the BIOS."""
+  # Code borrowed from https://github.com/aeruder/get_win8key
+  #####################################################
+  #script to query windows 8.x OEM key from PC firmware
+  #ACPI -> table MSDM -> raw content -> byte offset 56 to end
+  #ck, 03-Jan-2014 (christian@korneck.de)
+  #####################################################
+  bios_key = None
+  table = b"MSDM"
+  if acpi.FindAcpiTable(table) is True:
+    rawtable = acpi.GetAcpiTable(table)
+    #http://msdn.microsoft.com/library/windows/hardware/hh673514
+    #byte offset 36 from beginning
+    #   = Microsoft 'software licensing data structure'
+    #   / 36 + 20 bytes offset from beginning = Win Key
+    bios_key = rawtable[56:len(rawtable)].decode("utf-8")
+  if not bios_key:
+    raise GenericError('BIOS key not found.')
+
+  # Install Key
+  cmd = ['cscript', '//nologo', SLMGR, '/ipk', bios_key]
+  run_program(cmd, check=False)
+  sleep(5)
+
+  # Attempt activation
+  cmd = ['cscript', '//nologo', SLMGR, '/ato']
+  run_program(cmd, check=False)
+  sleep(5)
+
+  # Check status
+  if not windows_is_activated():
+    raise GenericError('Activation Failed')
+
+
 def disable_safemode():
   """Edit BCD to remove safeboot value."""
   cmd = ['bcdedit', '/deletevalue', '{default}', 'safeboot']
@@ -47,6 +84,16 @@ def enable_safemode_msi():
     '/d', 'Service', '/f',
     ]
   run_program(cmd)
+
+
+def get_activation_string():
+  """Get activation status, returns str."""
+  cmd = ['cscript', '//nologo', SLMGR, '/xpr']
+  result = run_program(cmd, check=False)
+  act_str = result.stdout
+  act_str = act_str.splitlines()[1]
+  act_str = act_str.strip()
+  return act_str
 
 
 def run_sfc_scan():
@@ -83,6 +130,16 @@ def run_sfc_scan():
     raise GenericWarning('Repaired')
   else:
     raise GenericError
+
+
+def windows_is_activated():
+  """Check if Windows is activated via slmgr.vbs and return bool."""
+  cmd = ['cscript', '//nologo', SLMGR, '/xpr']
+  result = run_program(cmd, check=False)
+  act_str = result.stdout
+
+  # Check result.
+  return bool(act_str and 'permanent' in act_str)
 
 
 if __name__ == '__main__':
