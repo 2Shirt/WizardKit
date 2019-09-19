@@ -521,29 +521,34 @@ class TryAndPrint():
     LOG.info('Running function: %s.%s', function.__module__, function.__name__)
     try:
       output = function(*args, **kwargs)
-      if print_return:
-        result_msg = self._format_function_output(output)
-        print(result_msg)
-      else:
-        print_success(self.msg_good)
     except w_exceptions as _exception:
+      # Warnings
       result_msg = self._format_exception_message(_exception)
-      print_warning(result_msg)
+      print_warning(result_msg, log=False)
       f_exception = _exception
     except e_exceptions as _exception:
+      # Exceptions
       result_msg = self._format_exception_message(_exception)
-      print_error(result_msg)
+      print_error(result_msg, log=False)
       f_exception = _exception
     except Exception as _exception: # pylint: disable=broad-except
+      # Unexpected exceptions
       if verbose:
         result_msg = self._format_exception_message(_exception)
       else:
         result_msg = self.msg_bad
-      print_error(result_msg)
+      print_error(result_msg, log=False)
       f_exception = _exception
       if not catch_all:
         # Re-raise error as necessary
         raise
+    else:
+      # Success
+      if print_return:
+        result_msg = self._format_function_output(output)
+        print(result_msg)
+      else:
+        print_success(self.msg_good, log=False)
 
     # Done
     self._log_result(message, result_msg)
@@ -558,7 +563,6 @@ class TryAndPrint():
 def abort(prompt='Aborted.', show_prompt=True, return_code=1):
   """Abort script."""
   print_warning(prompt)
-  LOG.warning(prompt)
   if show_prompt:
     sleep(1)
     pause(prompt='Press Enter to exit... ')
@@ -766,7 +770,7 @@ def input_text(prompt='Enter text'):
 def major_exception():
   """Display traceback, optionally upload detailes, and exit."""
   LOG.critical('Major exception encountered', exc_info=True)
-  print_error('Major exception')
+  print_error('Major exception', log=False)
   print_warning(SUPPORT_MESSAGE)
   print(traceback.format_exc())
 
@@ -780,10 +784,10 @@ def major_exception():
     try:
       upload_debug_report(report, reason='CRASH')
     except Exception: #pylint: disable=broad-except
-      print_error('FAILED')
+      print_error('FAILED', log=False)
       LOG.error('Upload failed', exc_info=True)
     else:
-      print_success('SUCCESS')
+      print_success('SUCCESS', log=False)
       LOG.info('Upload successful')
 
   # Done
@@ -821,34 +825,45 @@ def print_colored(strings, colors, **kwargs):
   print(msg, **print_options)
 
 
-def print_error(msg, **kwargs):
-  """Prints message in RED."""
-  LOG.debug('msg: %s, kwargs: %s', msg, kwargs)
+def print_error(msg, log=True, **kwargs):
+  """Prints message in RED and log as ERROR."""
   if 'file' not in kwargs:
     # Only set if not specified
     kwargs['file'] = sys.stderr
   print_colored([msg], ['RED'], **kwargs)
+  if log:
+    LOG.error(msg)
 
 
-def print_info(msg, **kwargs):
-  """Prints message in BLUE."""
-  LOG.debug('msg: %s, kwargs: %s', msg, kwargs)
+def print_info(msg, log=True, **kwargs):
+  """Prints message in BLUE and log as INFO."""
   print_colored([msg], ['BLUE'], **kwargs)
+  if log:
+    LOG.info(msg, log=True)
 
 
-def print_success(msg, **kwargs):
-  """Prints message in GREEN."""
-  LOG.debug('msg: %s, kwargs: %s', msg, kwargs)
+def print_standard(msg, log=True, **kwargs):
+  """Prints message and log as INFO."""
+  print(msg, log=True, **kwargs)
+  if log:
+    LOG.info(msg, log=True)
+
+
+def print_success(msg, log=True, **kwargs):
+  """Prints message in GREEN and log as INFO."""
   print_colored([msg], ['GREEN'], **kwargs)
+  if log:
+    LOG.info(msg, log=True)
 
 
-def print_warning(msg, **kwargs):
-  """Prints message in YELLOW."""
-  LOG.debug('msg: %s, kwargs: %s', msg, kwargs)
+def print_warning(msg, log=True, **kwargs):
+  """Prints message in YELLOW and log as WARNING."""
   if 'file' not in kwargs:
     # Only set if not specified
     kwargs['file'] = sys.stderr
   print_colored([msg], ['YELLOW'], **kwargs)
+  if log:
+    LOG.warning(msg)
 
 
 def set_title(title):
@@ -920,7 +935,6 @@ def upload_debug_report(report, compress=True, reason='DEBUG'):
   # Check if the required server details are available
   if not all(CRASH_SERVER.get(key, False) for key in ('Name', 'Url', 'User')):
     msg = 'Server details missing, aborting upload.'
-    LOG.error(msg)
     print_error(msg)
     raise RuntimeError(msg)
 
