@@ -1,15 +1,50 @@
-"""WizardKit: Executable functions"""
+"""WizardKit: Execution functions"""
 #vim: sts=2 sw=2 ts=2
 
 import logging
 import re
 import subprocess
 
+from threading import Thread
+from queue import Queue, Empty
+
 import psutil
 
 
 # STATIC VARIABLES
 LOG = logging.getLogger(__name__)
+
+
+# Classes
+class NonBlockingStreamReader():
+  """Class to allow non-blocking reads from a stream."""
+  # pylint: disable=too-few-public-methods
+  # Credits:
+  ## https://gist.github.com/EyalAr/7915597
+  ## https://stackoverflow.com/a/4896288
+
+  def __init__(self, stream):
+    self.stream = stream
+    self.queue = Queue()
+
+    def populate_queue(stream, queue):
+      """Collect lines from stream and put them in queue."""
+      while True:
+        line = stream.read(1)
+        if line:
+          queue.put(line)
+
+    self.thread = start_thread(
+      populate_queue,
+      args=(self.stream, self.queue),
+      )
+
+  def read(self, timeout=None):
+    """Read from queue if possible, returns item from queue."""
+    try:
+      return self.queue.get(block=timeout is not None, timeout=timeout)
+    except Empty:
+      return None
 
 
 # Functions
@@ -130,6 +165,14 @@ def run_program(cmd, check=True, pipe=True, shell=False, **kwargs):
 
   # Ready to run program
   return subprocess.run(**cmd_kwargs)
+
+
+def start_thread(function, args=None, daemon=True):
+  """Run function as thread in background, returns Thread object."""
+  args = args if args else []
+  thread = Thread(target=function, args=args, daemon=daemon)
+  thread.start()
+  return thread
 
 
 def wait_for_procs(name, exact=True, timeout=None):
