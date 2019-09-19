@@ -463,6 +463,13 @@ class TryAndPrint():
       obj = getattr(sys.modules['builtins'], name)
     return obj
 
+  def _log_result(self, message, result_msg):
+    """Log result text without color formatting."""
+    log_text = f'{" "*self.indent}{message:<{self.width}}{result_msg}'
+    for line in log_text.splitlines():
+      line = strip_colors(line)
+      LOG.info(line)
+
   def add_error(self, exception_name):
     """Add exception name to error list."""
     if exception_name not in self.list_errors:
@@ -539,7 +546,7 @@ class TryAndPrint():
         raise
 
     # Done
-    LOG.info('Result: %s', result_msg.strip())
+    self._log_result(message, result_msg)
     return {
       'Failed': bool(f_exception),
       'Exception': f_exception,
