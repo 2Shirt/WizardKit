@@ -807,6 +807,12 @@ def print_colored(strings, colors, **kwargs):
     'flush': kwargs.get('flush', False),
     }
 
+  # Convert to tuples if necessary
+  if isinstance(strings, str):
+    strings = (strings,)
+  if isinstance(colors, str):
+    colors = (colors,)
+
   # Build new string with color escapes added
   for string, color in itertools.zip_longest(strings, colors):
     color_code = COLORS.get(color, clear_code)
