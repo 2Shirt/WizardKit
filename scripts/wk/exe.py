@@ -1,6 +1,7 @@
 """WizardKit: Execution functions"""
 #vim: sts=2 sw=2 ts=2
 
+import json
 import logging
 import re
 import subprocess
@@ -90,6 +91,24 @@ def build_cmd_kwargs(cmd, minimized=False, pipe=True, shell=False, **kwargs):
   # Done
   LOG.debug('cmd_kwargs: %s', cmd_kwargs)
   return cmd_kwargs
+
+
+def get_json_from_command(cmd, check=True, encoding='utf-8', errors='ignore'):
+  """Capture JSON content from cmd output, returns dict.
+
+  If the data can't be decoded then either an exception is raised
+  or an empty dict is returned depending on ignore_errors.
+  """
+  json_data = {}
+
+  try:
+    result = run_program(cmd, check=check, encoding=encoding, errors=errors)
+    json_data = json.loads(result.stdout)
+  except (subprocess.CalledProcessError, json.decoder.JSONDecodeError):
+    if errors != 'ignore':
+      raise
+
+  return json_data
 
 
 def get_procs(name, exact=True):
