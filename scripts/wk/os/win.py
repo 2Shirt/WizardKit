@@ -4,6 +4,7 @@
 import logging
 import os
 import pathlib
+import platform
 import time
 
 from wk import cfg
@@ -15,6 +16,7 @@ from wk.std import GenericError, GenericWarning, sleep
 
 # STATIC VARIABLES
 LOG = logging.getLogger(__name__)
+OS_VERSION = float(platform.win32_ver()[0]) # TODO: Check if Win8.1 returns '8'
 REG_MSISERVER = r'HKLM\SYSTEM\CurrentControlSet\Control\SafeBoot\Network\MSIServer'
 SLMGR = pathlib.Path(f'{os.environ.get("SYSTEMROOT")}/System32/slmgr.vbs')
 
@@ -105,6 +107,26 @@ def is_activated():
 
   # Check result.
   return act_str and 'permanent' in act_str
+
+
+def run_chkdsk_offline():
+  """Set filesystem 'dirty bit' to force a CHKDSK during startup."""
+  cmd = f'fsutil dirty set {os.environ.get("SYSTEMDRIVE")}'
+  proc = run_program(cmd.split(), check=False)
+
+  # Check result
+  if proc.returncode > 0:
+    raise GenericError('Failed to set dirty bit.')
+
+
+def run_chkdsk_online():
+  """Run CHKDSK in a split window.
+
+  NOTE: If run on Windows 8+ online repairs are attempted.
+  """
+  cmd = ['CHKDSK', os.environ.get('SYSTEMDRIVE', 'C:')]
+  if OS_VERSION >= 8:
+    cmd.extend(['/scan', '/perf'])
 
 
 def run_sfc_scan():
