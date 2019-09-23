@@ -9,6 +9,22 @@ import shutil
 import time
 
 from wk import cfg
+from wk.io import non_clobber_path
+
+# STATIC VARIABLES
+if os.name == 'nt':
+  # Example: "C:\WK\1955-11-05\WizardKit"
+  DEFAULT_LOG_DIR = (
+    f'{os.environ.get("SYSTEMDRIVE", "C:")}/'
+    f'{cfg.main.KIT_NAME_SHORT}/'
+    f'{time.strftime("%Y-%m-%d")}/'
+    f'{cfg.main.KIT_NAME_FULL}'
+    )
+  DEFAULT_LOG_NAME = ''
+else:
+  # Example: "/home/tech/Logs"
+  DEFAULT_LOG_DIR = f'{os.path.expanduser("~")}/Logs'
+  DEFAULT_LOG_NAME = cfg.main.KIT_NAME_FULL
 
 
 # Functions
@@ -24,23 +40,43 @@ def enable_debug_mode():
   root_logger.setLevel('DEBUG')
 
 
+def format_log_path(log_dir=None, log_name=None, tool=False, timestamp=True):
+  """Format path based on args passed, returns pathlib.Path obj."""
+  log_path = pathlib.Path(
+    f'{log_dir if log_dir else DEFAULT_LOG_DIR}/'
+    f'{"Tools/" if tool else ""}'
+    f'{log_name if log_name else DEFAULT_LOG_NAME}'
+    f'{"_" if timestamp else ""}'
+    f'{time.strftime("%Y-%m-%d_%H%M%S%z") if timestamp else ""}'
+    '.log'
+    )
+  log_path = log_path.resolve()
+
+  # Avoid clobbering
+  log_path = non_clobber_path(log_path)
+
+  # Done
+  return log_path
+
+
+def get_root_logger_path():
+  """Get path to log file from root logger, returns pathlib.Path obj."""
+  log_path = None
+  root_logger = logging.getLogger()
+
+  # Check all handlers and use the first fileHandler found
+  for handler in root_logger.handlers:
+    if isinstance(handler, logging.FileHandler):
+      log_path = pathlib.Path(handler.baseFilename).resolve()
+      break
+
+  # Done
+  return log_path
+
+
 def start(config=None):
   """Configure and start logging using safe defaults."""
-  if os.name == 'nt':
-    log_path = '{drive}/{short}/Logs/{date}/{full}/{datetime}.log'.format(
-      drive=os.environ.get('SYSTEMDRIVE', 'C:'),
-      short=cfg.main.KIT_NAME_SHORT,
-      date=time.strftime('%Y-%m-%d'),
-      full=cfg.main.KIT_NAME_FULL,
-      datetime=time.strftime('%Y-%m-%d_%H%M%S%z'),
-      )
-  else:
-    log_path = '{home}/Logs/{full}_{datetime}.log'.format(
-      home=os.path.expanduser('~'),
-      full=cfg.main.KIT_NAME_FULL,
-      datetime=time.strftime('%Y-%m-%d_%H%M%S%z'),
-      )
-  log_path = pathlib.Path(log_path).resolve()
+  log_path = format_log_path()
   root_logger = logging.getLogger()
 
   # Safety checks
@@ -59,38 +95,20 @@ def start(config=None):
   atexit.register(logging.shutdown)
 
 
-def update_log_path(dest_dir=None, dest_name=None):
-  """Moves current log file to new path and updates the root logger.
-
-  NOTE: A timestamp and extension will be added to dest_name if provided.
-  """
+def update_log_path(dest_dir=None, dest_name=None, timestamp=True):
+  """Moves current log file to new path and updates the root logger."""
   root_logger = logging.getLogger()
-  cur_handler = root_logger.handlers[0]
-  cur_path = pathlib.Path(cur_handler.baseFilename).resolve()
+  cur_handler = None
+  cur_path = get_root_logger_path()
+  new_path = format_log_path(dest_dir, dest_name, timestamp=timestamp)
 
-  # Safety checks
-  if not (dest_dir or dest_name):
-    raise RuntimeError('Neither a directory nor name specified')
-  if len(root_logger.handlers) > 1:
-    raise RuntimeError('Multiple handlers not supported')
-  if not isinstance(cur_handler, logging.FileHandler):
-    raise RuntimeError('Only FileHandlers are supported')
-
-  # Update dir if specified or use current path
-  if dest_dir:
-    new_path = pathlib.Path(dest_dir).resolve()
-  else:
-    new_path = cur_path
-
-  # Update name if specified
-  if dest_name:
-    new_path = new_path.with_name(
-      f'{dest_name}'
-      f'_{time.strftime("%Y-%m-%d_%H%M%S%z")}'
-      f'{"".join(cur_path.suffixes)}'
-      )
-  else:
-    new_path = new_path.with_name(cur_path.name)
+  # Get current logging file handler
+  for handler in root_logger.handlers:
+    if isinstance(handler, logging.FileHandler):
+      cur_handler = handler
+      break
+  if not cur_handler:
+    raise RuntimeError('Logging FileHandler not found')
 
   # Copy original log to new location
   if new_path.exists():
