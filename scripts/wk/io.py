@@ -78,8 +78,9 @@ def non_clobber_path(path):
 
   # Find non-existant path
   for _i in range(1000):
-    new_path = path.with_name(f'{name}_{_i}').with_suffix(suffix)
-    if not new_path.exists():
+    test_path = path.with_name(f'{name}_{_i}').with_suffix(suffix)
+    if not test_path.exists():
+      new_path = test_path
       break
 
   # Raise error if viable path not found
