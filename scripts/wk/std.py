@@ -482,7 +482,7 @@ class TryAndPrint():
 
   def run(
       self, message, function, *args,
-      catch_all=True, print_return=False, verbose=False, **kwargs):
+      catch_all=True, msg_good=None, verbose=False, **kwargs):
     # pylint: disable=catching-non-exception
     """Run a function and print the results, returns results as dict.
 
@@ -490,9 +490,11 @@ class TryAndPrint():
     Otherwise if an exception occurs that wasn't specified it will be
     re-raised.
 
-    If print_return is True then the output from the function will be used
-    instead of msg_good, msg_bad, or exception text. The output should be
-    a list or a subprocess.CompletedProcess object.
+    If the function returns data it will be used instead of msg_good,
+    msg_bad, or exception text.
+    The output should be a list or a subprocess.CompletedProcess object.
+
+    If msg_good is passed it will override self.msg_good for this call.
 
     If verbose is True then exception names or messages will be used for
     the result message. Otherwise it will simply be set to result_bad.
@@ -503,9 +505,9 @@ class TryAndPrint():
     LOG.debug('args: %s', args)
     LOG.debug('kwargs: %s', kwargs)
     LOG.debug(
-      'catch_all: %s, print_return: %s, verbose: %s',
+      'catch_all: %s, msg_good: %s, verbose: %s',
       catch_all,
-      print_return,
+      msg_good,
       verbose,
       )
     f_exception = None
@@ -544,11 +546,11 @@ class TryAndPrint():
         raise
     else:
       # Success
-      if print_return:
+      if output:
         result_msg = self._format_function_output(output)
         print(result_msg)
       else:
-        print_success(self.msg_good, log=False)
+        print_success(msg_good if msg_good else self.msg_good, log=False)
 
     # Done
     self._log_result(message, result_msg)
