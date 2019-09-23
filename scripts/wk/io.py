@@ -63,7 +63,7 @@ def delete_item(path, force=False, ignore_errors=False):
     os.remove(path)
 
 
-def non_clobbering_path(path):
+def non_clobber_path(path):
   """Update path as needed to non-existing path, returns pathlib.Path."""
   LOG.debug('path: %s', path)
   path = pathlib.Path(path)

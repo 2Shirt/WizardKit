@@ -17,7 +17,7 @@ from wk.std import GenericError, GenericWarning, sleep
 # STATIC VARIABLES
 LOG = logging.getLogger(__name__)
 REG_MSISERVER = r'HKLM\SYSTEM\CurrentControlSet\Control\SafeBoot\Network\MSIServer'
-SLMGR = pathlib.Path(f'{os.environ("SYSTEMROOT")}/System32/slmgr.vbs')
+SLMGR = pathlib.Path(f'{os.environ.get("SYSTEMROOT")}/System32/slmgr.vbs')
 
 
 # Functions
@@ -41,6 +41,10 @@ def activate_with_bios():
   if not bios_key:
     raise GenericError('BIOS key not found.')
 
+  # Check if activation is needed
+  if is_activated():
+    raise GenericWarning('System already activated')
+
   # Install Key
   cmd = ['cscript', '//nologo', SLMGR, '/ipk', bios_key]
   run_program(cmd, check=False)
@@ -52,7 +56,7 @@ def activate_with_bios():
   sleep(5)
 
   # Check status
-  if not windows_is_activated():
+  if not is_activated():
     raise GenericError('Activation Failed')
 
 
@@ -96,6 +100,14 @@ def get_activation_string():
   return act_str
 
 
+def is_activated():
+  """Check if Windows is activated via slmgr.vbs and return bool."""
+  act_str = get_activation_string()
+
+  # Check result.
+  return act_str and 'permanent' in act_str
+
+
 def run_sfc_scan():
   """Run SFC and save results."""
   cmd = ['sfc', '/scannow']
@@ -130,16 +142,6 @@ def run_sfc_scan():
     raise GenericWarning('Repaired')
   else:
     raise GenericError
-
-
-def windows_is_activated():
-  """Check if Windows is activated via slmgr.vbs and return bool."""
-  cmd = ['cscript', '//nologo', SLMGR, '/xpr']
-  result = run_program(cmd, check=False)
-  act_str = result.stdout
-
-  # Check result.
-  return bool(act_str and 'permanent' in act_str)
 
 
 if __name__ == '__main__':
