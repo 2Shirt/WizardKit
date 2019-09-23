@@ -11,6 +11,7 @@ from wk import cfg
 from wk.borrowed import acpi
 from wk.exe import run_program
 from wk.io import non_clobber_path
+from wk.log import format_log_path
 from wk.std import GenericError, GenericWarning, sleep
 
 
@@ -127,17 +128,30 @@ def run_chkdsk_online():
   cmd = ['CHKDSK', os.environ.get('SYSTEMDRIVE', 'C:')]
   if OS_VERSION >= 8:
     cmd.extend(['/scan', '/perf'])
+  log_path = format_log_path(log_name='CHKDSK', timestamp=False, tool=True)
+  err_path = log_path.with_suffix('.err')
+
+  # Run scan
+  proc = run_program(cmd, check=False)
+
+  # Check result
+  if proc.returncode == 1:
+    raise GenericWarning('Repaired (or manually aborted)')
+  elif proc.returncode > 1:
+    raise GenericError('Issue(s) detected')
+
+  # Save output
+  os.makedirs(log_path.parent, exist_ok=True)
+  with open(log_path, 'w') as _f:
+    _f.write(proc.stdout)
+  with open(err_path, 'w') as _f:
+    _f.write(proc.stderr)
 
 
 def run_sfc_scan():
   """Run SFC and save results."""
   cmd = ['sfc', '/scannow']
-  log_path = pathlib.Path(
-    '{drive}/{short}/Logs/{date}/Tools/SFC.log'.format(
-      drive=os.environ.get('SYSTEMDRIVE', 'C:'),
-      short=cfg.main.KIT_NAME_SHORT,
-      date=time.strftime('%Y-%m-%d'),
-      ))
+  log_path = format_log_path(log_name='SFC', timestamp=False, tool=True)
   err_path = log_path.with_suffix('.err')
 
   # Run SFC
