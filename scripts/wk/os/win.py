@@ -4,7 +4,6 @@
 import logging
 import os
 import pathlib
-import re
 import time
 
 from wk import cfg
@@ -120,28 +119,28 @@ def run_sfc_scan():
   err_path = log_path.with_suffix('.err')
 
   # Run SFC
-  proc = run_program(cmd, check=False)
+  proc = run_program(cmd, check=False, encoding='utf-16')
 
   # Fix paths
   log_path = non_clobber_path(log_path)
   err_path = non_clobber_path(err_path)
 
   # Save output
-  output = proc.stdout.replace('\0', '')
-  errors = proc.stderr.replace('\0', '')
   os.makedirs(log_path.parent, exist_ok=True)
   with open(log_path, 'w') as _f:
-    _f.write(output)
+    _f.write(proc.stdout)
   with open(err_path, 'w') as _f:
-    _f.write(errors)
+    _f.write(proc.stderr)
 
   # Check result
-  if re.findall(r'did\s+not\s+find\s+any\s+integrity\s+violations', output):
+  if 'did not find any integrity violations' in proc.stdout:
     pass
-  elif re.findall(r'successfully\s+repaired\s+them', output):
+  elif 'successfully repaired' in proc.stdout:
     raise GenericWarning('Repaired')
+  elif 'found corrupt files' in proc.stdout:
+    raise GenericError('Corruption detected')
   else:
-    raise GenericError
+    raise OSError
 
 
 if __name__ == '__main__':
