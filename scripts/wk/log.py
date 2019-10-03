@@ -17,14 +17,12 @@ if os.name == 'nt':
   DEFAULT_LOG_DIR = (
     f'{os.environ.get("SYSTEMDRIVE", "C:")}/'
     f'{cfg.main.KIT_NAME_SHORT}/'
-    f'{time.strftime("%Y-%m-%d")}/'
-    f'{cfg.main.KIT_NAME_FULL}'
+    f'{time.strftime("%Y-%m-%d")}'
     )
-  DEFAULT_LOG_NAME = ''
 else:
   # Example: "/home/tech/Logs"
   DEFAULT_LOG_DIR = f'{os.path.expanduser("~")}/Logs'
-  DEFAULT_LOG_NAME = cfg.main.KIT_NAME_FULL
+DEFAULT_LOG_NAME = cfg.main.KIT_NAME_FULL
 
 
 # Functions
@@ -40,10 +38,13 @@ def enable_debug_mode():
   root_logger.setLevel('DEBUG')
 
 
-def format_log_path(log_dir=None, log_name=None, tool=False, timestamp=True):
+def format_log_path(
+    log_dir=None, log_name=None, timestamp=False,
+    kit=False, tool=False):
   """Format path based on args passed, returns pathlib.Path obj."""
   log_path = pathlib.Path(
     f'{log_dir if log_dir else DEFAULT_LOG_DIR}/'
+    f'{cfg.main.KIT_NAME_FULL+"/" if kit else ""}'
     f'{"Tools/" if tool else ""}'
     f'{log_name if log_name else DEFAULT_LOG_NAME}'
     f'{"_" if timestamp else ""}'
@@ -76,7 +77,7 @@ def get_root_logger_path():
 
 def start(config=None):
   """Configure and start logging using safe defaults."""
-  log_path = format_log_path()
+  log_path = format_log_path(timestamp=os.name != 'nt')
   root_logger = logging.getLogger()
 
   # Safety checks
