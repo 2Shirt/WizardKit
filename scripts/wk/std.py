@@ -877,6 +877,15 @@ def set_title(title):
     print_error('Setting the title is only supported under Windows.')
 
 
+def show_data(message, data, color=None):
+  """Display info using standard WIDTH and INDENT."""
+  colors = (None, color if color else None)
+  print_colored(
+    (f'{" "*INDENT}{message:<{WIDTH}}', data),
+    colors,
+    )
+
+
 def sleep(seconds=2):
   """Simple wrapper for time.sleep."""
   time.sleep(seconds)
