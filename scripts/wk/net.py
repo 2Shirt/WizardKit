@@ -54,7 +54,7 @@ def speedtest():
   """Run a network speedtest using speedtest-cli."""
   cmd = ['speedtest-cli', '--simple']
   proc = run_program(cmd, check=False)
-  output = [line.strip() for line in proc.stdout.splitlines()]
+  output = [line.strip() for line in proc.stdout.splitlines() if line.strip()]
   output = [line.split() for line in output]
   output = [(a, float(b), c) for a, b, c in output]
   return [f'{a:<10}{b:6.2f} {c}' for a, b, c in output]
