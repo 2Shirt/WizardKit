@@ -5,9 +5,7 @@ import logging
 import os
 import pathlib
 import platform
-import time
 
-from wk import cfg
 from wk.borrowed import acpi
 from wk.exe import run_program
 from wk.io import non_clobber_path
@@ -128,7 +126,7 @@ def run_chkdsk_online():
   cmd = ['CHKDSK', os.environ.get('SYSTEMDRIVE', 'C:')]
   if OS_VERSION >= 8:
     cmd.extend(['/scan', '/perf'])
-  log_path = format_log_path(log_name='CHKDSK', timestamp=False, tool=True)
+  log_path = format_log_path(log_name='CHKDSK', tool=True)
   err_path = log_path.with_suffix('.err')
 
   # Run scan
@@ -137,7 +135,7 @@ def run_chkdsk_online():
   # Check result
   if proc.returncode == 1:
     raise GenericWarning('Repaired (or manually aborted)')
-  elif proc.returncode > 1:
+  if proc.returncode > 1:
     raise GenericError('Issue(s) detected')
 
   # Save output
@@ -151,7 +149,7 @@ def run_chkdsk_online():
 def run_sfc_scan():
   """Run SFC and save results."""
   cmd = ['sfc', '/scannow']
-  log_path = format_log_path(log_name='SFC', timestamp=False, tool=True)
+  log_path = format_log_path(log_name='SFC', tool=True)
   err_path = log_path.with_suffix('.err')
 
   # Run SFC
