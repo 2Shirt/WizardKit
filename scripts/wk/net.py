@@ -28,6 +28,18 @@ def is_connected():
   # Else
   return False
 
+
+def ping(addr='google.com'):
+  """Attempt to ping addr."""
+  cmd = (
+    'ping',
+    '-n' if psutil.WINDOWS else '-c',
+    '2',
+    addr,
+    )
+  run_program(cmd)
+
+
 def show_valid_addresses():
   """Show all valid private IP addresses assigned to the system."""
   devs = psutil.net_if_addrs()
