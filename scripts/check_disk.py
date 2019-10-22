@@ -7,8 +7,8 @@ import wk
 
 def main():
   """Run or schedule CHKDSK and show result."""
-  menu = wk.std.Menu(title=title)
   title = f'{wk.cfg.main.KIT_NAME_FULL}: Check Disk Tool'
+  menu = wk.std.Menu(title=title)
   try_print = wk.std.TryAndPrint()
   wk.std.clear_screen()
   wk.std.set_title(title)
@@ -28,8 +28,8 @@ def main():
   else:
     function = wk.os.win.run_chkdsk_online
     msg_good = 'No issues detected'
-  try_print.run(f'CHKDSK (
-    message={os.environ.get("SYSTEMDRIVE})...',
+  try_print.run(
+    message=f'CHKDSK ({os.environ.get("SYSTEMDRIVE")})...',
     function=function,
     msg_good=msg_good,
     )
