@@ -824,10 +824,13 @@ def pause(prompt='Press Enter to continue... '):
   input_text(prompt)
 
 
-def print_colored(strings, colors, **kwargs):
+def print_colored(strings, colors, log=False, sep=' ', **kwargs):
   """Prints strings in the colors specified."""
-  LOG.debug('strings: %s, colors: %s, kwargs: %s', strings, colors, kwargs)
-  msg = color_string(strings, colors, sep=kwargs.get('sep', ' '))
+  LOG.debug(
+    'strings: %s, colors: %s, sep: %s, kwargs: %s',
+    strings, colors, sep, kwargs,
+    )
+  msg = color_string(strings, colors, sep=sep)
   print_options = {
     'end': kwargs.get('end', '\n'),
     'file': kwargs.get('file', sys.stdout),
@@ -835,7 +838,7 @@ def print_colored(strings, colors, **kwargs):
     }
 
   print(msg, **print_options)
-  if kwargs.get('log', False):
+  if log:
     LOG.info(strip_colors(msg))
 
 
