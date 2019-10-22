@@ -32,14 +32,16 @@ from wk.cfg.main import (
 
 # STATIC VARIABLES
 COLORS = {
-  'CLEAR':  '\033[0m',
-  'RED':    '\033[31m',
-  'ORANGE': '\033[31;1m',
-  'GREEN':  '\033[32m',
-  'YELLOW': '\033[33m',
-  'BLUE':   '\033[34m',
-  'PURPLE': '\033[35m',
-  'CYAN':   '\033[36m',
+  'CLEAR':        '\033[0m',
+  'RED':          '\033[31m',
+  'RED_BLINK':    '\033[31;5m',
+  'ORANGE':       '\033[31;1m',
+  'GREEN':        '\033[32m',
+  'YELLOW':       '\033[33m',
+  'YELLOW_BLINK': '\033[33;5m',
+  'BLUE':         '\033[34m',
+  'PURPLE':       '\033[35m',
+  'CYAN':         '\033[36m',
   }
 LOG = logging.getLogger(__name__)
 REGEX_SIZE_STRING = re.compile(
@@ -685,6 +687,26 @@ def clear_screen():
   subprocess.run(cmd, check=False, shell=True, stderr=subprocess.PIPE)
 
 
+def color_string(strings, colors, sep=' '):
+  """Build colored string using ANSI escapes, returns str."""
+  clear_code = COLORS['CLEAR']
+  msg = []
+
+  # Convert to tuples if necessary
+  if isinstance(strings, str):
+    strings = (strings,)
+  if isinstance(colors, str):
+    colors = (colors,)
+
+  # Build new string with color escapes added
+  for string, color in itertools.zip_longest(strings, colors):
+    color_code = COLORS.get(color, clear_code)
+    msg.append(f'{color_code}{string}{clear_code}')
+
+  # Done
+  return sep.join(msg)
+
+
 def generate_debug_report():
   """Generate debug report, returns str."""
   import socket
@@ -805,26 +827,16 @@ def pause(prompt='Press Enter to continue... '):
 def print_colored(strings, colors, **kwargs):
   """Prints strings in the colors specified."""
   LOG.debug('strings: %s, colors: %s, kwargs: %s', strings, colors, kwargs)
-  clear_code = COLORS['CLEAR']
-  msg = ''
+  msg = color_string(strings, colors, sep=kwargs.get('sep', ' '))
   print_options = {
     'end': kwargs.get('end', '\n'),
     'file': kwargs.get('file', sys.stdout),
     'flush': kwargs.get('flush', False),
     }
 
-  # Convert to tuples if necessary
-  if isinstance(strings, str):
-    strings = (strings,)
-  if isinstance(colors, str):
-    colors = (colors,)
-
-  # Build new string with color escapes added
-  for string, color in itertools.zip_longest(strings, colors):
-    color_code = COLORS.get(color, clear_code)
-    msg += f'{color_code}{string}{clear_code}'
-
   print(msg, **print_options)
+  if kwargs.get('log', False):
+    LOG.info(strip_colors(msg))
 
 
 def print_error(msg, log=True, **kwargs):
@@ -832,14 +844,14 @@ def print_error(msg, log=True, **kwargs):
   if 'file' not in kwargs:
     # Only set if not specified
     kwargs['file'] = sys.stderr
-  print_colored([msg], ['RED'], **kwargs)
+  print_colored(msg, 'RED', **kwargs)
   if log:
     LOG.error(msg)
 
 
 def print_info(msg, log=True, **kwargs):
   """Prints message in BLUE and log as INFO."""
-  print_colored([msg], ['BLUE'], **kwargs)
+  print_colored(msg, 'BLUE', **kwargs)
   if log:
     LOG.info(msg)
 
@@ -853,7 +865,7 @@ def print_standard(msg, log=True, **kwargs):
 
 def print_success(msg, log=True, **kwargs):
   """Prints message in GREEN and log as INFO."""
-  print_colored([msg], ['GREEN'], **kwargs)
+  print_colored(msg, 'GREEN', **kwargs)
   if log:
     LOG.info(msg)
 
@@ -863,7 +875,7 @@ def print_warning(msg, log=True, **kwargs):
   if 'file' not in kwargs:
     # Only set if not specified
     kwargs['file'] = sys.stderr
-  print_colored([msg], ['YELLOW'], **kwargs)
+  print_colored(msg, 'YELLOW', **kwargs)
   if log:
     LOG.warning(msg)
 
