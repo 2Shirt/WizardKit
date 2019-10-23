@@ -153,6 +153,12 @@ class Disk():
       if not isinstance(self.lsblk[attr], int):
         self.lsblk[attr] = int(self.lsblk[attr])
 
+    # Set description
+    self.description = '{size_str} ({tran}) {model} {serial}'.format(
+      size_str = bytes_to_string(self.lsblk['size'], use_binary=False),
+      **self.lsblk,
+      )
+
   def get_labels(self):
     """Build list of labels for this disk, returns list."""
     labels = []
@@ -179,7 +185,7 @@ class Disk():
       '--json',
       self.path,
       ]
-    self.smartctl = get_json_from_command(cmd)
+    self.smartctl = get_json_from_command(cmd, check=False)
 
     # Check for attributes
     if KEY_NVME in self.smartctl:
