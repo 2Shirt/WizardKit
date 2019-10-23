@@ -10,6 +10,7 @@ from wk import io
 from wk import kit
 from wk import log
 from wk import net
+from wk import obj
 from wk import os
 from wk import std
 from wk import sw
