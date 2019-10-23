@@ -97,7 +97,7 @@ def get_json_from_command(cmd, check=True, encoding='utf-8', errors='ignore'):
   """Capture JSON content from cmd output, returns dict.
 
   If the data can't be decoded then either an exception is raised
-  or an empty dict is returned depending on ignore_errors.
+  or an empty dict is returned depending on errors.
   """
   json_data = {}
 
