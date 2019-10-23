@@ -93,8 +93,8 @@ def enable_safemode_msi():
 def get_activation_string():
   """Get activation status, returns str."""
   cmd = ['cscript', '//nologo', SLMGR, '/xpr']
-  result = run_program(cmd, check=False)
-  act_str = result.stdout
+  proc = run_program(cmd, check=False)
+  act_str = proc.stdout
   act_str = act_str.splitlines()[1]
   act_str = act_str.strip()
   return act_str

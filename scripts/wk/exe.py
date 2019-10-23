@@ -102,8 +102,8 @@ def get_json_from_command(cmd, check=True, encoding='utf-8', errors='ignore'):
   json_data = {}
 
   try:
-    result = run_program(cmd, check=check, encoding=encoding, errors=errors)
-    json_data = json.loads(result.stdout)
+    proc = run_program(cmd, check=check, encoding=encoding, errors=errors)
+    json_data = json.loads(proc.stdout)
   except (subprocess.CalledProcessError, json.decoder.JSONDecodeError):
     if errors != 'ignore':
       raise
