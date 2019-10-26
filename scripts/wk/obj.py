@@ -115,7 +115,7 @@ class Disk():
   def __init__(self, path):
     self.attributes = {}
     self.description = 'Unknown'
-    self.lsblk = {}
+    self.details = {}
     self.nvme_smart_notes = {}
     self.path = pathlib.Path(path).resolve()
     self.smartctl = {}
@@ -138,38 +138,39 @@ class Disk():
     run_program(cmd, check=False)
 
   def get_details(self):
-    """Get details via lsblk.
+    """Get disk details using OS specific methods.
 
-    Required details default to generic descriptions and
-    are converted to the correct type.
+    Required details default to generic descriptions
+    and are converted to the correct type.
     """
-    cmd = ['lsblk', '--bytes', '--json', '--output-all', '--paths', self.path]
-    json_data = get_json_from_command(cmd)
-    self.lsblk = json_data.get('blockdevices', [{}])[0]
+    if platform.system() == 'Darwin':
+      self.details = get_disk_details_macos(self.path)
+    elif platform.system() == 'Linux':
+      self.details = get_disk_details_linux(self.path)
 
     # Set necessary details
-    self.lsblk['model'] = self.lsblk.get('model', 'Unknown Model')
-    self.lsblk['name'] = self.lsblk.get('name', self.path)
-    self.lsblk['log-sec'] = self.lsblk.get('log-sec', 512)
-    self.lsblk['phy-sec'] = self.lsblk.get('phy-sec', 512)
-    self.lsblk['rota'] = self.lsblk.get('rota', True)
-    self.lsblk['serial'] = self.lsblk.get('serial', 'Unknown Serial')
-    self.lsblk['size'] = self.lsblk.get('size', -1)
-    self.lsblk['tran'] = self.lsblk.get('tran', '???')
-    self.lsblk['tran'] = self.lsblk['tran'].upper().replace('NVME', 'NVMe')
+    self.details['model'] = self.details.get('model', 'Unknown Model')
+    self.details['name'] = self.details.get('name', self.path)
+    self.details['log-sec'] = self.details.get('log-sec', 512)
+    self.details['phy-sec'] = self.details.get('phy-sec', 512)
+    self.details['proto'] = self.details.get('proto', '???')
+    self.details['proto'] = self.details['proto'].upper().replace('NVME', 'NVMe')
+    self.details['rota'] = self.details.get('rota', True)
+    self.details['serial'] = self.details.get('serial', 'Unknown Serial')
+    self.details['size'] = self.details.get('size', -1)
 
     # Ensure certain attributes types
-    for attr in ['model', 'name', 'serial', 'tran']:
-      if not isinstance(self.lsblk[attr], str):
-        self.lsblk[attr] = str(self.lsblk[attr])
+    for attr in ['model', 'name', 'proto', 'serial']:
+      if not isinstance(self.details[attr], str):
+        self.details[attr] = str(self.details[attr])
     for attr in ['log-sec', 'phy-sec', 'size']:
-      if not isinstance(self.lsblk[attr], int):
-        self.lsblk[attr] = int(self.lsblk[attr])
+      if not isinstance(self.details[attr], int):
+        self.details[attr] = int(self.details[attr])
 
     # Set description
-    self.description = '{size_str} ({tran}) {model} {serial}'.format(
-      size_str=bytes_to_string(self.lsblk['size'], use_binary=False),
-      **self.lsblk,
+    self.description = '{size_str} ({proto}) {model} {serial}'.format(
+      size_str=bytes_to_string(self.details['size'], use_binary=False),
+      **self.details,
       )
 
   def get_labels(self):
@@ -177,7 +178,7 @@ class Disk():
     labels = []
 
     # Add all labels from lsblk
-    for disk in [self.lsblk, *self.lsblk.get('children', [])]:
+    for disk in [self.details, *self.details.get('children', [])]:
       labels.append(disk.get('label', ''))
       labels.append(disk.get('partlabel', ''))
 
@@ -235,6 +236,71 @@ class Disk():
 
 
 # Functions
+def get_disk_details_linux(path):
+  """Get disk details using lsblk, returns dict."""
+  cmd = ['lsblk', '--bytes', '--json', '--output-all', '--paths', path]
+  json_data = get_json_from_command(cmd, check=False)
+  details = json_data.get('blockdevices', [{}])[0]
+  return details
+
+
+def get_disk_details_macos(path):
+  """Get disk details using diskutil, returns dict."""
+  details = {}
+
+  # Get "list" details
+  cmd = ['diskutil', 'list', '-plist', path]
+  proc = run_program(cmd, check=False, encoding=None, errors=None)
+  try:
+    plist_data = plistlib.loads(proc.stdout)
+  except (TypeError, ValueError):
+    LOG.error('Failed to get diskutil list for %s', path)
+    # TODO: Figure this out
+    return details #Bail
+
+  # Parse "list" details
+  details = plist_data.get('AllDisksAndPartitions', [{}])[0]
+  details['children'] = details.pop('Partitions', [])
+  details['path'] = path
+  for child in details['children']:
+    child['path'] = path.with_name(child.get('DeviceIdentifier', 'null'))
+
+  # Get "info" details
+  for dev in [details, *details['children']]:
+    cmd = ['diskutil', 'info', '-plist', dev['path']]
+    proc = run_program(cmd, check=False, encoding=None, errors=None)
+    try:
+      plist_data = plistlib.loads(proc.stdout)
+    except (TypeError, ValueError):
+      LOG.error('Failed to get diskutil info for %s', path)
+      continue #Skip
+
+    # Parse "info" details
+    dev.update(plist_data)
+    dev['size'] = dev.pop('Size', -1)
+    dev['phy-sec'] = dev.pop('DeviceBlockSize', 512)
+    dev['ssd'] = dev.pop('SolidState', False)
+    dev['proto'] = dev.pop('BusProtocol', '???')
+    dev['vendor'] = ''
+    dev['model'] = dev.pop('MediaName', 'Unknown')
+    dev['serial'] = get_disk_serial_macos(dev['path'])
+    dev['label'] = dev.pop('VolumeName', '')
+    dev['fstype'] = dev.pop('FilesystemType', '')
+    dev['mountpoint'] = dev.pop('MountPoint', '')
+    if not dev.get('WholeDisk', True):
+      dev['parent'] = dev.pop('ParentWholeDisk', None)
+
+  # Done
+  return details
+
+
+def get_disk_serial_macos(path):
+  """Get disk serial using system_profiler, returns str."""
+  serial = 'Unknown Serial'
+  # TODO: Make it real
+  return serial
+
+
 def get_ram_list_linux():
   """Get RAM list using dmidecode."""
   cmd = ['sudo', 'dmidecode', '--type', 'memory']
