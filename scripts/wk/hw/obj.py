@@ -1,4 +1,4 @@
-"""WizardKit: Objects."""
+"""WizardKit: Hardware objects (mostly)."""
 # vim: sts=2 sw=2 ts=2
 
 import logging
@@ -298,6 +298,7 @@ def get_disk_serial_macos(path):
   """Get disk serial using system_profiler, returns str."""
   serial = 'Unknown Serial'
   # TODO: Make it real
+  str(path)
   return serial
 
 
@@ -328,6 +329,7 @@ def get_ram_list_linux():
 
   # Save details
   return dimm_list
+
 
 def get_ram_list_macos():
   """Get RAM list using system_profiler."""
