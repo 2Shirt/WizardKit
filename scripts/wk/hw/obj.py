@@ -149,26 +149,25 @@ class Disk():
       self.details = get_disk_details_linux(self.path)
 
     # Set necessary details
+    self.details['bus'] = self.details.get('bus', '???')
+    self.details['bus'] = self.details['bus'].upper().replace('NVME', 'NVMe')
     self.details['model'] = self.details.get('model', 'Unknown Model')
     self.details['name'] = self.details.get('name', self.path)
-    self.details['log-sec'] = self.details.get('log-sec', 512)
     self.details['phy-sec'] = self.details.get('phy-sec', 512)
-    self.details['proto'] = self.details.get('proto', '???')
-    self.details['proto'] = self.details['proto'].upper().replace('NVME', 'NVMe')
-    self.details['rota'] = self.details.get('rota', True)
     self.details['serial'] = self.details.get('serial', 'Unknown Serial')
     self.details['size'] = self.details.get('size', -1)
+    self.details['ssd'] = self.details.get('ssd', False)
 
     # Ensure certain attributes types
-    for attr in ['model', 'name', 'proto', 'serial']:
+    for attr in ['bus', 'model', 'name', 'serial']:
       if not isinstance(self.details[attr], str):
         self.details[attr] = str(self.details[attr])
-    for attr in ['log-sec', 'phy-sec', 'size']:
+    for attr in ['phy-sec', 'size']:
       if not isinstance(self.details[attr], int):
         self.details[attr] = int(self.details[attr])
 
     # Set description
-    self.description = '{size_str} ({proto}) {model} {serial}'.format(
+    self.description = '{size_str} ({bus}) {model} {serial}'.format(
       size_str=bytes_to_string(self.details['size'], use_binary=False),
       **self.details,
       )
@@ -241,6 +240,8 @@ def get_disk_details_linux(path):
   cmd = ['lsblk', '--bytes', '--json', '--output-all', '--paths', path]
   json_data = get_json_from_command(cmd, check=False)
   details = json_data.get('blockdevices', [{}])[0]
+  details['bus'] = details.pop('tran', '???')
+  details['ssd'] = not details.pop('rota', True)
   return details
 
 
@@ -277,16 +278,16 @@ def get_disk_details_macos(path):
 
     # Parse "info" details
     dev.update(plist_data)
-    dev['size'] = dev.pop('Size', -1)
-    dev['phy-sec'] = dev.pop('DeviceBlockSize', 512)
-    dev['ssd'] = dev.pop('SolidState', False)
-    dev['proto'] = dev.pop('BusProtocol', '???')
-    dev['vendor'] = ''
-    dev['model'] = dev.pop('MediaName', 'Unknown')
-    dev['serial'] = get_disk_serial_macos(dev['path'])
-    dev['label'] = dev.pop('VolumeName', '')
+    dev['bus'] = dev.pop('BusProtocol', '???')
     dev['fstype'] = dev.pop('FilesystemType', '')
+    dev['label'] = dev.pop('VolumeName', '')
+    dev['model'] = dev.pop('MediaName', 'Unknown')
     dev['mountpoint'] = dev.pop('MountPoint', '')
+    dev['phy-sec'] = dev.pop('DeviceBlockSize', 512)
+    dev['serial'] = get_disk_serial_macos(dev['path'])
+    dev['size'] = dev.pop('Size', -1)
+    dev['ssd'] = dev.pop('SolidState', False)
+    dev['vendor'] = ''
     if not dev.get('WholeDisk', True):
       dev['parent'] = dev.pop('ParentWholeDisk', None)
 
