@@ -261,8 +261,12 @@ class Disk():
 
   def is_4k_aligned(self):
     """Check that all disk partitions are aligned, returns bool."""
-    #TODO: Make real
-    return True
+    aligned = True
+    if not platform.system() == 'Linux':
+      aligned = is_4k_aligned_linux(self.path, self.details['phy-sec'])
+    #TODO: Add checks for other OS
+
+    return aligned
 
   def update_smart_details(self):
     """Update SMART details via smartctl."""
@@ -442,6 +446,28 @@ def get_ram_list_macos():
 
   # Save details
   return dimm_list
+
+
+def is_4k_aligned_linux(dev_path, physical_sector_size):
+  """Check partition alignment using lsblk, returns bool."""
+  aligned = True
+  cmd = [
+    'sudo',
+    'sfdisk',
+    '--json',
+    dev_path,
+    ]
+
+  # Get partition details
+  json_data = get_json_from_command(cmd)
+
+  # Check partitions
+  for part in json_data.get('partitiontable', {}).get('partitions', []):
+    offset = physical_sector_size * part.get('start', -1)
+    aligned = aligned and offset >= 0 and offset % 2096 == 0
+
+  # Done
+  return aligned
 
 
 if __name__ == '__main__':
