@@ -158,7 +158,8 @@ class Disk():
 
       # Value color
       for threshold, color in ATTRIBUTE_COLORS:
-        if value['raw'] >= ATTRIBUTES.get(threshold, float('inf')):
+        threshold_val = ATTRIBUTES.get(attr, {}).get(threshold, float('inf'))
+        if threshold_val and value['raw'] >= threshold_val:
           value_color = color
           if threshold == 'Maximum':
             note = '(invalid?)'
