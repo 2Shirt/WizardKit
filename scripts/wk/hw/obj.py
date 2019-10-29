@@ -1,4 +1,4 @@
-"""WizardKit: Hardware objects (mostly)."""
+"""WizardKit: Hardware objects (mostly)"""
 # vim: sts=2 sw=2 ts=2
 
 import logging
@@ -9,6 +9,7 @@ import re
 
 from collections import OrderedDict
 
+from wk.cfg.hw import ATTRIBUTES, ATTRIBUTE_COLORS
 from wk.exe import get_json_from_command, run_program
 from wk.std import bytes_to_string, color_string, string_to_bytes
 
@@ -93,8 +94,8 @@ class CpuRam():
       f'{count}x {desc}' for desc, count in sorted(details.items())
       ]
 
-  def generate_cpu_report(self):
-    """Generate CPU report with data from all tests."""
+  def generate_report(self):
+    """Generate CPU & RAM report, returns list."""
     report = []
     report.append(color_string('Device', 'BLUE'))
     report.append(f'  {self.description}')
@@ -116,7 +117,7 @@ class Disk():
     self.attributes = {}
     self.description = 'Unknown'
     self.details = {}
-    self.nvme_smart_notes = {}
+    self.notes = {}
     self.path = pathlib.Path(path).resolve()
     self.smartctl = {}
     self.tests = OrderedDict()
@@ -136,6 +137,77 @@ class Disk():
       self.path,
       ]
     run_program(cmd, check=False)
+
+  def generate_attribute_report(self):
+    """Generate attribute report, returns list."""
+    report = []
+    for attr, value in sorted(self.attributes.items()):
+      note = ''
+      value_color = 'GREEN'
+
+      # Skip attributes not in our list
+      if attr not in ATTRIBUTES:
+        continue
+
+      # ID / Name
+      label = f'{attr:>3}'
+      if isinstance(attr, int):
+        # Assuming SMART, include hex ID and name
+        label += f' / {str(hex(attr))[2:].upper():0>2}: {value["name"]}'
+      label = f'  {label.replace("_", " "):38}'
+
+      # Value color
+      for threshold, color in ATTRIBUTE_COLORS:
+        if value['raw'] >= ATTRIBUTES.get(threshold, float('inf')):
+          value_color = color
+          if threshold == 'Maximum':
+            note = '(invalid?)'
+
+      # 199/C7 warning
+      if str(attr) == '199' and value['raw'] > 0:
+        note = '(bad cable?)'
+
+      # Build colored string and append to report
+      line = color_string(
+        [label, value['raw_str'], note],
+        [None, value_color, 'YELLOW'],
+        )
+      report.append(line)
+
+    # Done
+    return report
+
+
+  def generate_report(self):
+    """Generate Disk report, returns list."""
+    report = []
+    report.append(color_string(f'Device {self.path.name}', 'BLUE'))
+    report.append(f'  {self.description}')
+
+    # Attributes
+    if self.attributes:
+      report.append(color_string('Attributes', 'BLUE'))
+      report.extend(self.generate_attribute_report())
+    else:
+      report.append(
+        color_string('  No NVMe or SMART data available', 'YELLOW'))
+
+    # Notes
+    if self.notes:
+      report.append(color_string('Notes', 'BLUE'))
+      for note in sorted(self.notes.keys()):
+        report.append(f'  {note}')
+
+    # 4K alignment check
+    if not self.is_4k_aligned():
+      report.append(color_string('Warning', 'YELLOW'))
+      report.append('  One or more partitions are not 4K aligned')
+
+    # Tests
+    for test in self.tests.values():
+      report.extend(test.report)
+
+    return report
 
   def get_details(self):
     """Get disk details using OS specific methods.
@@ -186,6 +258,11 @@ class Disk():
 
     # Done
     return labels
+
+  def is_4k_aligned(self):
+    """Check that all disk partitions are aligned, returns bool."""
+    #TODO: Make real
+    return True
 
   def update_smart_details(self):
     """Update SMART details via smartctl."""
