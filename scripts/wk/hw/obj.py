@@ -117,7 +117,7 @@ class Disk():
     self.attributes = {}
     self.description = 'Unknown'
     self.details = {}
-    self.notes = {}
+    self.notes = []
     self.path = pathlib.Path(path).resolve()
     self.smartctl = {}
     self.tests = OrderedDict()
@@ -126,6 +126,16 @@ class Disk():
     self.get_details()
     self.enable_smart()
     self.update_smart_details()
+    if not self.is_4k_aligned():
+      self.add_note('One or more partitions are not 4K aligned', 'YELLOW')
+
+  def add_note(self, note, color=None):
+    """Add note that will be included in the disk report."""
+    if color:
+      note = color_string(note, color)
+    if note not in self.notes:
+      self.notes.append(note)
+      self.notes.sort()
 
   def enable_smart(self):
     """Try enabling SMART for this disk."""
@@ -182,27 +192,19 @@ class Disk():
   def generate_report(self):
     """Generate Disk report, returns list."""
     report = []
-    report.append(color_string(f'Device {self.path.name}', 'BLUE'))
+    report.append(color_string(f'Device ({self.path.name})', 'BLUE'))
     report.append(f'  {self.description}')
 
     # Attributes
     if self.attributes:
       report.append(color_string('Attributes', 'BLUE'))
       report.extend(self.generate_attribute_report())
-    else:
-      report.append(
-        color_string('  No NVMe or SMART data available', 'YELLOW'))
 
     # Notes
     if self.notes:
       report.append(color_string('Notes', 'BLUE'))
-      for note in sorted(self.notes.keys()):
-        report.append(f'  {note}')
-
-    # 4K alignment check
-    if not self.is_4k_aligned():
-      report.append(color_string('Warning', 'YELLOW'))
-      report.append('  One or more partitions are not 4K aligned')
+    for note in self.notes:
+      report.append(f'  {note}')
 
     # Tests
     for test in self.tests.values():
@@ -314,6 +316,10 @@ class Disk():
         # Add to dict
         self.attributes[_id] = {
           'name': name, 'raw': raw, 'raw_str': raw_str}
+
+    # Add note if necessary
+    if not self.attributes:
+      self.add_note('No NVMe or SMART data available', 'YELLOW')
 
 
 # Functions
