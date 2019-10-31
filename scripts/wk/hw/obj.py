@@ -265,7 +265,7 @@ class Disk():
   def is_4k_aligned(self):
     """Check that all disk partitions are aligned, returns bool."""
     aligned = True
-    if not platform.system() == 'Linux':
+    if platform.system() == 'Linux':
       aligned = is_4k_aligned_linux(self.path, self.details['phy-sec'])
     #TODO: Add checks for other OS
 
@@ -471,7 +471,7 @@ def is_4k_aligned_linux(dev_path, physical_sector_size):
   # Check partitions
   for part in json_data.get('partitiontable', {}).get('partitions', []):
     offset = physical_sector_size * part.get('start', -1)
-    aligned = aligned and offset >= 0 and offset % 2096 == 0
+    aligned = aligned and offset >= 0 and offset % 4096 == 0
 
   # Done
   return aligned
