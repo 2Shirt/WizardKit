@@ -265,7 +265,9 @@ class Disk():
   def is_4k_aligned(self):
     """Check that all disk partitions are aligned, returns bool."""
     aligned = True
-    if platform.system() == 'Linux':
+    if platform.system() == 'Darwin':
+      aligned = is_4k_aligned_macos(self.details)
+    elif platform.system() == 'Linux':
       aligned = is_4k_aligned_linux(self.path, self.details['phy-sec'])
     #TODO: Add checks for other OS
 
@@ -453,6 +455,23 @@ def get_ram_list_macos():
 
   # Save details
   return dimm_list
+
+
+def is_4k_aligned_macos(disk_details):
+  """Check partition alignment using diskutil info, returns bool."""
+  aligned = True
+
+  # Check partitions
+  for part in disk_details.get('children', []):
+    offset = part.get('PartitionMapPartitionOffset', 0)
+    if not offset:
+      # Assuming offset couldn't be found and it defaulted to 0
+      # NOTE: Just logging the error, not bailing
+      LOG.error('Failed to get partition offset for %s', part['path'])
+    aligned = aligned and offset >= 0 and offset % 4096 == 0
+
+  # Done
+  return aligned
 
 
 def is_4k_aligned_linux(dev_path, physical_sector_size):
