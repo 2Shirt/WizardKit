@@ -13,6 +13,7 @@ from wk.cfg.hw import ATTRIBUTES, ATTRIBUTE_COLORS
 from wk.exe import get_json_from_command, run_program
 from wk.std import bytes_to_string, color_string, string_to_bytes
 
+
 # STATIC VARIABLES
 KEY_NVME = 'nvme_smart_health_information_log'
 KEY_SMART = 'ata_smart_attributes'
@@ -30,6 +31,12 @@ LOG = logging.getLogger(__name__)
 REGEX_POWER_ON_TIME = re.compile(
   r'^(\d+)([Hh].*|\s+\(\d+\s+\d+\s+\d+\).*)'
   )
+
+
+# Exception Classes
+class CriticalHardwareError(RuntimeError):
+  """Exception used for critical hardware failures."""
+
 
 # Classes
 class CpuRam():
@@ -272,6 +279,71 @@ class Disk():
     #TODO: Add checks for other OS
 
     return aligned
+
+  def safety_checks(self):
+    """Run safety checks and raise an exception if necessary."""
+    blocking_event_encountered = False
+    self.update_smart_details()
+
+    # Attributes
+    for attr, value in self.attributes.items():
+      # Skip unknown attributes
+      if attr not in ATTRIBUTES:
+        continue
+
+      # Get thresholds
+      critical = ATTRIBUTES[attr].get('Critical', False)
+      err_thresh = ATTRIBUTES[attr].get('Error', None)
+      max_thresh = ATTRIBUTES[attr].get('Maximum', None)
+      if not max_thresh:
+        max_thresh = float('inf')
+
+      # Skip non-critical attributes
+      if not critical:
+        continue
+
+      # Skip informational attributes
+      if not err_thresh:
+        continue
+
+      # Check attribute
+      if err_thresh <= value['raw'] < max_thresh:
+        blocking_event_encountered = True
+        msg = f'Failed attribute: {attr}'
+        LOG.error('%s %s', self.path, msg)
+
+    # NVMe status
+    # TODO: See https://github.com/2Shirt/WizardKit/issues/130
+
+    # SMART overall assessment
+    smart_passed = True
+    try:
+      smart_passed = self.smartctl['smart_status']['passed']
+    except (KeyError, TypeError):
+      # Assuming disk doesn't support SMART overall assessment
+      pass
+    if not smart_passed:
+      blocking_event_encountered = True
+      msg = 'SMART overall self-assessment: Failed'
+      self.add_note(msg, 'RED')
+      LOG.error('%s %s', self.path, msg)
+
+    # SMART self-test status
+    test_status = ''
+    try:
+      test_status = self.smartctl['ata_smart_data']['self_test']['status']
+    except (KeyError, TypeError):
+      # Assuming disk doesn't support SMART self-tests
+      pass
+    if 'remaining_percent' in test_status:
+      blocking_event_encountered = True
+      msg = 'SMART self-test in progress'
+      self.add_note(msg, 'RED')
+      LOG.error('%s %s', self.path, msg)
+
+    # Raise exception if necessary
+    if blocking_event_encountered:
+      raise CriticalHardwareError(f'Critical error(s) for: {self.path}')
 
   def update_smart_details(self):
     """Update SMART details via smartctl."""
