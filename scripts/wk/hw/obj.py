@@ -9,12 +9,18 @@ import re
 
 from collections import OrderedDict
 
-from wk.cfg.hw import ATTRIBUTES, ATTRIBUTE_COLORS
+from wk.cfg.hw import KNOWN_ATTRIBUTES
 from wk.exe import get_json_from_command, run_program
 from wk.std import bytes_to_string, color_string, string_to_bytes
 
 
 # STATIC VARIABLES
+ATTRIBUTE_COLORS = (
+  # NOTE: Ordered by ascending importance
+  ('Warning', 'YELLOW'),
+  ('Error', 'RED'),
+  ('Maximum', 'PURPLE'),
+  )
 KEY_NVME = 'nvme_smart_health_information_log'
 KEY_SMART = 'ata_smart_attributes'
 KNOWN_RAM_VENDOR_IDS = {
@@ -144,6 +150,36 @@ class Disk():
       self.notes.append(note)
       self.notes.sort()
 
+  def check_attributes(self, only_blocking=False):
+    """Check if any known attributes are failing, returns bool."""
+    attributes_ok = True
+    for attr, value in self.attributes.items():
+      # Skip unknown attributes
+      if attr not in KNOWN_ATTRIBUTES:
+        continue
+
+      # Get thresholds
+      blocking_attribute = KNOWN_ATTRIBUTES[attr].get('Blocking', False)
+      err_thresh = KNOWN_ATTRIBUTES[attr].get('Error', None)
+      max_thresh = KNOWN_ATTRIBUTES[attr].get('Maximum', None)
+      if not max_thresh:
+        max_thresh = float('inf')
+
+      # Skip non-blocking attributes if necessary
+      if only_blocking and not blocking_attribute:
+        continue
+
+      # Skip informational attributes
+      if not err_thresh:
+        continue
+
+      # Check attribute
+      if err_thresh <= value['raw'] < max_thresh:
+        attributes_ok = False
+
+    # Done
+    return attributes_ok
+
   def enable_smart(self):
     """Try enabling SMART for this disk."""
     cmd = [
@@ -163,7 +199,7 @@ class Disk():
       value_color = 'GREEN'
 
       # Skip attributes not in our list
-      if attr not in ATTRIBUTES:
+      if attr not in KNOWN_ATTRIBUTES:
         continue
 
       # ID / Name
@@ -175,10 +211,12 @@ class Disk():
 
       # Value color
       for threshold, color in ATTRIBUTE_COLORS:
-        threshold_val = ATTRIBUTES.get(attr, {}).get(threshold, float('inf'))
+        threshold_val = KNOWN_ATTRIBUTES[attr].get(threshold, None)
         if threshold_val and value['raw'] >= threshold_val:
           value_color = color
-          if threshold == 'Maximum':
+          if threshold == 'Error':
+            note = '(Failed)'
+          elif threshold == 'Maximum':
             note = '(invalid?)'
 
       # 199/C7 warning
@@ -286,31 +324,9 @@ class Disk():
     self.update_smart_details()
 
     # Attributes
-    for attr, value in self.attributes.items():
-      # Skip unknown attributes
-      if attr not in ATTRIBUTES:
-        continue
-
-      # Get thresholds
-      critical = ATTRIBUTES[attr].get('Critical', False)
-      err_thresh = ATTRIBUTES[attr].get('Error', None)
-      max_thresh = ATTRIBUTES[attr].get('Maximum', None)
-      if not max_thresh:
-        max_thresh = float('inf')
-
-      # Skip non-critical attributes
-      if not critical:
-        continue
-
-      # Skip informational attributes
-      if not err_thresh:
-        continue
-
-      # Check attribute
-      if err_thresh <= value['raw'] < max_thresh:
-        blocking_event_encountered = True
-        msg = f'Failed attribute: {attr}'
-        LOG.error('%s %s', self.path, msg)
+    if not self.check_attributes(only_blocking=True):
+      blocking_event_encountered = True
+      LOG.error('%s: Blocked for failing attributes', self.path)
 
     # NVMe status
     # TODO: See https://github.com/2Shirt/WizardKit/issues/130
