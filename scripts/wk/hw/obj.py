@@ -61,6 +61,22 @@ class CpuRam():
     self.get_cpu_details()
     self.get_ram_details()
 
+  def generate_report(self):
+    """Generate CPU & RAM report, returns list."""
+    report = []
+    report.append(color_string('Device', 'BLUE'))
+    report.append(f'  {self.description}')
+
+    # Include RAM details
+    report.append(color_string('RAM', 'BLUE'))
+    report.append(f'  {self.ram_total} ({", ".join(self.ram_dimms)})')
+
+    # Tests
+    for test in self.tests.values():
+      report.extend(test.report)
+
+    return report
+
   def get_cpu_details(self):
     """Get CPU details using OS specific methods."""
     if platform.system() == 'Darwin':
@@ -109,22 +125,6 @@ class CpuRam():
     self.ram_dimms = [
       f'{count}x {desc}' for desc, count in sorted(details.items())
       ]
-
-  def generate_report(self):
-    """Generate CPU & RAM report, returns list."""
-    report = []
-    report.append(color_string('Device', 'BLUE'))
-    report.append(f'  {self.description}')
-
-    # Include RAM details
-    report.append(color_string('RAM', 'BLUE'))
-    report.append(f'  {self.ram_total} ({", ".join(self.ram_dimms)})')
-
-    # Tests
-    for test in self.tests.values():
-      report.extend(test.report)
-
-    return report
 
 
 class Disk():
