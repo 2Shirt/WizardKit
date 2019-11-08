@@ -515,6 +515,26 @@ class Disk(BaseObj):
       self.add_note('No NVMe or SMART data available', 'YELLOW')
 
 
+class Test():
+  """Object for tracking test specific data."""
+  def __init__(self, dev, label):
+    self.dev = dev
+    self.disabled = False
+    self.failed = False
+    self.label = label
+    self.passed = False
+    self.report = []
+    self.status = ''
+
+  def set_status(self, status):
+    """Update status string."""
+    if self.disabled:
+      # Don't change status if disabled
+      return
+
+    self.status = status
+
+
 # Functions
 def get_disk_details_linux(path):
   """Get disk details using lsblk, returns dict."""
