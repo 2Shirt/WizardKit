@@ -859,6 +859,14 @@ def print_info(msg, log=True, **kwargs):
     LOG.info(msg)
 
 
+def print_report(report, log=True):
+  """Print report to screen and optionally to log."""
+  for line in report:
+    print(line)
+    if log:
+      LOG.info(strip_colors(line))
+
+
 def print_standard(msg, log=True, **kwargs):
   """Prints message and log as INFO."""
   print(msg, **kwargs)
