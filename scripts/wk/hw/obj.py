@@ -9,34 +9,21 @@ import re
 
 from collections import OrderedDict
 
-from wk.cfg.hw import KNOWN_ATTRIBUTES
+from wk.cfg.hw import (
+  ATTRIBUTE_COLORS,
+  KEY_NVME,
+  KEY_SMART,
+  KNOWN_DISK_ATTRIBUTES,
+  KNOWN_DISK_MODELS,
+  KNOWN_RAM_VENDOR_IDS,
+  REGEX_POWER_ON_TIME,
+  )
 from wk.exe import get_json_from_command, run_program
 from wk.std import bytes_to_string, color_string, sleep, string_to_bytes
 
 
 # STATIC VARIABLES
-ATTRIBUTE_COLORS = (
-  # NOTE: Ordered by ascending importance
-  ('Warning', 'YELLOW'),
-  ('Error', 'RED'),
-  ('Maximum', 'PURPLE'),
-  )
-KEY_NVME = 'nvme_smart_health_information_log'
-KEY_SMART = 'ata_smart_attributes'
-KNOWN_RAM_VENDOR_IDS = {
-  # https://github.com/hewigovens/hewigovens.github.com/wiki/Memory-vendor-code
-  '0x014F': 'Transcend',
-  '0x2C00': 'Micron',
-  '0x802C': 'Micron',
-  '0x80AD': 'Hynix',
-  '0x80CE': 'Samsung',
-  '0xAD00': 'Hynix',
-  '0xCE00': 'Samsung',
-  }
 LOG = logging.getLogger(__name__)
-REGEX_POWER_ON_TIME = re.compile(
-  r'^(\d+)([Hh].*|\s+\(\d+\s+\d+\s+\d+\).*)'
-  )
 
 
 # Exception Classes
@@ -172,15 +159,16 @@ class Disk(BaseObj):
   def check_attributes(self, only_blocking=False):
     """Check if any known attributes are failing, returns bool."""
     attributes_ok = True
+    known_attributes = get_known_disk_attributes(self.details['model'])
     for attr, value in self.attributes.items():
       # Skip unknown attributes
-      if attr not in KNOWN_ATTRIBUTES:
+      if attr not in known_attributes:
         continue
 
       # Get thresholds
-      blocking_attribute = KNOWN_ATTRIBUTES[attr].get('Blocking', False)
-      err_thresh = KNOWN_ATTRIBUTES[attr].get('Error', None)
-      max_thresh = KNOWN_ATTRIBUTES[attr].get('Maximum', None)
+      blocking_attribute = known_attributes[attr].get('Blocking', False)
+      err_thresh = known_attributes[attr].get('Error', None)
+      max_thresh = known_attributes[attr].get('Maximum', None)
       if not max_thresh:
         max_thresh = float('inf')
 
@@ -212,14 +200,18 @@ class Disk(BaseObj):
 
   def generate_attribute_report(self):
     """Generate attribute report, returns list."""
+    known_attributes = get_known_disk_attributes(self.details['model'])
     report = []
     for attr, value in sorted(self.attributes.items()):
       note = ''
       value_color = 'GREEN'
 
       # Skip attributes not in our list
-      if attr not in KNOWN_ATTRIBUTES:
+      if attr not in known_attributes:
         continue
+
+      # Check for attribute note
+      note = known_attributes[attr].get('Note', '')
 
       # ID / Name
       label = f'{attr:>3}'
@@ -230,11 +222,11 @@ class Disk(BaseObj):
 
       # Value color
       for threshold, color in ATTRIBUTE_COLORS:
-        threshold_val = KNOWN_ATTRIBUTES[attr].get(threshold, None)
+        threshold_val = known_attributes[attr].get(threshold, None)
         if threshold_val and value['raw'] >= threshold_val:
           value_color = color
           if threshold == 'Error':
-            note = '(Failed)'
+            note = '(failed)'
           elif threshold == 'Maximum':
             note = '(invalid?)'
 
@@ -602,6 +594,23 @@ def get_disk_serial_macos(path):
   # TODO: Make it real
   str(path)
   return serial
+
+
+def get_known_disk_attributes(model):
+  """Get known NVMe/SMART attributes (model specific), returns str."""
+  known_attributes = KNOWN_DISK_ATTRIBUTES.copy()
+
+  # Apply model-specific data
+  for regex, data in KNOWN_DISK_MODELS.items():
+    if re.search(regex, model):
+      for attr, thresholds in data.items():
+        if attr in known_attributes:
+          known_attributes[attr].update(thresholds)
+        else:
+          known_attributes[attr] = thresholds
+
+  # Done
+  return known_attributes
 
 
 def get_ram_list_linux():
