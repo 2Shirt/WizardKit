@@ -48,9 +48,24 @@ class SMARTNotSupportedError(TypeError):
 
 
 # Classes
-class CpuRam():
+class BaseObj():
+  """Base object for tracking device data."""
+  def __init__(self):
+    self.tests = OrderedDict()
+
+  def all_tests_passed(self):
+    """Check if all tests passed, returns bool."""
+    return all([results.passed for results in self.tests.values()])
+
+  def any_test_failed(self):
+    """Check if any test failed, returns bool."""
+    return any([results.failed for results in self.tests.values()])
+
+
+class CpuRam(BaseObj):
   """Object for tracking CPU & RAM specific data."""
   def __init__(self):
+    super().__init__()
     self.description = 'Unknown'
     self.details = {}
     self.ram_total = 'Unknown'
@@ -127,9 +142,10 @@ class CpuRam():
       ]
 
 
-class Disk():
+class Disk(BaseObj):
   """Object for tracking disk specific data."""
   def __init__(self, path):
+    super().__init__()
     self.attributes = {}
     self.description = 'Unknown'
     self.details = {}
