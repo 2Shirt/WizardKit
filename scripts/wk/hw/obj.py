@@ -286,7 +286,11 @@ class Disk():
         self.details[attr] = str(self.details[attr])
     for attr in ['phy-sec', 'size']:
       if not isinstance(self.details[attr], int):
-        self.details[attr] = int(self.details[attr])
+        try:
+          self.details[attr] = int(self.details[attr])
+        except (TypeError, ValueError):
+          LOG.error('Invalid disk %s: %s', attr, self.details[attr])
+          self.details[attr] = -1
 
     # Set description
     self.description = '{size_str} ({bus}) {model} {serial}'.format(
