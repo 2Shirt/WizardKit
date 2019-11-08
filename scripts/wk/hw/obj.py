@@ -344,7 +344,7 @@ class Disk():
     # Attributes
     if not self.check_attributes(only_blocking=True):
       blocking_event_encountered = True
-      LOG.error('%s: Blocked for failing attributes', self.path)
+      LOG.error('%s: Blocked for failing attribute(s)', self.path)
 
     # NVMe status
     # TODO: See https://github.com/2Shirt/WizardKit/issues/130
@@ -618,7 +618,9 @@ def get_ram_list_macos():
   dimm_details = plist_data[0].get('_items', [{}])[0].get('_items', [])
   for dimm in dimm_details:
     manufacturer = dimm.get('dimm_manufacturer', None)
-    manufacturer = KNOWN_RAM_VENDOR_IDS.get(manufacturer, 'Unknown')
+    manufacturer = KNOWN_RAM_VENDOR_IDS.get(
+      manufacturer,
+      f'Unknown ({manufacturer})')
     size = dimm.get('dimm_size', '0 GB')
     try:
       size = string_to_bytes(size, assume_binary=True)
