@@ -5,7 +5,7 @@
 DEBUG = {
   'level': 'DEBUG',
   'format': '[%(asctime)s %(levelname)s] [%(name)s.%(funcName)s] %(message)s',
-  'datefmt': '%Y-%m-%d %H:%M:%S %z',
+  'datefmt': '%Y-%m-%d %H%M%S%z',
   }
 DEFAULT = {
   'level': 'INFO',
