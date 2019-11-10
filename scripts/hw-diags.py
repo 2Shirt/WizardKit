@@ -8,7 +8,7 @@ import wk
 def main():
   """Run hardware diagnostics."""
   state = wk.hw.diags.State()
-  wk.hw.diags.main_menu()
+  wk.hw.diags.main()
 
 
 if __name__ == '__main__':

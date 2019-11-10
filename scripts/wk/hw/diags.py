@@ -8,26 +8,8 @@ import platform
 from collections import OrderedDict
 from docopt import docopt
 
+from wk import exe, net, std
 from wk.cfg.main import KIT_NAME_FULL
-from wk.exe import run_program
-from wk.net import (
-  connected_to_private_network,
-  ping,
-  show_valid_addresses,
-  speedtest,
-  )
-from wk.std import (
-  Menu,
-  TryAndPrint,
-  clear_screen,
-  color_string,
-  pause,
-  print_error,
-  print_info,
-  print_standard,
-  print_warning,
-  sleep,
-  )
 
 
 # STATIC VARIABLES
@@ -87,27 +69,27 @@ def audio_test():
 
 def audio_test_linux():
   """Run an audio test using amixer and speaker-test."""
-  clear_screen()
-  print_standard('Audio test')
-  print_standard('')
+  std.clear_screen()
+  std.print_standard('Audio test')
+  std.print_standard('')
 
   # Set volume
   for source in ('Master', 'PCM'):
     cmd = f'amixer -q set "{source}" 80% unmute'.split()
-    run_program(cmd, check=False)
+    exe.run_program(cmd, check=False)
 
   # Run audio tests
   for mode in ('pink', 'wav'):
     cmd = f'speaker-test -c 2 -l 1 -t {mode}'.split()
-    run_program(cmd, check=False, pipe=False)
+    exe.run_program(cmd, check=False, pipe=False)
 
 
 def build_menu(quick_mode=False):
   """Build main menu, returns wk.std.Menu."""
-  menu = Menu()
+  menu = std.Menu()
 
   # Set title
-  menu.title = color_string(
+  menu.title = std.color_string(
     strings=['Hardware Diagnostics', 'Main Menu'],
     colors=['GREEN', None],
     sep='\n',
@@ -142,12 +124,12 @@ def build_menu(quick_mode=False):
 def keyboard_test():
   """Test keyboard using xev."""
   cmd = ['xev', '-event', 'keyboard']
-  clear_screen()
-  run_program(cmd, check=False, pipe=False)
+  std.clear_screen()
+  exe.run_program(cmd, check=False, pipe=False)
 
 
-def main_menu():
-  """Main menu for hardware diagnostics."""
+def main():
+  """Main function for hardware diagnostics."""
   args = docopt(DOCSTRING)
   menu = build_menu(args['--quick'])
 
@@ -169,9 +151,9 @@ def main_menu():
       try:
         action()
       except KeyboardInterrupt:
-        print_warning('Aborted.')
-        print_standard('')
-        pause('Press Enter to return to main menu...')
+        std.print_warning('Aborted.')
+        std.print_standard('')
+        std.pause('Press Enter to return to main menu...')
 
     # Quit
     if 'Quit' in selection:
@@ -186,31 +168,31 @@ def main_menu():
 
 def network_test():
   """Run network tests."""
-  clear_screen()
-  try_and_print = TryAndPrint()
+  std.clear_screen()
+  try_and_print = std.TryAndPrint()
   result = try_and_print.run(
-    'Network connection...', connected_to_private_network, msg_good='OK')
+    'Network connection...', net.connected_to_private_network, msg_good='OK')
 
   # Bail if not connected
   if result['Failed']:
-    print_warning('Please connect to a network and try again')
-    pause('Press Enter to return to main menu...')
+    std.print_warning('Please connect to a network and try again')
+    std.pause('Press Enter to return to main menu...')
     return
 
   # Show IP address(es)
-  show_valid_addresses()
+  net.show_valid_addresses()
 
   # Ping tests
   try_and_print.run(
-    'Internet connection...', ping, msg_good='OK', addr='8.8.8.8')
+    'Internet connection...', net.ping, msg_good='OK', addr='8.8.8.8')
   try_and_print.run(
-    'DNS resolution...', ping, msg_good='OK', addr='google.com')
+    'DNS resolution...', net.ping, msg_good='OK', addr='google.com')
 
   # Speedtest
-  try_and_print.run('Speedtest...', speedtest)
+  try_and_print.run('Speedtest...', net.speedtest)
 
   # Done
-  pause('Press Enter to return to main menu...')
+  std.pause('Press Enter to return to main menu...')
 
 
 if __name__ == '__main__':
