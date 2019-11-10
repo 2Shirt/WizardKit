@@ -158,7 +158,6 @@ def split_window(
     target_id=None, **action):
   """Split tmux window, run action, and return pane_id as str."""
   cmd = ['tmux', 'split-window', '-d', '-PF', '#D']
-  pane_id = None
 
   # Safety checks
   if not (lines or percent):
