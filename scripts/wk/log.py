@@ -11,6 +11,7 @@ import time
 from wk import cfg
 from wk.io import non_clobber_path
 
+
 # STATIC VARIABLES
 if os.name == 'nt':
   # Example: "C:\WK\1955-11-05\WizardKit"

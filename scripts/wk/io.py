@@ -10,6 +10,7 @@ import shutil
 # STATIC VARIABLES
 LOG = logging.getLogger(__name__)
 
+
 # Functions
 def delete_empty_folders(path):
   """Recursively delete all empty folders in path."""

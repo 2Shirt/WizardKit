@@ -39,5 +39,6 @@ CRASH_SERVER = {
   'Headers':    {'X-Requested-With': 'XMLHttpRequest'},
   }
 
+
 if __name__ == '__main__':
   print("This file is not meant to be called directly.")
