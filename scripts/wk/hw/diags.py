@@ -102,17 +102,18 @@ def audio_test_linux():
     run_program(cmd, check=False, pipe=False)
 
 
-def main_menu():
-  """Main menu for hardware diagnostics."""
-  args = docopt(DOCSTRING)
+def build_menu(quick_mode=False):
+  """Build main menu, returns wk.std.Menu."""
   menu = Menu()
 
-  # Build menu
+  # Set title
   menu.title = color_string(
     strings=['Hardware Diagnostics', 'Main Menu'],
     colors=['GREEN', None],
     sep='\n',
     )
+
+  # Add actions, options, etc
   for action in MENU_ACTIONS:
     menu.add_action(action)
   for option in MENU_OPTIONS:
@@ -123,8 +124,8 @@ def main_menu():
     menu.add_set(name, {'Targets': targets})
   menu.actions['Start']['Separator'] = True
 
-  # Check if running a quick check
-  if args['--quick']:
+  # Update default selections for quick mode if necessary
+  if quick_mode:
     for name in menu.options.keys():
       # Only select quick option(s)
       menu.options[name]['Selected'] = name in MENU_OPTIONS_QUICK
@@ -134,15 +135,53 @@ def main_menu():
     for name in ('Audio Test', 'Keyboard Test', 'Network Test'):
       menu.actions[name]['Disabled'] = True
 
+  # Done
+  return menu
+
+
+def keyboard_test():
+  """Test keyboard using xev."""
+  cmd = ['xev', '-event', 'keyboard']
+  clear_screen()
+  run_program(cmd, check=False, pipe=False)
+
+
+def main_menu():
+  """Main menu for hardware diagnostics."""
+  args = docopt(DOCSTRING)
+  menu = build_menu(args['--quick'])
+
   # Show menu
   while True:
+    action = None
     selection = menu.advanced_select()
+
+    # Set action
     if 'Audio Test' in selection:
-      audio_test()
-    if 'Network Test' in selection:
-      network_test()
-    elif 'Quit' in selection:
+      action = audio_test
+    elif 'Keyboard Test' in selection:
+      action = keyboard_test
+    elif 'Network Test' in selection:
+      action = network_test
+
+    # Run simple test
+    if action:
+      try:
+        action()
+      except KeyboardInterrupt:
+        print_warning('Aborted.')
+        print_standard('')
+        pause('Press Enter to return to main menu...')
+
+    # Quit
+    if 'Quit' in selection:
       break
+
+    # Start diagnostics
+    if 'Start' in selection:
+      #TODO
+      #run_diags()
+      pass
 
 
 def network_test():
