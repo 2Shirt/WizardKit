@@ -907,6 +907,8 @@ def show_data(message, data, color=None):
   print_colored(
     (f'{" "*INDENT}{message:<{WIDTH}}', data),
     colors,
+    log=True,
+    sep='',
     )
 
 
