@@ -6,7 +6,7 @@ import re
 import psutil
 
 from wk.exe import run_program
-from wk.std import show_data
+from wk.std import GenericError, show_data
 
 
 # REGEX
@@ -18,16 +18,21 @@ REGEX_VALID_IP = re.compile(
 
 
 # Functions
-def is_connected():
-  """Check for a valid private IP."""
+def connected_to_private_network():
+  """Check if connected to a private network.
+
+  This checks for a valid private IP assigned to this system.
+  If one isn't found then an exception is raised.
+  """
   devs = psutil.net_if_addrs()
   for dev in devs.values():
     for family in dev:
       if REGEX_VALID_IP.search(family.address):
         # Valid IP found
-        return True
-  # Else
-  return False
+        return
+
+  # No valid IP found
+  raise GenericError('Not connected to a network')
 
 
 def ping(addr='google.com'):

@@ -10,11 +10,6 @@ def main():
   state = wk.hw.diags.State()
   wk.hw.diags.main_menu()
 
-  # Done
-  print('')
-  print('Done.')
-  wk.std.pause('Press Enter to exit...')
-
 
 if __name__ == '__main__':
   try:

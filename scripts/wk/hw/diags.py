@@ -10,8 +10,15 @@ from docopt import docopt
 
 from wk.cfg.main import KIT_NAME_FULL
 from wk.exe import run_program
+from wk.net import (
+  connected_to_private_network,
+  ping,
+  show_valid_addresses,
+  speedtest,
+  )
 from wk.std import (
   Menu,
+  TryAndPrint,
   clear_screen,
   color_string,
   pause,
@@ -132,11 +139,39 @@ def main_menu():
     selection = menu.advanced_select()
     if 'Audio Test' in selection:
       audio_test()
+    if 'Network Test' in selection:
+      network_test()
     elif 'Quit' in selection:
       break
-    print(f'Sel: {selection}')
-    print('')
-    pause()
+
+
+def network_test():
+  """Run network tests."""
+  clear_screen()
+  try_and_print = TryAndPrint()
+  result = try_and_print.run(
+    'Network connection...', connected_to_private_network, msg_good='OK')
+
+  # Bail if not connected
+  if result['Failed']:
+    print_warning('Please connect to a network and try again')
+    pause('Press Enter to return to main menu...')
+    return
+
+  # Show IP address(es)
+  show_valid_addresses()
+
+  # Ping tests
+  try_and_print.run(
+    'Internet connection...', ping, msg_good='OK', addr='8.8.8.8')
+  try_and_print.run(
+    'DNS resolution...', ping, msg_good='OK', addr='google.com')
+
+  # Speedtest
+  try_and_print.run('Speedtest...', speedtest)
+
+  # Done
+  pause('Press Enter to return to main menu...')
 
 
 if __name__ == '__main__':
