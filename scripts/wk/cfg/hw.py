@@ -4,6 +4,8 @@
 
 import re
 
+from collections import OrderedDict
+
 
 # STATIC VARIABLES
 ATTRIBUTE_COLORS = (
@@ -53,6 +55,17 @@ REGEX_POWER_ON_TIME = re.compile(
   r'^(\d+)([Hh].*|\s+\(\d+\s+\d+\s+\d+\).*)'
   )
 TMUX_SIDE_WIDTH = 20
+TMUX_LAYOUT = OrderedDict({
+  'Top':            {'height':  2,                'Check': True},
+  'Started':        {'width':   TMUX_SIDE_WIDTH,  'Check': True},
+  'Progress':       {'width':   TMUX_SIDE_WIDTH,  'Check': True},
+  # Testing panes
+  'Prime95':        {'height':  11,               'Check': False},
+  'Temps':          {'height':  1000,             'Check': False},
+  'SMART':          {'height':  3,                'Check': True},
+  'badblocks':      {'height':  5,                'Check': True},
+  'I/O Benchmark':  {'height':  1000,             'Check': False},
+  })
 
 
 if __name__ == '__main__':

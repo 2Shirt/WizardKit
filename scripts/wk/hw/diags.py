@@ -6,13 +6,14 @@ import logging
 import os
 import pathlib
 import platform
+import signal
 import time
 
 from collections import OrderedDict
 from docopt import docopt
 
 from wk import exe, net, std, tmux
-from wk.cfg.hw import TMUX_SIDE_WIDTH
+from wk.cfg.hw import TMUX_LAYOUT, TMUX_SIDE_WIDTH
 from wk.cfg.main import KIT_NAME_FULL
 
 
@@ -100,7 +101,36 @@ class State():
         },
       })
     self.top_text = std.color_string('Hardware Diagnostics', 'GREEN')
+
+    # Init tmux and start a background process to maintain layout
     self.init_tmux()
+    if hasattr(signal, 'SIGWINCH'):
+      # Use signal handling
+      signal.signal(signal.SIGWINCH, self.fix_tmux_layout)
+    else:
+      exe.start_thread(self.fix_tmux_layout_loop)
+
+  def fix_tmux_layout(self, forced=True, signum=None, frame=None):
+    # pylint: disable=unused-argument
+    """Fix tmux layout based on TMUX_LAYOUT.
+
+    NOTE: To support being called by both a signal and a thread
+          signum and frame must be valid aguments.
+    """
+    try:
+      tmux.fix_layout(self.panes, TMUX_LAYOUT, forced=forced)
+    except RuntimeError:
+      # Assuming self.panes changed while running
+      pass
+
+  def fix_tmux_layout_loop(self):
+    """Fix tmux layout on a loop.
+
+    NOTE: This should be called as a thread.
+    """
+    while True:
+      self.fix_tmux_layout(forced=False)
+      std.sleep(1)
 
   def init_tmux(self):
     """Initialize tmux layout."""

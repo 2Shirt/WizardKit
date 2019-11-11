@@ -24,6 +24,27 @@ def capture_pane(pane_id=None):
   return proc.stdout.strip()
 
 
+def fix_layout(panes, layout, forced=False):
+  """Fix pane sizes based on layout."""
+  if not (forced or layout_needs_fixed(panes, layout)):
+    # Layout should be fine
+    return
+
+  # Update panes
+  for name, data in layout.items():
+    # Skip missing panes
+    if name not in panes:
+      continue
+
+    # Resize pane
+    pane_id = panes[name]
+    try:
+      resize_pane(pane_id, **data)
+    except RuntimeError:
+      # Assuming pane was closed just before resizing
+      pass
+
+
 def get_pane_size(pane_id=None):
   """Get current or target pane size, returns tuple."""
   cmd = ['tmux', 'display', '-p']
@@ -58,6 +79,32 @@ def kill_pane(*pane_ids):
   # Iterate over all passed pane IDs
   for pane_id in pane_ids:
     run_program(cmd+[pane_id], check=False)
+
+
+def layout_needs_fixed(panes, layout):
+  """Check if layout needs fixed, returns bool."""
+  needs_fixed = False
+
+  # Check panes
+  for name, data in layout.items():
+    # Skip unpredictably sized panes
+    if not data.get('Check', False):
+      continue
+
+    # Skip missing panes
+    if name not in panes:
+      continue
+
+    # Check pane size
+    pane_id = panes[name]
+    width, height = get_pane_size(pane_id)
+    if data.get('width', False) and data['width'] != width:
+      needs_fixed = True
+    if data.get('height', False) and data['height'] != height:
+      needs_fixed = True
+
+  # Done
+  return needs_fixed
 
 
 def poll_pane(pane_id):
@@ -133,8 +180,13 @@ def prep_file(path):
     pass
 
 
-def resize_pane(pane_id=None, width=None, height=None):
-  """Resize current or target pane."""
+def resize_pane(pane_id=None, width=None, height=None, **kwargs):
+  # pylint: disable=unused-argument
+  """Resize current or target pane.
+
+  NOTE: kwargs is only here to make calling this function easier
+        by dropping any extra kwargs passed.
+  """
   cmd = ['tmux', 'resize-pane']
 
   # Safety checks
