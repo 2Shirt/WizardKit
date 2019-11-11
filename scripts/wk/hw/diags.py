@@ -12,16 +12,15 @@ import time
 from collections import OrderedDict
 from docopt import docopt
 
-from wk import exe, net, std, tmux
-from wk.cfg.hw import TMUX_LAYOUT, TMUX_SIDE_WIDTH
-from wk.cfg.main import KIT_NAME_FULL
+from wk import cfg, exe, log, net, std, tmux
 
 
 # atexit functions
 atexit.register(tmux.kill_all_panes)
+#TODO: Add state/dev data dump debug function
 
 # STATIC VARIABLES
-DOCSTRING = f'''{KIT_NAME_FULL}: Hardware Diagnostics
+DOCSTRING = f'''{cfg.main.KIT_NAME_FULL}: Hardware Diagnostics
 
 Usage:
   hw-diags
@@ -112,13 +111,13 @@ class State():
 
   def fix_tmux_layout(self, forced=True, signum=None, frame=None):
     # pylint: disable=unused-argument
-    """Fix tmux layout based on TMUX_LAYOUT.
+    """Fix tmux layout based on cfg.hw.TMUX_LAYOUT.
 
     NOTE: To support being called by both a signal and a thread
           signum and frame must be valid aguments.
     """
     try:
-      tmux.fix_layout(self.panes, TMUX_LAYOUT, forced=forced)
+      tmux.fix_layout(self.panes, cfg.hw.TMUX_LAYOUT, forced=forced)
     except RuntimeError:
       # Assuming self.panes changed while running
       pass
@@ -146,7 +145,7 @@ class State():
 
     # Started
     self.panes['Started'] = tmux.split_window(
-      lines=TMUX_SIDE_WIDTH,
+      lines=cfg.hw.TMUX_SIDE_WIDTH,
       target_id=self.panes['Top'],
       text=std.color_string(
         ['Started', time.strftime("%Y-%m-%d %H:%M %Z")],
@@ -157,7 +156,7 @@ class State():
 
     # Progress
     self.panes['Progress'] = tmux.split_window(
-      lines=TMUX_SIDE_WIDTH,
+      lines=cfg.hw.TMUX_SIDE_WIDTH,
       text=' ',
       )
 
@@ -176,6 +175,7 @@ def audio_test():
 
 def audio_test_linux():
   """Run an audio test using amixer and speaker-test."""
+  LOG.info('Audio Test')
   std.clear_screen()
 
   # Set volume
@@ -226,36 +226,42 @@ def build_menu(quick_mode=False):
 
 def cpu_mprime_test():
   """CPU & cooling check using Prime95."""
+  LOG.info('CPU Test (Prime95)')
   #TODO: p95
   std.print_warning('TODO: p95')
 
 
 def disk_attribute_check():
   """Disk attribute check."""
+  LOG.info('Disk Attribute Check')
   #TODO: at
   std.print_warning('TODO: at')
 
 
 def disk_io_benchmark():
   """Disk I/O benchmark using dd."""
+  LOG.info('Disk I/O Benchmark (dd)')
   #TODO: io
   std.print_warning('TODO: io')
 
 
 def disk_self_test():
   """Disk self-test if available."""
+  LOG.info('Disk Self-Test')
   #TODO: st
   std.print_warning('TODO: st')
 
 
 def disk_surface_scan():
   """Disk surface scan using badblocks."""
+  LOG.info('Disk Surface Scan (badblocks)')
   #TODO: bb
   std.print_warning('TODO: bb')
 
 
 def keyboard_test():
   """Test keyboard using xev."""
+  LOG.info('Keyboard Test (xev)')
   cmd = ['xev', '-event', 'keyboard']
   std.clear_screen()
   exe.run_program(cmd, check=False, pipe=False)
@@ -264,6 +270,7 @@ def keyboard_test():
 def main():
   """Main function for hardware diagnostics."""
   args = docopt(DOCSTRING)
+  log.update_log_path(dest_name='Hardware-Diagnostics', timestamp=True)
 
   # Safety check
   if 'TMUX' not in os.environ:
@@ -320,6 +327,7 @@ def main():
 
 def network_test():
   """Run network tests."""
+  LOG.info('Network Test')
   std.clear_screen()
   try_and_print = std.TryAndPrint()
   result = try_and_print.run(
@@ -349,6 +357,7 @@ def network_test():
 
 def screensaver(name):
   """Show screensaver"""
+  LOG.info('Screensaver (%s)', name)
   if name == 'matrix':
     cmd = ['cmatrix', '-abs']
   elif name == 'pipes':

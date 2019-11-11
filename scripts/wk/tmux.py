@@ -191,7 +191,7 @@ def resize_pane(pane_id=None, width=None, height=None, **kwargs):
 
   # Safety checks
   if not poll_pane(pane_id):
-    LOG.error('tmux pane %s not found', pane_id)
+    LOG.debug('tmux pane %s not found', pane_id)
     raise RuntimeError(f'tmux pane {pane_id} not found')
   if not (width or height):
     LOG.error('Neither width nor height specified')
