@@ -1,6 +1,7 @@
 """WizardKit: Hardware diagnostics"""
 # vim: sts=2 sw=2 ts=2
 
+import atexit
 import logging
 import pathlib
 import platform
@@ -13,6 +14,9 @@ from wk import exe, net, std, tmux
 from wk.cfg.hw import TMUX_SIDE_WIDTH
 from wk.cfg.main import KIT_NAME_FULL
 
+
+# atexit functions
+atexit.register(tmux.kill_all_panes)
 
 # STATIC VARIABLES
 DOCSTRING = f'''{KIT_NAME_FULL}: Hardware Diagnostics
@@ -102,7 +106,7 @@ class State():
       behind=True,
       lines=2,
       vertical=True,
-      text=self.top_text,
+      text=f'{self.top_text}\nMain Menu',
       )
 
     # Started
@@ -225,7 +229,6 @@ def main():
 
   # Show menu
   while True:
-    state.update_top_pane('Main Menu')
     action = None
     selection = menu.advanced_select()
 
@@ -256,6 +259,9 @@ def main():
       #TODO
       #run_diags()
       pass
+
+    # Reset top pane
+    state.update_top_pane('Main Menu')
 
 
 def network_test():

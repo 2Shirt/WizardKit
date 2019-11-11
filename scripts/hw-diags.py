@@ -5,15 +5,9 @@
 import wk
 
 
-def main():
-  """Run hardware diagnostics."""
-  state = wk.hw.diags.State()
-  wk.hw.diags.main()
-
-
 if __name__ == '__main__':
   try:
-    main()
+    wk.hw.diags.main()
   except SystemExit:
     raise
   except: #pylint: disable=bare-except
