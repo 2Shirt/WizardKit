@@ -87,7 +87,7 @@ class Menu():
   def _generate_menu_text(self):
     """Generate menu text, returns str."""
     separator_string = self._get_separator_string()
-    menu_lines = [self.title, separator_string]
+    menu_lines = [self.title, separator_string] if self.title else []
 
     # Sets & toggles
     for section in (self.sets, self.toggles):
@@ -154,8 +154,9 @@ class Menu():
     separator_length = 0
 
     # Check title line(s)
-    for line in self.title.split('\n'):
-      separator_length = max(separator_length, len(strip_colors(line)))
+    if self.title:
+      for line in self.title.split('\n'):
+        separator_length = max(separator_length, len(strip_colors(line)))
 
     # Loop over all item names
     for section in (self.actions, self.options, self.sets, self.toggles):

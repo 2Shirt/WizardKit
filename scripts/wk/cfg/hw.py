@@ -52,6 +52,7 @@ KNOWN_RAM_VENDOR_IDS = {
 REGEX_POWER_ON_TIME = re.compile(
   r'^(\d+)([Hh].*|\s+\(\d+\s+\d+\s+\d+\).*)'
   )
+TMUX_SIDE_WIDTH = 20
 
 
 if __name__ == '__main__':

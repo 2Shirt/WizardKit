@@ -4,11 +4,13 @@
 import logging
 import pathlib
 import platform
+import time
 
 from collections import OrderedDict
 from docopt import docopt
 
-from wk import exe, net, std
+from wk import exe, net, std, tmux
+from wk.cfg.hw import TMUX_SIDE_WIDTH
 from wk.cfg.main import KIT_NAME_FULL
 
 
@@ -49,14 +51,80 @@ MENU_SETS = {
     ),
   'Disk Diagnostic (Quick)': ('Disk Attributes',),
 }
-MENU_TOGGLES = []
+MENU_TOGGLES = (
+  'Skip USB Benchmarks',
+  )
 
 
 # Classes
 class State():
   """Object for tracking hardware diagnostic data."""
   def __init__(self):
-    self.tests = OrderedDict()
+    self.cpu = None
+    self.disks = []
+    self.panes = {}
+    self.tests = OrderedDict({
+      'CPU & Cooling': {
+        'Enabled': False,
+        'Function': cpu_mprime_test,
+        'Objects': [],
+        },
+      'Disk Attributes': {
+        'Enabled': False,
+        'Function': disk_attribute_check,
+        'Objects': [],
+        },
+      'Disk Self-Test': {
+        'Enabled': False,
+        'Function': disk_self_test,
+        'Objects': [],
+        },
+      'Disk Surface Scan': {
+        'Enabled': False,
+        'Function': disk_surface_scan,
+        'Objects': [],
+        },
+      'Disk I/O Benchmark': {
+        'Enabled': False,
+        'Function': disk_io_benchmark,
+        'Objects': [],
+        },
+      })
+    self.top_text = std.color_string('Hardware Diagnostics', 'GREEN')
+    self.init_tmux()
+
+  def init_tmux(self):
+    """Initialize tmux layout."""
+    tmux.kill_all_panes()
+
+    # Top
+    self.panes['Top'] = tmux.split_window(
+      behind=True,
+      lines=2,
+      vertical=True,
+      text=self.top_text,
+      )
+
+    # Started
+    self.panes['Started'] = tmux.split_window(
+      lines=TMUX_SIDE_WIDTH,
+      target_id=self.panes['Top'],
+      text=std.color_string(
+        ['Started', time.strftime("%Y-%m-%d %H:%M %Z")],
+        ['BLUE', None],
+        sep='\n',
+        ),
+      )
+
+    # Progress
+    self.panes['Progress'] = tmux.split_window(
+      lines=TMUX_SIDE_WIDTH,
+      text=' ',
+      )
+
+  def update_top_pane(self, text):
+    """Update top pane with text."""
+    tmux.respawn_pane(self.panes['Top'], text=f'{self.top_text}\n{text}')
 
 
 # Functions
@@ -70,8 +138,6 @@ def audio_test():
 def audio_test_linux():
   """Run an audio test using amixer and speaker-test."""
   std.clear_screen()
-  std.print_standard('Audio test')
-  std.print_standard('')
 
   # Set volume
   for source in ('Master', 'PCM'):
@@ -86,14 +152,7 @@ def audio_test_linux():
 
 def build_menu(quick_mode=False):
   """Build main menu, returns wk.std.Menu."""
-  menu = std.Menu()
-
-  # Set title
-  menu.title = std.color_string(
-    strings=['Hardware Diagnostics', 'Main Menu'],
-    colors=['GREEN', None],
-    sep='\n',
-    )
+  menu = std.Menu(title=None)
 
   # Add actions, options, etc
   for action in MENU_ACTIONS:
@@ -121,6 +180,36 @@ def build_menu(quick_mode=False):
   return menu
 
 
+def cpu_mprime_test():
+  """CPU & cooling check using Prime95."""
+  #TODO: p95
+  std.print_warning('TODO: p95')
+
+
+def disk_attribute_check():
+  """Disk attribute check."""
+  #TODO: at
+  std.print_warning('TODO: at')
+
+
+def disk_io_benchmark():
+  """Disk I/O benchmark using dd."""
+  #TODO: io
+  std.print_warning('TODO: io')
+
+
+def disk_self_test():
+  """Disk self-test if available."""
+  #TODO: st
+  std.print_warning('TODO: st')
+
+
+def disk_surface_scan():
+  """Disk surface scan using badblocks."""
+  #TODO: bb
+  std.print_warning('TODO: bb')
+
+
 def keyboard_test():
   """Test keyboard using xev."""
   cmd = ['xev', '-event', 'keyboard']
@@ -132,9 +221,11 @@ def main():
   """Main function for hardware diagnostics."""
   args = docopt(DOCSTRING)
   menu = build_menu(args['--quick'])
+  state = State()
 
   # Show menu
   while True:
+    state.update_top_pane('Main Menu')
     action = None
     selection = menu.advanced_select()
 
@@ -148,6 +239,7 @@ def main():
 
     # Run simple test
     if action:
+      state.update_top_pane(selection[0])
       try:
         action()
       except KeyboardInterrupt:
