@@ -430,7 +430,10 @@ class TryAndPrint():
         stdout = stdout.decode('utf8')
       output = stdout.strip().splitlines()
     else:
-      output = list(output)
+      try:
+        output = list(output)
+      except TypeError:
+        output = [output]
 
     # Safety check
     if not output:
@@ -524,7 +527,7 @@ class TryAndPrint():
 
     # Run function and catch exceptions
     print(f'{" "*self.indent}{message:<{self.width}}', end='', flush=True)
-    LOG.info('Running function: %s.%s', function.__module__, function.__name__)
+    LOG.debug('Running function: %s.%s', function.__module__, function.__name__)
     try:
       output = function(*args, **kwargs)
     except w_exceptions as _exception:
@@ -554,7 +557,8 @@ class TryAndPrint():
         result_msg = self._format_function_output(output)
         print(result_msg)
       else:
-        print_success(msg_good if msg_good else self.msg_good, log=False)
+        result_msg = msg_good if msg_good else self.msg_good
+        print_success(result_msg, log=False)
 
     # Done
     self._log_result(message, result_msg)
