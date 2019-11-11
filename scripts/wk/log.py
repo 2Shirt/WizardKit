@@ -76,6 +76,23 @@ def get_root_logger_path():
   return log_path
 
 
+def remove_empty_log():
+  """Remove log if empty."""
+  is_empty = False
+
+  # Check if log is empty
+  log_path = get_root_logger_path()
+  try:
+    is_empty = log_path and log_path.exists() and log_path.stat().st_size == 0
+  except (FileNotFoundError, AttributeError):
+    # File doesn't exist or couldn't verify it's empty
+    pass
+
+  # Delete log
+  if is_empty:
+    log_path.unlink()
+
+
 def start(config=None):
   """Configure and start logging using safe defaults."""
   log_path = format_log_path(timestamp=os.name != 'nt')
@@ -94,6 +111,7 @@ def start(config=None):
   logging.basicConfig(filename=log_path, **config)
 
   # Register shutdown to run atexit
+  atexit.register(remove_empty_log)
   atexit.register(logging.shutdown)
 
 
