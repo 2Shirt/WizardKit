@@ -3,6 +3,7 @@
 
 import logging
 import pathlib
+import platform
 
 from wk.exe import run_program
 
@@ -88,14 +89,18 @@ def prep_action(
     action_cmd.append(cmd)
   elif text:
     # Display text
+    echo_cmd = ['echo']
+    if platform.system() == 'Linux':
+      echo_cmd.append('-e')
     action_cmd.extend([
       'watch',
       '--color',
       '--exec',
       '--no-title',
       '--interval', '1',
-      'echo', '-e', text,
       ])
+    action_cmd.extend(echo_cmd)
+    action_cmd.append(text)
   elif watch_file:
     # Monitor file
     prep_file(watch_file)
