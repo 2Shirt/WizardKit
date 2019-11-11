@@ -197,5 +197,15 @@ def respawn_pane(pane_id, **action):
   run_program(cmd, check=False)
 
 
+def zoom_pane(pane_id=None):
+  """Toggle zoom status for current or target pane."""
+  cmd = ['tmux', 'resize-pane', '-Z']
+  if pane_id:
+    cmd.extend(['-t', pane_id])
+
+  # Toggle
+  run_program(cmd, check=False)
+
+
 if __name__ == '__main__':
   print("This file is not meant to be called directly.")

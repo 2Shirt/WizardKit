@@ -37,6 +37,10 @@ MENU_ACTIONS = (
   'Network Test',
   'Start',
   'Quit')
+MENU_ACTIONS_SECRET = (
+  'Matrix',
+  'Tubes',
+  )
 MENU_OPTIONS = (
   'CPU & Cooling',
   'Disk Attributes',
@@ -161,6 +165,8 @@ def build_menu(quick_mode=False):
   # Add actions, options, etc
   for action in MENU_ACTIONS:
     menu.add_action(action)
+  for action in MENU_ACTIONS_SECRET:
+    menu.add_action(action, {'Hidden': True})
   for option in MENU_OPTIONS:
     menu.add_option(option, {'Selected': True})
   for toggle in MENU_TOGGLES:
@@ -178,6 +184,9 @@ def build_menu(quick_mode=False):
   # Compatibility checks
   if platform.system() != 'Linux':
     for name in ('Audio Test', 'Keyboard Test', 'Network Test'):
+      menu.actions[name]['Disabled'] = True
+  if platform.system() not in ('Darwin', 'Linux'):
+    for name in ('Matrix', 'Tubes'):
       menu.actions[name]['Disabled'] = True
 
   # Done
@@ -250,6 +259,13 @@ def main():
         std.print_standard('')
         std.pause('Press Enter to return to main menu...')
 
+    # Secrets
+    if 'Matrix' in selection:
+      screensaver('matrix')
+    elif 'Tubes' in selection:
+      # Tubes ≈≈ Pipes?
+      screensaver('pipes')
+
     # Quit
     if 'Quit' in selection:
       break
@@ -291,6 +307,27 @@ def network_test():
 
   # Done
   std.pause('Press Enter to return to main menu...')
+
+
+def screensaver(name):
+  """Show screensaver"""
+  if name == 'matrix':
+    cmd = ['cmatrix', '-abs']
+  elif name == 'pipes':
+    cmd = [
+      'pipes' if platform.system() == 'Linux' else 'pipes.sh',
+      '-t', '0',
+      '-t', '1',
+      '-t', '2',
+      '-t', '3',
+      '-t', '5',
+      '-R', '-r', '4000',
+      ]
+
+  # Switch pane to fullscreen and start screensaver
+  tmux.zoom_pane()
+  exe.run_program(cmd, check=False, pipe=False)
+  tmux.zoom_pane()
 
 
 if __name__ == '__main__':
