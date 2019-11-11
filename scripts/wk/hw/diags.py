@@ -3,6 +3,7 @@
 
 import atexit
 import logging
+import os
 import pathlib
 import platform
 import time
@@ -233,6 +234,13 @@ def keyboard_test():
 def main():
   """Main function for hardware diagnostics."""
   args = docopt(DOCSTRING)
+
+  # Safety check
+  if 'TMUX' not in os.environ:
+    LOG.error('tmux session not found')
+    raise RuntimeError('tmux session not found')
+
+  # Init
   menu = build_menu(args['--quick'])
   state = State()
 
