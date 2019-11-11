@@ -23,11 +23,11 @@ atexit.register(tmux.kill_all_panes)
 DOCSTRING = f'''{cfg.main.KIT_NAME_FULL}: Hardware Diagnostics
 
 Usage:
-  hw-diags
-  hw-diags (-q | --quick)
+  hw-diags [options]
   hw-diags (-h | --help)
 
 Options:
+  -c --cli            Force CLI mode
   -h --help           Show this page
   -q --quick          Skip menu and perform a quick check
 '''
@@ -189,7 +189,7 @@ def audio_test_linux():
     exe.run_program(cmd, check=False, pipe=False)
 
 
-def build_menu(quick_mode=False):
+def build_menu(cli_mode=False, quick_mode=False):
   """Build main menu, returns wk.std.Menu."""
   menu = std.Menu(title=None)
 
@@ -211,6 +211,11 @@ def build_menu(quick_mode=False):
     for name in menu.options.keys():
       # Only select quick option(s)
       menu.options[name]['Selected'] = name in MENU_OPTIONS_QUICK
+
+  # Add CLI actions if necessary
+  if cli_mode or 'DISPLAY' not in os.environ:
+    menu.add_action('Reboot')
+    menu.add_action('Power Off')
 
   # Compatibility checks
   if platform.system() != 'Linux':
@@ -278,7 +283,7 @@ def main():
     raise RuntimeError('tmux session not found')
 
   # Init
-  menu = build_menu(args['--quick'])
+  menu = build_menu(cli_mode=args['--cli'], quick_mode=args['--quick'])
   state = State()
 
   # Show menu
@@ -314,6 +319,12 @@ def main():
     # Quit
     if 'Quit' in selection:
       break
+    elif 'Reboot' in selection:
+      cmd = ['/usr/local/bin/wk-power-command', 'reboot']
+      exe.run_program(cmd, check=False)
+    elif 'Power Off' in selection:
+      cmd = ['/usr/local/bin/wk-power-command', 'poweroff']
+      exe.run_program(cmd, check=False)
 
     # Start diagnostics
     if 'Start' in selection:
