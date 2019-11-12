@@ -54,7 +54,7 @@ class Sensors():
       for adapter, sources in sorted(adapters.items()):
         report.append(fix_sensor_name(adapter))
         for source, source_data in sorted(sources.items()):
-          line = f'{fix_sensor_name(source):18}  '
+          line = f'{fix_sensor_name(source):25} '
           for label in temp_labels:
             if label != 'Current':
               line += f' {label.lower()}: '
@@ -83,12 +83,14 @@ def fix_sensor_name(name):
   """Cleanup sensor name, returns str."""
   name = re.sub(r'^(\w+)-(\w+)-(\w+)', r'\1 (\2 \3)', name, re.IGNORECASE)
   name = name.title()
-  name = name.replace('Coretemp', 'CoreTemp')
-  name = name.replace('Acpi', 'ACPI')
   name = name.replace('ACPItz', 'ACPI TZ')
+  name = name.replace('Acpi', 'ACPI')
+  name = name.replace('Coretemp', 'CoreTemp')
+  name = name.replace('Cpu', 'CPU')
+  name = name.replace('Id ', 'ID ')
   name = name.replace('Isa ', 'ISA ')
   name = name.replace('Pci ', 'PCI ')
-  name = name.replace('Id ', 'ID ')
+  name = name.replace('Smc', 'SMC')
   name = re.sub(r'(\D+)(\d+)', r'\1 \2', name, re.IGNORECASE)
   name = re.sub(r'^K (\d+)Temp', r'AMD K\1 Temps', name, re.IGNORECASE)
   name = re.sub(r'T(ctl|die)', r'CPU (T\1)', name, re.IGNORECASE)
@@ -184,7 +186,7 @@ def get_smc_sensor_data():
   NOTE: The data is structured like the lm_sensor data.
   """
   cmd = ['smc', '-l']
-  sensor_data = {'CPUTemps': {'smc': {}}, 'Others': {'smc': {}}}
+  sensor_data = {'CPUTemps': {'SMC (CPU)': {}}, 'Others': {'SMC (Other)': {}}}
 
   # Parse SMC data
   proc = run_program(cmd)
@@ -206,10 +208,12 @@ def get_smc_sensor_data():
 
       # Add to dict
       section = 'Others'
-      if SMC_IDS[sensor_id].get('CPUTemp', False):
+      adapter = 'SMC (Other)'
+      if SMC_IDS[sensor_id].get('CPU Temp', False):
         section = 'CPUTemps'
+        adapter = 'SMC (CPU)'
       source = SMC_IDS[sensor_id]['Source']
-      sensor_data[section]['smc'][source] = {
+      sensor_data[section][adapter][source] = {
         'Current': value,
         'Label': sensor_id,
         'Max': value,
