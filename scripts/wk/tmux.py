@@ -36,13 +36,16 @@ def fix_layout(panes, layout, forced=False):
     if name not in panes:
       continue
 
-    # Resize pane
-    pane_id = panes[name]
-    try:
-      resize_pane(pane_id, **data)
-    except RuntimeError:
-      # Assuming pane was closed just before resizing
-      pass
+    # Resize pane(s)
+    pane_list = panes[name]
+    if isinstance(pane_list, str):
+      pane_list = [pane_list]
+    for pane_id in pane_list:
+      try:
+        resize_pane(pane_id, **data)
+      except RuntimeError:
+        # Assuming pane was closed just before resizing
+        pass
 
 
 def get_pane_size(pane_id=None):
