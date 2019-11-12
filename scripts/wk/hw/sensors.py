@@ -8,7 +8,7 @@ import re
 
 from subprocess import CalledProcessError
 
-from wk.cfg.hw import SMC_IDS, TEMP_COLORS
+from wk.cfg.hw import CPU_THERMAL_LIMIT, SMC_IDS, TEMP_COLORS
 from wk.exe import run_program
 from wk.std import color_string
 
@@ -77,6 +77,58 @@ class Sensors():
     # Done
     return report
 
+  def update_sensor_data(self, exit_on_thermal_limit=True):
+    """Update sensor data via OS-specific means."""
+    if platform.system() == 'Darwin':
+      self.update_sensor_data_macos(exit_on_thermal_limit)
+    elif platform.system() == 'Linux':
+      self.update_sensor_data_linux(exit_on_thermal_limit)
+
+  def update_sensor_data_linux(self, exit_on_thermal_limit=True):
+    """Update sensor data via lm_sensors."""
+    lm_sensor_data = get_sensor_data_lm()
+    for section, adapters in self.data.items():
+      for adapter, sources in adapters.items():
+        for source, source_data in sources.items():
+          try:
+            label = source_data['Label']
+            temp = lm_sensor_data[adapter][source][label]
+            source_data['Current'] = temp
+            source_data['Max'] = max(temp, source_data['Max'])
+            source_data['Temps'].append(temp)
+          except KeyError:
+            # Dumb workaround for Dell sensors with changing source names
+            pass
+
+          # Raise exception if thermal limit reached
+          if exit_on_thermal_limit and section == 'CPUTemps':
+            if source_data['Current'] >= CPU_THERMAL_LIMIT:
+              raise ThermalLimitReachedError('CPU temps reached limit')
+
+  def update_sensor_data_macos(self, exit_on_thermal_limit=True):
+    """Update sensor data via SMC."""
+    for section, adapters in self.data.items():
+      for sources in adapters.values():
+        for source_data in sources.values():
+          cmd = ['smc', '-k', source_data['Label'], '-r']
+          proc = run_program(cmd)
+          match = SMC_REGEX.match(proc.stdout.strip())
+          try:
+            temp = float(match.group('Value'))
+          except (TypeError, ValueError):
+            LOG.error('Failed to update temp %s', source_data['Label'])
+            continue
+
+          # Update source
+          source_data['Current'] = temp
+          source_data['Max'] = max(temp, source_data['Max'])
+          source_data['Temps'].append(temp)
+
+          # Raise exception if thermal limit reached
+          if exit_on_thermal_limit and section == 'CPUTemps':
+            if source_data['Current'] >= CPU_THERMAL_LIMIT:
+              raise ThermalLimitReachedError('CPU temps reached limit')
+
 
 # Functions
 def fix_sensor_name(name):
@@ -97,9 +149,20 @@ def fix_sensor_name(name):
   return name
 
 
-def get_lm_sensor_data():
+def get_sensor_data():
+  """Get sensor data via OS-specific means, returns dict."""
+  sensor_data = {}
+  if platform.system() == 'Darwin':
+    sensor_data = get_sensor_data_macos()
+  elif platform.system() == 'Linux':
+    sensor_data = get_sensor_data_linux()
+
+  return sensor_data
+
+
+def get_sensor_data_linux():
   """Get sensor data via lm_sensors, returns dict."""
-  raw_lm_sensor_data = get_raw_lm_sensor_data()
+  raw_lm_sensor_data = get_sensor_data_lm()
   sensor_data = {'CPUTemps': {}, 'Others': {}}
 
   # Parse lm_sensor data
@@ -138,7 +201,7 @@ def get_lm_sensor_data():
   return sensor_data
 
 
-def get_raw_lm_sensor_data():
+def get_sensor_data_lm():
   """Get raw sensor data via lm_sensors, returns dict."""
   raw_lm_sensor_data = {}
   cmd = ['sensors', '-j']
@@ -169,18 +232,7 @@ def get_raw_lm_sensor_data():
   return raw_lm_sensor_data
 
 
-def get_sensor_data():
-  """Get sensor data via OS-specific means, returns dict."""
-  sensor_data = {}
-  if platform.system() == 'Darwin':
-    sensor_data = get_smc_sensor_data()
-  elif platform.system() == 'Linux':
-    sensor_data = get_lm_sensor_data()
-
-  return sensor_data
-
-
-def get_smc_sensor_data():
+def get_sensor_data_macos():
   """Get sensor data via SMC, returns dict.
 
   NOTE: The data is structured like the lm_sensor data.

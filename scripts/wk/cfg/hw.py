@@ -14,6 +14,8 @@ ATTRIBUTE_COLORS = (
   ('Error', 'RED'),
   ('Maximum', 'PURPLE'),
   )
+CPU_FAILURE_TEMP = 90
+CPU_THERMAL_LIMIT = 99
 KEY_NVME = 'nvme_smart_health_information_log'
 KEY_SMART = 'ata_smart_attributes'
 KNOWN_DISK_ATTRIBUTES = {
