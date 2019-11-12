@@ -10,7 +10,7 @@ from subprocess import CalledProcessError
 
 from wk.cfg.hw import CPU_THERMAL_LIMIT, SMC_IDS, TEMP_COLORS
 from wk.exe import run_program
-from wk.std import color_string
+from wk.std import color_string, sleep
 
 
 # STATIC VARIABLES
@@ -76,6 +76,32 @@ class Sensors():
 
     # Done
     return report
+
+  def monitor_to_file(self, path):
+    """Write report to path every second until stopped."""
+    while True:
+      self.update_sensor_data()
+      report = self.generate_report('Current', 'Max')
+      with open(path, 'w') as _f:
+        _f.write('\n'.join(report))
+      sleep(1)
+
+  def save_average_temps(self, temp_label, seconds=10):
+    # pylint: disable=unused-variable
+    """Save average temps under temp_label over provided seconds.."""
+    self.clear_temps()
+
+    # Get temps
+    for i in range(seconds):
+      self.update_sensor_data()
+      sleep(1)
+
+    # Calculate averages
+    for adapters in self.data.values():
+      for sources in adapters.values():
+        for source_data in sources.values():
+          temps = source_data['Temps']
+          source_data[temp_label] = sum(temps) / len(temps)
 
   def update_sensor_data(self, exit_on_thermal_limit=True):
     """Update sensor data via OS-specific means."""
