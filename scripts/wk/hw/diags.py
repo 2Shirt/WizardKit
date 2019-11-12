@@ -273,6 +273,7 @@ def keyboard_test():
 
 
 def main():
+  # pylint: disable=too-many-branches
   """Main function for hardware diagnostics."""
   args = docopt(DOCSTRING)
   log.update_log_path(dest_name='Hardware-Diagnostics', timestamp=True)

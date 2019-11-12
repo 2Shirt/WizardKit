@@ -54,6 +54,62 @@ KNOWN_RAM_VENDOR_IDS = {
 REGEX_POWER_ON_TIME = re.compile(
   r'^(\d+)([Hh].*|\s+\(\d+\s+\d+\s+\d+\).*)'
   )
+SMC_IDS = {
+  # Sources:  https://github.com/beltex/SMCKit/blob/master/SMCKit/SMC.swift
+  #           http://www.opensource.apple.com/source/net_snmp/
+  #           https://github.com/jedda/OSX-Monitoring-Tools
+  'TA0P': {'CPU Temp': False, 'Source': 'Ambient temp'},
+  'TA0S': {'CPU Temp': False, 'Source': 'PCIE Slot 1 Ambient'},
+  'TA1P': {'CPU Temp': False, 'Source': 'Ambient temp'},
+  'TA1S': {'CPU Temp': False, 'Source': 'PCIE Slot 1 PCB'},
+  'TA2S': {'CPU Temp': False, 'Source': 'PCIE Slot 2 Ambient'},
+  'TA3S': {'CPU Temp': False, 'Source': 'PCIE Slot 2 PCB'},
+  'TC0C': {'CPU Temp': True,  'Source': 'CPU Core 0'},
+  'TC0D': {'CPU Temp': True,  'Source': 'CPU die temp'},
+  'TC0H': {'CPU Temp': True,  'Source': 'CPU heatsink temp'},
+  'TC0P': {'CPU Temp': True,  'Source': 'CPU Ambient 1'},
+  'TC1C': {'CPU Temp': True,  'Source': 'CPU Core 1'},
+  'TC1P': {'CPU Temp': True,  'Source': 'CPU Ambient 2'},
+  'TC2C': {'CPU Temp': True,  'Source': 'CPU B Core 0'},
+  'TC2P': {'CPU Temp': True,  'Source': 'CPU B Ambient 1'},
+  'TC3C': {'CPU Temp': True,  'Source': 'CPU B Core 1'},
+  'TC3P': {'CPU Temp': True,  'Source': 'CPU B Ambient 2'},
+  'TCAC': {'CPU Temp': True,  'Source': 'CPU core from PCECI'},
+  'TCAH': {'CPU Temp': True,  'Source': 'CPU HeatSink'},
+  'TCBC': {'CPU Temp': True,  'Source': 'CPU B core from PCECI'},
+  'TCBH': {'CPU Temp': True,  'Source': 'CPU HeatSink'},
+  'Te1P': {'CPU Temp': False, 'Source': 'PCIE ambient temp'},
+  'Te1S': {'CPU Temp': False, 'Source': 'PCIE slot 1'},
+  'Te2S': {'CPU Temp': False, 'Source': 'PCIE slot 2'},
+  'Te3S': {'CPU Temp': False, 'Source': 'PCIE slot 3'},
+  'Te4S': {'CPU Temp': False, 'Source': 'PCIE slot 4'},
+  'TG0C': {'CPU Temp': False, 'Source': 'Mezzanine GPU Core'},
+  'TG0P': {'CPU Temp': False, 'Source': 'Mezzanine GPU Exhaust'},
+  'TH0P': {'CPU Temp': False, 'Source': 'Drive Bay 0'},
+  'TH1P': {'CPU Temp': False, 'Source': 'Drive Bay 1'},
+  'TH2P': {'CPU Temp': False, 'Source': 'Drive Bay 2'},
+  'TH3P': {'CPU Temp': False, 'Source': 'Drive Bay 3'},
+  'TH4P': {'CPU Temp': False, 'Source': 'Drive Bay 4'},
+  'TM0P': {'CPU Temp': False, 'Source': 'CPU DIMM Exit Ambient'},
+  'Tp0C': {'CPU Temp': False, 'Source': 'PSU1 Inlet Ambient'},
+  'Tp0P': {'CPU Temp': False, 'Source': 'PSU1 Inlet Ambient'},
+  'Tp1C': {'CPU Temp': False, 'Source': 'PSU1 Secondary Component'},
+  'Tp1P': {'CPU Temp': False, 'Source': 'PSU1 Primary Component'},
+  'Tp2P': {'CPU Temp': False, 'Source': 'PSU1 Secondary Component'},
+  'Tp3P': {'CPU Temp': False, 'Source': 'PSU2 Inlet Ambient'},
+  'Tp4P': {'CPU Temp': False, 'Source': 'PSU2 Primary Component'},
+  'Tp5P': {'CPU Temp': False, 'Source': 'PSU2 Secondary Component'},
+  'TS0C': {'CPU Temp': False, 'Source': 'CPU B DIMM Exit Ambient'},
+  }
+TEMP_COLORS = {
+  float('-inf'):  'CYAN',
+  00:             'BLUE',
+  60:             'GREEN',
+  70:             'YELLOW',
+  80:             'ORANGE',
+  90:             'RED',
+  100:            'ORANGE_RED',
+  }
 TMUX_SIDE_WIDTH = 20
 TMUX_LAYOUT = OrderedDict({
   'Top':            {'height':  2,                'Check': True},

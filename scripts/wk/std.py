@@ -37,6 +37,7 @@ COLORS = {
   'RED':          '\033[31m',
   'RED_BLINK':    '\033[31;5m',
   'ORANGE':       '\033[31;1m',
+  'ORANGE_RED':   '\033[1;31;41m',
   'GREEN':        '\033[32m',
   'YELLOW':       '\033[33m',
   'YELLOW_BLINK': '\033[33;5m',
