@@ -304,6 +304,7 @@ def get_sensor_data_macos():
 
 def get_temp_str(temp, colored=True):
   """Get colored string based on temp, returns str."""
+  degree_symbol = '*' if platform.system() == 'Darwin' else '°'
   temp_color = None
 
   # Safety check
@@ -321,7 +322,10 @@ def get_temp_str(temp, colored=True):
         break
 
   # Done
-  return color_string(f'{"-" if temp < 0 else ""}{temp:2.0f}°C', temp_color)
+  return color_string(
+    f'{"-" if temp < 0 else ""}{temp:2.0f}{degree_symbol}C',
+    temp_color,
+    )
 
 
 
