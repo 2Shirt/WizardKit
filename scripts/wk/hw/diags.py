@@ -139,7 +139,7 @@ class State():
       self.fix_tmux_layout(forced=False)
       std.sleep(1)
 
-  def init_diags(self):
+  def init_diags(self, menu):
     """Initialize diagnostic pass."""
     # Reset objects
     self.disks.clear()
@@ -160,11 +160,31 @@ class State():
       )
     std.print_info('Starting Hardware Diagnostics')
 
-    # Add CPU
+    # Add HW Objects
     self.cpu = hw_obj.CpuRam()
-
-    # Add disks
     self.disks = get_disks()
+
+    # Add test objects
+    for name, details in menu.options.items():
+      self.tests[name]['Enabled'] = details['Selected']
+      if not details['Selected']:
+        continue
+      if 'CPU' in name:
+        test_obj = hw_obj.Test(dev=self.cpu, label=name)
+        self.cpu.tests[name] = test_obj
+        self.tests[name]['Objects'].append(test_obj)
+      elif 'Disk' in name:
+        for disk in self.disks:
+          test_obj = hw_obj.Test(dev=disk, label=disk.path.name)
+          disk.tests[name] = test_obj
+          self.tests[name]['Objects'].append(test_obj)
+
+        # No disks detected?
+        if not self.tests[name]['Objects']:
+          test_obj = hw_obj.Test(dev=None, label='')
+          test_obj.set_status('N/A')
+          test_obj.disabled = True
+          self.tests[name]['Objects'].append(test_obj)
 
   def init_tmux(self):
     """Initialize tmux layout."""
@@ -264,39 +284,44 @@ def build_menu(cli_mode=False, quick_mode=False):
   return menu
 
 
-def cpu_mprime_test():
+def cpu_mprime_test(state, test_objects):
   """CPU & cooling check using Prime95."""
   LOG.info('CPU Test (Prime95)')
   #TODO: p95
   std.print_warning('TODO: p95')
+  std.pause()
 
 
-def disk_attribute_check():
+def disk_attribute_check(state, test_objects):
   """Disk attribute check."""
   LOG.info('Disk Attribute Check')
   #TODO: at
   std.print_warning('TODO: at')
+  std.pause()
 
 
-def disk_io_benchmark():
+def disk_io_benchmark(state, test_objects):
   """Disk I/O benchmark using dd."""
   LOG.info('Disk I/O Benchmark (dd)')
   #TODO: io
   std.print_warning('TODO: io')
+  std.pause()
 
 
-def disk_self_test():
+def disk_self_test(state, test_objects):
   """Disk self-test if available."""
   LOG.info('Disk Self-Test')
   #TODO: st
   std.print_warning('TODO: st')
+  std.pause()
 
 
-def disk_surface_scan():
+def disk_surface_scan(state, test_objects):
   """Disk surface scan using badblocks."""
   LOG.info('Disk Surface Scan (badblocks)')
   #TODO: bb
   std.print_warning('TODO: bb')
+  std.pause()
 
 
 def get_disks():
@@ -394,6 +419,12 @@ def main():
   menu = build_menu(cli_mode=args['--cli'], quick_mode=args['--quick'])
   state = State()
 
+  # Quick Mode
+  if args['--quick']:
+    std.clear_screen()
+    run_diags(state, menu, quick_mode=True)
+    return
+
   # Show menu
   while True:
     action = None
@@ -436,9 +467,7 @@ def main():
 
     # Start diagnostics
     if 'Start' in selection:
-      #TODO
-      #run_diags()
-      pass
+      run_diags(state, menu, quick_mode=False)
 
     # Reset top pane
     state.update_top_pane('Main Menu')
@@ -474,8 +503,48 @@ def network_test():
   std.pause('Press Enter to return to main menu...')
 
 
-def run_diags(state):
+def run_diags(state, menu, quick_mode=False):
   """Run selected diagnostics."""
+  aborted = False
+  state.init_diags(menu)
+
+  # Just return if no tests were selected
+  if not any([details['Enabled'] for details in state.tests.values()]):
+    std.print_warning('No tests selected?')
+    std.pause()
+    return
+
+  # Run tests
+  for details in state.tests.values():
+    if not details['Enabled']:
+      # Skip disabled tests
+      continue
+
+    # Run test(s)
+    function = details['Function']
+    try:
+      function(state, details['Objects'])
+    except std.GenericAbort:
+      aborted = True
+      # Restart tmux
+      state.init_tmux()
+      break
+
+  # Handle aborts
+  if aborted:
+    for details in state.tests.values():
+      for test_obj in details['Objects']:
+        if test_obj.status == 'Pending':
+          test_obj.set_status('Aborted')
+
+  # Show results
+  #TODO: Show results
+
+  # Done
+  if quick_mode:
+    std.pause('Press Enter to exit...')
+  else:
+    std.pause('Press Enter to return to main menu...')
 
 
 def screensaver(name):
