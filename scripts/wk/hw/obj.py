@@ -633,7 +633,11 @@ def get_ram_list_linux():
       size = 0
     elif line.startswith('Size:'):
       size = line.replace('Size: ', '')
-      size = string_to_bytes(size, assume_binary=True)
+      try:
+        size = string_to_bytes(size, assume_binary=True)
+      except ValueError:
+        # Assuming empty module
+        size = 0
     elif line.startswith('Manufacturer:'):
       manufacturer = line.replace('Manufacturer: ', '')
       dimm_list.append([size, manufacturer])
