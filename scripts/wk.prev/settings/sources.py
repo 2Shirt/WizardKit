@@ -12,7 +12,7 @@ SOURCE_URLS = {
   'BlueScreenView32': 'http://www.nirsoft.net/utils/bluescreenview.zip',
   'BlueScreenView64': 'http://www.nirsoft.net/utils/bluescreenview-x64.zip',
   'Caffeine': 'http://www.zhornsoftware.co.uk/caffeine/caffeine.zip',
-  'ClassicStartSkin': 'http://www.classicshell.net/forum/download/file.php?id=3001&sid=9a195960d98fd754867dcb63d9315335',
+  'ClassicStartSkin': 'https://coddec.github.io/Classic-Shell/www.classicshell.net/forum/download/fileb1ba.php?id=3001',
   'Du': 'https://download.sysinternals.com/files/DU.zip',
   'ERUNT': 'http://www.aumha.org/downloads/erunt.zip',
   'Everything32': 'https://www.voidtools.com/Everything-1.4.1.935.x86.en-US.zip',
