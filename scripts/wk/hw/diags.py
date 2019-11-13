@@ -6,6 +6,8 @@ import logging
 import os
 import pathlib
 import platform
+import plistlib
+import re
 import signal
 import time
 
@@ -13,6 +15,7 @@ from collections import OrderedDict
 from docopt import docopt
 
 from wk import cfg, exe, log, net, std, tmux
+from wk.hw import obj as hw_obj
 
 
 # atexit functions
@@ -62,6 +65,10 @@ MENU_SETS = {
 }
 MENU_TOGGLES = (
   'Skip USB Benchmarks',
+  )
+WK_LABEL_REGEX = re.compile(
+  fr'{cfg.main.KIT_NAME_SHORT}_(LINUX|UFD)',
+  re.IGNORECASE,
   )
 
 
@@ -152,6 +159,12 @@ class State():
       timestamp=False,
       )
     std.print_info('Starting Hardware Diagnostics')
+
+    # Add CPU
+    self.cpu = hw_obj.CpuRam()
+
+    # Add disks
+    self.disks = get_disks()
 
   def init_tmux(self):
     """Initialize tmux layout."""
@@ -284,6 +297,78 @@ def disk_surface_scan():
   LOG.info('Disk Surface Scan (badblocks)')
   #TODO: bb
   std.print_warning('TODO: bb')
+
+
+def get_disks():
+  """Get disks using OS-specific methods, returns list."""
+  disks = []
+  if platform.system() == 'Darwin':
+    disks = get_disks_macos()
+  elif platform.system() == 'Linux':
+    disks = get_disks_linux()
+
+  # Done
+  return disks
+
+
+def get_disks_linux():
+  """Get disks via lsblk, returns list."""
+  cmd = ['lsblk', '--json', '--nodeps', '--paths']
+  disks = []
+
+  # Add valid disks
+  json_data = exe.get_json_from_command(cmd)
+  for disk in json_data.get('blockdevices', []):
+    disk_obj = hw_obj.Disk(disk['name'])
+    skip = False
+
+    # Skip loopback devices, optical devices, etc
+    if disk_obj.details['type'] != 'disk':
+      skip = True
+
+    # Skip WK disks
+    for label in disk_obj.get_labels():
+      if WK_LABEL_REGEX.search(label):
+        skip = True
+
+    # Add disk
+    if not skip:
+      disks.append(disk_obj)
+
+  # Done
+  return disks
+
+
+def get_disks_macos():
+  """Get disks via diskutil, returns list."""
+  cmd = ['diskutil', 'list', '-plist', 'physical']
+  disks = []
+
+  # Get info from diskutil
+  proc = exe.run_program(cmd, encoding=None, errors=None)
+  try:
+    plist_data = plistlib.loads(proc.stdout)
+  except (TypeError, ValueError):
+    # Invalid / corrupt plist data? return empty list to avoid crash
+    LOG.error('Failed to get diskutil list')
+    return disks
+
+  # Add valid disks
+  for disk in plist_data['WholeDisks']:
+    disk_obj = hw_obj.Disk(disk)
+    skip = False
+
+    # Skip WK disks
+    for label in disk_obj.get_labels():
+      if WK_LABEL_REGEX.search(label):
+        skip = True
+
+    # Add disk
+    if not skip:
+      disks.append(disk_obj)
+
+  # Done
+  return disks
 
 
 def keyboard_test():
