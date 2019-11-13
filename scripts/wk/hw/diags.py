@@ -355,7 +355,7 @@ def get_disks_macos():
 
   # Add valid disks
   for disk in plist_data['WholeDisks']:
-    disk_obj = hw_obj.Disk(disk)
+    disk_obj = hw_obj.Disk(f'/dev/{disk}')
     skip = False
 
     # Skip WK disks
