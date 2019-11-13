@@ -115,12 +115,14 @@ def start(config=None):
   atexit.register(logging.shutdown)
 
 
-def update_log_path(dest_dir=None, dest_name=None, timestamp=True):
+def update_log_path(
+    dest_dir=None, dest_name=None, keep_history=True, timestamp=True):
   """Moves current log file to new path and updates the root logger."""
   root_logger = logging.getLogger()
   cur_handler = None
   cur_path = get_root_logger_path()
   new_path = format_log_path(dest_dir, dest_name, timestamp=timestamp)
+  os.makedirs(new_path.parent, exist_ok=True)
 
   # Get current logging file handler
   for handler in root_logger.handlers:
@@ -131,10 +133,13 @@ def update_log_path(dest_dir=None, dest_name=None, timestamp=True):
     raise RuntimeError('Logging FileHandler not found')
 
   # Copy original log to new location
-  if new_path.exists():
-    raise FileExistsError(f'Refusing to clobber: {new_path}')
-  os.makedirs(new_path.parent, exist_ok=True)
-  shutil.move(cur_path, new_path)
+  if keep_history:
+    if new_path.exists():
+      raise FileExistsError(f'Refusing to clobber: {new_path}')
+    shutil.move(cur_path, new_path)
+
+  # Remove old log if empty
+  remove_empty_log()
 
   # Create new cur_handler (preserving formatter settings)
   new_handler = logging.FileHandler(new_path, mode='a')

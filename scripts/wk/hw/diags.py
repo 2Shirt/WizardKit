@@ -71,6 +71,7 @@ class State():
   def __init__(self):
     self.cpu = None
     self.disks = []
+    self.log_dir = None
     self.panes = {}
     self.tests = OrderedDict({
       'CPU & Cooling': {
@@ -130,6 +131,27 @@ class State():
     while True:
       self.fix_tmux_layout(forced=False)
       std.sleep(1)
+
+  def init_diags(self):
+    """Initialize diagnostic pass."""
+    # Reset objects
+    self.disks.clear()
+    for test_data in self.tests.values():
+      test_data['Objects'].clear()
+
+    # Set log
+    self.log_dir = log.format_log_path()
+    self.log_dir = pathlib.Path(
+      f'{self.log_dir.parent}/'
+      f'Hardware-Diagnostics_{time.strftime("%Y-%m-%d_%H%M%z")}/'
+      )
+    log.update_log_path(
+      dest_dir=self.log_dir,
+      dest_name='main',
+      keep_history=False,
+      timestamp=False,
+      )
+    std.print_info('Starting Hardware Diagnostics')
 
   def init_tmux(self):
     """Initialize tmux layout."""
@@ -365,6 +387,10 @@ def network_test():
 
   # Done
   std.pause('Press Enter to return to main menu...')
+
+
+def run_diags(state):
+  """Run selected diagnostics."""
 
 
 def screensaver(name):
