@@ -9,6 +9,7 @@ import platform
 import plistlib
 import re
 import signal
+import subprocess
 import time
 
 from collections import OrderedDict
@@ -156,7 +157,7 @@ class State():
     self.log_dir = log.format_log_path()
     self.log_dir = pathlib.Path(
       f'{self.log_dir.parent}/'
-      f'Hardware-Diagnostics_{time.strftime("%Y-%m-%d_%H%M%z")}/'
+      f'Hardware-Diagnostics_{time.strftime("%Y-%m-%d_%H%M%S%z")}/'
       )
     log.update_log_path(
       dest_dir=self.log_dir,
@@ -291,6 +292,8 @@ def build_menu(cli_mode=False, quick_mode=False):
 
 
 def cpu_mprime_test(state, test_objects):
+  # pylint: disable=too-many-statements
+  #TODO: Fix above?
   """CPU & cooling check using Prime95."""
   LOG.info('CPU Test (Prime95)')
   thermal_abort = False
@@ -330,7 +333,26 @@ def cpu_mprime_test(state, test_objects):
   std.print_info('Starting stress test')
   std.print_warning('If running too hot, press CTRL+c to abort the test')
   set_apple_fan_speed('max')
-  #RUN: mprime -t | grep -iv --line-buffered 'stress.txt' | tee -a "prime.log"
+  proc_mprime = subprocess.Popen(
+    ['mprime', '-t'],
+    bufsize=1,
+    cwd=state.log_dir,
+    stdout=subprocess.PIPE,
+    )
+  proc_grep = subprocess.Popen(
+    'grep --ignore-case --invert-match --line-buffered stress.txt'.split(),
+    bufsize=1,
+    stdin=proc_mprime.stdout,
+    stdout=subprocess.PIPE,
+    )
+  proc_mprime.stdout.close()
+  save_nsbr = exe.NonBlockingStreamReader(proc_grep.stdout)
+  save_thread = exe.start_thread(
+    save_nsbr.save_to_file,
+    args=(proc_grep, prime_log),
+    )
+
+  # Show countdown
   try:
     print_countdown(seconds=cfg.hw.CPU_TEST_MINUTES*60)
   except KeyboardInterrupt:
@@ -341,7 +363,10 @@ def cpu_mprime_test(state, test_objects):
     thermal_abort = True
 
   # Stop Prime95
-  #TODO kill p95
+  proc_mprime.send_signal(signal.SIGINT)
+  std.sleep(1)
+  proc_mprime.kill()
+  save_thread.join()
   tmux.kill_pane(state.panes.pop('Prime95', None))
 
   # Get cooldown temp
@@ -353,7 +378,7 @@ def cpu_mprime_test(state, test_objects):
   sensors.save_average_temps(temp_label='Cooldown', seconds=5)
 
   # Check results and build report
-  #TODO
+  std.print_report(sensors.generate_report('Current', 'Idle', 'Max','Cooldown'))
 
   # Stop sensors monitor
   sensors_out.with_suffix('.stop').touch()
@@ -363,13 +388,7 @@ def cpu_mprime_test(state, test_objects):
   state.panes.pop('Current', None)
   tmux.kill_pane(state.panes.pop('Temps', None))
 
-
-
-
-
-
   #TODO: p95
-  std.print_warning('TODO: p95')
   std.pause()
 
 
@@ -586,18 +605,17 @@ def network_test():
 
 def print_countdown(seconds):
   """Print countdown to screen."""
-  time_limit = seconds
   for i in range(seconds):
     sec_left = (seconds - i) % 60
     min_left = int((seconds - i) / 60)
 
-    out_str = '\r'
+    out_str = '\r  '
     if min_left:
       out_str += f'{min_left} minute{"s" if min_left != 1 else ""}, '
     out_str += f'{sec_left} second{"s" if sec_left != 1 else ""}'
     out_str += ' remaining'
 
-    print(f'{out_str:<40}', end='', flush=True)
+    print(f'{out_str:<42}', end='', flush=True)
     std.sleep(1)
 
   # Done

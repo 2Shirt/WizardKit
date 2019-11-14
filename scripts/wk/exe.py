@@ -47,6 +47,18 @@ class NonBlockingStreamReader():
     except Empty:
       return None
 
+  def save_to_file(self, proc, out_path):
+    """Continuously save output to file while proc is running."""
+    while proc.poll() is None:
+      out = b''
+      out_bytes = b''
+      while out is not None:
+        out = self.read(0.1)
+        if out:
+          out_bytes += out
+      with open(out_path, 'a') as _f:
+        _f.write(out_bytes.decode('utf-8', errors='ignore'))
+
 
 # Functions
 def build_cmd_kwargs(cmd, minimized=False, pipe=True, shell=False, **kwargs):
