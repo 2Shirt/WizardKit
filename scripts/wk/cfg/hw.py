@@ -15,6 +15,7 @@ ATTRIBUTE_COLORS = (
   ('Maximum', 'PURPLE'),
   )
 CPU_FAILURE_TEMP = 90
+CPU_TEST_MINUTES = 7
 CPU_THERMAL_LIMIT = 99
 KEY_NVME = 'nvme_smart_health_information_log'
 KEY_SMART = 'ata_smart_attributes'
@@ -118,8 +119,8 @@ TMUX_LAYOUT = OrderedDict({
   'Started':        {'width':   TMUX_SIDE_WIDTH,  'Check': True},
   'Progress':       {'width':   TMUX_SIDE_WIDTH,  'Check': True},
   # Testing panes
-  'Prime95':        {'height':  11,               'Check': False},
   'Temps':          {'height':  1000,             'Check': False},
+  'Prime95':        {'height':  11,               'Check': False},
   'SMART':          {'height':  3,                'Check': True},
   'badblocks':      {'height':  5,                'Check': True},
   'I/O Benchmark':  {'height':  1000,             'Check': False},

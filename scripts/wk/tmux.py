@@ -41,6 +41,8 @@ def fix_layout(panes, layout, forced=False):
     if isinstance(pane_list, str):
       pane_list = [pane_list]
     for pane_id in pane_list:
+      if name == 'Current':
+        pane_id = None
       try:
         resize_pane(pane_id, **data)
       except RuntimeError:
@@ -98,13 +100,16 @@ def layout_needs_fixed(panes, layout):
     if name not in panes:
       continue
 
-    # Check pane size
-    pane_id = panes[name]
-    width, height = get_pane_size(pane_id)
-    if data.get('width', False) and data['width'] != width:
-      needs_fixed = True
-    if data.get('height', False) and data['height'] != height:
-      needs_fixed = True
+    # Check pane size(s)
+    pane_list = panes[name]
+    if isinstance(pane_list, str):
+      pane_list = [pane_list]
+    for pane_id in pane_list:
+      width, height = get_pane_size(pane_id)
+      if data.get('width', False) and data['width'] != width:
+        needs_fixed = True
+      if data.get('height', False) and data['height'] != height:
+        needs_fixed = True
 
   # Done
   return needs_fixed
@@ -193,9 +198,6 @@ def resize_pane(pane_id=None, width=None, height=None, **kwargs):
   cmd = ['tmux', 'resize-pane']
 
   # Safety checks
-  if not poll_pane(pane_id):
-    LOG.debug('tmux pane %s not found', pane_id)
-    raise RuntimeError(f'tmux pane {pane_id} not found')
   if not (width or height):
     LOG.error('Neither width nor height specified')
     raise RuntimeError('Neither width nor height specified')

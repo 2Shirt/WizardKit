@@ -16,6 +16,7 @@ from docopt import docopt
 
 from wk import cfg, exe, log, net, std, tmux
 from wk.hw import obj as hw_obj
+from wk.hw import sensors as hw_sensors
 
 
 # atexit functions
@@ -78,6 +79,7 @@ class State():
   def __init__(self):
     self.cpu = None
     self.disks = []
+    self.layout = cfg.hw.TMUX_LAYOUT.copy()
     self.log_dir = None
     self.panes = {}
     self.tests = OrderedDict({
@@ -111,11 +113,13 @@ class State():
 
     # Init tmux and start a background process to maintain layout
     self.init_tmux()
-    if hasattr(signal, 'SIGWINCH'):
-      # Use signal handling
-      signal.signal(signal.SIGWINCH, self.fix_tmux_layout)
-    else:
-      exe.start_thread(self.fix_tmux_layout_loop)
+    #TODO: Fix SIGWINCH?
+    #if hasattr(signal, 'SIGWINCH'):
+    #  # Use signal handling
+    #  signal.signal(signal.SIGWINCH, self.fix_tmux_layout)
+    #else:
+    #  exe.start_thread(self.fix_tmux_layout_loop)
+    exe.start_thread(self.fix_tmux_layout_loop)
 
   def fix_tmux_layout(self, forced=True, signum=None, frame=None):
     # pylint: disable=unused-argument
@@ -125,7 +129,7 @@ class State():
           signum and frame must be valid aguments.
     """
     try:
-      tmux.fix_layout(self.panes, cfg.hw.TMUX_LAYOUT, forced=forced)
+      tmux.fix_layout(self.panes, self.layout, forced=forced)
     except RuntimeError:
       # Assuming self.panes changed while running
       pass
@@ -143,6 +147,8 @@ class State():
     """Initialize diagnostic pass."""
     # Reset objects
     self.disks.clear()
+    self.layout.clear()
+    self.layout.update(cfg.hw.TMUX_LAYOUT)
     for test_data in self.tests.values():
       test_data['Objects'].clear()
 
@@ -287,6 +293,81 @@ def build_menu(cli_mode=False, quick_mode=False):
 def cpu_mprime_test(state, test_objects):
   """CPU & cooling check using Prime95."""
   LOG.info('CPU Test (Prime95)')
+  thermal_abort = False
+  prime_log = pathlib.Path(f'{state.log_dir}/prime.log')
+  test = test_objects[0]
+
+  # Bail early
+  if test.disabled:
+    return
+
+  # Prep
+  dev = test.dev
+  test.set_status('Working')
+  state.update_top_pane(dev.description)
+
+  # Start sensors monitor
+  sensors = hw_sensors.Sensors()
+  sensors_out = pathlib.Path(f'{state.log_dir}/sensors.out')
+  sensors_thread = exe.start_thread(
+    sensors.monitor_to_file, args=(sensors_out,))
+
+  # Create monitor and worker panes
+  state.panes['Prime95'] = tmux.split_window(
+    lines=10, vertical=True, watch_file=prime_log)
+  state.panes['Temps'] = tmux.split_window(
+    behind=True, percent=80, vertical=True, watch_file=sensors_out)
+  tmux.resize_pane(height=3)
+  state.panes['Current'] = ''
+  state.layout['Current'] = {'height': 3, 'Check': True}
+
+  # Get idle temps
+  std.clear_screen()
+  std.print_standard('Saving idle temps...')
+  sensors.save_average_temps(temp_label='Idle', seconds=5)
+
+  # Stress CPU
+  std.print_info('Starting stress test')
+  std.print_warning('If running too hot, press CTRL+c to abort the test')
+  set_apple_fan_speed('max')
+  #RUN: mprime -t | grep -iv --line-buffered 'stress.txt' | tee -a "prime.log"
+  try:
+    print_countdown(seconds=cfg.hw.CPU_TEST_MINUTES*60)
+  except KeyboardInterrupt:
+    test.set_status('Aborted')
+  except hw_sensors.ThermalLimitReachedError:
+    test.set_status('Failed')
+    test.failed = True
+    thermal_abort = True
+
+  # Stop Prime95
+  #TODO kill p95
+  tmux.kill_pane(state.panes.pop('Prime95', None))
+
+  # Get cooldown temp
+  set_apple_fan_speed('auto')
+  std.clear_screen()
+  std.print_standard('Letting CPU cooldown...')
+  std.sleep(5)
+  std.print_standard('Saving cooldown temps...')
+  sensors.save_average_temps(temp_label='Cooldown', seconds=5)
+
+  # Check results and build report
+  #TODO
+
+  # Stop sensors monitor
+  sensors_out.with_suffix('.stop').touch()
+  sensors_thread.join()
+
+  # Cleanup
+  state.panes.pop('Current', None)
+  tmux.kill_pane(state.panes.pop('Temps', None))
+
+
+
+
+
+
   #TODO: p95
   std.print_warning('TODO: p95')
   std.pause()
@@ -503,6 +584,26 @@ def network_test():
   std.pause('Press Enter to return to main menu...')
 
 
+def print_countdown(seconds):
+  """Print countdown to screen."""
+  time_limit = seconds
+  for i in range(seconds):
+    sec_left = (seconds - i) % 60
+    min_left = int((seconds - i) / 60)
+
+    out_str = '\r'
+    if min_left:
+      out_str += f'{min_left} minute{"s" if min_left != 1 else ""}, '
+    out_str += f'{sec_left} second{"s" if sec_left != 1 else ""}'
+    out_str += ' remaining'
+
+    print(f'{out_str:<40}', end='', flush=True)
+    std.sleep(1)
+
+  # Done
+  print('')
+
+
 def run_diags(state, menu, quick_mode=False):
   """Run selected diagnostics."""
   aborted = False
@@ -567,6 +668,24 @@ def screensaver(name):
   tmux.zoom_pane()
   exe.run_program(cmd, check=False, pipe=False)
   tmux.zoom_pane()
+
+
+def set_apple_fan_speed(speed):
+  """Set Apple fan speed."""
+  cmd = None
+
+  # Check
+  if speed not in ('auto', 'max'):
+    raise RuntimeError(f'Invalid speed {speed}')
+
+  # Set cmd
+  if platform.system() == 'Linux':
+    cmd = ['apple-fans', speed]
+  #TODO: Add method for use under macOS
+
+  # Run cmd
+  if cmd:
+    exe.run_program(cmd, check=False)
 
 
 if __name__ == '__main__':

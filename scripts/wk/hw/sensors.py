@@ -3,6 +3,7 @@
 
 import json
 import logging
+import pathlib
 import platform
 import re
 
@@ -77,14 +78,21 @@ class Sensors():
     # Done
     return report
 
-  def monitor_to_file(self, path):
+  def monitor_to_file(self, out_path):
     """Write report to path every second until stopped."""
+    stop_path = pathlib.Path(out_path).resolve().with_suffix('.stop')
     while True:
       self.update_sensor_data()
       report = self.generate_report('Current', 'Max')
-      with open(path, 'w') as _f:
+      with open(out_path, 'w') as _f:
         _f.write('\n'.join(report))
-      sleep(1)
+
+      # Check if we should stop
+      if stop_path.exists():
+        break
+
+      # Sleep before next loop
+      sleep(0.5)
 
   def save_average_temps(self, temp_label, seconds=10):
     # pylint: disable=unused-variable
