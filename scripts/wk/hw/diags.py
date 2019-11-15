@@ -448,10 +448,6 @@ def cpu_mprime_test(state, test_objects):
   tmux.kill_pane(state.panes.pop('Prime95', None))
   tmux.kill_pane(state.panes.pop('Temps', None))
 
-  #TODO: p95
-  std.print_report(test_mprime_obj.report)
-  std.print_report(test_cooling_obj.report)
-
 
 def disk_attribute_check(state, test_objects):
   """Disk attribute check."""
@@ -718,7 +714,7 @@ def run_diags(state, menu, quick_mode=False):
           test_obj.set_status('Aborted')
 
   # Show results
-  #TODO: Show results
+  show_results(state)
 
   # Done
   if quick_mode:
@@ -765,6 +761,32 @@ def set_apple_fan_speed(speed):
   # Run cmd
   if cmd:
     exe.run_program(cmd, check=False)
+
+
+def show_results(state):
+  """Show test results by device."""
+  std.clear_screen()
+  state.update_top_pane('Results')
+
+  # CPU Tests
+  cpu_tests_enabled = [data['Enabled'] for name, data in state.tests.items()
+                       if name.startswith('CPU')]
+  if any(cpu_tests_enabled):
+    std.print_success('CPU:')
+    std.print_report(state.cpu.generate_report())
+    std.print_standard(' ')
+
+  # Disk Tests
+  disk_tests_enabled = [data['Enabled'] for name, data in state.tests.items()
+                        if name.startswith('Disk')]
+  if any(disk_tests_enabled):
+    std.print_success(f'Disk{"s" if len(state.disks) > 1 else ""}:')
+    for disk in state.disks:
+      std.print_report(disk.generate_report())
+      std.print_standard(' ')
+    if not state.disks:
+      std.print_warning('No devices')
+      std.print_standard(' ')
 
 
 def start_mprime_thread(working_dir, log_path):
