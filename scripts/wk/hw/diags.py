@@ -386,8 +386,7 @@ def cpu_mprime_test(state, test_objects):
 
   # Show countdown
   try:
-    #print_countdown(seconds=cfg.hw.CPU_TEST_MINUTES*60)
-    print_countdown(seconds=7)
+    print_countdown(seconds=cfg.hw.CPU_TEST_MINUTES*60)
   except KeyboardInterrupt:
     test_obj.set_status('Aborted')
   except hw_sensors.ThermalLimitReachedError:
