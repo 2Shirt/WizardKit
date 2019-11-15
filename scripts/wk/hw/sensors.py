@@ -10,7 +10,7 @@ import re
 from subprocess import CalledProcessError
 
 from wk.cfg.hw import CPU_THERMAL_LIMIT, SMC_IDS, TEMP_COLORS
-from wk.exe import run_program
+from wk.exe import run_program, start_thread
 from wk.std import color_string, sleep
 
 
@@ -23,6 +23,7 @@ SMC_REGEX = re.compile(
   r'\s+(?P<Value>.*?)'
   r'\s*\(bytes (?P<Bytes>.*)\)$'
   )
+SENSOR_SOURCE_WIDTH = 25 if platform.system() == 'Darwin' else 20
 
 
 # Error Classes
@@ -34,7 +35,9 @@ class ThermalLimitReachedError(RuntimeError):
 class Sensors():
   """Class for holding sensor specific data."""
   def __init__(self):
+    self.background_thread = None
     self.data = get_sensor_data()
+    self.out_path = None
 
   def clear_temps(self):
     """Clear saved temps but keep structure"""
@@ -55,7 +58,7 @@ class Sensors():
       for adapter, sources in sorted(adapters.items()):
         report.append(fix_sensor_name(adapter))
         for source, source_data in sorted(sources.items()):
-          line = f'{fix_sensor_name(source):25} '
+          line = f'{fix_sensor_name(source):{SENSOR_SOURCE_WIDTH}} '
           for label in temp_labels:
             if label != 'Current':
               line += f' {label.lower()}: '
@@ -78,12 +81,16 @@ class Sensors():
     # Done
     return report
 
-  def monitor_to_file(self, out_path):
+  def monitor_to_file(self, out_path, temp_labels=None):
     """Write report to path every second until stopped."""
     stop_path = pathlib.Path(out_path).resolve().with_suffix('.stop')
+    if not temp_labels:
+      temp_labels = ('Current', 'Max')
+
+    # Start loop
     while True:
       self.update_sensor_data()
-      report = self.generate_report('Current', 'Max')
+      report = self.generate_report(*temp_labels)
       with open(out_path, 'w') as _f:
         _f.write('\n'.join(report))
 
@@ -110,6 +117,26 @@ class Sensors():
         for source_data in sources.values():
           temps = source_data['Temps']
           source_data[temp_label] = sum(temps) / len(temps)
+
+  def start_background_monitor(self, out_path, temp_labels=None):
+    """Start background thread to save report to file."""
+    if self.background_thread:
+      raise RuntimeError('Background thread already running')
+
+    self.out_path = pathlib.Path(out_path)
+    self.background_thread = start_thread(
+      self.monitor_to_file,
+      args=(out_path, temp_labels),
+      )
+
+  def stop_background_monitor(self):
+    """Stop background thread."""
+    self.out_path.with_suffix('.stop').touch()
+    self.background_thread.join()
+
+    # Reset vars to None
+    self.background_thread = None
+    self.out_path = None
 
   def update_sensor_data(self, exit_on_thermal_limit=True):
     """Update sensor data via OS-specific means."""

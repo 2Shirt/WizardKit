@@ -8,7 +8,6 @@ import pathlib
 import platform
 import plistlib
 import re
-import signal
 import subprocess
 import time
 
@@ -270,7 +269,7 @@ def build_menu(cli_mode=False, quick_mode=False):
 
   # Update default selections for quick mode if necessary
   if quick_mode:
-    for name in menu.options.keys():
+    for name in menu.options:
       # Only select quick option(s)
       menu.options[name]['Selected'] = name in MENU_OPTIONS_QUICK
 
@@ -291,29 +290,79 @@ def build_menu(cli_mode=False, quick_mode=False):
   return menu
 
 
+def check_mprime_results(test_obj, working_dir):
+  """Check mprime log files to determine if test passed."""
+  passing_lines = {}
+  warning_lines = {}
+
+  def _read_file(log_name):
+    """Read file and split into lines, returns list."""
+    lines = []
+    try:
+      with open(f'{working_dir}/{log_name}', 'r') as _f:
+        lines = _f.readlines()
+    except FileNotFoundError:
+      # File may be missing on older systems
+      lines = []
+
+    return lines
+
+  # results.txt (check if failed)
+  for line in _read_file('results.txt'):
+    line = line.strip()
+    if re.search(r'(error|fail)', line, re.IGNORECASE):
+      warning_lines[line] = None
+
+  # print.log (check if passed)
+  for line in _read_file('prime.log'):
+    line = line.strip()
+    match = re.search(
+      r'(completed.*(\d+) errors, (\d+) warnings)', line, re.IGNORECASE)
+    if match:
+      if int(match.group(2)) + int(match.group(3)) > 0:
+        # Errors and/or warnings encountered
+        warning_lines[match.group(1).capitalize()] = None
+      else:
+        # No errors/warnings
+        passing_lines[match.group(1).capitalize()] = None
+
+  # Update status
+  if warning_lines:
+    test_obj.failed = True
+    test_obj.set_status('Failed')
+  elif passing_lines and 'Aborted' not in test_obj.status:
+    test_obj.passed = True
+    test_obj.set_status('Passed')
+  else:
+    test_obj.set_status('Unknown')
+
+  # Update report
+  for line in passing_lines:
+    test_obj.report.append(f'  {line}')
+  for line in warning_lines:
+    test_obj.report.append(std.color_string(f'  {line}', 'YELLOW'))
+  if not (passing_lines or warning_lines):
+    test_obj.report.append(std.color_string('  Unknown result', 'YELLOW'))
+
+
 def cpu_mprime_test(state, test_objects):
-  # pylint: disable=too-many-statements
-  #TODO: Fix above?
   """CPU & cooling check using Prime95."""
   LOG.info('CPU Test (Prime95)')
-  thermal_abort = False
   prime_log = pathlib.Path(f'{state.log_dir}/prime.log')
-  test = test_objects[0]
+  sensors_out = pathlib.Path(f'{state.log_dir}/sensors.out')
+  test_obj = test_objects[0]
 
   # Bail early
-  if test.disabled:
+  if test_obj.disabled:
     return
 
   # Prep
-  dev = test.dev
-  test.set_status('Working')
-  state.update_top_pane(dev.description)
+  state.update_top_pane(test_obj.dev.description)
+  test_obj.set_status('Working')
 
   # Start sensors monitor
   sensors = hw_sensors.Sensors()
-  sensors_out = pathlib.Path(f'{state.log_dir}/sensors.out')
-  sensors_thread = exe.start_thread(
-    sensors.monitor_to_file, args=(sensors_out,))
+  sensors.start_background_monitor(sensors_out)
 
   # Create monitor and worker panes
   state.panes['Prime95'] = tmux.split_window(
@@ -333,44 +382,27 @@ def cpu_mprime_test(state, test_objects):
   std.print_info('Starting stress test')
   std.print_warning('If running too hot, press CTRL+c to abort the test')
   set_apple_fan_speed('max')
-  proc_mprime = subprocess.Popen(
-    ['mprime', '-t'],
-    bufsize=1,
-    cwd=state.log_dir,
-    stdout=subprocess.PIPE,
-    )
-  proc_grep = subprocess.Popen(
-    'grep --ignore-case --invert-match --line-buffered stress.txt'.split(),
-    bufsize=1,
-    stdin=proc_mprime.stdout,
-    stdout=subprocess.PIPE,
-    )
-  proc_mprime.stdout.close()
-  save_nsbr = exe.NonBlockingStreamReader(proc_grep.stdout)
-  save_thread = exe.start_thread(
-    save_nsbr.save_to_file,
-    args=(proc_grep, prime_log),
-    )
+  proc_mprime = start_mprime_thread(state.log_dir, prime_log)
 
   # Show countdown
   try:
-    print_countdown(seconds=cfg.hw.CPU_TEST_MINUTES*60)
+    #print_countdown(seconds=cfg.hw.CPU_TEST_MINUTES*60)
+    print_countdown(seconds=7)
   except KeyboardInterrupt:
-    test.set_status('Aborted')
+    test_obj.set_status('Aborted')
   except hw_sensors.ThermalLimitReachedError:
-    test.set_status('Failed')
-    test.failed = True
-    thermal_abort = True
+    test_obj.failed = True
+    test_obj.set_status('Failed')
 
   # Stop Prime95
-  proc_mprime.send_signal(signal.SIGINT)
-  std.sleep(1)
-  proc_mprime.kill()
-  save_thread.join()
-  tmux.kill_pane(state.panes.pop('Prime95', None))
+  proc_mprime.terminate()
+  try:
+    proc_mprime.wait(timeout=5)
+  except subprocess.TimeoutExpired:
+    proc_mprime.kill()
+  set_apple_fan_speed('auto')
 
   # Get cooldown temp
-  set_apple_fan_speed('auto')
   std.clear_screen()
   std.print_standard('Letting CPU cooldown...')
   std.sleep(5)
@@ -378,18 +410,21 @@ def cpu_mprime_test(state, test_objects):
   sensors.save_average_temps(temp_label='Cooldown', seconds=5)
 
   # Check results and build report
-  std.print_report(sensors.generate_report('Current', 'Idle', 'Max','Cooldown'))
-
-  # Stop sensors monitor
-  sensors_out.with_suffix('.stop').touch()
-  sensors_thread.join()
+  test_obj.report.append(std.color_string('Prime95', 'BLUE'))
+  check_mprime_results(test_obj=test_obj, working_dir=state.log_dir)
+  test_obj.report.append(std.color_string('Temps', 'BLUE'))
+  for line in sensors.generate_report(
+      'Idle', 'Max', 'Cooldown', only_cpu=True):
+    test_obj.report.append(f'  {line}')
 
   # Cleanup
+  sensors.stop_background_monitor()
   state.panes.pop('Current', None)
+  tmux.kill_pane(state.panes.pop('Prime95', None))
   tmux.kill_pane(state.panes.pop('Temps', None))
 
   #TODO: p95
-  std.pause()
+  std.print_report(test_obj.report)
 
 
 def disk_attribute_check(state, test_objects):
@@ -704,6 +739,32 @@ def set_apple_fan_speed(speed):
   # Run cmd
   if cmd:
     exe.run_program(cmd, check=False)
+
+
+def start_mprime_thread(working_dir, log_path):
+  """Start mprime and save filtered output to log, returns Popen object."""
+  proc_mprime = subprocess.Popen(
+    ['mprime', '-t'],
+    bufsize=1,
+    cwd=working_dir,
+    stdout=subprocess.PIPE,
+    stderr=subprocess.STDOUT,
+    )
+  proc_grep = subprocess.Popen(
+    'grep --ignore-case --invert-match --line-buffered stress.txt'.split(),
+    bufsize=1,
+    stdin=proc_mprime.stdout,
+    stdout=subprocess.PIPE,
+    )
+  proc_mprime.stdout.close()
+  save_nsbr = exe.NonBlockingStreamReader(proc_grep.stdout)
+  exe.start_thread(
+    save_nsbr.save_to_file,
+    args=(proc_grep, log_path),
+    )
+
+  # Return objects
+  return proc_mprime
 
 
 if __name__ == '__main__':
