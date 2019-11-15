@@ -176,9 +176,14 @@ class State():
       if not details['Selected']:
         continue
       if 'CPU' in name:
-        test_obj = hw_obj.Test(dev=self.cpu, label=name)
-        self.cpu.tests[name] = test_obj
-        self.tests[name]['Objects'].append(test_obj)
+        # Create two Test objects which will both be used by cpu_mprime_test
+        # NOTE: Prime95 should be added first
+        test_mprime_obj = hw_obj.Test(dev=self.cpu, label='Prime95')
+        test_cooling_obj = hw_obj.Test(dev=self.cpu, label='Cooling')
+        self.cpu.tests[name] = test_mprime_obj
+        self.cpu.tests[name] = test_cooling_obj
+        self.tests[name]['Objects'].append(test_mprime_obj)
+        self.tests[name]['Objects'].append(test_cooling_obj)
       elif 'Disk' in name:
         for disk in self.disks:
           test_obj = hw_obj.Test(dev=disk, label=disk.path.name)
@@ -290,8 +295,28 @@ def build_menu(cli_mode=False, quick_mode=False):
   return menu
 
 
+def check_cooling_results(test_obj, sensors):
+  """Check cooling results and update test_obj."""
+  max_temp = sensors.cpu_max_temp()
+
+  # Check temps
+  if not max_temp:
+    test_obj.set_status('Unknown')
+  elif max_temp >= cfg.hw.CPU_FAILURE_TEMP:
+    test_obj.failed = True
+    test_obj.set_status('Failed')
+  elif 'Aborted' not in test_obj.status:
+    test_obj.passed = True
+    test_obj.set_status('Passed')
+
+  # Add temps to report
+  for line in sensors.generate_report(
+      'Idle', 'Max', 'Cooldown', only_cpu=True):
+    test_obj.report.append(f'  {line}')
+
+
 def check_mprime_results(test_obj, working_dir):
-  """Check mprime log files to determine if test passed."""
+  """Check mprime log files and update test_obj."""
   passing_lines = {}
   warning_lines = {}
 
@@ -350,15 +375,16 @@ def cpu_mprime_test(state, test_objects):
   LOG.info('CPU Test (Prime95)')
   prime_log = pathlib.Path(f'{state.log_dir}/prime.log')
   sensors_out = pathlib.Path(f'{state.log_dir}/sensors.out')
-  test_obj = test_objects[0]
+  test_mprime_obj, test_cooling_obj = test_objects
 
   # Bail early
-  if test_obj.disabled:
+  if test_cooling_obj.disabled or test_mprime_obj.disabled:
     return
 
   # Prep
-  state.update_top_pane(test_obj.dev.description)
-  test_obj.set_status('Working')
+  state.update_top_pane(test_mprime_obj.dev.description)
+  test_cooling_obj.set_status('Working')
+  test_mprime_obj.set_status('Working')
 
   # Start sensors monitor
   sensors = hw_sensors.Sensors()
@@ -388,10 +414,10 @@ def cpu_mprime_test(state, test_objects):
   try:
     print_countdown(seconds=cfg.hw.CPU_TEST_MINUTES*60)
   except KeyboardInterrupt:
-    test_obj.set_status('Aborted')
+    test_cooling_obj.set_status('Aborted')
+    test_mprime_obj.set_status('Aborted')
   except hw_sensors.ThermalLimitReachedError:
-    test_obj.failed = True
-    test_obj.set_status('Failed')
+    test_mprime_obj.set_status('Aborted')
 
   # Stop Prime95
   proc_mprime.terminate()
@@ -408,13 +434,13 @@ def cpu_mprime_test(state, test_objects):
   std.print_standard('Saving cooldown temps...')
   sensors.save_average_temps(temp_label='Cooldown', seconds=5)
 
-  # Check results and build report
-  test_obj.report.append(std.color_string('Prime95', 'BLUE'))
-  check_mprime_results(test_obj=test_obj, working_dir=state.log_dir)
-  test_obj.report.append(std.color_string('Temps', 'BLUE'))
-  for line in sensors.generate_report(
-      'Idle', 'Max', 'Cooldown', only_cpu=True):
-    test_obj.report.append(f'  {line}')
+  # Check Prime95 results
+  test_mprime_obj.report.append(std.color_string('Prime95', 'BLUE'))
+  check_mprime_results(test_obj=test_mprime_obj, working_dir=state.log_dir)
+
+  # Check Cooling results
+  test_cooling_obj.report.append(std.color_string('Temps', 'BLUE'))
+  check_cooling_results(test_obj=test_cooling_obj, sensors=sensors)
 
   # Cleanup
   sensors.stop_background_monitor()
@@ -423,7 +449,8 @@ def cpu_mprime_test(state, test_objects):
   tmux.kill_pane(state.panes.pop('Temps', None))
 
   #TODO: p95
-  std.print_report(test_obj.report)
+  std.print_report(test_mprime_obj.report)
+  std.print_report(test_cooling_obj.report)
 
 
 def disk_attribute_check(state, test_objects):

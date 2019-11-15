@@ -9,7 +9,7 @@ import re
 
 from subprocess import CalledProcessError
 
-from wk.cfg.hw import CPU_THERMAL_LIMIT, SMC_IDS, TEMP_COLORS
+from wk.cfg.hw import CPU_CRITICAL_TEMP, SMC_IDS, TEMP_COLORS
 from wk.exe import run_program, start_thread
 from wk.std import color_string, sleep
 
@@ -45,6 +45,24 @@ class Sensors():
       for sources in adapters.values():
         for source_data in sources.values():
           source_data['Temps'] = []
+
+  def cpu_max_temp(self):
+    """Get max temp from any CPU source, returns float.
+
+    NOTE: If no temps are found this returns zero.
+    """
+    max_temp = 0.0
+
+    # Check all CPU Temps
+    for section, adapters in self.data.items():
+      if not section.startswith('CPU'):
+        continue
+      for sources in adapters.values():
+        for source_data in sources.values():
+          max_temp = max(max_temp, source_data.get('Max', 0))
+
+    # Done
+    return max_temp
 
   def generate_report(self, *temp_labels, colored=True, only_cpu=False):
     """Generate report based on given temp_labels, returns list."""
@@ -163,7 +181,7 @@ class Sensors():
 
           # Raise exception if thermal limit reached
           if exit_on_thermal_limit and section == 'CPUTemps':
-            if source_data['Current'] >= CPU_THERMAL_LIMIT:
+            if source_data['Current'] >= CPU_CRITICAL_TEMP:
               raise ThermalLimitReachedError('CPU temps reached limit')
 
   def update_sensor_data_macos(self, exit_on_thermal_limit=True):
@@ -187,7 +205,7 @@ class Sensors():
 
           # Raise exception if thermal limit reached
           if exit_on_thermal_limit and section == 'CPUTemps':
-            if source_data['Current'] >= CPU_THERMAL_LIMIT:
+            if source_data['Current'] >= CPU_CRITICAL_TEMP:
               raise ThermalLimitReachedError('CPU temps reached limit')
 
 
