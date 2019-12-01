@@ -793,14 +793,12 @@ def start_mprime_thread(working_dir, log_path):
   """Start mprime and save filtered output to log, returns Popen object."""
   proc_mprime = subprocess.Popen(
     ['mprime', '-t'],
-    bufsize=1,
     cwd=working_dir,
     stdout=subprocess.PIPE,
     stderr=subprocess.STDOUT,
     )
   proc_grep = subprocess.Popen(
     'grep --ignore-case --invert-match --line-buffered stress.txt'.split(),
-    bufsize=1,
     stdin=proc_mprime.stdout,
     stdout=subprocess.PIPE,
     )
