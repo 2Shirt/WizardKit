@@ -67,6 +67,17 @@ MENU_SETS = {
 MENU_TOGGLES = (
   'Skip USB Benchmarks',
   )
+STATUS_COLORS = {
+  'Aborted': 'YELLOW',
+  'Denied': 'RED',
+  'ERROR': 'RED',
+  'FAIL': 'RED',
+  'N/A': 'YELLOW',
+  'PASS': 'GREEN',
+  'TimedOut': 'RED',
+  'Unknown': 'YELLOW',
+  'Working': 'YELLOW',
+  }
 WK_LABEL_REGEX = re.compile(
   fr'{cfg.main.KIT_NAME_SHORT}_(LINUX|UFD)',
   re.IGNORECASE,
@@ -145,6 +156,8 @@ class State():
 
   def init_diags(self, menu):
     """Initialize diagnostic pass."""
+    std.print_info('Starting Hardware Diagnostics')
+
     # Reset objects
     self.disks.clear()
     self.layout.clear()
@@ -164,7 +177,13 @@ class State():
       keep_history=False,
       timestamp=False,
       )
-    std.print_info('Starting Hardware Diagnostics')
+
+    # Progress Pane
+    self.update_progress_pane()
+    tmux.respawn_pane(
+      pane_id=self.panes['Progress'],
+      watch_file=f'{self.log_dir}/progress.out',
+      )
 
     # Add HW Objects
     self.cpu = hw_obj.CpuRam()
@@ -225,6 +244,32 @@ class State():
       lines=cfg.hw.TMUX_SIDE_WIDTH,
       text=' ',
       )
+
+  def update_progress_pane(self):
+    """Update progress pane."""
+    report = []
+    width = cfg.hw.TMUX_SIDE_WIDTH
+
+    for name, details in self.tests.items():
+      if not details['Enabled']:
+        continue
+
+      # Add test details
+      report.append(std.color_string(name, 'BLUE'))
+      for test_obj in details['Objects']:
+        report.append(std.color_string(
+          [test_obj.label, f'{test_obj.status:>{width-len(test_obj.label)}}'],
+          [None, STATUS_COLORS.get(test_obj.status, None)],
+          sep='',
+          ))
+
+      # Add spacer
+      report.append(' ')
+
+    # Write to progress file
+    out_path = pathlib.Path(f'{self.log_dir}/progress.out')
+    with open(out_path, 'w') as _f:
+      _f.write('\n'.join(report))
 
   def update_top_pane(self, text):
     """Update top pane with text."""
@@ -391,6 +436,7 @@ def cpu_mprime_test(state, test_objects):
   sensors.start_background_monitor(sensors_out)
 
   # Create monitor and worker panes
+  state.update_progress_pane()
   state.panes['Prime95'] = tmux.split_window(
     lines=10, vertical=True, watch_file=prime_log)
   state.panes['Temps'] = tmux.split_window(
@@ -443,6 +489,7 @@ def cpu_mprime_test(state, test_objects):
   check_cooling_results(test_obj=test_cooling_obj, sensors=sensors)
 
   # Cleanup
+  state.update_progress_pane()
   sensors.stop_background_monitor()
   state.panes.pop('Current', None)
   tmux.kill_pane(state.panes.pop('Prime95', None))
@@ -613,14 +660,14 @@ def main():
       screensaver('pipes')
 
     # Quit
-    if 'Quit' in selection:
-      break
-    elif 'Reboot' in selection:
+    if 'Reboot' in selection:
       cmd = ['/usr/local/bin/wk-power-command', 'reboot']
       exe.run_program(cmd, check=False)
     elif 'Power Off' in selection:
       cmd = ['/usr/local/bin/wk-power-command', 'poweroff']
       exe.run_program(cmd, check=False)
+    elif 'Quit' in selection:
+      break
 
     # Start diagnostics
     if 'Start' in selection:
