@@ -721,9 +721,6 @@ def print_countdown(proc, seconds):
     print(f'{out_str:<42}', end='', flush=True)
     try:
       proc.wait(1)
-    except KeyboardInterrupt:
-      # Stop countdown
-      break
     except subprocess.TimeoutExpired:
       # proc still going, continue
       pass
