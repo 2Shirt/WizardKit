@@ -435,7 +435,7 @@ def cpu_mprime_test(state, test_objects):
   sensors = hw_sensors.Sensors()
   sensors.start_background_monitor(
     sensors_out,
-    thermal_action=('killall', 'mprime'),
+    thermal_action=('killall', 'mprime', '-INT'),
     )
 
   # Create monitor and worker panes
