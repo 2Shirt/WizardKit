@@ -244,8 +244,8 @@ def fix_sensor_name(name):
   """Cleanup sensor name, returns str."""
   name = re.sub(r'^(\w+)-(\w+)-(\w+)', r'\1 (\2 \3)', name, re.IGNORECASE)
   name = name.title()
-  name = name.replace('ACPItz', 'ACPI TZ')
   name = name.replace('Acpi', 'ACPI')
+  name = name.replace('ACPItz', 'ACPI TZ')
   name = name.replace('Coretemp', 'CoreTemp')
   name = name.replace('Cpu', 'CPU')
   name = name.replace('Id ', 'ID ')
@@ -255,6 +255,7 @@ def fix_sensor_name(name):
   name = re.sub(r'(\D+)(\d+)', r'\1 \2', name, re.IGNORECASE)
   name = re.sub(r'^K (\d+)Temp', r'AMD K\1 Temps', name, re.IGNORECASE)
   name = re.sub(r'T(ctl|die)', r'CPU (T\1)', name, re.IGNORECASE)
+  name = re.sub(r'\s+', ' ', name)
   return name
 
 
