@@ -873,9 +873,9 @@ def start_mprime(working_dir, log_path):
   return proc_mprime
 
 
-def stop_mprime(proc):
+def stop_mprime(proc_mprime):
   """Stop mprime gracefully, then forcefully as needed."""
-	proc_mprime.terminate()
+  proc_mprime.terminate()
   try:
     proc_mprime.wait(timeout=5)
   except subprocess.TimeoutExpired:
