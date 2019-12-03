@@ -68,15 +68,15 @@ MENU_TOGGLES = (
   'Skip USB Benchmarks',
   )
 STATUS_COLORS = {
+  'Passed': 'GREEN',
   'Aborted': 'YELLOW',
-  'Denied': 'RED',
-  'ERROR': 'RED',
-  'FAIL': 'RED',
   'N/A': 'YELLOW',
-  'PASS': 'GREEN',
-  'TimedOut': 'RED',
   'Unknown': 'YELLOW',
   'Working': 'YELLOW',
+  'Denied': 'RED',
+  'ERROR': 'RED',
+  'Failed': 'RED',
+  'TimedOut': 'RED',
   }
 WK_LABEL_REGEX = re.compile(
   fr'{cfg.main.KIT_NAME_SHORT}_(LINUX|UFD)',
@@ -417,6 +417,7 @@ def check_mprime_results(test_obj, working_dir):
 def cpu_mprime_test(state, test_objects):
   """CPU & cooling check using Prime95."""
   LOG.info('CPU Test (Prime95)')
+  aborted = False
   prime_log = pathlib.Path(f'{state.log_dir}/prime.log')
   sensors_out = pathlib.Path(f'{state.log_dir}/sensors.out')
   test_mprime_obj, test_cooling_obj = test_objects
@@ -432,7 +433,10 @@ def cpu_mprime_test(state, test_objects):
 
   # Start sensors monitor
   sensors = hw_sensors.Sensors()
-  sensors.start_background_monitor(sensors_out)
+  sensors.start_background_monitor(
+    sensors_out,
+    thermal_action=('killall', 'mprime'),
+    )
 
   # Create monitor and worker panes
   state.update_progress_pane()
@@ -450,28 +454,27 @@ def cpu_mprime_test(state, test_objects):
 
   # Stress CPU
   std.print_info('Starting stress test')
-  std.print_warning('If running too hot, press CTRL+c to abort the test')
   set_apple_fan_speed('max')
-  proc_mprime = start_mprime_thread(state.log_dir, prime_log)
+  proc_mprime = start_mprime(state.log_dir, prime_log)
 
   # Show countdown
+  print('')
   try:
-    print_countdown(seconds=cfg.hw.CPU_TEST_MINUTES*60)
+    print_countdown(proc=proc_mprime, seconds=cfg.hw.CPU_TEST_MINUTES*60)
   except KeyboardInterrupt:
-    test_cooling_obj.set_status('Aborted')
-    test_mprime_obj.set_status('Aborted')
-  except hw_sensors.ThermalLimitReachedError:
-    test_mprime_obj.set_status('Aborted')
+    aborted = True
 
   # Stop Prime95
-  proc_mprime.terminate()
-  try:
-    proc_mprime.wait(timeout=5)
-  except subprocess.TimeoutExpired:
-    proc_mprime.kill()
-  set_apple_fan_speed('auto')
+  stop_mprime(proc_mprime)
+
+  # Update progress if necessary
+  if sensors.cpu_reached_critical_temp() or aborted:
+    test_cooling_obj.set_status('Aborted')
+    test_mprime_obj.set_status('Aborted')
+    state.update_progress_pane()
 
   # Get cooldown temp
+  std.clear_screen()
   std.print_standard('Letting CPU cooldown...')
   std.sleep(5)
   std.print_standard('Saving cooldown temps...')
@@ -705,8 +708,8 @@ def network_test():
   std.pause('Press Enter to return to main menu...')
 
 
-def print_countdown(seconds):
-  """Print countdown to screen."""
+def print_countdown(proc, seconds):
+  """Print countdown to screen while proc is alive."""
   for i in range(seconds):
     sec_left = (seconds - i) % 60
     min_left = int((seconds - i) / 60)
@@ -718,7 +721,17 @@ def print_countdown(seconds):
     out_str += ' remaining'
 
     print(f'{out_str:<42}', end='', flush=True)
-    std.sleep(1)
+    try:
+      proc.wait(1)
+    except KeyboardInterrupt:
+      # Stop countdown
+      break
+    except subprocess.TimeoutExpired:
+      # proc still going, continue
+      pass
+    if proc.poll() is not None:
+      # proc exited, stop countdown
+      break
 
   # Done
   print('')
@@ -835,8 +848,9 @@ def show_results(state):
       std.print_standard(' ')
 
 
-def start_mprime_thread(working_dir, log_path):
+def start_mprime(working_dir, log_path):
   """Start mprime and save filtered output to log, returns Popen object."""
+  set_apple_fan_speed('max')
   proc_mprime = subprocess.Popen(
     ['mprime', '-t'],
     cwd=working_dir,
@@ -857,6 +871,16 @@ def start_mprime_thread(working_dir, log_path):
 
   # Return objects
   return proc_mprime
+
+
+def stop_mprime(proc):
+  """Stop mprime gracefully, then forcefully as needed."""
+	proc_mprime.terminate()
+  try:
+    proc_mprime.wait(timeout=5)
+  except subprocess.TimeoutExpired:
+    proc_mprime.kill()
+  set_apple_fan_speed('auto')
 
 
 if __name__ == '__main__':

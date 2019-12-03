@@ -64,6 +64,22 @@ class Sensors():
     # Done
     return max_temp
 
+  def cpu_reached_critical_temp(self):
+    """Check if CPU reached CPU_CRITICAL_TEMP, returns bool."""
+    for section, adapters in self.data.items():
+      if not section.startswith('CPU'):
+        # Limit to CPU temps
+        continue
+
+      # Ugly section
+      for sources in adapters.values():
+        for source_data in sources.values():
+          if source_data.get('Max', -1) >= CPU_CRITICAL_TEMP:
+            return True
+
+    # Didn't return above so temps are within the threshold
+    return False
+
   def generate_report(self, *temp_labels, colored=True, only_cpu=False):
     """Generate report based on given temp_labels, returns list."""
     report = []
@@ -72,7 +88,7 @@ class Sensors():
       if only_cpu and not section.startswith('CPU'):
         continue
 
-    # Ugly section
+      # Ugly section
       for adapter, sources in sorted(adapters.items()):
         report.append(fix_sensor_name(adapter))
         for source, source_data in sorted(sources.items()):
@@ -99,15 +115,22 @@ class Sensors():
     # Done
     return report
 
-  def monitor_to_file(self, out_path, temp_labels=None):
-    """Write report to path every second until stopped."""
+  def monitor_to_file(self, out_path, temp_labels=None, thermal_action=None):
+    """Write report to path every second until stopped.
+
+    thermal_action is a cmd to run if ThermalLimitReachedError is caught.
+    """
     stop_path = pathlib.Path(out_path).resolve().with_suffix('.stop')
     if not temp_labels:
       temp_labels = ('Current', 'Max')
 
     # Start loop
     while True:
-      self.update_sensor_data()
+      try:
+        self.update_sensor_data()
+      except ThermalLimitReachedError:
+        if thermal_action:
+          run_program(thermal_action, check=False)
       report = self.generate_report(*temp_labels)
       with open(out_path, 'w') as _f:
         _f.write('\n'.join(report))
@@ -136,15 +159,19 @@ class Sensors():
           temps = source_data['Temps']
           source_data[temp_label] = sum(temps) / len(temps)
 
-  def start_background_monitor(self, out_path, temp_labels=None):
-    """Start background thread to save report to file."""
+  def start_background_monitor(
+      self, out_path, temp_labels=None, thermal_action=None):
+    """Start background thread to save report to file.
+
+    thermal_action is a cmd to run if ThermalLimitReachedError is caught.
+    """
     if self.background_thread:
       raise RuntimeError('Background thread already running')
 
     self.out_path = pathlib.Path(out_path)
     self.background_thread = start_thread(
       self.monitor_to_file,
-      args=(out_path, temp_labels),
+      args=(out_path, temp_labels, thermal_action),
       )
 
   def stop_background_monitor(self):
