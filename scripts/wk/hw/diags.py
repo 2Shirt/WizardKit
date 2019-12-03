@@ -287,7 +287,6 @@ def audio_test():
 def audio_test_linux():
   """Run an audio test using amixer and speaker-test."""
   LOG.info('Audio Test')
-  std.clear_screen()
 
   # Set volume
   for source in ('Master', 'PCM'):
@@ -446,7 +445,6 @@ def cpu_mprime_test(state, test_objects):
   state.layout['Current'] = {'height': 3, 'Check': True}
 
   # Get idle temps
-  std.clear_screen()
   std.print_standard('Saving idle temps...')
   sensors.save_average_temps(temp_label='Idle', seconds=5)
 
@@ -474,7 +472,6 @@ def cpu_mprime_test(state, test_objects):
   set_apple_fan_speed('auto')
 
   # Get cooldown temp
-  std.clear_screen()
   std.print_standard('Letting CPU cooldown...')
   std.sleep(5)
   std.print_standard('Saving cooldown temps...')
@@ -604,7 +601,6 @@ def keyboard_test():
   """Test keyboard using xev."""
   LOG.info('Keyboard Test (xev)')
   cmd = ['xev', '-event', 'keyboard']
-  std.clear_screen()
   exe.run_program(cmd, check=False, pipe=False)
 
 
@@ -625,7 +621,6 @@ def main():
 
   # Quick Mode
   if args['--quick']:
-    std.clear_screen()
     run_diags(state, menu, quick_mode=True)
     return
 
@@ -680,7 +675,6 @@ def main():
 def network_test():
   """Run network tests."""
   LOG.info('Network Test')
-  std.clear_screen()
   try_and_print = std.TryAndPrint()
   result = try_and_print.run(
     'Network connection...', net.connected_to_private_network, msg_good='OK')
@@ -746,6 +740,7 @@ def run_diags(state, menu, quick_mode=False):
     # Run test(s)
     function = details['Function']
     try:
+      std.clear_screen()
       function(state, details['Objects'])
     except std.GenericAbort:
       aborted = True
