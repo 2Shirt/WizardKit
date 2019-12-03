@@ -495,10 +495,19 @@ def cpu_mprime_test(state, test_objects):
 def disk_attribute_check(state, test_objects):
   """Disk attribute check."""
   LOG.info('Disk Attribute Check')
-  #TODO: at
-  LOG.debug('%s, %s', state, test_objects)
-  std.print_warning('TODO: at')
-  std.pause()
+  for test in test_objects:
+    if not test.dev.attributes:
+      # No NVMe/SMART data
+      test.set_status('N/A')
+      continue
+
+    if test.dev.check_attributes():
+      test.set_status('Passed')
+    else:
+      test.set_status('Failed')
+
+  # Done
+  state.update_progress_pane()
 
 
 def disk_io_benchmark(state, test_objects):
