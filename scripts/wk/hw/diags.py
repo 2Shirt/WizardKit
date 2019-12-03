@@ -497,6 +497,7 @@ def disk_attribute_check(state, test_objects):
   """Disk attribute check."""
   LOG.info('Disk Attribute Check')
   #TODO: at
+  LOG.debug('%s, %s', state, test_objects)
   std.print_warning('TODO: at')
   std.pause()
 
@@ -505,6 +506,7 @@ def disk_io_benchmark(state, test_objects):
   """Disk I/O benchmark using dd."""
   LOG.info('Disk I/O Benchmark (dd)')
   #TODO: io
+  LOG.debug('%s, %s', state, test_objects)
   std.print_warning('TODO: io')
   std.pause()
 
@@ -513,6 +515,7 @@ def disk_self_test(state, test_objects):
   """Disk self-test if available."""
   LOG.info('Disk Self-Test')
   #TODO: st
+  LOG.debug('%s, %s', state, test_objects)
   std.print_warning('TODO: st')
   std.pause()
 
@@ -521,6 +524,7 @@ def disk_surface_scan(state, test_objects):
   """Disk surface scan using badblocks."""
   LOG.info('Disk Surface Scan (badblocks)')
   #TODO: bb
+  LOG.debug('%s, %s', state, test_objects)
   std.print_warning('TODO: bb')
   std.pause()
 

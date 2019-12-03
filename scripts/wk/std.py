@@ -9,12 +9,16 @@ import os
 import pathlib
 import platform
 import re
+import socket
 import subprocess
 import sys
 import time
 import traceback
 
 from collections import OrderedDict
+
+import requests
+
 try:
   from termios import tcflush, TCIOFLUSH
 except ImportError:
@@ -716,7 +720,6 @@ def color_string(strings, colors, sep=' '):
 
 def generate_debug_report():
   """Generate debug report, returns str."""
-  import socket
   platform_function_list = (
     'architecture',
     'machine',
@@ -971,7 +974,6 @@ def strip_colors(string):
 def upload_debug_report(report, compress=True, reason='DEBUG'):
   """Upload debug report to CRASH_SERVER as specified in wk.cfg.main."""
   LOG.info('Uploading debug report to %s', CRASH_SERVER.get('Name', '?'))
-  import requests
   headers = CRASH_SERVER.get('Headers', {'X-Requested-With': 'XMLHttpRequest'})
   if compress:
     headers['Content-Type'] = 'application/octet-stream'

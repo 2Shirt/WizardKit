@@ -181,6 +181,7 @@ def popen_program(cmd, minimized=False, pipe=False, shell=False, **kwargs):
 
 
 def run_program(cmd, check=True, pipe=True, shell=False, **kwargs):
+  # pylint: disable=subprocess-run-check
   """Run program and return a subprocess.CompletedProcess object."""
   LOG.debug(
     'cmd: %s, check: %s, pipe: %s, shell: %s',
