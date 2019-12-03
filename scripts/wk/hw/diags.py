@@ -19,10 +19,6 @@ from wk.hw import obj as hw_obj
 from wk.hw import sensors as hw_sensors
 
 
-# atexit functions
-atexit.register(tmux.kill_all_panes)
-#TODO: Add state/dev data dump debug function
-
 # STATIC VARIABLES
 DOCSTRING = f'''{cfg.main.KIT_NAME_FULL}: Hardware Diagnostics
 
@@ -623,6 +619,8 @@ def main():
     raise RuntimeError('tmux session not found')
 
   # Init
+  atexit.register(tmux.kill_all_panes)
+  #TODO: Add state/dev data dump debug function
   menu = build_menu(cli_mode=args['--cli'], quick_mode=args['--quick'])
   state = State()
 
