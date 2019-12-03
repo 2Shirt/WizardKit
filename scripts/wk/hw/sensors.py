@@ -115,7 +115,9 @@ class Sensors():
     # Done
     return report
 
-  def monitor_to_file(self, out_path, temp_labels=None, thermal_action=None):
+  def monitor_to_file(
+      self, out_path,
+      exit_on_thermal_limit=True, temp_labels=None, thermal_action=None):
     """Write report to path every second until stopped.
 
     thermal_action is a cmd to run if ThermalLimitReachedError is caught.
@@ -127,7 +129,7 @@ class Sensors():
     # Start loop
     while True:
       try:
-        self.update_sensor_data()
+        self.update_sensor_data(exit_on_thermal_limit)
       except ThermalLimitReachedError:
         if thermal_action:
           run_program(thermal_action, check=False)
@@ -160,7 +162,8 @@ class Sensors():
           source_data[temp_label] = sum(temps) / len(temps)
 
   def start_background_monitor(
-      self, out_path, temp_labels=None, thermal_action=None):
+      self, out_path,
+      exit_on_thermal_limit=True, temp_labels=None, thermal_action=None):
     """Start background thread to save report to file.
 
     thermal_action is a cmd to run if ThermalLimitReachedError is caught.
@@ -171,7 +174,7 @@ class Sensors():
     self.out_path = pathlib.Path(out_path)
     self.background_thread = start_thread(
       self.monitor_to_file,
-      args=(out_path, temp_labels, thermal_action),
+      args=(out_path, exit_on_thermal_limit, temp_labels, thermal_action),
       )
 
   def stop_background_monitor(self):
