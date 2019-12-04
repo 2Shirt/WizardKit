@@ -522,10 +522,77 @@ def disk_io_benchmark(state, test_objects):
 def disk_self_test(state, test_objects):
   """Disk self-test if available."""
   LOG.info('Disk Self-Test')
-  #TODO: st
-  LOG.debug('%s, %s', state, test_objects)
-  std.print_warning('TODO: st')
-  std.pause()
+  aborted = False
+  threads = []
+  state.panes['SMART'] = []
+
+  def _run_self_test(test_obj, log_path):
+    """Run self-test and handle exceptions."""
+    result = None
+
+    try:
+      test_obj.passed = test_obj.dev.run_self_test(log_path)
+      test_obj.failed = not test_obj.passed
+    except TimeoutError:
+      test_obj.failed = True
+      result = 'TimedOut'
+    except hw_obj.SMARTNotSupportedError:
+      result = 'N/A'
+
+    # Set status
+    if result:
+      test_obj.set_status(result)
+    else:
+      if test_obj.failed:
+        test_obj.set_status('Failed')
+      elif test_obj.passed:
+        test_obj.set_status('Passed')
+      else:
+        test_obj.set_status('Unknown')
+
+  # Run self-tests
+  std.print_info(f'Starting self-test{"s" if len(test_objects) > 1 else ""}')
+  for test in test_objects:
+    test.set_status('Working')
+    test_log = f'{state.log_dir}/{test.dev.path.name}_selftest.log'
+
+    # Start thread
+    threads.append(exe.start_thread(_run_self_test, args=(test, test_log)))
+
+    # Show progress
+    if threads[-1].is_alive():
+      state.panes['SMART'].append(
+        tmux.split_window(lines=3, vertical=True, watch_file=test_log),
+        )
+
+  # Wait for all tests to complete
+  state.update_progress_pane()
+  try:
+    while True:
+      if any([t.is_alive() for t in threads]):
+        std.sleep(1)
+      else:
+        break
+  except KeyboardInterrupt:
+    aborted = True
+
+  # Save report(s)
+  for test in test_objects:
+    if test.status != 'N/A':
+      test_details = test.dev.get_smart_self_test_details()
+      test_result = test_details.get('status', {}).get('string', 'Unknown')
+      test.report.append(std.color_string('Self-Test', 'BLUE'))
+      test.report.append(f'  {test_result}')
+      if aborted and not (test.passed or test.failed):
+        test.report.append(std.color_string('  Aborted', 'YELLOW'))
+      elif test.status == 'TimedOut':
+        test.report.append(std.color_string('  TimedOut', 'YELLOW'))
+
+  # Cleanup
+  state.update_progress_pane()
+  for pane in state.panes['SMART']:
+    tmux.kill_pane(pane)
+  state.panes.pop('SMART', None)
 
 
 def disk_surface_scan(state, test_objects):
