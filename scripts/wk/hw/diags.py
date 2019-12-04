@@ -438,8 +438,12 @@ def cpu_mprime_test(state, test_objects):
   state.update_progress_pane()
   state.panes['Prime95'] = tmux.split_window(
     lines=10, vertical=True, watch_file=prime_log)
-  state.panes['Temps'] = tmux.split_window(
-    behind=True, percent=80, vertical=True, watch_file=sensors_out)
+  if platform.system() == 'Darwin':
+    state.panes['Temps'] = tmux.split_window(
+      behind=True, percent=80, vertical=True, cmd='./hw-sensors')
+  elif platform.system() == 'Linux':
+    state.panes['Temps'] = tmux.split_window(
+      behind=True, percent=80, vertical=True, watch_file=sensors_out)
   tmux.resize_pane(height=3)
   state.panes['Current'] = ''
   state.layout['Current'] = {'height': 3, 'Check': True}
