@@ -205,13 +205,6 @@ class State():
           disk.tests[name] = test_obj
           self.tests[name]['Objects'].append(test_obj)
 
-        # No disks detected?
-        if not self.tests[name]['Objects']:
-          test_obj = hw_obj.Test(dev=None, label='')
-          test_obj.set_status('N/A')
-          test_obj.disabled = True
-          self.tests[name]['Objects'].append(test_obj)
-
   def init_tmux(self):
     """Initialize tmux layout."""
     tmux.kill_all_panes()
