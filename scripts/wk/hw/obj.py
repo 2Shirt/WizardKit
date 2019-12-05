@@ -516,7 +516,7 @@ class Test():
     self.label = label
     self.passed = False
     self.report = []
-    self.status = ''
+    self.status = 'Pending'
 
   def set_status(self, status):
     """Update status string."""
@@ -590,10 +590,9 @@ def get_disk_details_macos(path):
 
 def get_disk_serial_macos(path):
   """Get disk serial using system_profiler, returns str."""
-  serial = 'Unknown Serial'
-  # TODO: Make it real
-  str(path)
-  return serial
+  cmd = ['sudo', 'smartctl', '--info', '--json', path]
+  smart_info = get_json_from_command(cmd)
+  return smart_info.get('serial_number', 'Unknown Serial')
 
 
 def get_known_disk_attributes(model):
