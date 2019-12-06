@@ -172,7 +172,7 @@ def prep_action(
         'cat',
         ])
     elif watch_cmd == 'tail':
-      action_cmd.extend(['tail', '--follow'])
+      action_cmd.extend(['tail', '-f'])
     action_cmd.append(watch_file)
   else:
     LOG.error('No action specified')
