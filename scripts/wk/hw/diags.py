@@ -553,7 +553,7 @@ def disk_self_test(state, test_objects):
     f'Disk self-test{"s" if len(test_objects) > 1 else ""}',
     )
   std.print_info(f'Starting self-test{"s" if len(test_objects) > 1 else ""}')
-  for test in test_objects:
+  for test in reversed(test_objects):
     test.set_status('Working')
     test_log = f'{state.log_dir}/{test.dev.path.name}_selftest.log'
 
@@ -631,10 +631,13 @@ def disk_surface_scan(state, test_objects):
         )
 
     # Check results
-    with open(log_path, 'a') as _f:
+    with open(log_path, 'r') as _f:
+      # Skip first line
+      _f.readline()
+      # Check the rest
       for line in _f.readlines():
         line = line.strip()
-        if not line or line.startswith('Checking'):
+        if not line or line.startswith('Checking' or line.startswith('[')):
           # Skip
           continue
         if re.search(f'^Pass completed.*0.*0/0/0', line, re.IGNORECASE):
@@ -655,7 +658,7 @@ def disk_surface_scan(state, test_objects):
   std.print_info(
     f'Starting disk surface scan{"s" if len(test_objects) > 1 else ""}',
     )
-  for test in test_objects:
+  for test in reversed(test_objects):
     test_log = f'{state.log_dir}/{test.dev.path.name}_badblocks.log'
 
     # Start thread
