@@ -153,7 +153,6 @@ class State():
 
   def init_diags(self, menu):
     """Initialize diagnostic pass."""
-    std.print_info('Starting Hardware Diagnostics')
 
     # Reset objects
     self.disks.clear()
@@ -174,6 +173,7 @@ class State():
       keep_history=False,
       timestamp=False,
       )
+    std.print_info('Starting Hardware Diagnostics')
 
     # Progress Pane
     self.update_progress_pane()
