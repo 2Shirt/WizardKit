@@ -619,7 +619,10 @@ def disk_surface_scan(state, test_objects):
     with open(log_path, 'a') as _f:
       size_str = std.bytes_to_string(dev.details["size"], use_binary=False)
       _f.write(
-        f'[{dev.path.name} {size_str}]\n',
+        std.color_string(
+          [dev.path.name, size_str, '\n'],
+          ['BLUE', 'CYAN', None],
+          ),
         )
       _f.flush()
       exe.run_program(
