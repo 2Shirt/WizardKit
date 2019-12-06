@@ -105,7 +105,11 @@ def layout_needs_fixed(panes, layout):
     if isinstance(pane_list, str):
       pane_list = [pane_list]
     for pane_id in pane_list:
-      width, height = get_pane_size(pane_id)
+      try:
+        width, height = get_pane_size(pane_id)
+      except ValueError:
+        # Pane may have disappeared during this loop
+        continue
       if data.get('width', False) and data['width'] != width:
         needs_fixed = True
       if data.get('height', False) and data['height'] != height:
