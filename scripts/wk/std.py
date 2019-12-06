@@ -785,18 +785,20 @@ def input_text(prompt='Enter text'):
   response = None
   if prompt[-1:] != ' ':
     prompt += ' '
+  print(prompt, end='', flush=True)
 
   while response is None:
     if os.name == 'posix':
       # Flush input to (hopefully) avoid EOFError
       tcflush(sys.stdin, TCIOFLUSH)
     try:
-      response = input(prompt)
+      response = input()
       LOG.debug('%s%s', prompt, response)
     except EOFError:
       # Ignore and try again
-      LOG.warning('Exception occured', exc_info=True)
-      print('', flush=True)
+      #LOG.warning('Exception occured', exc_info=True)
+      #print('', end='', flush=True)
+      pass
 
   return response
 
