@@ -14,6 +14,8 @@ ATTRIBUTE_COLORS = (
   ('Error', 'RED'),
   ('Maximum', 'PURPLE'),
   )
+# NOTE: Force 4K read block size for disks >= 3TB
+BADBLOCKS_LARGE_DISK = 3*1024**4
 CPU_CRITICAL_TEMP = 99
 CPU_FAILURE_TEMP = 90
 CPU_TEST_MINUTES = 7
@@ -122,7 +124,7 @@ TMUX_LAYOUT = OrderedDict({
   'Temps':          {'height':  1000,             'Check': False},
   'Prime95':        {'height':  11,               'Check': False},
   'SMART':          {'height':  3,                'Check': True},
-  'badblocks':      {'height':  5,                'Check': True},
+  'badblocks':      {'height':  3,                'Check': True},
   'I/O Benchmark':  {'height':  1000,             'Check': False},
   })
 

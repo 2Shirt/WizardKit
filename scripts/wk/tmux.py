@@ -159,14 +159,14 @@ def prep_action(
   elif watch_file:
     # Monitor file
     prep_file(watch_file)
-    action_cmd.extend([
-      'watch',
-      '--color',
-      '--no-title',
-      '--interval', '1',
-      ])
     if watch_cmd == 'cat':
-      action_cmd.append('cat')
+      action_cmd.extend([
+        'watch',
+        '--color',
+        '--no-title',
+        '--interval', '1',
+        'cat',
+        ])
     elif watch_cmd == 'tail':
       action_cmd.extend(['tail', '--follow'])
     action_cmd.append(watch_file)

@@ -1,4 +1,5 @@
 """WizardKit: Hardware diagnostics"""
+# pylint: disable=too-many-lines
 # vim: sts=2 sw=2 ts=2
 
 import atexit
@@ -518,7 +519,7 @@ def disk_io_benchmark(state, test_objects):
 
 def disk_self_test(state, test_objects):
   """Disk self-test if available."""
-  LOG.info('Disk Self-Test')
+  LOG.info('Disk Self-Test(s)')
   aborted = False
   threads = []
   state.panes['SMART'] = []
@@ -548,6 +549,9 @@ def disk_self_test(state, test_objects):
         test_obj.set_status('Unknown')
 
   # Run self-tests
+  state.update_top_pane(
+    f'Disk self-test{"s" if len(test_objects) > 1 else ""}',
+    )
   std.print_info(f'Starting self-test{"s" if len(test_objects) > 1 else ""}')
   for test in test_objects:
     test.set_status('Working')
@@ -593,12 +597,101 @@ def disk_self_test(state, test_objects):
 
 
 def disk_surface_scan(state, test_objects):
-  """Disk surface scan using badblocks."""
+  """Read-only disk surface scan using badblocks."""
   LOG.info('Disk Surface Scan (badblocks)')
-  #TODO: bb
-  LOG.debug('%s, %s', state, test_objects)
-  std.print_warning('TODO: bb')
-  std.pause()
+  threads = []
+  state.panes['badblocks'] = []
+
+  def _run_surface_scan(test_obj, log_path):
+    """Run surface scan and handle exceptions."""
+    block_size = '1024'
+    dev = test_obj.dev
+    test_obj.report.append(std.color_string('badblocks', 'BLUE'))
+    test_obj.set_status('Working')
+
+    # Increase block size if necessary
+    if (dev.details['phy-sec'] == 4096
+        or dev.details['size'] >= cfg.hw.BADBLOCKS_LARGE_DISK):
+      block_size = '4096'
+
+    # Start scan
+    cmd = ['sudo', 'badblocks', '-sv', '-b', block_size, '-e', '1', dev.path]
+    with open(log_path, 'a') as _f:
+      size_str = std.bytes_to_string(dev.details["size"], use_binary=False)
+      _f.write(
+        f'[{dev.path.name} {size_str}]\n',
+        )
+      _f.flush()
+      exe.run_program(
+        cmd,
+        check=False,
+        pipe=False,
+        stderr=subprocess.STDOUT,
+        stdout=_f,
+        )
+
+    # Check results
+    with open(log_path, 'a') as _f:
+      for line in _f.readlines():
+        line = line.strip()
+        if not line or line.startswith('Checking'):
+          # Skip
+          continue
+        if re.search(f'^Pass completed.*0.*0/0/0', line, re.IGNORECASE):
+          test_obj.passed = True
+          test_obj.report.append(f'  {line}')
+          test_obj.set_status('Passed')
+        else:
+          test_obj.failed = True
+          test_obj.report.append(f'  {std.color_string(line, "YELLOW")}')
+          test_obj.set_status('Failed')
+    if not (test_obj.passed or test_obj.failed):
+      test_obj.set_status('Unknown')
+
+  # Run surface scans
+  state.update_top_pane(
+    f'Disk Surface Scan{"s" if len(test_objects) > 1 else ""}',
+    )
+  std.print_info(
+    f'Starting disk surface scan{"s" if len(test_objects) > 1 else ""}',
+    )
+  for test in test_objects:
+    test_log = f'{state.log_dir}/{test.dev.path.name}_badblocks.log'
+
+    # Start thread
+    threads.append(exe.start_thread(_run_surface_scan, args=(test, test_log)))
+
+    # Show progress
+    if threads[-1].is_alive():
+      state.panes['badblocks'].append(
+        tmux.split_window(
+          lines=3,
+          vertical=True,
+          watch_cmd='tail',
+          watch_file=test_log,
+          ),
+        )
+
+  # Wait for all tests to complete
+  try:
+    while True:
+      if any([t.is_alive() for t in threads]):
+        state.update_progress_pane()
+        std.sleep(5)
+      else:
+        break
+  except KeyboardInterrupt:
+    # Handle aborts
+    for test in test_objects:
+      if not (test.passed or test.failed or test.status == 'Unknown'):
+        test.set_status('Aborted')
+        test.report.append(std.color_string('Aborted', 'YELLOW'))
+
+  # Cleanup
+  state.update_progress_pane()
+  for pane in state.panes['badblocks']:
+    tmux.kill_pane(pane)
+  state.panes.pop('badblocks', None)
 
 
 def get_disks():
