@@ -124,7 +124,7 @@ TMUX_LAYOUT = OrderedDict({
   'Temps':          {'height':  1000,             'Check': False},
   'Prime95':        {'height':  11,               'Check': False},
   'SMART':          {'height':  3,                'Check': True},
-  'badblocks':      {'height':  3,                'Check': True},
+  'badblocks':      {'height':  5,                'Check': True},
   'I/O Benchmark':  {'height':  1000,             'Check': False},
   })
 

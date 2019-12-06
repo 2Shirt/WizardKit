@@ -32,6 +32,10 @@ Options:
   -h --help           Show this page
   -q --quick          Skip menu and perform a quick check
 '''
+BADBLOCKS_REGEX = re.compile(
+  r'^Pass completed, (\d+) bad blocks found. .(\d+)/(\d+)/(\d+) errors',
+  re.IGNORECASE,
+  )
 LOG = logging.getLogger(__name__)
 MENU_ACTIONS = (
   'Audio Test',
@@ -620,8 +624,9 @@ def disk_surface_scan(state, test_objects):
       size_str = std.bytes_to_string(dev.details["size"], use_binary=False)
       _f.write(
         std.color_string(
-          [dev.path.name, size_str, '\n'],
-          ['BLUE', 'CYAN', None],
+          ['[', dev.path.name, ' ', size_str, ']\n'],
+          [None, 'BLUE', None, 'CYAN', None],
+          sep='',
           ),
         )
       _f.flush()
@@ -635,22 +640,23 @@ def disk_surface_scan(state, test_objects):
 
     # Check results
     with open(log_path, 'r') as _f:
-      # Skip first line
-      _f.readline()
-      # Check the rest
       for line in _f.readlines():
-        line = line.strip()
-        if not line or line.startswith('Checking' or line.startswith('[')):
+        line = std.strip_colors(line.strip())
+        if not line or line.startswith('Checking') or line.startswith('['):
           # Skip
           continue
-        if re.search(f'^Pass completed.*0.*0/0/0', line, re.IGNORECASE):
-          test_obj.passed = True
-          test_obj.report.append(f'  {line}')
-          test_obj.set_status('Passed')
+        match = BADBLOCKS_REGEX.search(line)
+        if match:
+          if all([s == '0' for s in match.groups()]):
+            test_obj.passed = True
+            test_obj.report.append(f'  {line}')
+            test_obj.set_status('Passed')
+          else:
+            test_obj.failed = True
+            test_obj.report.append(f'  {std.color_string(line, "YELLOW")}')
+            test_obj.set_status('Failed')
         else:
-          test_obj.failed = True
           test_obj.report.append(f'  {std.color_string(line, "YELLOW")}')
-          test_obj.set_status('Failed')
     if not (test_obj.passed or test_obj.failed):
       test_obj.set_status('Unknown')
 
@@ -671,7 +677,7 @@ def disk_surface_scan(state, test_objects):
     if threads[-1].is_alive():
       state.panes['badblocks'].append(
         tmux.split_window(
-          lines=3,
+          lines=5,
           vertical=True,
           watch_cmd='tail',
           watch_file=test_log,
@@ -687,11 +693,12 @@ def disk_surface_scan(state, test_objects):
       else:
         break
   except KeyboardInterrupt:
+    std.sleep(0.5)
     # Handle aborts
     for test in test_objects:
-      if not (test.passed or test.failed or test.status == 'Unknown'):
+      if not (test.passed or test.failed):
         test.set_status('Aborted')
-        test.report.append(std.color_string('Aborted', 'YELLOW'))
+        test.report.append(std.color_string('  Aborted', 'YELLOW'))
 
   # Cleanup
   state.update_progress_pane()
@@ -991,6 +998,7 @@ def set_apple_fan_speed(speed):
 
 def show_results(state):
   """Show test results by device."""
+  std.sleep(0.5)
   std.clear_screen()
   state.update_top_pane('Results')
 
