@@ -15,7 +15,7 @@ ATTRIBUTE_COLORS = (
   ('Maximum', 'PURPLE'),
   )
 # NOTE: Force 4K read block size for disks >= 3TB
-BADBLOCKS_LARGE_DISK = 3*1024**4
+BADBLOCKS_LARGE_DISK = 3 * 1024**4
 CPU_CRITICAL_TEMP = 99
 CPU_FAILURE_TEMP = 90
 CPU_TEST_MINUTES = 7
@@ -115,6 +115,13 @@ TEMP_COLORS = {
   90:             'RED',
   100:            'ORANGE_RED',
   }
+# THRESHOLDS: Rates used to determine HDD/SSD pass/fail
+THRESH_HDD_MIN =       50 * 1024**2
+THRESH_HDD_AVG_HIGH =  75 * 1024**2
+THRESH_HDD_AVG_LOW =   65 * 1024**2
+THRESH_SSD_MIN =       90 * 1024**2
+THRESH_SSD_AVG_HIGH = 135 * 1024**2
+THRESH_SSD_AVG_LOW =  100 * 1024**2
 TMUX_SIDE_WIDTH = 20
 TMUX_LAYOUT = OrderedDict({
   'Top':            {'height':  2,                'Check': True},

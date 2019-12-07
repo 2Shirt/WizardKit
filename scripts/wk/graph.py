@@ -9,11 +9,7 @@ from wk.std import color_string
 
 # STATIC VARIABLES
 LOG = logging.getLogger(__name__)
-ALT_TEST_SIZE_FACTOR = 0.01
-BLOCK_SIZE = 512 * 1024
-CHUNK_SIZE = 32 * 1024**2
 GRAPH_HORIZONTAL = ('▁', '▂', '▃', '▄', '▅', '▆', '▇', '█')
-GRAPH_WIDTH = 40
 GRAPH_VERTICAL = (
     '▏',    '▎',    '▍',    '▌',
     '▋',    '▊',    '▉',    '█',
@@ -24,7 +20,6 @@ GRAPH_VERTICAL = (
     '███▏', '███▎', '███▍', '███▌',
     '███▋', '███▊', '███▉', '████',
   )
-MINIMUM_TEST_SIZE = 10 * 1024**3
 # SCALE_STEPS: These scales allow showing differences between HDDs and SSDs
 #              on the same graph.
 SCALE_STEPS = {
@@ -39,13 +34,13 @@ THRESH_GREAT =        750 * 1024**2
 
 
 # Functions
-def generate_horizontal_graph(rate_list, oneline=False):
+def generate_horizontal_graph(rate_list, graph_width=40, oneline=False):
   """Generate horizontal graph from rate_list, returns list."""
   graph = ['', '', '', '']
   scale = 8 if oneline else 32
 
   # Build graph
-  for rate in merge_rates(rate_list):
+  for rate in merge_rates(rate_list, graph_width=graph_width):
     step = get_graph_step(rate, scale=scale)
 
     # Set color
@@ -101,7 +96,7 @@ def get_graph_step(rate, scale=16):
   return step
 
 
-def merge_rates(rates, graph_width=GRAPH_WIDTH):
+def merge_rates(rates, graph_width=40):
   """Merge rates to have entries equal to the width, returns list."""
   merged_rates = []
   offset = 0
@@ -114,6 +109,42 @@ def merge_rates(rates, graph_width=GRAPH_WIDTH):
 
   # Done
   return merged_rates
+
+
+def vertical_graph_line(percent, rate, scale=32):
+  """Build colored graph string using thresholds, returns str."""
+  color_bar = None
+  color_rate = None
+  step = get_graph_step(rate, scale=scale)
+
+  # Set colors
+  if rate < THRESH_FAIL:
+    color_bar = 'RED'
+    color_rate = 'YELLOW'
+  elif rate < THRESH_WARN:
+    color_bar = 'YELLOW'
+    color_rate = 'YELLOW'
+  elif rate > THRESH_GREAT:
+    color_bar = 'GREEN'
+    color_rate = 'GREEN'
+
+  # Build string
+  line = color_string(
+    strings=(
+      f'{percent:5.1f}%',
+      f'{GRAPH_VERTICAL[step]:<4}',
+      f'{rate/(1000**2):6.1f} MB/s',
+      ),
+    colors=(
+      None,
+      color_bar,
+      color_rate,
+      ),
+    sep='  ',
+    )
+
+  # Done
+  return line
 
 
 if __name__ == '__main__':

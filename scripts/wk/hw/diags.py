@@ -15,7 +15,7 @@ import time
 from collections import OrderedDict
 from docopt import docopt
 
-from wk import cfg, exe, log, net, std, tmux
+from wk import cfg, exe, graph, log, net, std, tmux
 from wk.hw import obj as hw_obj
 from wk.hw import sensors as hw_sensors
 
@@ -32,11 +32,17 @@ Options:
   -h --help           Show this page
   -q --quick          Skip menu and perform a quick check
 '''
+LOG = logging.getLogger(__name__)
 BADBLOCKS_REGEX = re.compile(
   r'^Pass completed, (\d+) bad blocks found. .(\d+)/(\d+)/(\d+) errors',
   re.IGNORECASE,
   )
-LOG = logging.getLogger(__name__)
+IO_GRAPH_WIDTH = 40
+IO_ALT_TEST_SIZE_FACTOR = 0.01
+IO_BLOCK_SIZE = 512 * 1024
+IO_CHUNK_SIZE = 32 * 1024**2
+IO_MINIMUM_TEST_SIZE = 10 * 1024**3
+IO_RATE_REGEX = re.compile(r'(?P<bytes>\d+) bytes.* (?P<seconds>\S+) s,')
 MENU_ACTIONS = (
   'Audio Test',
   'Keyboard Test',
@@ -72,6 +78,7 @@ STATUS_COLORS = {
   'Passed': 'GREEN',
   'Aborted': 'YELLOW',
   'N/A': 'YELLOW',
+  'Skipped': 'YELLOW',
   'Unknown': 'YELLOW',
   'Working': 'YELLOW',
   'Denied': 'RED',
@@ -83,6 +90,11 @@ WK_LABEL_REGEX = re.compile(
   fr'{cfg.main.KIT_NAME_SHORT}_(LINUX|UFD)',
   re.IGNORECASE,
   )
+
+
+# Error Classes
+class DeviceTooSmallError(RuntimeError):
+  """Raised when a device is too small to test."""
 
 
 # Classes
@@ -333,6 +345,58 @@ def build_menu(cli_mode=False, quick_mode=False):
   return menu
 
 
+def calc_io_dd_values(dev_size):
+  """Calculate I/O benchmark dd values, returns dict.
+
+  Calculations:
+  The minimum dev size is IO_GRAPH_WIDTH * IO_CHUNK_SIZE
+    (e.g. 1.25 GB for a width of 40 and a chunk size of 32MB)
+
+  read_total is the area to be read in bytes
+    If the dev is < IO_MINIMUM_TEST_SIZE then it's the whole dev
+    Else it's the larger of IO_MINIMUM_TEST_SIZE or the alt test size
+    (determined by dev * IO_ALT_TEST_SIZE_FACTOR)
+
+  read_chunks is the number of groups of IO_CHUNK_SIZE in test_obj.dev
+    This number is reduced to a multiple of IO_GRAPH_WIDTH in order
+    to allow for the data to be condensed cleanly
+
+  read_blocks is the chunk size in number of blocks
+    (e.g. 64 if block size is 512KB and chunk size is 32MB
+
+  skip_total is the number of IO_BLOCK_SIZE groups not tested
+  skip_blocks is the number of blocks to skip per IO_CHUNK_SIZE
+  skip_extra_rate is how often to add an additional skip block
+    This is needed to ensure an even testing across the dev
+    This is calculated by using the fractional amount left off
+    of the skip_blocks variable
+  """
+  read_total = min(IO_MINIMUM_TEST_SIZE, dev_size)
+  read_total = max(read_total, dev_size*IO_ALT_TEST_SIZE_FACTOR)
+  read_chunks = int(read_total // IO_CHUNK_SIZE)
+  read_chunks -= read_chunks % IO_GRAPH_WIDTH
+  if read_chunks < IO_GRAPH_WIDTH:
+    raise DeviceTooSmallError
+  read_blocks = int(IO_CHUNK_SIZE / IO_BLOCK_SIZE)
+  read_total = read_chunks * IO_CHUNK_SIZE
+  skip_total = int((dev_size - read_total) // IO_BLOCK_SIZE)
+  skip_blocks = int((skip_total / read_chunks) // 1)
+  skip_extra_rate = 0
+  try:
+    skip_extra_rate = 1 + int(1 / ((skip_total / read_chunks) % 1))
+  except ZeroDivisionError:
+    # skip_extra_rate == 0 is fine
+    pass
+
+  # Done
+  return {
+    'Read Chunks': read_chunks,
+    'Read Blocks': read_blocks,
+    'Skip Blocks': skip_blocks,
+    'Skip Extra': skip_extra_rate,
+    }
+
+
 def check_cooling_results(test_obj, sensors):
   """Check cooling results and update test_obj."""
   max_temp = sensors.cpu_max_temp()
@@ -351,6 +415,51 @@ def check_cooling_results(test_obj, sensors):
   for line in sensors.generate_report(
       'Idle', 'Max', 'Cooldown', only_cpu=True):
     test_obj.report.append(f'  {line}')
+
+
+def check_io_benchmark_results(test_obj, rate_list, graph_width):
+  """Generate colored report using rate_list, returns list of str."""
+  avg_read = sum(rate_list) / len(rate_list)
+  min_read = min(rate_list)
+  max_read = max(rate_list)
+  if test_obj.dev.details['ssd']:
+    thresh_min = cfg.hw.THRESH_SSD_MIN
+    thresh_avg_high = cfg.hw.THRESH_SSD_AVG_HIGH
+    thresh_avg_low = cfg.hw.THRESH_SSD_AVG_LOW
+  else:
+    thresh_min = cfg.hw.THRESH_HDD_MIN
+    thresh_avg_high = cfg.hw.THRESH_HDD_AVG_HIGH
+    thresh_avg_low = cfg.hw.THRESH_HDD_AVG_LOW
+
+  # Add horizontal graph to report
+  for line in graph.generate_horizontal_graph(rate_list, graph_width):
+    if not std.strip_colors(line).strip():
+      # Skip empty lines
+      continue
+    test_obj.report.append(line)
+
+  # Add read rates to report
+  test_obj.report.append(
+    f'Read speeds    avg: {avg_read/(1000**2):3.1f}'
+    f' min: {min_read/(1000**2):3.1f}'
+    f' max: {max_read/(1000**2):3.1f}'
+    )
+
+  # Compare against thresholds
+  if min_read <= thresh_min and avg_read <= thresh_avg_high:
+    test_obj.failed = True
+  elif avg_read <= thresh_avg_low:
+    test_obj.failed = True
+  else:
+    test_obj.passed = True
+
+  # Set status
+  if test_obj.failed:
+    test_obj.set_status('Failed')
+  elif test_obj.passed:
+    test_obj.set_status('Passed')
+  else:
+    test_obj.set_status('Unknown')
 
 
 def check_mprime_results(test_obj, working_dir):
@@ -512,16 +621,135 @@ def disk_attribute_check(state, test_objects):
   state.update_progress_pane()
 
 
-def disk_io_benchmark(state, test_objects):
+def disk_io_benchmark(state, test_objects, skip_usb=True):
+  # pylint: disable=too-many-statements
   """Disk I/O benchmark using dd."""
   LOG.info('Disk I/O Benchmark (dd)')
-  #TODO: io
-  LOG.debug('%s, %s', state, test_objects)
-  std.print_warning('TODO: io')
-  std.pause()
+  aborted = False
+
+  def _run_io_benchmark(test_obj, log_path):
+    """Run I/O benchmark and handle exceptions."""
+    offset = 0
+    read_rates = []
+    test_obj.report.append(std.color_string('I/O Benchmark', 'BLUE'))
+
+    # Get dd values or bail
+    try:
+      dd_values = calc_io_dd_values(test_obj.dev.details['size'])
+    except DeviceTooSmallError:
+      test_obj.set_status('N/A')
+      test_obj.report.append(
+        std.color_string('Disk too small to test', 'YELLOW'),
+        )
+      return
+
+    # Run dd read tests
+    for _i in range(dd_values['Read Chunks']):
+      _i += 1
+
+      # Build cmd
+      skip = dd_values['Skip Blocks']
+      if dd_values['Skip Extra'] and _i % dd_values['Skip Extra'] == 0:
+        skip += 1
+      cmd = [
+        'sudo', 'dd',
+        f'bs={IO_BLOCK_SIZE}',
+        f'skip={offset+skip}',
+        f'count={dd_values["Read Blocks"]}',
+        f'if={test_obj.dev.path}',
+        'of=/dev/null',
+        ]
+      if platform.system() == 'Linux':
+        cmd.append('iflag=direct')
+
+      # Run and get read rate
+      try:
+        proc = exe.run_program(
+          cmd,
+          pipe=False,
+          stdout=subprocess.PIPE,
+          stderr=subprocess.STDOUT,
+          )
+      except PermissionError:
+        # Since we're using sudo we can't kill dd
+        # Assuming this happened during a CTRL+c
+        raise KeyboardInterrupt
+      match = IO_RATE_REGEX.search(proc.stdout)
+      if match:
+        read_rates.append(
+          int(match.group('bytes')) / float(match.group('seconds')),
+          )
+        match.group(1)
+
+      # Show progress
+      with open(log_path, 'a') as _f:
+        if _i % 5 == 0:
+          percent = (_i / dd_values['Read Chunks']) * 100
+          _f.write(f'  {graph.vertical_graph_line(percent, read_rates[-1])}\n')
+
+      # Update offset
+      offset += dd_values['Read Blocks'] + skip
+
+    # Check results
+    check_io_benchmark_results(test_obj, read_rates, IO_GRAPH_WIDTH)
+
+  # Run benchmarks
+  state.update_top_pane(
+    f'Disk I/O Benchmark{"s" if len(test_objects) > 1 else ""}',
+    )
+  state.panes['I/O Benchmark'] = tmux.split_window(
+    percent=75,
+    vertical=True,
+    text=' ',
+    )
+  for test in test_objects:
+    if test.disabled:
+      # Skip
+      continue
+
+    # Skip USB devices if requested
+    if skip_usb and test.dev.details['bus'] == 'USB':
+      test.set_status('Skipped')
+      continue
+
+    # Start benchmark
+    if not aborted:
+      std.clear_screen()
+      std.print_report(test.dev.generate_report())
+      test.set_status('Working')
+      test_log = f'{state.log_dir}/{test.dev.path.name}_benchmark.out'
+      tmux.respawn_pane(
+        state.panes['I/O Benchmark'],
+        watch_cmd='tail',
+        watch_file=test_log,
+        )
+      state.update_progress_pane()
+      try:
+        _run_io_benchmark(test, test_log)
+      except KeyboardInterrupt:
+        aborted = True
+      except (subprocess.CalledProcessError, TypeError, ValueError) as err:
+        # Something went wrong
+        test.set_status('ERROR')
+        print(' ')
+        print(err)
+        std.pause('lolwut?')
+
+    # Mark test(s) aborted if necessary
+    if aborted:
+      test.set_status('Aborted')
+      test.report.append(std.color_string('  Aborted', 'YELLOW'))
+
+    # Update progress after each test
+    state.update_progress_pane()
+
+  # Cleanup
+  state.update_progress_pane()
+  tmux.kill_pane(state.panes.pop('I/O Benchmark', None))
 
 
 def disk_self_test(state, test_objects):
+  # pylint: disable=too-many-statements
   """Disk self-test if available."""
   LOG.info('Disk Self-Test(s)')
   aborted = False
@@ -558,10 +786,13 @@ def disk_self_test(state, test_objects):
     )
   std.print_info(f'Starting self-test{"s" if len(test_objects) > 1 else ""}')
   for test in reversed(test_objects):
-    test.set_status('Working')
-    test_log = f'{state.log_dir}/{test.dev.path.name}_selftest.log'
+    if test.disabled:
+      # Skip
+      continue
 
     # Start thread
+    test.set_status('Working')
+    test_log = f'{state.log_dir}/{test.dev.path.name}_selftest.log'
     threads.append(exe.start_thread(_run_self_test, args=(test, test_log)))
 
     # Show progress
@@ -601,6 +832,7 @@ def disk_self_test(state, test_objects):
 
 
 def disk_surface_scan(state, test_objects):
+  # pylint: disable=too-many-statements
   """Read-only disk surface scan using badblocks."""
   LOG.info('Disk Surface Scan (badblocks)')
   threads = []
@@ -668,9 +900,12 @@ def disk_surface_scan(state, test_objects):
     f'Starting disk surface scan{"s" if len(test_objects) > 1 else ""}',
     )
   for test in reversed(test_objects):
-    test_log = f'{state.log_dir}/{test.dev.path.name}_badblocks.log'
+    if test.disabled:
+      # Skip
+      continue
 
     # Start thread
+    test_log = f'{state.log_dir}/{test.dev.path.name}_badblocks.log'
     threads.append(exe.start_thread(_run_surface_scan, args=(test, test_log)))
 
     # Show progress
@@ -923,16 +1158,19 @@ def run_diags(state, menu, quick_mode=False):
     return
 
   # Run tests
-  for details in state.tests.values():
+  for name, details in state.tests.items():
     if not details['Enabled']:
       # Skip disabled tests
       continue
 
     # Run test(s)
     function = details['Function']
+    args = [details['Objects']]
+    if name == 'Disk I/O Benchmark':
+      args.append(menu.toggles['Skip USB Benchmarks']['Selected'])
+    std.clear_screen()
     try:
-      std.clear_screen()
-      function(state, details['Objects'])
+      function(state, *args)
     except std.GenericAbort:
       aborted = True
       # Restart tmux
