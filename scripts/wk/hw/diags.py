@@ -629,6 +629,10 @@ def disk_io_benchmark(state, test_objects, skip_usb=True):
 
   def _run_io_benchmark(test_obj, log_path):
     """Run I/O benchmark and handle exceptions."""
+    dev_path = test_obj.dev.path
+    platform.system() == 'Darwin':
+      # Use "RAW" disks under macOS
+      dev_path = dev_path.with_name(f'r{dev_path.name}')
     offset = 0
     read_rates = []
     test_obj.report.append(std.color_string('I/O Benchmark', 'BLUE'))
@@ -656,7 +660,7 @@ def disk_io_benchmark(state, test_objects, skip_usb=True):
         f'bs={IO_BLOCK_SIZE}',
         f'skip={offset+skip}',
         f'count={dd_values["Read Blocks"]}',
-        f'if={test_obj.dev.path}',
+        f'if={dev_path}',
         'of=/dev/null',
         ]
       if platform.system() == 'Linux':
