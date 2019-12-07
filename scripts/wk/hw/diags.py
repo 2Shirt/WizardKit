@@ -630,7 +630,7 @@ def disk_io_benchmark(state, test_objects, skip_usb=True):
   def _run_io_benchmark(test_obj, log_path):
     """Run I/O benchmark and handle exceptions."""
     dev_path = test_obj.dev.path
-    platform.system() == 'Darwin':
+    if platform.system() == 'Darwin':
       # Use "RAW" disks under macOS
       dev_path = dev_path.with_name(f'r{dev_path.name}')
     offset = 0
@@ -734,10 +734,8 @@ def disk_io_benchmark(state, test_objects, skip_usb=True):
         aborted = True
       except (subprocess.CalledProcessError, TypeError, ValueError) as err:
         # Something went wrong
+        LOG.error('%s', err)
         test.set_status('ERROR')
-        print(' ')
-        print(err)
-        std.pause('lolwut?')
 
     # Mark test(s) aborted if necessary
     if aborted:
