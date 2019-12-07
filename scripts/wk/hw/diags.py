@@ -42,7 +42,9 @@ IO_ALT_TEST_SIZE_FACTOR = 0.01
 IO_BLOCK_SIZE = 512 * 1024
 IO_CHUNK_SIZE = 32 * 1024**2
 IO_MINIMUM_TEST_SIZE = 10 * 1024**3
-IO_RATE_REGEX = re.compile(r'(?P<bytes>\d+) bytes.* (?P<seconds>\S+) s(,|ecs )')
+IO_RATE_REGEX = re.compile(
+  r'(?P<bytes>\d+) bytes.* (?P<seconds>\S+) s(?:,|ecs )',
+  )
 MENU_ACTIONS = (
   'Audio Test',
   'Keyboard Test',
@@ -736,6 +738,7 @@ def disk_io_benchmark(state, test_objects, skip_usb=True):
         # Something went wrong
         LOG.error('%s', err)
         test.set_status('ERROR')
+        test.report.append(std.color_string('  Unknown Error', 'RED'))
 
     # Mark test(s) aborted if necessary
     if aborted:
