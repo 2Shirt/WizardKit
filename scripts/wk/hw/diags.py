@@ -147,6 +147,51 @@ class State():
     #  exe.start_thread(self.fix_tmux_layout_loop)
     exe.start_thread(self.fix_tmux_layout_loop)
 
+  def disk_safety_checks(self, prep=False, wait_for_self_tests=True):
+    """Run disk safety checks."""
+    self_tests_in_progress = False
+    for disk in self.disks:
+      disable_tests = False
+      try:
+        disk.safety_checks()
+      except hw_obj.CriticalHardwareError:
+        disable_tests = True
+        if 'Disk Attributes' in disk.tests:
+          disk.tests['Disk Attributes'].failed = True
+          disk.tests['Disk Attributes'].set_status('Failed')
+      except hw_obj.SMARTSelfTestInProgressError:
+        if prep:
+          std.print_warning(f'SMART self-test(s) in progress for {disk.path}')
+          if std.ask('Continue with all tests disabled for this device?'):
+            disable_tests = True
+          else:
+            std.print_standard('Diagnostics aborted.')
+            std.print_standard(' ')
+            std.pause('Press Enter to exit...')
+            raise SystemExit(1)
+        elif wait_for_self_tests:
+          self_tests_in_progress = True
+        else:
+          # Other tests will NOT be disabled
+          LOG.warning('SMART data may not be reliable for: %s', disk.path)
+          # Add note to report
+          if 'Disk Self-Test' in disk.tests:
+            disk.tests['Disk Self-Test'].failed = True
+            disk.tests['Disk Self-Test'].report.append(
+              std.color_string('Please manually review SMART data', 'YELLOW'),
+              )
+
+      # Disable tests if necessary
+      if disable_tests:
+        disable_disk_tests(disk)
+
+    # Wait for self-test(s)
+    if self_tests_in_progress:
+      std.print_warning('SMART self-test(s) in progress')
+      std.print_standard('Waiting 60 seconds before continuing...')
+      std.sleep(60)
+      self.disk_safety_checks(wait_for_self_tests=False)
+
   def fix_tmux_layout(self, forced=True, signum=None, frame=None):
     # pylint: disable=unused-argument
     """Fix tmux layout based on cfg.hw.TMUX_LAYOUT.
@@ -223,6 +268,9 @@ class State():
           test_obj = hw_obj.Test(dev=disk, label=disk.path.name)
           disk.tests[name] = test_obj
           self.tests[name]['Objects'].append(test_obj)
+
+    # Run safety checks
+    #self.disk_safety_checks(prep=True)
 
   def init_tmux(self):
     """Initialize tmux layout."""
@@ -603,6 +651,17 @@ def cpu_mprime_test(state, test_objects):
   state.panes.pop('Current', None)
   tmux.kill_pane(state.panes.pop('Prime95', None))
   tmux.kill_pane(state.panes.pop('Temps', None))
+
+
+def disable_disk_tests(disk):
+  """Disable remaining tests for disk."""
+  LOG.warning('Disabling further tests for: %s', disk.path)
+  for name, test in disk.tests.items():
+    if name == 'Disk Attributes':
+      continue
+    if test.status in ('Pending', 'Working'):
+      test.set_status('Denied')
+      test.disabled = True
 
 
 def disk_attribute_check(state, test_objects):
@@ -1167,6 +1226,10 @@ def run_diags(state, menu, quick_mode=False):
     if not details['Enabled']:
       # Skip disabled tests
       continue
+
+    # Run safety checks
+    if name.startswith('Disk') and name != 'Disk Attributes':
+      state.disk_safety_checks()
 
     # Run test(s)
     function = details['Function']

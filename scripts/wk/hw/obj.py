@@ -33,6 +33,9 @@ class CriticalHardwareError(RuntimeError):
 class SMARTNotSupportedError(TypeError):
   """Exception used for disks lacking SMART support."""
 
+class SMARTSelfTestInProgressError(RuntimeError):
+  """Exception used when a SMART self-test is in progress."""
+
 
 # Classes
 class BaseObj():
@@ -370,17 +373,16 @@ class Disk(BaseObj):
       self.add_note(msg, 'RED')
       LOG.error('%s %s', self.path, msg)
 
+    # Raise blocking exception if necessary
+    if blocking_event_encountered:
+      raise CriticalHardwareError(f'Critical error(s) for: {self.path}')
+
     # SMART self-test status
     test_details = self.get_smart_self_test_details()
     if 'remaining_percent' in test_details.get('status', ''):
-      blocking_event_encountered = True
-      msg = 'SMART self-test in progress'
-      self.add_note(msg, 'RED')
-      LOG.error('%s %s', self.path, msg)
-
-    # Raise exception if necessary
-    if blocking_event_encountered:
-      raise CriticalHardwareError(f'Critical error(s) for: {self.path}')
+      msg = f'SMART self-test in progress for: {self.path}'
+      LOG.error(msg)
+      raise SMARTSelfTestInProgressError(msg)
 
   def run_self_test(self, log_path):
     """Run disk self-test and check if it passed, returns bool.
@@ -508,6 +510,7 @@ class Disk(BaseObj):
 
 
 class Test():
+  # pylint: disable=too-few-public-methods
   """Object for tracking test specific data."""
   def __init__(self, dev, label):
     self.dev = dev
