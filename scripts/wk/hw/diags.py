@@ -162,6 +162,7 @@ class State():
         disk.safety_checks()
       except hw_obj.CriticalHardwareError:
         disable_tests = True
+        disk.add_note('Critical hardware error detected.', 'RED')
         if 'Disk Attributes' in disk.tests:
           disk.tests['Disk Attributes'].failed = True
           disk.tests['Disk Attributes'].set_status('Failed')
