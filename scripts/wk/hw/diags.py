@@ -148,6 +148,7 @@ class State():
     exe.start_thread(self.fix_tmux_layout_loop)
 
   def disk_safety_checks(self, prep=False, wait_for_self_tests=True):
+    # pylint: disable=too-many-branches
     """Run disk safety checks."""
     self_tests_in_progress = False
     for disk in self.disks:
@@ -683,7 +684,7 @@ def cpu_mprime_test(state, test_objects):
 def disable_disk_tests(disk):
   """Disable all tests for disk."""
   LOG.warning('Disabling all tests for: %s', disk.path)
-  for name, test in disk.tests.items():
+  for test in disk.tests.values():
     if test.status in ('Pending', 'Working'):
       test.set_status('Denied')
     test.disabled = True
