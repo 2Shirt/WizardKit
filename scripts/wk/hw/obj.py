@@ -151,6 +151,11 @@ class Disk(BaseObj):
     if not self.is_4k_aligned():
       self.add_note('One or more partitions are not 4K aligned', 'YELLOW')
 
+  def abort_self_test(self):
+    """Abort currently running non-captive self-test."""
+    cmd = ['sudo', 'smartctl', '--abort', self.path]
+    run_program(cmd, check=False)
+
   def add_note(self, note, color=None):
     """Add note that will be included in the disk report."""
     if color:

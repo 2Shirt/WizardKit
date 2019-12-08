@@ -152,6 +152,11 @@ class State():
     self_tests_in_progress = False
     for disk in self.disks:
       disable_tests = False
+
+      # Skip already disabled devices
+      if all([test.disabled for test in disk.tests.values()]):
+        continue
+
       try:
         disk.safety_checks()
       except hw_obj.CriticalHardwareError:
@@ -270,7 +275,7 @@ class State():
           self.tests[name]['Objects'].append(test_obj)
 
     # Run safety checks
-    #self.disk_safety_checks(prep=True)
+    self.disk_safety_checks(prep=True)
 
   def init_tmux(self):
     """Initialize tmux layout."""
@@ -567,6 +572,28 @@ def check_mprime_results(test_obj, working_dir):
     test_obj.report.append(std.color_string('  Unknown result', 'YELLOW'))
 
 
+def check_self_test_results(test_obj, aborted=False):
+  """Check SMART self-test results."""
+  test_obj.report.append(std.color_string('Self-Test', 'BLUE'))
+  if test_obj.disabled or test_obj.status == 'Denied':
+    test_obj.report.append(std.color_string(f'  {test_obj.status}', 'RED'))
+  elif test_obj.status == 'N/A' or not test_obj.dev.attributes:
+    test_obj.report.append(std.color_string(f'  {test_obj.status}', 'YELLOW'))
+  else:
+    # Not updating SMART data here to preserve the test status for the report
+    # For instance if the test was aborted the report should inlcude the last
+    # known progress instead of just "was aborted buy host"
+    test_details = test_obj.dev.get_smart_self_test_details()
+    test_result = test_details.get('status', {}).get('string', 'Unknown')
+    test_obj.report.append(f'  {test_result}')
+    if aborted and not (test_obj.passed or test_obj.failed):
+      test_obj.report.append(std.color_string('  Aborted', 'YELLOW'))
+      test_obj.set_status('Aborted')
+    elif test_obj.status == 'TimedOut':
+      test_obj.report.append(std.color_string('  TimedOut', 'YELLOW'))
+      test_obj.set_status('TimedOut')
+
+
 def cpu_mprime_test(state, test_objects):
   """CPU & cooling check using Prime95."""
   LOG.info('CPU Test (Prime95)')
@@ -654,14 +681,12 @@ def cpu_mprime_test(state, test_objects):
 
 
 def disable_disk_tests(disk):
-  """Disable remaining tests for disk."""
-  LOG.warning('Disabling further tests for: %s', disk.path)
+  """Disable all tests for disk."""
+  LOG.warning('Disabling all tests for: %s', disk.path)
   for name, test in disk.tests.items():
-    if name == 'Disk Attributes':
-      continue
     if test.status in ('Pending', 'Working'):
       test.set_status('Denied')
-      test.disabled = True
+    test.disabled = True
 
 
 def disk_attribute_check(state, test_objects):
@@ -875,18 +900,13 @@ def disk_self_test(state, test_objects):
         break
   except KeyboardInterrupt:
     aborted = True
+    for test in test_objects:
+      test.dev.abort_self_test()
+    std.sleep(0.5)
 
   # Save report(s)
   for test in test_objects:
-    if test.status != 'N/A':
-      test_details = test.dev.get_smart_self_test_details()
-      test_result = test_details.get('status', {}).get('string', 'Unknown')
-      test.report.append(std.color_string('Self-Test', 'BLUE'))
-      test.report.append(f'  {test_result}')
-      if aborted and not (test.passed or test.failed):
-        test.report.append(std.color_string('  Aborted', 'YELLOW'))
-      elif test.status == 'TimedOut':
-        test.report.append(std.color_string('  TimedOut', 'YELLOW'))
+    check_self_test_results(test, aborted=aborted)
 
   # Cleanup
   state.update_progress_pane()
@@ -995,7 +1015,7 @@ def disk_surface_scan(state, test_objects):
     std.sleep(0.5)
     # Handle aborts
     for test in test_objects:
-      if not (test.passed or test.failed):
+      if not (test.disabled or test.passed or test.failed):
         test.set_status('Aborted')
         test.report.append(std.color_string('  Aborted', 'YELLOW'))
 
