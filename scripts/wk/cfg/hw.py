@@ -25,11 +25,11 @@ KNOWN_DISK_ATTRIBUTES = {
   # NVMe
   'critical_warning': {'Blocking': True,  'Warning': None,  'Error': 1,     'Maximum': None,  },
   'media_errors':     {'Blocking': False, 'Warning': None,  'Error': 1,     'Maximum': None,  },
-  'power_on_hours':   {'Blocking': False, 'Warning': 17532, 'Error': 26298, 'Maximum': None,  },
+  'power_on_hours':   {'Blocking': False, 'Warning': 17532, 'Error': 26298, 'Maximum': 100000,},
   'unsafe_shutdowns': {'Blocking': False, 'Warning': 1,     'Error': None,  'Maximum': None,  },
   # SMART
   5:     {'Hex': '05', 'Blocking': True,  'Warning': None,  'Error': 1,     'Maximum': None,  },
-  9:     {'Hex': '09', 'Blocking': False, 'Warning': 17532, 'Error': 26298, 'Maximum': None,  },
+  9:     {'Hex': '09', 'Blocking': False, 'Warning': 17532, 'Error': 26298, 'Maximum': 100000,},
   10:    {'Hex': '10', 'Blocking': False, 'Warning': 1,     'Error': 10,    'Maximum': 10000, },
   184:   {'Hex': 'B8', 'Blocking': False, 'Warning': 1,     'Error': 10,    'Maximum': 10000, },
   187:   {'Hex': 'BB', 'Blocking': False, 'Warning': 1,     'Error': 10,    'Maximum': 10000, },
