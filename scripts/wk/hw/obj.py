@@ -195,6 +195,14 @@ class Disk(BaseObj):
     # Done
     return attributes_ok
 
+  def disable_disk_tests(self):
+    """Disable all tests."""
+    LOG.warning('Disabling all tests for: %s', self.path)
+    for test in self.tests.values():
+      if test.status in ('Pending', 'Working'):
+        test.set_status('Denied')
+      test.disabled = True
+
   def enable_smart(self):
     """Try enabling SMART for this disk."""
     cmd = [

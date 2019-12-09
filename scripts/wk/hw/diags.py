@@ -147,6 +147,25 @@ class State():
     #  exe.start_thread(self.fix_tmux_layout_loop)
     exe.start_thread(self.fix_tmux_layout_loop)
 
+  def abort_testing(self):
+    """Set unfinished tests as aborted and cleanup tmux panes."""
+    for details in self.tests.values():
+      for test in details['Objects']:
+        if test.status in ('Pending', 'Working'):
+          test.set_status('Aborted')
+
+    # Cleanup tmux
+    self.panes.pop('Current', None)
+    for key, pane_ids in self.panes.copy().items():
+      if key in ('Top', 'Started', 'Progress'):
+        continue
+      if isinstance(pane_ids, str):
+        tmux.kill_pane(self.panes.pop(key))
+      else:
+        for _id in pane_ids:
+          tmux.kill_pane(_id)
+        self.panes.pop(key)
+
   def disk_safety_checks(self, prep=False, wait_for_self_tests=True):
     # pylint: disable=too-many-branches
     """Run disk safety checks."""
@@ -190,7 +209,7 @@ class State():
 
       # Disable tests if necessary
       if disable_tests:
-        disable_disk_tests(disk)
+        disk.disable_disk_tests()
 
     # Wait for self-test(s)
     if self_tests_in_progress:
@@ -622,9 +641,14 @@ def check_self_test_results(test_obj, aborted=False):
     elif test_obj.status == 'TimedOut':
       test_obj.report.append(std.color_string('  TimedOut', 'YELLOW'))
       test_obj.set_status('TimedOut')
+    else:
+      test_obj.failed = not test_obj.passed
+      if test_obj.failed:
+        test_obj.set_status('Failed')
 
 
 def cpu_mprime_test(state, test_objects):
+  # pylint: disable=too-many-statements
   """CPU & cooling check using Prime95."""
   LOG.info('CPU Test (Prime95)')
   aborted = False
@@ -709,14 +733,9 @@ def cpu_mprime_test(state, test_objects):
   tmux.kill_pane(state.panes.pop('Prime95', None))
   tmux.kill_pane(state.panes.pop('Temps', None))
 
-
-def disable_disk_tests(disk):
-  """Disable all tests for disk."""
-  LOG.warning('Disabling all tests for: %s', disk.path)
-  for test in disk.tests.values():
-    if test.status in ('Pending', 'Working'):
-      test.set_status('Denied')
-    test.disabled = True
+  # Done
+  if aborted:
+    raise std.GenericAbort('Aborted')
 
 
 def disk_attribute_check(state, test_objects):
@@ -866,6 +885,10 @@ def disk_io_benchmark(state, test_objects, skip_usb=True):
   state.update_progress_pane()
   tmux.kill_pane(state.panes.pop('I/O Benchmark', None))
 
+  # Done
+  if aborted:
+    raise std.GenericAbort('Aborted')
+
 
 def disk_self_test(state, test_objects):
   # pylint: disable=too-many-statements
@@ -881,7 +904,6 @@ def disk_self_test(state, test_objects):
 
     try:
       test_obj.passed = test_obj.dev.run_self_test(log_path)
-      test_obj.failed = not test_obj.passed
     except TimeoutError:
       test_obj.failed = True
       result = 'TimedOut'
@@ -944,11 +966,16 @@ def disk_self_test(state, test_objects):
     tmux.kill_pane(pane)
   state.panes.pop('SMART', None)
 
+  # Done
+  if aborted:
+    raise std.GenericAbort('Aborted')
+
 
 def disk_surface_scan(state, test_objects):
   # pylint: disable=too-many-statements
   """Read-only disk surface scan using badblocks."""
   LOG.info('Disk Surface Scan (badblocks)')
+  aborted = False
   threads = []
   state.panes['badblocks'] = []
 
@@ -1042,6 +1069,7 @@ def disk_surface_scan(state, test_objects):
       else:
         break
   except KeyboardInterrupt:
+    aborted = True
     std.sleep(0.5)
     # Handle aborts
     for test in test_objects:
@@ -1054,6 +1082,10 @@ def disk_surface_scan(state, test_objects):
   for pane in state.panes['badblocks']:
     tmux.kill_pane(pane)
   state.panes.pop('badblocks', None)
+
+  # Done
+  if aborted:
+    raise std.GenericAbort('Aborted')
 
 
 def get_disks():
@@ -1285,10 +1317,10 @@ def run_diags(state, menu, quick_mode=False):
     std.clear_screen()
     try:
       function(state, *args)
-    except std.GenericAbort:
+    except (KeyboardInterrupt, std.GenericAbort):
       aborted = True
-      # Restart tmux
-      state.init_tmux()
+      state.abort_testing()
+      state.update_progress_pane()
       break
 
     # Run safety checks
