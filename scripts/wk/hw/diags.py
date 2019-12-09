@@ -139,12 +139,6 @@ class State():
 
     # Init tmux and start a background process to maintain layout
     self.init_tmux()
-    #TODO: Fix SIGWINCH?
-    #if hasattr(signal, 'SIGWINCH'):
-    #  # Use signal handling
-    #  signal.signal(signal.SIGWINCH, self.fix_tmux_layout)
-    #else:
-    #  exe.start_thread(self.fix_tmux_layout_loop)
     exe.start_thread(self.fix_tmux_layout_loop)
 
   def abort_testing(self):
@@ -218,13 +212,9 @@ class State():
       std.sleep(60)
       self.disk_safety_checks(wait_for_self_tests=False)
 
-  def fix_tmux_layout(self, forced=True, signum=None, frame=None):
+  def fix_tmux_layout(self, forced=True):
     # pylint: disable=unused-argument
-    """Fix tmux layout based on cfg.hw.TMUX_LAYOUT.
-
-    NOTE: To support being called by both a signal and a thread
-          signum and frame must be valid aguments.
-    """
+    """Fix tmux layout based on cfg.hw.TMUX_LAYOUT."""
     try:
       tmux.fix_layout(self.panes, self.layout, forced=forced)
     except RuntimeError:
