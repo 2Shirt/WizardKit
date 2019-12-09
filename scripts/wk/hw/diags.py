@@ -15,7 +15,7 @@ import time
 from collections import OrderedDict
 from docopt import docopt
 
-from wk import cfg, exe, graph, log, net, std, tmux
+from wk import cfg, debug, exe, graph, log, net, std, tmux
 from wk.hw import obj as hw_obj
 from wk.hw import sensors as hw_sensors
 
@@ -266,8 +266,8 @@ class State():
         # NOTE: Prime95 should be added first
         test_mprime_obj = hw_obj.Test(dev=self.cpu, label='Prime95')
         test_cooling_obj = hw_obj.Test(dev=self.cpu, label='Cooling')
-        self.cpu.tests[name] = test_mprime_obj
-        self.cpu.tests[name] = test_cooling_obj
+        self.cpu.tests[test_mprime_obj.label] = test_mprime_obj
+        self.cpu.tests[test_cooling_obj.label] = test_cooling_obj
         self.tests[name]['Objects'].append(test_mprime_obj)
         self.tests[name]['Objects'].append(test_cooling_obj)
       elif 'Disk' in name:
@@ -307,6 +307,34 @@ class State():
       lines=cfg.hw.TMUX_SIDE_WIDTH,
       text=' ',
       )
+
+  def save_debug_reports(self):
+    """Save debug reports to disk."""
+    LOG.info('Saving debug reports')
+    debug_dir = pathlib.Path(f'{self.log_dir}/debug')
+    if not debug_dir.exists():
+      debug_dir.mkdir()
+
+    # State (self)
+    with open(f'{debug_dir}/state.report', 'a') as _f:
+      _f.write('\n'.join(debug.generate_object_report(self)))
+
+    # CPU/RAM
+    with open(f'{debug_dir}/cpu.report', 'a') as _f:
+      _f.write('\n'.join(debug.generate_object_report(self.cpu)))
+      _f.write('\n\n[Tests]')
+      for name, test in self.cpu.tests.items():
+        _f.write(f'\n{name}:\n')
+        _f.write('\n'.join(debug.generate_object_report(test, indent=1)))
+
+    # Disks
+    for disk in self.disks:
+      with open(f'{debug_dir}/disk_{disk.path.name}.report', 'a') as _f:
+        _f.write('\n'.join(debug.generate_object_report(disk)))
+        _f.write('\n\n[Tests]')
+        for name, test in disk.tests.items():
+          _f.write(f'\n{name}:\n')
+          _f.write('\n'.join(debug.generate_object_report(test, indent=1)))
 
   def update_progress_pane(self):
     """Update progress pane."""
@@ -1120,7 +1148,6 @@ def main():
 
   # Init
   atexit.register(tmux.kill_all_panes)
-  #TODO: Add state/dev data dump debug function
   menu = build_menu(cli_mode=args['--cli'], quick_mode=args['--quick'])
   state = State()
 
@@ -1235,6 +1262,7 @@ def print_countdown(proc, seconds):
 def run_diags(state, menu, quick_mode=False):
   """Run selected diagnostics."""
   aborted = False
+  atexit.register(state.save_debug_reports)
   state.init_diags(menu)
 
   # Just return if no tests were selected
@@ -1278,6 +1306,8 @@ def run_diags(state, menu, quick_mode=False):
   show_results(state)
 
   # Done
+  state.save_debug_reports()
+  atexit.unregister(state.save_debug_reports)
   if quick_mode:
     std.pause('Press Enter to exit...')
   else:
