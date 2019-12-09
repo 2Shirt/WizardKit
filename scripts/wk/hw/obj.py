@@ -24,6 +24,11 @@ from wk.std import bytes_to_string, color_string, sleep, string_to_bytes
 
 # STATIC VARIABLES
 LOG = logging.getLogger(__name__)
+NVME_WARNING_KEYS = (
+  'spare_below_threshold',
+  'reliability_degraded',
+  'volatile_memory_backup_failed',
+  )
 
 
 # Exception Classes
@@ -371,7 +376,17 @@ class Disk(BaseObj):
       LOG.error('%s: Blocked for failing attribute(s)', self.path)
 
     # NVMe status
-    # TODO: See https://github.com/2Shirt/WizardKit/issues/130
+    nvme_status = self.smartctl.get('smart_status', {}).get('nvme', {})
+    if nvme_status.get('media_read_only', False):
+      blocking_event_encountered = True
+      msg = 'Media has been placed in read-only mode'
+      self.add_note(msg, 'RED')
+      LOG.error('%s %s', self.path, msg)
+    for key in NVME_WARNING_KEYS:
+      if nvme_status.get(key, False):
+        msg = key.replace('_', ' ')
+        self.add_note(msg, 'YELLOW')
+        LOG.warning('%s %s', self.path, msg)
 
     # SMART overall assessment
     smart_passed = True
