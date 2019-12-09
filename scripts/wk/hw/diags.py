@@ -1249,10 +1249,6 @@ def run_diags(state, menu, quick_mode=False):
       # Skip disabled tests
       continue
 
-    # Run safety checks
-    if name.startswith('Disk') and name != 'Disk Attributes':
-      state.disk_safety_checks()
-
     # Run test(s)
     function = details['Function']
     args = [details['Objects']]
@@ -1266,6 +1262,10 @@ def run_diags(state, menu, quick_mode=False):
       # Restart tmux
       state.init_tmux()
       break
+
+    # Run safety checks
+    if name.startswith('Disk'):
+      state.disk_safety_checks(wait_for_self_tests=name != 'Disk Attributes')
 
   # Handle aborts
   if aborted:
