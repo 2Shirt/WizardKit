@@ -12,3 +12,6 @@ PS1='[\u@\h \W]\$ '
 
 # Update LS_COLORS
 eval $(dircolors ~/.dircolors)
+
+# WizardKit
+export PYTHONPATH='/usr/local/bin'

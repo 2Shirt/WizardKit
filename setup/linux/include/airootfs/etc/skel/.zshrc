@@ -9,3 +9,4 @@ source $ZSH/oh-my-zsh.sh
 # Wizard Kit
 . $HOME/.aliases
 eval $(dircolors ~/.dircolors)
+export PYTHONPATH="/usr/local/bin"
