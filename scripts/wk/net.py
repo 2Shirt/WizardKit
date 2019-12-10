@@ -45,7 +45,7 @@ def mount_backup_shares(read_write=False):
   report = []
   for name, details in BACKUP_SERVERS.items():
     mount_point = None
-    mount_str = f'{name}/{details["Share"]}'
+    mount_str = f'//{name}/{details["Share"]}'
 
     # Prep mount point
     if platform.system() in ('Darwin', 'Linux'):
@@ -57,6 +57,8 @@ def mount_backup_shares(read_write=False):
       except OSError:
         # Assuming permission denied under macOS
         pass
+    if mount_point:
+      mount_str += f' to {mount_point}'
 
     # Check if already mounted
     if share_is_mounted(details):
