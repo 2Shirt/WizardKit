@@ -25,6 +25,16 @@ function print_dmi_value() {
   print_in_columns "$name: $value"
 }
 
+# Check if running under Linux
+os_name="$(uname -s)"
+if [[ "$os_name" == "Darwin" ]]; then
+  os_name="macOS"
+fi
+if [[ "$os_name" != "Linux" ]]; then
+  echo "This script is not supported under $os_name." 1>&2
+  exit 1
+fi
+
 # System
 echo -e "${BLUE}System Information${CLEAR}"
 print_dmi_value "Vendor" "sys_vendor"
