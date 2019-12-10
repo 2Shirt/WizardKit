@@ -1,0 +1,39 @@
+#!/bin/bash
+#
+
+BLUE='\033[34m'
+CLEAR='\033[0m'
+IFS=$'\n'
+
+# List devices
+for line in $(lsblk -do NAME,TRAN,SIZE,VENDOR,MODEL,SERIAL); do
+  if [[ "${line:0:4}" == "NAME" ]]; then
+    echo -e "${BLUE}${line}${CLEAR}"
+  else
+    echo "${line}"
+  fi
+done
+echo ""
+
+# List loopback devices
+if [[ "$(losetup -l | wc -l)" > 0 ]]; then
+  for line in $(losetup -lO NAME,PARTSCAN,RO,BACK-FILE); do
+    if [[ "${line:0:4}" == "NAME" ]]; then
+      echo -e "${BLUE}${line}${CLEAR}"
+    else
+      echo "${line}" | sed -r 's#/dev/(loop[0-9]+)#\1   #'
+    fi
+  done
+  echo ""
+fi
+
+# List partitions
+for line in $(lsblk -o NAME,SIZE,FSTYPE,LABEL,MOUNTPOINT); do
+  if [[ "${line:0:4}" == "NAME" ]]; then
+    echo -e "${BLUE}${line}${CLEAR}"
+  else
+    echo "${line}"
+  fi
+done
+echo ""
+

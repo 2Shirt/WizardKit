@@ -9,20 +9,20 @@ YELLOW="\e[33m"
 BLUE="\e[34m"
 
 function print_in_columns() {
-    string="$1"
-    label="$(echo "$string" | sed -r 's/^\s*(.*:).*/\1/')"
-    value="$(echo "$string" | sed -r 's/^\s*.*:\s*(.*)/\1/')"
-    printf '    %-18s%s\n' "$label" "$value"
+  string="$1"
+  label="$(echo "$string" | sed -r 's/^\s*(.*:).*/\1/')"
+  value="$(echo "$string" | sed -r 's/^\s*.*:\s*(.*)/\1/')"
+  printf '  %-18s%s\n' "$label" "$value"
 }
 
 function print_dmi_value() {
-    name="$1"
-    file="/sys/devices/virtual/dmi/id/$2"
-    value="UNKNOWN"
-    if [[ -e "$file" ]]; then
-        value="$(cat "$file")"
-    fi
-    print_in_columns "$name: $value"
+  name="$1"
+  file="/sys/devices/virtual/dmi/id/$2"
+  value="UNKNOWN"
+  if [[ -e "$file" ]]; then
+    value="$(cat "$file")"
+  fi
+  print_in_columns "$name: $value"
 }
 
 # System
@@ -50,58 +50,58 @@ echo ""
 # Processor
 echo -e "${BLUE}Processor${CLEAR}"
 lscpu | grep -E '^(Arch|CPU.s.|Core|Thread|Model name|Virt)' \
-    | sed -r 's/\(s\)(.*:)/s\1  /' \
-    | sed -r 's/CPUs:   /Threads:/' \
-    | sed -r 's/^(.*:)   /    \1/'
+  | sed -r 's/\(s\)(.*:)/s\1  /' \
+  | sed -r 's/CPUs:   /Threads:/' \
+  | sed -r 's/^(.*:)   /  \1/'
 echo ""
 
 # Memory
 echo -e "${BLUE}Memory${CLEAR}"
 first_device="True"
 while read -r line; do
-    if [[ "$line" == "Memory Device" ]]; then
-        if [[ "$first_device" == "True" ]]; then
-            first_device="False"
-        else
-            # Add space between devices
-            echo ""
-        fi
+  if [[ "$line" == "Memory Device" ]]; then
+    if [[ "$first_device" == "True" ]]; then
+      first_device="False"
     else
-        print_in_columns "$line"
+      # Add space between devices
+      echo ""
     fi
+  else
+    print_in_columns "$line"
+  fi
 done <<< $(sudo dmidecode -t memory \
-    | grep -E '^(Memory Device|\s+(Type|Size|Speed|Manuf.*|Locator|Part Number):)')
+  | grep -E '^(Memory Device|\s+(Type|Size|Speed|Manuf.*|Locator|Part Number):)')
 echo ""
 
 # Graphics
 echo -e "${BLUE}Graphics${CLEAR}"
-lspci | grep 'VGA' | sed -r 's/^.*:/    Device:          /' \
-    | sed 's/Intel Corporation/Intel/' \
-    | sed 's/Generation Core Processor Family/Gen/' \
-    | sed 's/Integrated Graphics Controller.*/iGPU/'
-glxinfo 2>/dev/null | grep 'OpenGL renderer' | sed -r 's/^.*:/    OpenGL Renderer: /' \
-    | sed 's/Mesa DRI //'
+lspci | grep 'VGA' | sed -r 's/^.*:/  Device:      /' \
+  | sed 's/Intel Corporation/Intel/' \
+  | sed 's/Generation Core Processor Family/Gen/' \
+  | sed 's/Integrated Graphics Controller.*/iGPU/'
+glxinfo 2>/dev/null | grep 'OpenGL renderer' | sed -r 's/^.*:/  OpenGL Renderer: /' \
+  | sed 's/Mesa DRI //'
 echo ""
 
 # Audio
 echo -e "${BLUE}Audio${CLEAR}"
 while read -r line; do
-    if [[ "$line" =~ .*no.soundcards.found.* ]]; then
-        echo "    No soundcards found"
-    else
-        print_in_columns "$line"
-    fi
+  if [[ "$line" =   .*no.soundcards.found.* ]]; then
+    echo "  No soundcards found"
+  else
+    print_in_columns "$line"
+  fi
 done <<< $(aplay -l 2>&1 | grep -Ei '(^card|no soundcards found)' | sed -r 's/.*\[(.*)\].*\[(.*)\].*/\1: \2/')
 echo ""
 
 # Network
 echo -e "${BLUE}Network${CLEAR}"
 lspci | grep -Ei '(ethernet|network|wireless|wifi)' \
-    | sed -r 's/.*: (.*)$/    \1/'
+  | sed -r 's/.*: (.*)$/  \1/'
 echo ""
 
 # Drives
 echo -e "${BLUE}Drives${CLEAR}"
-hw-drive-info | sed 's/^/    /'
+hw-drive-info | sed 's/^/  /'
 echo ""
 
