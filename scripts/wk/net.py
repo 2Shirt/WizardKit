@@ -8,7 +8,7 @@ import re
 
 import psutil
 
-from wk.exe import run_program
+from wk.exe import get_json_from_command, run_program
 from wk.std import GenericError, show_data
 
 from wk.cfg.net import BACKUP_SERVERS
@@ -40,14 +40,6 @@ def connected_to_private_network():
   raise GenericError('Not connected to a network')
 
 
-def is_mounted(details):
-  """Check if dev/share/etc is mounted, returns bool."""
-  #TODO: Make real
-  if not details:
-    return False
-  return False
-
-
 def mount_backup_shares(read_write=False):
   """Mount backup shares using OS specific methods."""
   report = []
@@ -63,7 +55,7 @@ def mount_backup_shares(read_write=False):
         run_program(['sudo', 'mkdir', mount_point])
 
     # Check if already mounted
-    if is_mounted(details):
+    if share_is_mounted(details):
       report.append(f'(Already) Mounted {mount_str}')
       # Skip to next share
       continue
@@ -136,6 +128,41 @@ def ping(addr='google.com'):
     addr,
     )
   run_program(cmd)
+
+
+def share_is_mounted(details):
+  """Check if dev/share/etc is mounted, returns bool."""
+  mounted = False
+
+  if platform.system() == 'Darwin':
+    # Weak and naive text search
+    proc = run_program(['mount'], check=False)
+    for line in proc.stdout.splitlines():
+      if f'{details["Address"]}/{details["Share"]}' in line:
+        mounted = True
+        break
+  elif platform.system() == 'Linux':
+    cmd = [
+      'findmnt',
+      '--list',
+      '--json',
+      '--invert',
+      '--types', (
+        'autofs,binfmt_misc,bpf,cgroup,cgroup2,configfs,debugfs,devpts,'
+        'devtmpfs,hugetlbfs,mqueue,proc,pstore,securityfs,sysfs,tmpfs'
+        ),
+      '--output', 'SOURCE',
+      ]
+    mount_data = get_json_from_command(cmd)
+    for row in mount_data.get('filesystems', []):
+      if row['source'] == f'//{details["Address"]}/{details["Share"]}':
+        mounted = True
+        break
+  #TODO: Check mount status under Windows
+  #elif platform.system() == 'Windows':
+
+  # Done
+  return mounted
 
 
 def show_valid_addresses():
