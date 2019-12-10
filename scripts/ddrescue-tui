@@ -1,0 +1,21 @@
+#!/bin/bash
+#
+## Wizard Kit: ddrescue TUI Launcher
+
+# Check if running under Linux
+os_name="$(uname -s)"
+if [[ "$os_name" == "Darwin" ]]; then
+  os_name="macOS"
+fi
+if [[ "$os_name" != "Linux" ]]; then
+  echo "This script is not supported under $os_name." 1>&2
+  exit 1
+fi
+
+source ./launch-in-tmux
+
+SESSION_NAME="ddrescue-tui"
+WINDOW_NAME="ddrescue TUI"
+TMUX_CMD="./ddrescue-tui.py"
+
+launch_in_tmux "$@"
