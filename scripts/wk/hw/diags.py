@@ -1231,7 +1231,11 @@ def network_test():
   LOG.info('Network Test')
   try_and_print = std.TryAndPrint()
   result = try_and_print.run(
-    'Network connection...', net.connected_to_private_network, msg_good='OK')
+    message='Network connection...',
+    function=net.connected_to_private_network,
+    msg_good='OK',
+    raise_on_error=True,
+    )
 
   # Bail if not connected
   if result['Failed']:

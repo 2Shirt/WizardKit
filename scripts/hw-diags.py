@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 """Wizard Kit: Hardware Diagnostics"""
 # vim: sts=2 sw=2 ts=2
 

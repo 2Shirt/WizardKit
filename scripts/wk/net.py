@@ -23,21 +23,35 @@ REGEX_VALID_IP = re.compile(
 
 
 # Functions
-def connected_to_private_network():
-  """Check if connected to a private network.
+def connected_to_private_network(raise_on_error=False):
+  """Check if connected to a private network, returns bool.
 
   This checks for a valid private IP assigned to this system.
-  If one isn't found then an exception is raised.
+
+  NOTE: If one isn't found and raise_on_error=True then an exception is raised.
+  NOTE 2: If one is found and raise_on_error=True then None is returned.
   """
+  connected = False
+
+  # Check IPs
   devs = psutil.net_if_addrs()
   for dev in devs.values():
     for family in dev:
       if REGEX_VALID_IP.search(family.address):
         # Valid IP found
-        return
+        connected = True
+        break
+    if connected:
+      break
 
   # No valid IP found
-  raise GenericError('Not connected to a network')
+  if not connected and raise_on_error:
+    raise GenericError('Not connected to a network')
+
+  # Done
+  if raise_on_error:
+    connected = None
+  return connected
 
 
 def mount_backup_shares(read_write=False):
@@ -87,6 +101,10 @@ def mount_network_share(details, mount_point=None, read_write=False):
   if read_write:
     username = details['RW-User']
     password = details['RW-Pass']
+
+  # Network check
+  if not connected_to_private_network():
+    raise RuntimeError('Not connected to a network')
 
   # Build OS-specific command
   if platform.system() == 'Darwin':
