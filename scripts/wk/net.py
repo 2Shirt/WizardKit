@@ -1,12 +1,17 @@
 """WizardKit: Net Functions"""
 # vim: sts=2 sw=2 ts=2
 
+import os
+import pathlib
+import platform
 import re
 
 import psutil
 
 from wk.exe import run_program
 from wk.std import GenericError, show_data
+
+from wk.cfg.net import BACKUP_SERVERS
 
 
 # REGEX
@@ -33,6 +38,93 @@ def connected_to_private_network():
 
   # No valid IP found
   raise GenericError('Not connected to a network')
+
+
+def is_mounted(details):
+  """Check if dev/share/etc is mounted, returns bool."""
+  #TODO: Make real
+  if not details:
+    return False
+  return False
+
+
+def mount_backup_shares(read_write=False):
+  """Mount backup shares using OS specific methods."""
+  report = []
+  for name, details in BACKUP_SERVERS.items():
+    mount_point = None
+    mount_str = f'{name}/{details["Share"]}'
+
+    # Prep mount point
+    if platform.system() in ('Darwin', 'Linux'):
+      mount_point = pathlib.Path(f'/Backups/{name}')
+      if not mount_point.exists():
+        # Script should be run as user so sudo is required
+        run_program(['sudo', 'mkdir', mount_point])
+
+    # Check if already mounted
+    if is_mounted(details):
+      report.append(f'(Already) Mounted {mount_str}')
+      # Skip to next share
+      continue
+
+    # Mount share
+    proc = mount_network_share(details, mount_point, read_write=read_write)
+    if proc.returncode:
+      report.append(f'Failed to Mount {mount_str}')
+    else:
+      report.append(f'Mounted {mount_str}')
+
+  # Done
+  return report
+
+
+def mount_network_share(details, mount_point=None, read_write=False):
+  """Mount network share using OS specific methods."""
+  cmd = None
+  address = details['Address']
+  share = details['Share']
+  username = details['RO-User']
+  password = details['RO-Pass']
+  if read_write:
+    username = details['RW-User']
+    password = details['RW-Pass']
+
+  # Build OS-specific command
+  if platform.system() == 'Darwin':
+    cmd = [
+      'sudo',
+      'mount',
+      '-t', 'smbfs',
+      '-o', f'{"rw" if read_write else "ro"}',
+      f'//{username}:{password}@{address}/{share}',
+      mount_point,
+      ]
+  elif platform.system() == 'Linux':
+    cmd = [
+      'sudo',
+      'mount',
+      '-t', 'cifs',
+      '-o', (
+        f'{"rw" if read_write else "ro"}'
+        f',uid={os.getuid()}'
+        f',gid={os.getgid()}'
+        f',username={username}'
+        f',{"password=" if password else "guest"}{password}'
+        ),
+      f'//{address}/{share}',
+      mount_point
+      ]
+  elif platform.system() == 'Windows':
+    cmd = ['net', 'use']
+    if mount_point:
+      cmd.append(f'{mount_point}:')
+    cmd.append(f'/user:{username}')
+    cmd.append(fr'\\{address}\{share}')
+    cmd.append(password)
+
+  # Mount share
+  return run_program(cmd, check=False)
 
 
 def ping(addr='google.com'):

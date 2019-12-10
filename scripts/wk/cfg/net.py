@@ -6,7 +6,7 @@
 # Servers
 BACKUP_SERVERS = {
   'Server One': {
-    'IP':       '10.0.0.10',
+    'Address':  '10.0.0.10',
     'Share':    'Backups',
     'RO-User':  'restore',
     'RO-Pass':  'Abracadabra',
@@ -14,7 +14,7 @@ BACKUP_SERVERS = {
     'RW-Pass':  'Abracadabra',
     },
   'Server Two': {
-    'IP':       '10.0.0.11',
+    'Address':  'servertwo.example.com',
     'Share':    'Backups',
     'RO-User':  'restore',
     'RO-Pass':  'Abracadabra',
