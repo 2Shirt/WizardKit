@@ -1,0 +1,28 @@
+#!/usr/bin/env python3
+"""Wizard Kit: Unmount Backup Shares"""
+# pylint: disable=invalid-name
+# vim: sts=2 sw=2 ts=2
+
+import wk
+
+
+# Functions
+def main():
+  """Attempt to mount backup shares and print report."""
+  wk.std.print_info('Unmounting Backup Shares')
+  report = wk.net.unmount_backup_shares()
+  for line in report:
+    color = 'GREEN'
+    line = f'  {line}'
+    if 'Not mounted' in line:
+      color = 'YELLOW'
+    print(wk.std.color_string(line, color))
+
+
+if __name__ == '__main__':
+  try:
+    main()
+  except SystemExit:
+    raise
+  except: #pylint: disable=bare-except
+    wk.std.major_exception()
