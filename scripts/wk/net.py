@@ -45,7 +45,7 @@ def mount_backup_shares(read_write=False):
   report = []
   for name, details in BACKUP_SERVERS.items():
     mount_point = None
-    mount_str = f'//{name}/{details["Share"]}'
+    mount_str = f'{name} (//{details["Address"]}/{details["Share"]})'
 
     # Prep mount point
     if platform.system() in ('Darwin', 'Linux'):
@@ -189,6 +189,54 @@ def speedtest():
   output = [line.split() for line in output]
   output = [(a, float(b), c) for a, b, c in output]
   return [f'{a:<10}{b:6.2f} {c}' for a, b, c in output]
+
+
+def unmount_backup_shares():
+  """Unmount backup shares."""
+  report = []
+  for name, details in BACKUP_SERVERS.items():
+    kwargs = {}
+    source_str = f'{name} (//{details["Address"]}/{details["Share"]})'
+
+    # Check if mounted
+    if not share_is_mounted(details):
+      report.append(f'Not mounted {source_str}')
+      continue
+
+    # Build OS specific kwargs
+    if platform.system() in ('Darwin', 'Linux'):
+      kwargs['mount_point'] = f'/Backups/{name}'
+    elif platform.system() == 'Windows':
+      kwargs['details'] = details
+
+    # Unmount and add to report
+    proc = unmount_network_share(**kwargs)
+    if proc.returncode:
+      report.append(f'Failed to unmount {source_str}')
+    else:
+      report.append(f'Unmounted {source_str}')
+
+  # Done
+  return report
+
+
+def unmount_network_share(details=None, mount_point=None):
+  """Unmount network share"""
+  cmd = []
+
+  # Build OS specific command
+  if platform.system() in ('Darwin', 'Linux'):
+    cmd = ['sudo', 'umount', mount_point]
+  elif platform.system() == 'Windows':
+    cmd = ['net', 'use']
+    if mount_point:
+      cmd.append(f'{mount_point}:')
+    elif details:
+      cmd.append(fr'\\{details["Address"]}\{details["Share"]}')
+    cmd.append('/delete')
+
+  # Unmount share
+  return run_program(cmd, check=False)
 
 
 if __name__ == '__main__':
