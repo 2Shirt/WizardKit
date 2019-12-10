@@ -50,9 +50,13 @@ def mount_backup_shares(read_write=False):
     # Prep mount point
     if platform.system() in ('Darwin', 'Linux'):
       mount_point = pathlib.Path(f'/Backups/{name}')
-      if not mount_point.exists():
-        # Script should be run as user so sudo is required
-        run_program(['sudo', 'mkdir', mount_point])
+      try:
+        if not mount_point.exists():
+          # Script should be run as user so sudo is required
+          run_program(['sudo', 'mkdir', '-p', mount_point])
+      except OSError:
+        # Assuming permission denied under macOS
+        pass
 
     # Check if already mounted
     if share_is_mounted(details):
