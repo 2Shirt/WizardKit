@@ -1,6 +1,7 @@
 """WizardKit: Config - Main
 
-NOTE: A non-standard format is used for BASH/BATCH/PYTHON compatibility"""
+NOTE: Non-standard formating is used for BASH/BATCH/PYTHON compatibility
+"""
 # pylint: disable=bad-whitespace
 # vim: sts=2 sw=2 ts=2
 
@@ -29,15 +30,6 @@ TECH_PASSWORD='Abracadabra'
 ## See 'tzutil /l' for valid Windows values
 LINUX_TIME_ZONE='America/Denver'
 WINDOWS_TIME_ZONE='Mountain Standard Time'
-
-# Misc
-CRASH_SERVER = {
-  'Name':       'CrashServer',
-  'Url':        '',
-  'User':       '',
-  'Pass':       '',
-  'Headers':    {'X-Requested-With': 'XMLHttpRequest'},
-  }
 
 
 if __name__ == '__main__':

@@ -27,12 +27,12 @@ except ImportError:
     raise
 
 from wk.cfg.main import (
-  CRASH_SERVER,
   ENABLED_UPLOAD_DATA,
   INDENT,
   SUPPORT_MESSAGE,
   WIDTH,
   )
+from wk.cfg.net import CRASH_SERVER
 
 
 # STATIC VARIABLES
