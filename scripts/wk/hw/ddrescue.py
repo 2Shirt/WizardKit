@@ -34,7 +34,7 @@ Options:
 LOG = logging.getLogger(__name__)
 MENU_ACTIONS = (
   'Start',
-  std.color_string(['Change settings', '(experts only)'], [None, 'YELLOW']),
+  f'Change settings {std.color_string("(experts only)", "YELLOW")}',
   'Quit')
 MENU_TOGGLES = {
   'Auto continue (if recovery % over threshold)': True,
@@ -45,6 +45,11 @@ PANE_RATIOS = (
   12, # SMART
   22, # ddrescue progress
   4,  # Journal (kernel messages)
+  )
+SETTING_PRESETS = (
+  'Default',
+  'Fast',
+  'Safe',
   )
 STATUS_COLORS = {
   'Passed': 'GREEN',
@@ -214,21 +219,20 @@ class State():
 def build_main_menu():
   """Build main menu, returns wk.std.Menu."""
   menu = std.Menu(title=std.color_string('ddrescue TUI: Main Menu', 'GREEN'))
+  menu.separator = ' '
 
   # Add actions, options, etc
   for action in MENU_ACTIONS:
     menu.add_action(action)
   for toggle, selected in MENU_TOGGLES.items():
     menu.add_toggle(toggle, {'Selected': selected})
-  menu.actions['Start']['Separator'] = True
 
   # Done
   return menu
 
 
-def build_settings_menu():
+def build_settings_menu(silent=True):
   """Build settings menu, returns wk.std.Menu."""
-  #TODO Fixme
   title_text = [
     std.color_string('ddrescue TUI: Exper Settings', 'GREEN'),
     ' ',
@@ -238,13 +242,29 @@ def build_settings_menu():
       ),
     'Please read the manual before making changes',
     ]
-  menu = std.Menu(title='\n'join(title_text))
+  menu = std.Menu(title='\n'.join(title_text))
+  menu.separator = ' '
+  preset = 'Default'
+  if not silent:
+    # Ask which preset to use
+    print(f'Available ddrescue presets: {" / ".join(SETTING_PRESETS)}')
+    preset = std.choice(SETTING_PRESETS, 'Please select a preset:')
 
-  # Add actions, options, etc
+    # Fix selection
+    for _p in SETTING_PRESETS:
+      if _p.startswith(preset):
+        preset = _p
+
+  # Add default settings
   menu.add_action('Main Menu')
-  for name, details in cfg.ddrescue.DDRESCUE_SETTINGS.items():
-    menu.add_option(name, details)
-  menu.actions['Main Menu']['Separator'] = True
+  menu.add_action('Load Preset')
+  for name, details in cfg.ddrescue.DDRESCUE_SETTINGS['Default'].items():
+    menu.add_option(name, details.copy())
+
+  # Update settings using preset
+  if preset != 'Default':
+    for name, details in cfg.ddrescue.DDRESCUE_SETTINGS[preset].items():
+      menu.options[name].update(details.copy())
 
   # Done
   return menu
@@ -270,11 +290,21 @@ def main():
   # Show menu
   while True:
     action = None
-    selection = menu.advanced_select()
+    selection = main_menu.advanced_select()
 
-    # Start diagnostics
+    # Change settings
+    if 'Change settings' in selection[0]:
+      while True:
+        selection = settings_menu.settings_select()
+        if 'Load Preset' in selection:
+          # Rebuild settings menu using preset
+          settings_menu = build_settings_menu(silent=False)
+        else:
+          break
+
+    # Start recovery
     if 'Start' in selection:
-      run_diags(state, menu, quick_mode=False)
+      run_recovery(state, main_menu, settings_menu)
 
     # Quit
     if 'Quit' in selection:

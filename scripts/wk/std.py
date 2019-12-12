@@ -128,9 +128,10 @@ class Menu():
     menu_lines = [str(line) for line in menu_lines]
     return '\n'.join(menu_lines)
 
-  def _get_display_name(self, name, details,
+  def _get_display_name(
+      self, name, details,
       index=None, no_checkboxes=True, setting_item=False):
-    # pylint: disable=no-self-use
+    # pylint: disable=no-self-use,too-many-arguments
     """Format display name based on details and args, returns str."""
     disabled = details.get('Disabled', False)
     if setting_item and not details['Selected']:
@@ -372,7 +373,7 @@ class Menu():
       if user_selection.isnumeric():
         if 'Value' in selected_entry[-1] and choice(**choice_kwargs) == 'C':
           # Change
-          selected_entry[-1[-1]]['Value'] = input_text('Enter new value: ')
+          selected_entry[-1]['Value'] = input_text('Enter new value: ')
         else:
           # Toggle
           self._update_entry_selection_status(selected_entry[0])

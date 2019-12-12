@@ -24,17 +24,32 @@ TMUX_LAYOUT = OrderedDict({
 AUTO_PASS_1_THRESHOLD = 95
 AUTO_PASS_2_THRESHOLD = 98
 DDRESCUE_SETTINGS = {
-  '--binary-prefixes':  {'Enabled': True,                 'Hidden': True, },
-  '--data-preview':     {'Enabled': True,   'Value': '5', 'Hidden': True, },
-  '--idirect':          {'Enabled': True,                                 },
-  '--odirect':          {'Enabled': True,                                 },
-  '--max-read-rate':    {'Enabled': False,  'Value': '1MiB',              },
-  '--min-read-rate':    {'Enabled': True,   'Value': '64KiB',             },
-  '--reopen-on-error':  {'Enabled': True,                                 },
-  '--retry-passes':     {'Enabled': True,   'Value': '0',                 },
-  '--test-mode':        {'Enabled': False,  'Value': 'test.map',          },
-  '--timeout':          {'Enabled': True,   'Value': '5m',                },
-  '-vvvv':              {'Enabled': True,                 'Hidden': True, },
+  'Default': {
+    '--binary-prefixes':  {'Selected': True,                'Hidden': True, },
+    '--data-preview':     {'Selected': True,  'Value': '5', 'Hidden': True, },
+    '--idirect':          {'Selected': True,                                },
+    '--odirect':          {'Selected': True,                                },
+    '--max-error-rate':   {'Selected': True,  'Value': '100MiB',            },
+    '--max-read-rate':    {'Selected': False, 'Value': '1MiB',              },
+    '--min-read-rate':    {'Selected': True,  'Value': '64KiB',             },
+    '--reopen-on-error':  {'Selected': True,                                },
+    '--retry-passes':     {'Selected': True,  'Value': '0',                 },
+    '--test-mode':        {'Selected': False, 'Value': 'test.map',          },
+    '--timeout':          {'Selected': True,  'Value': '30m',               },
+    '-vvvv':              {'Selected': True,                'Hidden': True, },
+    },
+  'Fast': {
+    '--max-error-rate':   {'Selected': True,  'Value': '32MiB',             },
+    '--min-read-rate':    {'Selected': True,  'Value': '1MiB',              },
+    '--reopen-on-error':  {'Selected': False,                               },
+    '--timeout':          {'Selected': True,  'Value': '5m',                },
+    },
+  'Safe': {
+    '--max-read-rate':    {'Selected': True,  'Value': '64MiB',             },
+    '--min-read-rate':    {'Selected': True,  'Value': '1KiB',              },
+    '--reopen-on-error':  {'Selected': True,                                },
+    '--timeout':          {'Selected': False, 'Value': '30m',               },
+    },
   }
 ETOC_REFRESH_RATE = 30 # in seconds
 REGEX_DDRESCUE_LOG = re.compile(
