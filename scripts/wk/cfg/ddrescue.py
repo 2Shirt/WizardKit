@@ -13,11 +13,11 @@ RECOMMENDED_FSTYPES = ['ext3', 'ext4', 'xfs']
 RECOMMENDED_MAP_FSTYPES = ['cifs', 'ext2', 'ext3', 'ext4', 'vfat', 'xfs']
 
 # Layout
-SIDE_PANE_WIDTH = 21
+TMUX_SIDE_WIDTH = 21
 TMUX_LAYOUT = OrderedDict({
-  'Source':   {'y': 2,         'Check': True},
-  'Started':  {'x': SIDE_PANE_WIDTH, 'Check': True},
-  'Progress': {'x': SIDE_PANE_WIDTH, 'Check': True},
+  'Source':   {'height':  2,                'Check': True},
+  'Started':  {'width':   TMUX_SIDE_WIDTH,  'Check': True},
+  'Progress': {'width':   TMUX_SIDE_WIDTH,  'Check': True},
 })
 
 # ddrescue
