@@ -128,18 +128,22 @@ class Menu():
     menu_lines = [str(line) for line in menu_lines]
     return '\n'.join(menu_lines)
 
-  def _get_display_name(self, name, details, index=None, no_checkboxes=True):
+  def _get_display_name(self, name, details,
+      index=None, no_checkboxes=True, setting_item=False):
     # pylint: disable=no-self-use
     """Format display name based on details and args, returns str."""
     disabled = details.get('Disabled', False)
+    if setting_item and not details['Selected']:
+      # Display item in YELLOW
+      disabled = True
     checkmark = '*'
     if 'DISPLAY' in os.environ or platform.system() == 'Darwin':
       checkmark = '✓'
-    clear_code = COLORS['CLEAR']
-    color_code = COLORS['YELLOW'] if disabled else ''
-    display_name = f'{color_code}{index if index else name[:1].upper()}: '
+    display_name = f'{index if index else name[:1].upper()}: '
     if not (index and index >= 10):
       display_name = f' {display_name}'
+    if setting_item and 'Value' in details:
+      name = f'{name} = {details["Value"]}'
 
     # Add enabled status if necessary
     if not no_checkboxes:
@@ -147,7 +151,7 @@ class Menu():
 
     # Add name
     if disabled:
-      display_name += f'{name} ({self.disabled_str}){clear_code}'
+      display_name += color_string(f'{name} ({self.disabled_str})', 'YELLOW')
     else:
       display_name += name
 
@@ -226,7 +230,7 @@ class Menu():
     # Done
     return resolved_selection
 
-  def _update(self, single_selection=True):
+  def _update(self, single_selection=True, settings_mode=False):
     """Update menu items in preparation for printing to screen."""
     index = 0
 
@@ -253,6 +257,7 @@ class Menu():
           details,
           index=index,
           no_checkboxes=single_selection,
+          setting_item=settings_mode,
           )
 
     # Actions
@@ -343,6 +348,34 @@ class Menu():
       if user_selection.isnumeric():
         # Update selection(s)
         self._update_entry_selection_status(selected_entry[0])
+      else:
+        # Action selected
+        break
+
+    # Done
+    return selected_entry
+
+  def settings_select(self, prompt='Please make a selection: '):
+    """Display menu and make multiple selections, returns tuple.
+
+    NOTE: Menu is displayed until an action entry is selected.
+    """
+    choice_kwargs = {
+      'choices': ['T', 'C'],
+      'prompt': 'Toggle or change value?',
+      }
+
+    while True:
+      self._update(single_selection=True, settings_mode=True)
+      user_selection = self._user_select(prompt)
+      selected_entry = self._resolve_selection(user_selection)
+      if user_selection.isnumeric():
+        if 'Value' in selected_entry[-1] and choice(**choice_kwargs) == 'C':
+          # Change
+          selected_entry[-1[-1]]['Value'] = input_text('Enter new value: ')
+        else:
+          # Toggle
+          self._update_entry_selection_status(selected_entry[0])
       else:
         # Action selected
         break
