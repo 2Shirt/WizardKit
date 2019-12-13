@@ -738,9 +738,9 @@ def color_string(strings, colors, sep=' '):
   msg = []
 
   # Convert to tuples if necessary
-  if isinstance(strings, str):
+  if isinstance(strings, (str, pathlib.Path)):
     strings = (strings,)
-  if isinstance(colors, str):
+  if isinstance(colors, (str, pathlib.Path)):
     colors = (colors,)
 
   # Build new string with color escapes added
