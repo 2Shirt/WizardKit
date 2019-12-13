@@ -93,6 +93,9 @@ class State():
       self.update_top_panes()
 
     # SMART/Journal
+    if 'Progress' not in self.panes:
+      # Assumning we're still selecting source/dest
+      return
     height = tmux.get_pane_size(self.panes['Progress'])[1] - 2
     p_ratios = [int((x/sum(PANE_RATIOS)) * height) for x in PANE_RATIOS]
     if 'SMART' in self.panes:
@@ -112,6 +115,7 @@ class State():
 
   def init_recovery(self, docopt_args):
     """Select source/dest and set env."""
+    std.clear_screen()
 
     # Set log
     self.log_dir = log.format_log_path()
@@ -126,22 +130,31 @@ class State():
       timestamp=False,
       )
 
-    # Update progress pane
-    tmux.respawn_pane(
-      pane_id=self.panes['Progress'],
-      watch_file=f'{self.log_dir}/progress.out',
-      )
-
     # Set mode
     mode = set_mode(docopt_args)
 
     # Select source
-    # TODO
+    try:
+      self.source = select_disk()
+    except std.GenericAbort:
+      std.abort()
 
     # Select destination
-    # TODO
+    if mode == 'Clone':
+      try:
+        self.destination = select_disk(self.source.path)
+      except std.GenericAbort:
+        std.abort()
+    elif mode == 'Image':
+      #TODO
+      std.print_error('Not implemented yet.')
+      std.abort()
 
     # Update panes
+    self.panes['Progress'] = tmux.split_window(
+      lines=cfg.ddrescue.TMUX_SIDE_WIDTH,
+      watch_file=f'{self.log_dir}/progress.out',
+      )
     self.update_progress_pane()
     self.update_top_panes()
 
@@ -170,12 +183,6 @@ class State():
 
     # Source / Dest
     self.update_top_panes()
-
-    # Progress (placeholder)
-    self.panes['Progress'] = tmux.split_window(
-      lines=cfg.ddrescue.TMUX_SIDE_WIDTH,
-      text=' ',
-      )
 
   def save_debug_reports(self):
     """Save debug reports to disk."""
@@ -269,7 +276,7 @@ def build_main_menu():
 def build_settings_menu(silent=True):
   """Build settings menu, returns wk.std.Menu."""
   title_text = [
-    std.color_string('ddrescue TUI: Exper Settings', 'GREEN'),
+    std.color_string('ddrescue TUI: Expert Settings', 'GREEN'),
     ' ',
     std.color_string(
       ['These settings can cause', 'MAJOR DAMAGE', 'to drives'],
@@ -363,6 +370,40 @@ def run_recovery(state, main_menu, settings_menu):
   state.save_debug_reports()
   atexit.unregister(state.save_debug_reports)
   std.pause('Press Enter to return to main menu...')
+
+
+def select_disk(skip_disk=None):
+  """Select disk from list, returns Disk()."""
+  disks = hw_obj.get_disks()
+  menu = std.Menu(
+    title=std.color_string('ddrescue TUI: Source Selection', 'GREEN'),
+    )
+  menu.disabled_str = 'Already selected'
+  menu.separator = ' '
+  menu.add_action('Quit')
+  if skip_disk:
+    skip_disk = str(skip_disk)
+  for disk in disks:
+    disable_option = skip_disk and disk.path.match(skip_disk)
+    size = disk.details["size"]
+    menu.add_option(
+      name=(
+        f'{str(disk.path):<12} '
+        f'{disk.details["bus"]:<5} '
+        f'{std.bytes_to_string(size, decimals=1, use_binary=False):<8} '
+        f'{disk.details["model"]} '
+        f'{disk.details["serial"]}'
+        ),
+      details={'Disabled': disable_option, 'Object': disk},
+      )
+
+  # Get selection
+  selection = menu.simple_select('Please select the source: ')
+  if 'Quit' in selection:
+    raise std.GenericAbort()
+
+  # Done
+  return selection[-1]['Object']
 
 
 def set_mode(docopt_args):

@@ -613,7 +613,7 @@ def abort(prompt='Aborted.', show_prompt=True, return_code=1):
   """Abort script."""
   print_warning(prompt)
   if show_prompt:
-    sleep(1)
+    sleep(0.5)
     pause(prompt='Press Enter to exit... ')
   sys.exit(return_code)
 
