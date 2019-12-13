@@ -18,6 +18,7 @@ from wk.cfg.hw import (
   KNOWN_RAM_VENDOR_IDS,
   REGEX_POWER_ON_TIME,
   )
+from wk.cfg.main import KIT_NAME_SHORT
 from wk.exe import get_json_from_command, run_program
 from wk.std import bytes_to_string, color_string, sleep, string_to_bytes
 
@@ -28,6 +29,10 @@ NVME_WARNING_KEYS = (
   'spare_below_threshold',
   'reliability_degraded',
   'volatile_memory_backup_failed',
+  )
+WK_LABEL_REGEX = re.compile(
+  fr'{KIT_NAME_SHORT}_(LINUX|UFD)',
+  re.IGNORECASE,
   )
 
 
@@ -624,6 +629,70 @@ def get_disk_serial_macos(path):
   cmd = ['sudo', 'smartctl', '--info', '--json', path]
   smart_info = get_json_from_command(cmd)
   return smart_info.get('serial_number', 'Unknown Serial')
+
+
+def get_disks(skip_kits=False):
+  """Get disks using OS-specific methods, returns list."""
+  disks = []
+  if platform.system() == 'Darwin':
+    disks = get_disks_macos()
+  elif platform.system() == 'Linux':
+    disks = get_disks_linux()
+
+  # Skip WK disks
+  if skip_kits:
+    disks = [
+      disk_obj for disk_obj in disks
+      if not any(
+        [WK_LABEL_REGEX.search(label) for label in disk_obj.get_labels()]
+        )
+      ]
+
+  # Done
+  return disks
+
+
+def get_disks_linux():
+  """Get disks via lsblk, returns list."""
+  cmd = ['lsblk', '--json', '--nodeps', '--paths']
+  disks = []
+
+  # Add valid disks
+  json_data = get_json_from_command(cmd)
+  for disk in json_data.get('blockdevices', []):
+    disk_obj = Disk(disk['name'])
+
+    # Skip loopback devices, optical devices, etc
+    if disk_obj.details['type'] != 'disk':
+      continue
+
+    # Add disk
+    disks.append(disk_obj)
+
+  # Done
+  return disks
+
+
+def get_disks_macos():
+  """Get disks via diskutil, returns list."""
+  cmd = ['diskutil', 'list', '-plist', 'physical']
+  disks = []
+
+  # Get info from diskutil
+  proc = exe.run_program(cmd, encoding=None, errors=None)
+  try:
+    plist_data = plistlib.loads(proc.stdout)
+  except (TypeError, ValueError):
+    # Invalid / corrupt plist data? return empty list to avoid crash
+    LOG.error('Failed to get diskutil list')
+    return disks
+
+  # Add valid disks
+  for disk in plist_data['WholeDisks']:
+    disks.append(Disk(f'/dev/{disk}'))
+
+  # Done
+  return disks
 
 
 def get_known_disk_attributes(model):
