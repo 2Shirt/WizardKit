@@ -679,7 +679,7 @@ def get_disks_macos():
   disks = []
 
   # Get info from diskutil
-  proc = exe.run_program(cmd, encoding=None, errors=None)
+  proc = run_program(cmd, encoding=None, errors=None)
   try:
     plist_data = plistlib.loads(proc.stdout)
   except (TypeError, ValueError):

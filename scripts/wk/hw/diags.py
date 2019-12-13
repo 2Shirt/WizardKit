@@ -7,7 +7,6 @@ import logging
 import os
 import pathlib
 import platform
-import plistlib
 import re
 import subprocess
 import time
