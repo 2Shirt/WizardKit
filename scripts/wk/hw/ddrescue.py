@@ -15,7 +15,7 @@ import time
 from collections import OrderedDict
 from docopt import docopt
 
-from wk import cfg, debug, exe, graph, log, net, std, tmux
+from wk import cfg, debug, exe, log, net, std, tmux
 from wk.hw import obj as hw_obj
 from wk.hw import sensors as hw_sensors
 
@@ -72,7 +72,7 @@ class State():
     self.panes = {}
     self.source = None
 
-    # Init tmux and start a background process to maintain layout
+    # Start a background process to maintain layout
     self.init_tmux()
     exe.start_thread(self.fix_tmux_layout_loop)
 
@@ -110,6 +110,41 @@ class State():
       self.fix_tmux_layout(forced=False)
       std.sleep(1)
 
+  def init_recovery(self, docopt_args):
+    """Select source/dest and set env."""
+
+    # Set log
+    self.log_dir = log.format_log_path()
+    self.log_dir = pathlib.Path(
+      f'{self.log_dir.parent}/'
+      f'ddrescue-TUI_{time.strftime("%Y-%m-%d_%H%M%S%z")}/'
+      )
+    log.update_log_path(
+      dest_dir=self.log_dir,
+      dest_name='main',
+      keep_history=True,
+      timestamp=False,
+      )
+
+    # Update progress pane
+    tmux.respawn_pane(
+      pane_id=self.panes['Progress'],
+      watch_file=f'{self.log_dir}/progress.out',
+      )
+
+    # Set mode
+    mode = set_mode(docopt_args)
+
+    # Select source
+    # TODO
+
+    # Select destination
+    # TODO
+
+    # Update panes
+    self.update_progress_pane()
+    self.update_top_panes()
+
   def init_tmux(self):
     """Initialize tmux layout."""
     tmux.kill_all_panes()
@@ -136,7 +171,7 @@ class State():
     # Source / Dest
     self.update_top_panes()
 
-    # Progress
+    # Progress (placeholder)
     self.panes['Progress'] = tmux.split_window(
       lines=cfg.ddrescue.TMUX_SIDE_WIDTH,
       text=' ',
@@ -271,8 +306,7 @@ def build_settings_menu(silent=True):
 
 
 def main():
-  # pylint: disable=too-many-branches
-  """Main function for hardware diagnostics."""
+  """Main function for ddrescue TUI."""
   args = docopt(DOCSTRING)
   log.update_log_path(dest_name='ddrescue-TUI', timestamp=True)
 
@@ -286,6 +320,7 @@ def main():
   main_menu = build_main_menu()
   settings_menu = build_settings_menu()
   state = State()
+  state.init_recovery(args)
 
   # Show menu
   while True:
@@ -313,17 +348,43 @@ def main():
 
 def run_recovery(state, main_menu, settings_menu):
   """Run recovery passes."""
-  aborted = False
   atexit.register(state.save_debug_reports)
-  state.init_recovery(menu)
+
+  # Start SMART/Journal
+  # TODO
 
   # TODO
   # Run ddrescue
+
+  # Stop SMART/Journal
+  # TODO
 
   # Done
   state.save_debug_reports()
   atexit.unregister(state.save_debug_reports)
   std.pause('Press Enter to return to main menu...')
+
+
+def set_mode(docopt_args):
+  """Set mode from docopt_args or user selection, returns str."""
+  mode = None
+
+  # Check docopt_args
+  if docopt_args['clone']:
+    mode = 'Clone'
+  elif docopt_args['image']:
+    mode = 'Image'
+
+  # Ask user if necessary
+  if not mode:
+    answer = std.choice(['C', 'I'], 'Are we cloning or imaging?')
+    if answer == 'C':
+      mode = 'Clone'
+    else:
+      mode = 'Image'
+
+  # Done
+  return mode
 
 
 if __name__ == '__main__':
