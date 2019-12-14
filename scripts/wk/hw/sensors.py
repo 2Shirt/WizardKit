@@ -4,14 +4,13 @@
 import json
 import logging
 import pathlib
-import platform
 import re
 
 from subprocess import CalledProcessError
 
 from wk.cfg.hw import CPU_CRITICAL_TEMP, SMC_IDS, TEMP_COLORS
 from wk.exe import run_program, start_thread
-from wk.std import color_string, sleep
+from wk.std import PLATFORM, color_string, sleep
 
 
 # STATIC VARIABLES
@@ -23,7 +22,7 @@ SMC_REGEX = re.compile(
   r'\s+(?P<Value>.*?)'
   r'\s*\(bytes (?P<Bytes>.*)\)$'
   )
-SENSOR_SOURCE_WIDTH = 25 if platform.system() == 'Darwin' else 20
+SENSOR_SOURCE_WIDTH = 25 if PLATFORM == 'Darwin' else 20
 
 
 # Error Classes
@@ -188,9 +187,9 @@ class Sensors():
 
   def update_sensor_data(self, exit_on_thermal_limit=True):
     """Update sensor data via OS-specific means."""
-    if platform.system() == 'Darwin':
+    if PLATFORM == 'Darwin':
       self.update_sensor_data_macos(exit_on_thermal_limit)
-    elif platform.system() == 'Linux':
+    elif PLATFORM == 'Linux':
       self.update_sensor_data_linux(exit_on_thermal_limit)
 
   def update_sensor_data_linux(self, exit_on_thermal_limit=True):
@@ -262,9 +261,9 @@ def fix_sensor_name(name):
 def get_sensor_data():
   """Get sensor data via OS-specific means, returns dict."""
   sensor_data = {}
-  if platform.system() == 'Darwin':
+  if PLATFORM == 'Darwin':
     sensor_data = get_sensor_data_macos()
-  elif platform.system() == 'Linux':
+  elif PLATFORM == 'Linux':
     sensor_data = get_sensor_data_linux()
 
   return sensor_data

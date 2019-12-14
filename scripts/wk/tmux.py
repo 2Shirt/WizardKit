@@ -3,9 +3,9 @@
 
 import logging
 import pathlib
-import platform
 
 from wk.exe import run_program
+from wk.std import PLATFORM
 
 
 # STATIC_VARIABLES
@@ -149,7 +149,7 @@ def prep_action(
   elif text:
     # Display text
     echo_cmd = ['echo']
-    if platform.system() == 'Linux':
+    if PLATFORM == 'Linux':
       echo_cmd.append('-e')
     action_cmd.extend([
       'watch',

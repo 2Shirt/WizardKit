@@ -6,7 +6,6 @@ import atexit
 import logging
 import os
 import pathlib
-import platform
 import re
 import subprocess
 import time
@@ -75,6 +74,7 @@ MENU_SETS = {
 MENU_TOGGLES = (
   'Skip USB Benchmarks',
   )
+PLATFORM = std.PLATFORM
 STATUS_COLORS = {
   'Passed': 'GREEN',
   'Aborted': 'YELLOW',
@@ -374,7 +374,7 @@ class State():
 # Functions
 def audio_test():
   """Run an OS-specific audio test."""
-  if platform.system() == 'Linux':
+  if PLATFORM == 'Linux':
     audio_test_linux()
   # TODO: Add tests for other OS
 
@@ -423,10 +423,10 @@ def build_menu(cli_mode=False, quick_mode=False):
     menu.add_action('Power Off')
 
   # Compatibility checks
-  if platform.system() != 'Linux':
+  if PLATFORM != 'Linux':
     for name in ('Audio Test', 'Keyboard Test', 'Network Test'):
       menu.actions[name]['Disabled'] = True
-  if platform.system() not in ('Darwin', 'Linux'):
+  if PLATFORM not in ('Darwin', 'Linux'):
     for name in ('Matrix', 'Tubes'):
       menu.actions[name]['Disabled'] = True
 
@@ -661,10 +661,10 @@ def cpu_mprime_test(state, test_objects):
   state.update_progress_pane()
   state.panes['Prime95'] = tmux.split_window(
     lines=10, vertical=True, watch_file=prime_log)
-  if platform.system() == 'Darwin':
+  if PLATFORM == 'Darwin':
     state.panes['Temps'] = tmux.split_window(
       behind=True, percent=80, vertical=True, cmd='./hw-sensors')
-  elif platform.system() == 'Linux':
+  elif PLATFORM == 'Linux':
     state.panes['Temps'] = tmux.split_window(
       behind=True, percent=80, vertical=True, watch_file=sensors_out)
   tmux.resize_pane(height=3)
@@ -750,7 +750,7 @@ def disk_io_benchmark(state, test_objects, skip_usb=True):
   def _run_io_benchmark(test_obj, log_path):
     """Run I/O benchmark and handle exceptions."""
     dev_path = test_obj.dev.path
-    if platform.system() == 'Darwin':
+    if PLATFORM == 'Darwin':
       # Use "RAW" disks under macOS
       dev_path = dev_path.with_name(f'r{dev_path.name}')
     offset = 0
@@ -783,7 +783,7 @@ def disk_io_benchmark(state, test_objects, skip_usb=True):
         f'if={dev_path}',
         'of=/dev/null',
         ]
-      if platform.system() == 'Linux':
+      if PLATFORM == 'Linux':
         cmd.append('iflag=direct')
 
       # Run and get read rate
@@ -1270,7 +1270,7 @@ def screensaver(name):
     cmd = ['cmatrix', '-abs']
   elif name == 'pipes':
     cmd = [
-      'pipes' if platform.system() == 'Linux' else 'pipes.sh',
+      'pipes' if PLATFORM == 'Linux' else 'pipes.sh',
       '-t', '0',
       '-t', '1',
       '-t', '2',
@@ -1294,7 +1294,7 @@ def set_apple_fan_speed(speed):
     raise RuntimeError(f'Invalid speed {speed}')
 
   # Set cmd
-  if platform.system() == 'Linux':
+  if PLATFORM == 'Linux':
     cmd = ['apple-fans', speed]
   #TODO: Add method for use under macOS
 

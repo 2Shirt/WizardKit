@@ -3,13 +3,12 @@
 
 import os
 import pathlib
-import platform
 import re
 
 import psutil
 
 from wk.exe import get_json_from_command, run_program
-from wk.std import GenericError, show_data
+from wk.std import PLATFORM, GenericError, show_data
 
 from wk.cfg.net import BACKUP_SERVERS
 
@@ -62,7 +61,7 @@ def mount_backup_shares(read_write=False):
     mount_str = f'{name} (//{details["Address"]}/{details["Share"]})'
 
     # Prep mount point
-    if platform.system() in ('Darwin', 'Linux'):
+    if PLATFORM in ('Darwin', 'Linux'):
       mount_point = pathlib.Path(f'/Backups/{name}')
       try:
         if not mount_point.exists():
@@ -107,7 +106,7 @@ def mount_network_share(details, mount_point=None, read_write=False):
     raise RuntimeError('Not connected to a network')
 
   # Build OS-specific command
-  if platform.system() == 'Darwin':
+  if PLATFORM == 'Darwin':
     cmd = [
       'sudo',
       'mount',
@@ -116,7 +115,7 @@ def mount_network_share(details, mount_point=None, read_write=False):
       f'//{username}:{password}@{address}/{share}',
       mount_point,
       ]
-  elif platform.system() == 'Linux':
+  elif PLATFORM == 'Linux':
     cmd = [
       'sudo',
       'mount',
@@ -131,7 +130,7 @@ def mount_network_share(details, mount_point=None, read_write=False):
       f'//{address}/{share}',
       mount_point
       ]
-  elif platform.system() == 'Windows':
+  elif PLATFORM == 'Windows':
     cmd = ['net', 'use']
     if mount_point:
       cmd.append(f'{mount_point}:')
@@ -158,14 +157,14 @@ def share_is_mounted(details):
   """Check if dev/share/etc is mounted, returns bool."""
   mounted = False
 
-  if platform.system() == 'Darwin':
+  if PLATFORM == 'Darwin':
     # Weak and naive text search
     proc = run_program(['mount'], check=False)
     for line in proc.stdout.splitlines():
       if f'{details["Address"]}/{details["Share"]}' in line:
         mounted = True
         break
-  elif platform.system() == 'Linux':
+  elif PLATFORM == 'Linux':
     cmd = [
       'findmnt',
       '--list',
@@ -183,7 +182,7 @@ def share_is_mounted(details):
         mounted = True
         break
   #TODO: Check mount status under Windows
-  #elif platform.system() == 'Windows':
+  #elif PLATFORM == 'Windows':
 
   # Done
   return mounted
@@ -222,9 +221,9 @@ def unmount_backup_shares():
       continue
 
     # Build OS specific kwargs
-    if platform.system() in ('Darwin', 'Linux'):
+    if PLATFORM in ('Darwin', 'Linux'):
       kwargs['mount_point'] = f'/Backups/{name}'
-    elif platform.system() == 'Windows':
+    elif PLATFORM == 'Windows':
       kwargs['details'] = details
 
     # Unmount and add to report
@@ -243,9 +242,9 @@ def unmount_network_share(details=None, mount_point=None):
   cmd = []
 
   # Build OS specific command
-  if platform.system() in ('Darwin', 'Linux'):
+  if PLATFORM in ('Darwin', 'Linux'):
     cmd = ['sudo', 'umount', mount_point]
-  elif platform.system() == 'Windows':
+  elif PLATFORM == 'Windows':
     cmd = ['net', 'use']
     if mount_point:
       cmd.append(f'{mount_point}:')

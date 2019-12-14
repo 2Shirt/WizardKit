@@ -3,7 +3,6 @@
 
 import logging
 import pathlib
-import platform
 import plistlib
 import re
 
@@ -20,7 +19,13 @@ from wk.cfg.hw import (
   )
 from wk.cfg.main import KIT_NAME_SHORT
 from wk.exe import get_json_from_command, run_program
-from wk.std import bytes_to_string, color_string, sleep, string_to_bytes
+from wk.std import (
+  PLATFORM,
+  bytes_to_string,
+  color_string,
+  sleep,
+  string_to_bytes,
+  )
 
 
 # STATIC VARIABLES
@@ -94,11 +99,11 @@ class CpuRam(BaseObj):
 
   def get_cpu_details(self):
     """Get CPU details using OS specific methods."""
-    if platform.system() == 'Darwin':
+    if PLATFORM == 'Darwin':
       cmd = 'sysctl -n machdep.cpu.brand_string'.split()
       proc = run_program(cmd, check=False)
       self.description = re.sub(r'\s+', ' ', proc.stdout.strip())
-    elif platform.system() == 'Linux':
+    elif PLATFORM == 'Linux':
       cmd = ['lscpu', '--json']
       json_data = get_json_from_command(cmd)
       for line in json_data.get('lscpu', [{}]):
@@ -117,9 +122,9 @@ class CpuRam(BaseObj):
 
   def get_ram_details(self):
     """Get RAM details using OS specific methods."""
-    if platform.system() == 'Darwin':
+    if PLATFORM == 'Darwin':
       dimm_list = get_ram_list_macos()
-    elif platform.system() == 'Linux':
+    elif PLATFORM == 'Linux':
       dimm_list = get_ram_list_linux()
 
     details = {'Total': 0}
@@ -299,9 +304,9 @@ class Disk(BaseObj):
     Required details default to generic descriptions
     and are converted to the correct type.
     """
-    if platform.system() == 'Darwin':
+    if PLATFORM == 'Darwin':
       self.details = get_disk_details_macos(self.path)
-    elif platform.system() == 'Linux':
+    elif PLATFORM == 'Linux':
       self.details = get_disk_details_linux(self.path)
 
     # Set necessary details
@@ -362,9 +367,9 @@ class Disk(BaseObj):
   def is_4k_aligned(self):
     """Check that all disk partitions are aligned, returns bool."""
     aligned = True
-    if platform.system() == 'Darwin':
+    if PLATFORM == 'Darwin':
       aligned = is_4k_aligned_macos(self.details)
-    elif platform.system() == 'Linux':
+    elif PLATFORM == 'Linux':
       aligned = is_4k_aligned_linux(self.path, self.details['phy-sec'])
     #TODO: Add checks for other OS
 
@@ -640,9 +645,9 @@ def get_disk_serial_macos(path):
 def get_disks(skip_kits=False):
   """Get disks using OS-specific methods, returns list."""
   disks = []
-  if platform.system() == 'Darwin':
+  if PLATFORM == 'Darwin':
     disks = get_disks_macos()
-  elif platform.system() == 'Linux':
+  elif PLATFORM == 'Linux':
     disks = get_disks_linux()
 
   # Skip WK disks

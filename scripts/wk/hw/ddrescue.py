@@ -6,7 +6,6 @@ import atexit
 import logging
 import os
 import pathlib
-import platform
 import plistlib
 import re
 import subprocess
@@ -46,6 +45,7 @@ PANE_RATIOS = (
   22, # ddrescue progress
   4,  # Journal (kernel messages)
   )
+PLATFORM = std.PLATFORM
 SETTING_PRESETS = (
   'Default',
   'Fast',

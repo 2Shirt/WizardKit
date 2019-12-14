@@ -50,6 +50,7 @@ COLORS = {
   'CYAN':         '\033[36m',
   }
 LOG = logging.getLogger(__name__)
+PLATFORM = platform.system()
 REGEX_SIZE_STRING = re.compile(
   r'(?P<size>\-?\d+\.?\d*)\s*(?P<units>[PTGMKB])(?P<binary>I?)B?'
   )
@@ -138,7 +139,7 @@ class Menu():
       # Display item in YELLOW
       disabled = True
     checkmark = '*'
-    if 'DISPLAY' in os.environ or platform.system() == 'Darwin':
+    if 'DISPLAY' in os.environ or PLATFORM == 'Darwin':
       checkmark = '✓'
     display_name = f'{index if index else name[:1].upper()}: '
     if not (index and index >= 10):
