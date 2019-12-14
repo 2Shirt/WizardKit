@@ -305,7 +305,7 @@ class Disk(BaseObj):
       self.details = get_disk_details_linux(self.path)
 
     # Set necessary details
-    self.details['bus'] = self.details.get('bus', '???')
+    self.details['bus'] = str(self.details.get('bus', '???'))
     self.details['bus'] = self.details['bus'].upper().replace('NVME', 'NVMe')
     self.details['model'] = self.details.get('model', 'Unknown Model')
     self.details['name'] = self.details.get('name', self.path)
@@ -569,8 +569,14 @@ def get_disk_details_linux(path):
   cmd = ['lsblk', '--bytes', '--json', '--output-all', '--paths', path]
   json_data = get_json_from_command(cmd, check=False)
   details = json_data.get('blockdevices', [{}])[0]
-  details['bus'] = details.pop('tran', '???')
-  details['ssd'] = not details.pop('rota', True)
+
+  # Fix details
+  for dev in [details, *details.get('children', [])]:
+    dev['bus'] = dev.pop('tran', '???')
+    dev['parent'] = dev.pop('pkname', None)
+    dev['ssd'] = not dev.pop('rota', True)
+
+  # Done
   return details
 
 

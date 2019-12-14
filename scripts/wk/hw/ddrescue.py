@@ -134,21 +134,19 @@ class State():
     mode = set_mode(docopt_args)
 
     # Select source
-    try:
-      self.source = select_disk()
-    except std.GenericAbort:
-      std.abort()
+    self.source = get_object(docopt_args['<source>'])
+    if not self.source:
+      self.source = select_disk('Source')
 
     # Select destination
-    if mode == 'Clone':
-      try:
-        self.destination = select_disk(self.source.path)
-      except std.GenericAbort:
+    self.destination = get_object(docopt_args['<destination>'])
+    if not self.destination:
+      if mode == 'Clone':
+        self.destination = select_disk('Destination', self.source)
+      elif mode == 'Image':
+        #TODO
+        std.print_error('Not implemented yet.')
         std.abort()
-    elif mode == 'Image':
-      #TODO
-      std.print_error('Not implemented yet.')
-      std.abort()
 
     # Update panes
     self.panes['Progress'] = tmux.split_window(
@@ -312,6 +310,39 @@ def build_settings_menu(silent=True):
   return menu
 
 
+def get_object(path):
+  """Get object based on path, returns obj."""
+  obj = None
+
+  # Bail early
+  if not path:
+    return obj
+
+  # Check path
+  path = pathlib.Path(path).resolve()
+  if path.is_block_device() or path.is_char_device():
+    obj = hw_obj.Disk(path)
+
+    # Child/Parent check
+    parent = obj.details['parent']
+    if parent:
+      std.print_warning(f'"{obj.path}" is a child device')
+      if std.ask(f'Use parent device "{parent}" instead?'):
+        obj = hw_obj.Disk(parent)
+  elif path.is_dir():
+    #TODO
+    std.print_error('Not implemented yet.')
+    std.abort()
+  elif path.is_file():
+    # Assuming image file, setup loopback dev
+    #TODO
+    std.print_error('Not implemented yet.')
+    std.abort()
+
+  # Done
+  return obj
+
+
 def main():
   """Main function for ddrescue TUI."""
   args = docopt(DOCSTRING)
@@ -327,7 +358,10 @@ def main():
   main_menu = build_main_menu()
   settings_menu = build_settings_menu()
   state = State()
-  state.init_recovery(args)
+  try:
+    state.init_recovery(args)
+  except std.GenericAbort:
+    std.abort()
 
   # Show menu
   while True:
@@ -372,20 +406,27 @@ def run_recovery(state, main_menu, settings_menu):
   std.pause('Press Enter to return to main menu...')
 
 
-def select_disk(skip_disk=None):
+def select_disk(prompt, skip_disk=None):
   """Select disk from list, returns Disk()."""
   disks = hw_obj.get_disks()
   menu = std.Menu(
-    title=std.color_string('ddrescue TUI: Source Selection', 'GREEN'),
+    title=std.color_string(f'ddrescue TUI: {prompt} Selection', 'GREEN'),
     )
   menu.disabled_str = 'Already selected'
   menu.separator = ' '
   menu.add_action('Quit')
-  if skip_disk:
-    skip_disk = str(skip_disk)
   for disk in disks:
-    disable_option = skip_disk and disk.path.match(skip_disk)
+    disable_option = False
     size = disk.details["size"]
+
+    # Check if option should be disabled
+    if skip_disk:
+      parent = skip_disk.details.get('parent', None)
+      if (disk.path.samefile(skip_disk.path)
+          or (parent and disk.path.samefile(parent))):
+        disable_option = True
+
+    # Add to menu
     menu.add_option(
       name=(
         f'{str(disk.path):<12} '
