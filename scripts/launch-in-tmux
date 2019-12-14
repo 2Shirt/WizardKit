@@ -46,9 +46,6 @@ function launch_in_tmux() {
               die "Failed to kill session: $SESSION_NAME"
       else
           echo "Aborted."
-          echo ""
-          echo -n "Press Enter to exit... "
-          read -r
           return 1
       fi
   fi
