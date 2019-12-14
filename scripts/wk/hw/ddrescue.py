@@ -137,6 +137,7 @@ class State():
     self.source = get_object(docopt_args['<source>'])
     if not self.source:
       self.source = select_disk('Source')
+    source_parts = select_disk_parts(mode, self.source)
 
     # Select destination
     self.destination = get_object(docopt_args['<destination>'])
@@ -408,6 +409,7 @@ def run_recovery(state, main_menu, settings_menu):
 
 def select_disk(prompt, skip_disk=None):
   """Select disk from list, returns Disk()."""
+  std.print_info('Scanning disks...')
   disks = hw_obj.get_disks()
   menu = std.Menu(
     title=std.color_string(f'ddrescue TUI: {prompt} Selection', 'GREEN'),
@@ -439,12 +441,67 @@ def select_disk(prompt, skip_disk=None):
       )
 
   # Get selection
-  selection = menu.simple_select('Please select the source: ')
+  selection = menu.simple_select()
   if 'Quit' in selection:
     raise std.GenericAbort()
 
   # Done
   return selection[-1]['Object']
+
+
+def select_disk_parts(prompt, disk):
+  """Select disk parts from list, returns list of Disk()."""
+  menu = std.Menu(
+    title=std.color_string(f'ddrescue TUI: Part Selection', 'GREEN'),
+    )
+  menu.separator = ' '
+  menu.add_action('Proceed')
+  menu.add_action('Quit')
+  object_list = []
+
+  # Add parts
+  whole_disk_str = f'{str(disk.path):<14} (Whole device)'
+  for part in disk.details.get('children', []):
+    size = part["size"]
+    name = (
+      f'{str(part["path"]):<14} '
+      f'({std.bytes_to_string(size, decimals=1, use_binary=False):>6})'
+      )
+    menu.add_option(name, details={'Selected': True, 'Path': part['path']})
+
+  # Add whole disk if necessary
+  if not menu.options:
+    menu.add_option(whole_disk_str, {'Selected': True, 'Path': disk.path})
+    menu.title += '\n\n'
+    menu.title += std.color_string(' No partitions detected.', 'YELLOW')
+
+  # Get selection
+  selection = menu.advanced_select(
+    f'Please select the parts to {prompt.lower()}: ',
+    )
+  if 'Quit' in selection:
+    raise std.GenericAbort()
+
+  # Build list of Disk() object_list
+  for option in menu.options.values():
+    if option['Selected']:
+      object_list.append(option['Path'])
+
+  # Check if whole disk selected
+  if len(object_list) == len(disk.details.get('children', [])):
+    # NOTE: This is not true if the disk has no partitions
+    msg = f'Preserve partition table and unused space in {prompt.lower()}?'
+    if std.ask(msg):
+      # Replace part list with whole disk obj
+      object_list = [disk.path]
+
+  # Convert object_list to hw_obj.Disk() objects
+  print(' ')
+  std.print_info('Getting disk/partition details...')
+  object_list = [hw_obj.Disk(path) for path in object_list]
+
+  # Done
+  return object_list
 
 
 def set_mode(docopt_args):
