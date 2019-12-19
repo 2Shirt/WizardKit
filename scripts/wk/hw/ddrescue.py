@@ -216,6 +216,32 @@ class State():
     width = tmux.get_pane_size()[0]
     width = int(width / 2) - 1
 
+    def _format_string(obj, width):
+      """Format source/dest string using obj and width, returns str."""
+      string = ''
+
+      # Build base string
+      if isinstance(obj, hw_obj.Disk):
+        string = f'{obj.path} {obj.description}'
+      elif obj.is_dir():
+        string = f'{obj}/'
+      elif obj.is_file():
+        size_str = std.bytes_to_string(
+          obj.stat().st_size,
+          decimals=0,
+          use_binary=False)
+        string = f'{obj.name} {size_str}'
+
+      # Adjust for width
+      if len(string) > width:
+        if hasattr(obj, 'is_dir') and obj.is_dir():
+          string = f'...{string[-width+3:]}'
+        else:
+          string = f'{string[:width-3]}...'
+
+      # Done
+      return string
+
     # Kill destination pane
     if 'Destination' in self.panes:
       tmux.kill_pane(self.panes.pop('Destination'))
@@ -223,9 +249,7 @@ class State():
     # Source
     source_str = ' '
     if self.source:
-      source_str = f'{self.source.path} {self.source.description}'
-    if len(source_str) > width:
-      source_str = f'{source_str[:width-3]}...'
+      source_str = _format_string(self.source, width)
     tmux.respawn_pane(
       self.panes['Source'],
       text=std.color_string(
@@ -238,12 +262,7 @@ class State():
     # Destination
     dest_str = ''
     if self.destination:
-      dest_str = f'{self.destination.path} {self.destination.description}'
-    if len(dest_str) > width:
-      if self.destination.path.is_dir():
-        dest_str = f'...{dest_str[-width+3:]}'
-      else:
-        dest_str = f'{dest_str[:width-3]}...'
+      dest_str = _format_string(self.destination, width)
     self.panes['Destination'] = tmux.split_window(
       percent=50,
       vertical=False,
@@ -330,14 +349,12 @@ def get_object(path):
       std.print_warning(f'"{obj.path}" is a child device')
       if std.ask(f'Use parent device "{parent}" instead?'):
         obj = hw_obj.Disk(parent)
-  elif path.is_dir():
-    #TODO
-    std.print_error('Not implemented yet.')
-    std.abort()
-  elif path.is_file():
-    # Assuming image file, setup loopback dev
-    #TODO
-    std.print_error('Not implemented yet.')
+  elif path.is_dir() or path.is_file():
+    obj = path
+
+  # Abort if obj not set
+  if not obj:
+    std.print_error(f'Invalid source/dest path: {path}')
     std.abort()
 
   # Done
@@ -458,6 +475,10 @@ def select_disk_parts(prompt, disk):
   menu.add_action('Proceed')
   menu.add_action('Quit')
   object_list = []
+
+  # Bail early if child device selected
+  if disk.details.get('parent', False):
+    return [disk]
 
   # Add parts
   whole_disk_str = f'{str(disk.path):<14} (Whole device)'
