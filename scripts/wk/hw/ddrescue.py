@@ -145,9 +145,7 @@ class State():
       if mode == 'Clone':
         self.destination = select_disk('Destination', self.source)
       elif mode == 'Image':
-        #TODO
-        std.print_error('Not implemented yet.')
-        std.abort()
+        self.destination = select_path('Destination')
 
     # Update panes
     self.panes['Progress'] = tmux.split_window(
@@ -359,7 +357,7 @@ def get_object(path):
   # Abort if obj not set
   if not obj:
     std.print_error(f'Invalid source/dest path: {path}')
-    std.abort()
+    raise std.GenericAbort()
 
   # Done
   return obj
@@ -549,7 +547,9 @@ def select_disk_parts(prompt, disk):
   title += f'\n\nDisk: {disk.path} {disk.description}'
   menu = std.Menu(title)
   menu.separator = ' '
-  menu.add_action('Proceed')
+  menu.add_action('All')
+  menu.add_action('None')
+  menu.add_action('Proceed', {'Separator': True})
   menu.add_action('Quit')
   object_list = []
 
@@ -574,11 +574,20 @@ def select_disk_parts(prompt, disk):
     menu.title += std.color_string(' No partitions detected.', 'YELLOW')
 
   # Get selection
-  selection = menu.advanced_select(
-    f'Please select the parts to {prompt.lower()}: ',
-    )
-  if 'Quit' in selection:
-    raise std.GenericAbort()
+  while True:
+    selection = menu.advanced_select(
+      f'Please select the parts to {prompt.lower()}: ',
+      )
+    if 'All' in selection:
+      for option in menu.options.values():
+        option['Selected'] = True
+    elif 'None' in selection:
+      for option in menu.options.values():
+        option['Selected'] = False
+    elif 'Proceed' in selection:
+      break
+    elif 'Quit' in selection:
+      raise std.GenericAbort()
 
   # Build list of Disk() object_list
   for option in menu.options.values():
@@ -600,6 +609,40 @@ def select_disk_parts(prompt, disk):
 
   # Done
   return object_list
+
+
+def select_path(prompt):
+  """Select path, returns pathlib.Path."""
+  invalid = False
+  menu = std.Menu(
+    title=std.color_string(f'ddrescue TUI: {prompt} Path Selection', 'GREEN'),
+    )
+  menu.separator = ' '
+  menu.add_action('Quit')
+  menu.add_option(f'Current directory')
+  menu.add_option('Enter manually')
+  path = None
+
+  # Make selection
+  selection = menu.simple_select()
+  if 'Current directory' in selection:
+    path = os.getcwd()
+  elif 'Enter manually' in selection:
+    path = std.input_text('Please enter path: ')
+  elif 'Quit' in selection:
+    raise std.GenericAbort()
+
+  # Check
+  try:
+    path = pathlib.Path(path).resolve()
+  except TypeError:
+    invalid = True
+  if invalid or not path.is_dir():
+    std.print_error(f'Invalid path: {path}')
+    raise std.GenericAbort()
+
+  # Done
+  return path
 
 
 def set_mode(docopt_args):
