@@ -545,9 +545,9 @@ def select_disk(prompt, skip_disk=None):
 
 def select_disk_parts(prompt, disk):
   """Select disk parts from list, returns list of Disk()."""
-  menu = std.Menu(
-    title=std.color_string(f'ddrescue TUI: Part Selection', 'GREEN'),
-    )
+  title = std.color_string(f'ddrescue TUI: Partition Selection', 'GREEN')
+  title += f'\n\nDisk: {disk.path} {disk.description}'
+  menu = std.Menu(title)
   menu.separator = ' '
   menu.add_action('Proceed')
   menu.add_action('Quit')

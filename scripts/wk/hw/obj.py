@@ -310,8 +310,9 @@ class Disk(BaseObj):
       self.details = get_disk_details_linux(self.path)
 
     # Set necessary details
-    self.details['bus'] = str(self.details.get('bus', '???'))
-    self.details['bus'] = self.details['bus'].upper().replace('NVME', 'NVMe')
+    self.details['bus'] = str(self.details.get('bus', '???')).upper()
+    self.details['bus'] = self.details['bus'].replace('IMAGE', 'Image')
+    self.details['bus'] = self.details['bus'].replace('NVME', 'NVMe')
     self.details['model'] = self.details.get('model', 'Unknown Model')
     self.details['name'] = self.details.get('name', self.path)
     self.details['phy-sec'] = self.details.get('phy-sec', 512)
@@ -580,6 +581,10 @@ def get_disk_details_linux(path):
     dev['bus'] = dev.pop('tran', '???')
     dev['parent'] = dev.pop('pkname', None)
     dev['ssd'] = not dev.pop('rota', True)
+    if 'loop' in str(path) and dev['bus'] is None:
+      dev['bus'] = 'Image'
+      dev['model'] = ''
+      dev['serial'] = ''
 
   # Done
   return details
