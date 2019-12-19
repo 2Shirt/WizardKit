@@ -349,8 +349,12 @@ def get_object(path):
       std.print_warning(f'"{obj.path}" is a child device')
       if std.ask(f'Use parent device "{parent}" instead?'):
         obj = hw_obj.Disk(parent)
-  elif path.is_dir() or path.is_file():
+  elif path.is_dir():
     obj = path
+  elif path.is_file():
+    # Assuming file is a raw image, mounting
+    loop_path = mount_raw_image(path)
+    obj = hw_obj.Disk(loop_path)
 
   # Abort if obj not set
   if not obj:
@@ -403,6 +407,79 @@ def main():
     # Quit
     if 'Quit' in selection:
       break
+
+
+def mount_raw_image(path):
+  """Mount raw image using OS specific methods, returns pathlib.Path."""
+  loopback_path = None
+
+  if PLATFORM == 'Darwin':
+    loopback_path = mount_raw_image_macos(path)
+  elif PLATFORM == 'Linux':
+    loopback_path = mount_raw_image_linux(path)
+
+  # Check
+  if not loopback_path:
+    std.print_error(f'Failed to mount image: {path}')
+
+  # Register unmount atexit
+  atexit.register(unmount_loopback_device, loopback_path)
+
+  # Done
+  return loopback_path
+
+
+def mount_raw_image_linux(path):
+  """Mount raw image using losetup, returns pathlib.Path."""
+  loopback_path = None
+
+  # Mount using losetup
+  cmd = [
+    'sudo',
+    'losetup',
+    '--find',
+    '--partscan',
+    '--show',
+    path,
+    ]
+  proc = exe.run_program(cmd, check=False)
+
+  # Check result
+  if proc.returncode == 0:
+    loopback_path = proc.stdout.strip()
+
+  # Done
+  return loopback_path
+
+def mount_raw_image_macos(path):
+  """Mount raw image using hdiutil, returns pathlib.Path."""
+  loopback_path = None
+  plist_data = {}
+
+  # Mount using hdiutil
+  # plistdata['system-entities'][{}...]
+  cmd = [
+    'hdiutil', 'attach',
+    '-imagekey', 'diskimage-class=CRawDiskImage',
+    '-nomount',
+    '-plist',
+    '-readonly',
+    path,
+    ]
+  proc = exe.run_program(cmd, check=False, encoding=None, errors=None)
+
+  # Check result
+  try:
+    plist_data = plistlib.loads(proc.stdout)
+  except plistlib.InvalidFileException:
+    return None
+  for dev in plist_data.get('system-entities', []):
+    dev_path = dev.get('dev-entry', '')
+    if re.match(r'^/dev/disk\d+$', dev_path):
+      loopback_path = dev_path
+
+  # Done
+  return loopback_path
 
 
 def run_recovery(state, main_menu, settings_menu):
@@ -545,6 +622,20 @@ def set_mode(docopt_args):
 
   # Done
   return mode
+
+
+def unmount_loopback_device(path):
+  """Unmount loopback device using OS specific methods."""
+  cmd = []
+
+  # Build OS specific cmd
+  if PLATFORM == 'Darwin':
+    cmd = ['hdiutil', 'detach', path]
+  elif PLATFORM == 'Linux':
+    cmd = ['sudo', 'losetup', '--detach', path]
+
+  # Unmount loopback device
+  exe.run_program(cmd, check=False)
 
 
 if __name__ == '__main__':
