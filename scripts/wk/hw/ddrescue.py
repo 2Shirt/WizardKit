@@ -138,6 +138,8 @@ class State():
     if not self.source:
       self.source = select_disk('Source')
     source_parts = select_disk_parts(mode, self.source)
+    self.update_top_panes()
+    std.pause()
 
     # Select destination
     self.destination = get_object(docopt_args['<destination>'])
@@ -146,6 +148,7 @@ class State():
         self.destination = select_disk('Destination', self.source)
       elif mode == 'Image':
         self.destination = select_path('Destination')
+    self.update_top_panes()
 
     # Update panes
     self.panes['Progress'] = tmux.split_window(
@@ -153,7 +156,6 @@ class State():
       watch_file=f'{self.log_dir}/progress.out',
       )
     self.update_progress_pane()
-    self.update_top_panes()
 
   def init_tmux(self):
     """Initialize tmux layout."""
@@ -585,7 +587,9 @@ def select_disk_parts(prompt, disk):
       for option in menu.options.values():
         option['Selected'] = False
     elif 'Proceed' in selection:
-      break
+      if any([option['Selected'] for option in menu.options.values()]):
+        # At least one partition/device selected/device selected
+        break
     elif 'Quit' in selection:
       raise std.GenericAbort()
 
