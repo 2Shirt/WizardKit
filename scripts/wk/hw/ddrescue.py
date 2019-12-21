@@ -76,6 +76,47 @@ class State():
     self.init_tmux()
     exe.start_thread(self.fix_tmux_layout_loop)
 
+  def confirm_selections(self, mode, prompt):
+    """Show selection details and prompt for confirmation."""
+    report = []
+
+    # Source
+    report.append(std.color_string('Source', 'GREEN'))
+    report.extend(build_object_report(self.source))
+    report.append(' ')
+
+    # Destination
+    report.append(std.color_string('Destination', 'GREEN'))
+    if mode == 'Clone':
+      report[-1] += std.color_string(' (ALL DATA WILL BE DELETED)', 'RED')
+    report.extend(build_object_report(self.destination))
+    report.append(' ')
+
+    # Block pairs
+    if self.block_pairs:
+      # Show mapping
+      # TODO
+
+      # Show deletion warning if required
+      if mode == 'Clone':
+        report.append(std.color_string('WARNING', 'YELLOW'))
+        report.append(
+          'All data will be deleted from the destination listed above.',
+          )
+        report.append(
+          std.color_string(
+            ['This is irreversible and will lead to', 'DATA LOSS.'],
+            ['YELLOW', 'RED'],
+            ),
+          )
+        report.append(' ')
+
+    # Prompt user
+    std.clear_screen()
+    std.print_report(report)
+    if not std.ask(prompt):
+      raise std.GenericAbort()
+
   def fix_tmux_layout(self, forced=True):
     # pylint: disable=unused-argument
     """Fix tmux layout based on cfg.ddrescue.TMUX_LAYOUT."""
@@ -139,7 +180,6 @@ class State():
       self.source = select_disk('Source')
     source_parts = select_disk_parts(mode, self.source)
     self.update_top_panes()
-    std.pause()
 
     # Select destination
     self.destination = get_object(docopt_args['<destination>'])
@@ -156,6 +196,28 @@ class State():
       watch_file=f'{self.log_dir}/progress.out',
       )
     self.update_progress_pane()
+
+    # Confirmation #1
+    self.confirm_selections(mode, 'Are these selections correct?')
+
+    # Set working dir
+    # TODO
+
+    # Add block pairs
+    # NOTE: Destination is not updated
+    #   Load settings/maps
+    #   Ask about boot partition
+    #   Create pairs using paths
+    # TODO
+
+    # Confirmation #2
+    self.confirm_selections(mode, 'Start recovery?')
+
+    # Prep destination
+    # if cloning and not resuming format destination
+
+    # Done
+    # Ready for main menu
 
   def init_tmux(self):
     """Initialize tmux layout."""
@@ -276,6 +338,110 @@ class State():
 
 
 # Functions
+def build_directory_report(path):
+  """Build directory report, returns list."""
+  path = str(path)
+  report = []
+
+  # Get details
+  if PLATFORM == 'Linux':
+    cmd = [
+      'findmnt',
+      '--output', 'SIZE,AVAIL,USED,FSTYPE,OPTIONS',
+      '--target', path,
+      ]
+    proc = exe.run_program(cmd)
+    width = len(path) + 1
+    for line in proc.stdout.splitlines():
+      line = line.replace('\n', '')
+      if 'FSTYPE' in line:
+        line = std.color_string(f'{"PATH":<{width}}{line}', 'BLUE')
+      else:
+        line = f'{path:<{width}}{line}'
+      report.append(line)
+  else:
+    # TODO Get dir details under macOS
+    report.append(std.color_string('PATH', 'BLUE'))
+    report.append(str(path))
+
+  # Done
+  return report
+
+
+def build_disk_report(dev):
+  """Build device report, returns list."""
+  children = dev.details.get('children', [])
+  report = []
+
+  # Get widths
+  widths = {
+    'fstype': max(6, len(str(dev.details.get('fstype', '')))),
+    'label': max(5, len(str(dev.details.get('label', '')))),
+    'name': max(4, len(dev.path.name)),
+    }
+  for child in children:
+    widths['fstype'] = max(widths['fstype'], len(str(child['fstype'])))
+    widths['label'] = max(widths['label'], len(str(child['label'])))
+    widths['name'] = max(
+      widths['name'],
+      len(child['name'].replace('/dev/', '')),
+      )
+  widths = {k: v+1 for k, v in widths.items()}
+
+  # Disk details
+  report.append(f'{dev.path.name} {dev.description}')
+  report.append(' ')
+  dev_fstype = dev.details.get('fstype', '')
+  dev_label = dev.details.get('label', '')
+  dev_name = dev.path.name
+  dev_size = std.bytes_to_string(dev.details["size"], use_binary=False)
+
+  # Partition details
+  report.append(
+    std.color_string(
+      (
+        f'{"NAME":<{widths["name"]}}'
+        f'{"  " if children else ""}'
+        f'{"SIZE":<7}'
+        f'{"FSTYPE":<{widths["fstype"]}}'
+        f'{"LABEL":<{widths["label"]}}'
+      ),
+      'BLUE',
+      ),
+    )
+  report.append(
+    f'{dev_name if dev_name else "":<{widths["name"]}}'
+    f'{"  " if children else ""}'
+    f'{dev_size:>6} '
+    f'{dev_fstype if dev_fstype else "":<{widths["fstype"]}}'
+    f'{dev_label if dev_label else "":<{widths["label"]}}'
+  )
+  for child in children:
+    fstype = child['fstype']
+    label = child['label']
+    name = child['name'].replace('/dev/', '')
+    size = std.bytes_to_string(child["size"], use_binary=False)
+    report.append(
+      f'{name if name else "":<{widths["name"]}}'
+      f'{size:>6} '
+      f'{fstype if fstype else "":<{widths["fstype"]}}'
+      f'{label if label else "":<{widths["label"]}}'
+    )
+
+  # Indent children
+  if len(children) > 1:
+    report = [
+      *report[:4],
+      *[f'├─{line}' for line in report[4:-1]],
+      f'└─{report[-1]}',
+      ]
+  elif len(children) == 1:
+    report[-1] = f'└─{report[-1]}'
+
+  # Done
+  return report
+
+
 def build_main_menu():
   """Build main menu, returns wk.std.Menu."""
   menu = std.Menu(title=std.color_string('ddrescue TUI: Main Menu', 'GREEN'))
@@ -289,6 +455,22 @@ def build_main_menu():
 
   # Done
   return menu
+
+
+def build_object_report(obj):
+  """Build object report, returns list."""
+  report = []
+
+  # Get details based on object given
+  if hasattr(obj, 'is_dir') and obj.is_dir():
+    # Directory report
+    report = build_directory_report(obj)
+  else:
+    # Device report
+    report = build_disk_report(obj)
+
+  # Done
+  return report
 
 
 def build_settings_menu(silent=True):
@@ -555,6 +737,25 @@ def select_disk_parts(prompt, disk):
   menu.add_action('Quit')
   object_list = []
 
+  def _select_parts(menu):
+    """Loop over selection menu until at least one partition selected."""
+    while True:
+      selection = menu.advanced_select(
+        f'Please select the parts to {prompt.lower()}: ',
+        )
+      if 'All' in selection:
+        for option in menu.options.values():
+          option['Selected'] = True
+      elif 'None' in selection:
+        for option in menu.options.values():
+          option['Selected'] = False
+      elif 'Proceed' in selection:
+        if any([option['Selected'] for option in menu.options.values()]):
+          # At least one partition/device selected/device selected
+          break
+      elif 'Quit' in selection:
+        raise std.GenericAbort()
+
   # Bail early if child device selected
   if disk.details.get('parent', False):
     return [disk]
@@ -576,22 +777,7 @@ def select_disk_parts(prompt, disk):
     menu.title += std.color_string(' No partitions detected.', 'YELLOW')
 
   # Get selection
-  while True:
-    selection = menu.advanced_select(
-      f'Please select the parts to {prompt.lower()}: ',
-      )
-    if 'All' in selection:
-      for option in menu.options.values():
-        option['Selected'] = True
-    elif 'None' in selection:
-      for option in menu.options.values():
-        option['Selected'] = False
-    elif 'Proceed' in selection:
-      if any([option['Selected'] for option in menu.options.values()]):
-        # At least one partition/device selected/device selected
-        break
-    elif 'Quit' in selection:
-      raise std.GenericAbort()
+  _select_parts(menu)
 
   # Build list of Disk() object_list
   for option in menu.options.values():
