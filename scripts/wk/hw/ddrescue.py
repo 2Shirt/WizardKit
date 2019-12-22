@@ -46,6 +46,8 @@ PANE_RATIOS = (
   4,  # Journal (kernel messages)
   )
 PLATFORM = std.PLATFORM
+RECOMMENDED_FSTYPES = re.compile(r'^(ext[234]|ntfs|xfs)$')
+RECOMMENDED_MAP_FSTYPES = re.compile(r'^(cifs|ext[234]|ntfs|vfat|xfs)$')
 SETTING_PRESETS = (
   'Default',
   'Fast',
@@ -76,7 +78,7 @@ class State():
     self.init_tmux()
     exe.start_thread(self.fix_tmux_layout_loop)
 
-  def confirm_selections(self, mode, prompt):
+  def confirm_selections(self, mode, prompt, map_dir=None):
     """Show selection details and prompt for confirmation."""
     report = []
 
@@ -110,6 +112,26 @@ class State():
             ),
           )
         report.append(' ')
+
+    # Map dir
+    if map_dir:
+      report.append(std.color_string('Map Save Directory', 'GREEN'))
+      report.append(str(map_dir))
+      report.append(' ')
+    if map_dir and not fstype_is_ok(map_dir, map_dir=True):
+      report.append(
+        std.color_string(
+          'Map file(s) are being saved to a non-recommended filesystem.',
+          'YELLOW',
+          ),
+        )
+      report.append(
+        std.color_string(
+          ['This is strongly discouraged and may lead to', 'DATA LOSS'],
+          [None, 'RED'],
+          ),
+        )
+      report.append(' ')
 
     # Prompt user
     std.clear_screen()
@@ -201,7 +223,13 @@ class State():
     self.confirm_selections(mode, 'Are these selections correct?')
 
     # Set working dir
-    # TODO
+    working_dir = get_working_dir(mode, self.destination)
+    if working_dir:
+      LOG.info('Set working directory to: %s', working_dir)
+      os.chdir(working_dir)
+    else:
+      LOG.error('Failed to set preferred working directory')
+      working_dir = pathlib.Path(os.getcwd())
 
     # Add block pairs
     # NOTE: Destination is not updated
@@ -211,7 +239,7 @@ class State():
     # TODO
 
     # Confirmation #2
-    self.confirm_selections(mode, 'Start recovery?')
+    self.confirm_selections(mode, 'Start recovery?', map_dir=working_dir)
 
     # Prep destination
     # if cloning and not resuming format destination
@@ -512,6 +540,36 @@ def build_settings_menu(silent=True):
   return menu
 
 
+def fstype_is_ok(path, map_dir=False):
+  """Check if filesystem type is acceptable, returns bool."""
+  is_ok = False
+  fstype = None
+
+  # Get fstype
+  if PLATFORM == 'Darwin':
+    # TODO: leave as None for now
+    pass
+  elif PLATFORM == 'Linux':
+    cmd = [
+      'findmnt',
+      '--noheadings',
+      '--output', 'FSTYPE',
+      '--target', path,
+      ]
+    proc = exe.run_program(cmd, check=False)
+    fstype = proc.stdout
+  fstype = fstype.strip().lower()
+
+  # Check fstype
+  if map_dir:
+    is_ok = RECOMMENDED_MAP_FSTYPES.match(fstype)
+  else:
+    is_ok = RECOMMENDED_FSTYPES.match(fstype)
+
+  # Done
+  return is_ok
+
+
 def get_object(path):
   """Get object based on path, returns obj."""
   obj = None
@@ -545,6 +603,26 @@ def get_object(path):
 
   # Done
   return obj
+
+
+def get_working_dir(mode, destination):
+  """Get working directory using mode and destination, returns path."""
+  working_dir = None
+  if mode == 'Clone':
+    net.mount_backup_shares(read_write=True)
+    for server in cfg.net.BACKUP_SERVERS:
+      path = pathlib.Path(f'/Backups/{server}')
+      if path.exists() and fstype_is_ok(path, map_dir=True):
+        # Acceptable path found
+        working_dir = path
+        break
+  else:
+    path = pathlib.Path(destination).resolve()
+    if path.exists() and fstype_is_ok(path, map_dir=False):
+      working_dir = path
+
+  # Done
+  return working_dir
 
 
 def main():

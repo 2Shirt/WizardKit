@@ -7,11 +7,6 @@ import re
 from collections import OrderedDict
 
 
-# General
-MAP_DIR = '/Backups/ddrescue-tui'
-RECOMMENDED_FSTYPES = ['ext3', 'ext4', 'xfs']
-RECOMMENDED_MAP_FSTYPES = ['cifs', 'ext2', 'ext3', 'ext4', 'vfat', 'xfs']
-
 # Layout
 TMUX_SIDE_WIDTH = 21
 TMUX_LAYOUT = OrderedDict({
