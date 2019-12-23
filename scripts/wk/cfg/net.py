@@ -5,29 +5,29 @@
 
 # Servers
 BACKUP_SERVERS = {
-  'Server One': {
-    'Address':  '10.0.0.10',
-    'Share':    'Backups',
-    'RO-User':  'restore',
-    'RO-Pass':  'Abracadabra',
-    'RW-User':  'backup',
-    'RW-Pass':  'Abracadabra',
-    },
-  'Server Two': {
-    'Address':  'servertwo.example.com',
-    'Share':    'Backups',
-    'RO-User':  'restore',
-    'RO-Pass':  'Abracadabra',
-    'RW-User':  'backup',
-    'RW-Pass':  'Abracadabra',
-    },
+  #'Server One': {
+  #  'Address':  '10.0.0.10',
+  #  'Share':    'Backups',
+  #  'RO-User':  'restore',
+  #  'RO-Pass':  'Abracadabra',
+  #  'RW-User':  'backup',
+  #  'RW-Pass':  'Abracadabra',
+  #  },
+  #'Server Two': {
+  #  'Address':  'servertwo.example.com',
+  #  'Share':    'Backups',
+  #  'RO-User':  'restore',
+  #  'RO-Pass':  'Abracadabra',
+  #  'RW-User':  'backup',
+  #  'RW-Pass':  'Abracadabra',
+  #  },
   }
 CRASH_SERVER = {
-  'Name':       'CrashServer',
-  'Url':        '',
-  'User':       '',
-  'Pass':       '',
-  'Headers':    {'X-Requested-With': 'XMLHttpRequest'},
+  #'Name':       'CrashServer',
+  #'Url':        '',
+  #'User':       '',
+  #'Pass':       '',
+  #'Headers':    {'X-Requested-With': 'XMLHttpRequest'},
   }
 
 
