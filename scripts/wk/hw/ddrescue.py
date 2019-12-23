@@ -73,6 +73,70 @@ STATUS_COLORS = {
 
 
 # Classes
+class BlockPair():
+  """Object for tracking source to dest recovery data."""
+  def __init__(self, source, destination, model, working_dir):
+    """Initialize BlockPair()
+
+    NOTE: source should be a wk.hw.obj.Disk() object
+          and destination should be a pathlib.Path() object.
+    """
+    self.source = source.path
+    self.destination = destination
+    self.map_data = {}
+    self.map_path = None
+    self.size = source.details['size']
+
+    # Set map file
+    # e.g. '(Clone|Image)_Model[_p#]_Size[_Label].map'
+    map_name = model
+    if source.details['parent']:
+      part_num = re.sub(r"^.*?(\d+)$", r"\1", source.path.name)
+      map_name += f'_p{part_num}'
+    size_str = std.bytes_to_string(
+      size=source.details["size"],
+      use_binary=False,
+      )
+    map_name += f'_{size_str.replace(" ", "")}'
+    if source.details.get('label', ''):
+      map_name += f'_{source.details["label"]}'
+    map_name = map_name.replace(' ', '_')
+    map_name = map_name.replace('/', '_')
+    if destination.is_dir():
+      # Imaging
+      self.map_path = pathlib.Path(f'{destination}/Image_{map_name}.map')
+      self.destination = self.map_path.with_suffix('.dd')
+    else:
+      # Cloning
+      self.map_path = pathlib.Path(f'{working_dir}/Clone_{map_name}.map')
+
+    # Read map file
+    self.load_map_data()
+
+  def load_map_data(self):
+    """Load map data from file.
+
+    NOTE: If the file is missing it is assumed that recovery hasn't
+          started yet so default values will be returned instead.
+    """
+    self.map_data = {}
+
+    # Read file
+    if self.map_path.exists():
+      with open(self.map_path, 'r') as _f:
+        #TODO
+        pass
+
+  def pass_complete(self, pass_num):
+    """Check if pass_num is complete based on map data, returns bool."""
+    complete = False
+
+    # TODO
+
+    # Done
+    return complete
+
+
 class State():
   """Object for tracking hardware diagnostic data."""
   def __init__(self):
@@ -87,6 +151,19 @@ class State():
     # Start a background process to maintain layout
     self.init_tmux()
     exe.start_thread(self.fix_tmux_layout_loop)
+
+  def add_block_pair(self, source, destination, working_dir):
+    """Add BlockPair object and run safety checks."""
+    self.block_pairs.append(
+      BlockPair(
+        source=source,
+        destination=destination,
+        model=self.source.details['model'],
+        working_dir=working_dir,
+        ))
+
+    # Safety Checks
+    # TODO
 
   def add_clone_block_pairs(self, source_parts, working_dir):
     """Add device to device block pairs and set settings if necessary."""
@@ -135,13 +212,13 @@ class State():
       # One or more partitions selected for cloning
       if settings['Partition Mapping']:
         for part_map in settings['Partition Mapping']:
-          bp_source = pathlib.Path(
+          bp_source = hw_obj.Disk(
             f'{self.source.path}{part_prefix}{part_map[0]}',
             )
           bp_dest = pathlib.Path(
             f'{self.destination.path}{part_prefix}{part_map[1]}',
             )
-          # TODO: add bp(bp_source, bp_dest, map_dir=working_dir)
+          self.add_block_pair(bp_source, bp_dest, working_dir)
       else:
         # New run and new settings
         offset = 0
@@ -157,11 +234,10 @@ class State():
         # Add pairs
         for dest_num, part in enumerate(source_parts):
           dest_num += offset + 1
-          bp_source = part.path
           bp_dest = pathlib.Path(
             f'{self.destination.path}{part_prefix}{dest_num}',
             )
-          # TODO: add bp(bp_source, bp_dest, map_dir=working_dir)
+          self.add_block_pair(part, bp_dest, working_dir)
 
           # Add to settings file
           source_num = re.sub(r'^.*?(\d+)$', r'\1', part.path.name)
@@ -172,16 +248,14 @@ class State():
 
     else:
       # Whole device or forced single partition selected, skip settings
-      bp_source = self.source.path
       bp_dest = self.destination.path
-      # TODO: add bp(bp_source, bp_dest, map_dir=working_dir)
+      self.add_block_pair(self.source, bp_dest, working_dir)
 
   def add_image_block_pairs(self, source_parts, working_dir):
     """Add device to image file block pairs."""
     for part in source_parts:
-      bp_source = part.path
-      bp_dest = pathlib.Path(f'{self.destination.path}/{part_TODO}.dd')
-      # TODO: add bp(bp_source, bp_dest, map_dir=working_dir)
+      bp_dest = self.destination
+      self.add_block_pair(part, bp_dest, working_dir)
 
   def confirm_selections(self, mode, prompt, map_dir=None, source_parts=None):
     """Show selection details and prompt for confirmation."""
@@ -199,44 +273,50 @@ class State():
     report.extend(build_object_report(self.destination))
     report.append(' ')
 
+    # Show deletion warning if necessary
+    # NOTE: The check for block_pairs is to limit this section
+    #       to the second confirmation
+    if mode == 'Clone' and self.block_pairs:
+      report.append(std.color_string('WARNING', 'YELLOW'))
+      report.append(
+        'All data will be deleted from the destination listed above.',
+        )
+      report.append(
+        std.color_string(
+          ['This is irreversible and will lead to', 'DATA LOSS.'],
+          ['YELLOW', 'RED'],
+          ),
+        )
+      report.append(' ')
+
     # Block pairs
     if self.block_pairs:
-      # Show mapping
-      # TODO
-
-      # Show deletion warning if required
-      if mode == 'Clone':
-        report.append(std.color_string('WARNING', 'YELLOW'))
-        report.append(
-          'All data will be deleted from the destination listed above.',
-          )
-        report.append(
-          std.color_string(
-            ['This is irreversible and will lead to', 'DATA LOSS.'],
-            ['YELLOW', 'RED'],
-            ),
-          )
-        report.append(' ')
+      report.append(std.color_string('Block Pairs', 'GREEN'))
+      # TODO Move to separate function and include resume messages
+      for pair in self.block_pairs:
+        # Show mapping
+        report.append(f'{pair.source.name} --> {pair.destination.name}')
+      report.append(' ')
 
     # Map dir
     if map_dir:
       report.append(std.color_string('Map Save Directory', 'GREEN'))
-      report.append(str(map_dir))
+      report.append(f'{map_dir}/')
       report.append(' ')
-    if map_dir and not fstype_is_ok(map_dir, map_dir=True):
-      report.append(
-        std.color_string(
-          'Map file(s) are being saved to a non-recommended filesystem.',
-          'YELLOW',
-          ),
-        )
-      report.append(
-        std.color_string(
-          ['This is strongly discouraged and may lead to', 'DATA LOSS'],
-          [None, 'RED'],
-          ),
-        )
-      report.append(' ')
+      if not fstype_is_ok(map_dir, map_dir=True):
+        report.append(
+          std.color_string(
+            'Map file(s) are being saved to a non-recommended filesystem.',
+            'YELLOW',
+            ),
+          )
+        report.append(
+          std.color_string(
+            ['This is strongly discouraged and may lead to', 'DATA LOSS'],
+            [None, 'RED'],
+            ),
+          )
+        report.append(' ')
 
     # Source part(s) selected
     if source_parts:
@@ -521,7 +601,7 @@ class State():
 # Functions
 def build_directory_report(path):
   """Build directory report, returns list."""
-  path = str(path)
+  path = f'{path}/'
   report = []
 
   # Get details
