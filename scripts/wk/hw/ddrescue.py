@@ -183,7 +183,7 @@ class State():
       bp_dest = pathlib.Path(f'{self.destination.path}/{part_TODO}.dd')
       # TODO: add bp(bp_source, bp_dest, map_dir=working_dir)
 
-  def confirm_selections(self, mode, prompt, map_dir=None):
+  def confirm_selections(self, mode, prompt, map_dir=None, source_parts=None):
     """Show selection details and prompt for confirmation."""
     report = []
 
@@ -238,6 +238,20 @@ class State():
         )
       report.append(' ')
 
+    # Source part(s) selected
+    if source_parts:
+      report.append(std.color_string('Source Part(s) selected', 'GREEN'))
+      if self.source.path.samefile(source_parts[0].path):
+        report.append('Whole Disk')
+      else:
+        report.append(std.color_string(f'{"NAME":<9} SIZE', 'BLUE'))
+        for part in source_parts:
+          report.append(
+            f'{part.path.name:<9} '
+            f'{std.bytes_to_string(part.details["size"], use_binary=False)}'
+            )
+      report.append(' ')
+
     # Prompt user
     std.clear_screen()
     std.print_report(report)
@@ -245,7 +259,6 @@ class State():
       raise std.GenericAbort()
 
   def fix_tmux_layout(self, forced=True):
-    # pylint: disable=unused-argument
     """Fix tmux layout based on cfg.ddrescue.TMUX_LAYOUT."""
     needs_fixed = tmux.layout_needs_fixed(self.panes, self.layout)
 
@@ -325,7 +338,11 @@ class State():
     self.update_progress_pane()
 
     # Confirmation #1
-    self.confirm_selections(mode, 'Are these selections correct?')
+    self.confirm_selections(
+      mode=mode,
+      prompt='Are these selections correct?',
+      source_parts=source_parts,
+      )
 
     # Set working dir
     working_dir = get_working_dir(mode, self.destination)
