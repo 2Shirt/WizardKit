@@ -34,6 +34,7 @@ Options:
 CLONE_SETTINGS = {
   'Source': None,
   'Destination': None,
+  'First Run': True,
   'Needs Format': False,
   'Table Type': None,
   'Partition Mapping': [
@@ -174,16 +175,20 @@ class State():
     def _check_settings(settings):
       """Check settings for issues and update as necessary."""
       if settings:
-        bail = False
-        for key in ('model', 'serial'):
-          if settings['Source'][key] != self.source.details[key]:
-            std.print_error(f"Clone settings don't match source {key}")
-            bail = True
-          if settings['Destination'][key] != self.destination.details[key]:
-            std.print_error(f"Clone settings don't match destination {key}")
-            bail = True
-        if bail:
-          raise std.GenericAbort()
+        if settings['First Run']:
+          # Previous run aborted before starting recovery, settings discarded
+          settings = {}
+        else:
+          bail = False
+          for key in ('model', 'serial'):
+            if settings['Source'][key] != self.source.details[key]:
+              std.print_error(f"Clone settings don't match source {key}")
+              bail = True
+            if settings['Destination'][key] != self.destination.details[key]:
+              std.print_error(f"Clone settings don't match destination {key}")
+              bail = True
+          if bail:
+            raise std.GenericAbort()
 
       # Update settings
       if not settings:
@@ -619,7 +624,22 @@ def build_block_pair_report(block_pairs, settings):
   report.append(' ')
 
   # Show resume messages as necessary
-  # TODO If settings --> Add loaded settings msg
+  if settings:
+    if not settings['First Run']:
+      report.append(
+        std.color_string(
+          ['NOTE:', 'Clone settings loaded from previous run.'],
+          ['BLUE', None],
+          ),
+        )
+    if settings['Needs Format'] and settings['Table Type']:
+      msg = f'Destination will be formatted using {settings["Table Type"]}'
+      report.append(
+        std.color_string(
+          ['NOTE:', msg],
+          ['BLUE', None],
+          ),
+        )
   # TODO If anything recovered --> Add resume msg
 
   # Done
