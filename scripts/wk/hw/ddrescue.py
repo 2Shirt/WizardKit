@@ -482,7 +482,9 @@ class State():
     # pylint: disable=no-self-use
     """Load settings from previous run, returns dict."""
     settings = {}
-    settings_file = pathlib.Path(f'{working_dir}/clone.json')
+    settings_file = pathlib.Path(
+      f'{working_dir}/Clone_{self.source.details["model"]}.json',
+      )
 
     # Try loading JSON data
     if settings_file.exists():
@@ -516,7 +518,9 @@ class State():
   def save_settings(self, settings, working_dir):
     # pylint: disable=no-self-use
     """Save settings for future runs."""
-    settings_file = pathlib.Path(f'{working_dir}/clone.json')
+    settings_file = pathlib.Path(
+      f'{working_dir}/Clone_{self.source.details["model"]}.json',
+      )
 
     # Try saving JSON data
     try:
