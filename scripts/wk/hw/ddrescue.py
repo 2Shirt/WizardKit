@@ -221,8 +221,7 @@ class State():
       else:
         # New run and new settings
         offset = 0
-        if (std.ask('Does the source disk contain an OS?')
-            and std.ask('Create an empty boot partition on the clone?')):
+        if std.ask('Create an empty Windows boot partition on the clone?'):
           offset = 2
           settings['Needs Format'] = True
           settings['Table Type'] = 'GPT'
@@ -256,7 +255,8 @@ class State():
       bp_dest = self.destination
       self.add_block_pair(part, bp_dest, working_dir)
 
-  def confirm_selections(self, mode, prompt, map_dir=None, source_parts=None):
+  def confirm_selections(
+      self, mode, prompt, working_dir=None, source_parts=None):
     """Show selection details and prompt for confirmation."""
     report = []
 
@@ -290,19 +290,19 @@ class State():
 
     # Block pairs
     if self.block_pairs:
-      report.append(std.color_string('Block Pairs', 'GREEN'))
-      # TODO Move to separate function and include resume messages
-      for pair in self.block_pairs:
-        # Show mapping
-        report.append(f'{pair.source.name} --> {pair.destination.name}')
-      report.append(' ')
+      report.extend(
+        build_block_pair_report(
+          self.block_pairs,
+          self.load_settings(working_dir) if mode == 'Clone' else {},
+          ),
+        )
 
     # Map dir
-    if map_dir:
+    if working_dir:
       report.append(std.color_string('Map Save Directory', 'GREEN'))
-      report.append(f'{map_dir}/')
+      report.append(f'{working_dir}/')
       report.append(' ')
-      if not fstype_is_ok(map_dir, map_dir=True):
+      if not fstype_is_ok(working_dir, map_dir=True):
         report.append(
           std.color_string(
             'Map file(s) are being saved to a non-recommended filesystem.',
@@ -439,7 +439,7 @@ class State():
       self.add_image_block_pairs(source_parts, working_dir)
 
     # Confirmation #2
-    self.confirm_selections(mode, 'Start recovery?', map_dir=working_dir)
+    self.confirm_selections(mode, 'Start recovery?', working_dir=working_dir)
 
     # Prep destination
     # if cloning and not resuming format destination
@@ -598,6 +598,34 @@ class State():
 
 
 # Functions
+def build_block_pair_report(block_pairs, settings):
+  """Build block pair report, returns list."""
+  report = []
+  if block_pairs:
+    report.append(std.color_string('Block Pairs', 'GREEN'))
+  else:
+    # Bail early
+    return report
+
+  # Show block pair mapping
+  if settings and settings['Needs Format']:
+    if settings['Table Type'] == 'GPT':
+      report.append(f'{" —— ":<9} --> EFI System Partition')
+      report.append(f'{" —— ":<9} --> Microsoft Reserved Partition')
+    elif settings['Table Type'] == 'MBR':
+      report.append(f'{" —— ":<9} --> System Reserved')
+  for pair in block_pairs:
+    report.append(f'{pair.source.name:<9} --> {pair.destination.name}')
+  report.append(' ')
+
+  # Show resume messages as necessary
+  # TODO If settings --> Add loaded settings msg
+  # TODO If anything recovered --> Add resume msg
+
+  # Done
+  return report
+
+
 def build_directory_report(path):
   """Build directory report, returns list."""
   path = f'{path}/'
