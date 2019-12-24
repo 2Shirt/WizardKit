@@ -167,9 +167,8 @@ class State():
 
   def add_clone_block_pairs(self, source_parts, working_dir):
     """Add device to device block pairs and set settings if necessary."""
-    part_prefix = ''
-    if re.search(r'(loop|mmc|nvme)', self.destination.path.name):
-      part_prefix = 'p'
+    source_sep = get_partition_separator(self.source.path.name)
+    dest_sep = get_partition_separator(self.destination.path.name)
     settings = {}
 
     def _check_settings(settings):
@@ -213,10 +212,10 @@ class State():
       if settings['Partition Mapping']:
         for part_map in settings['Partition Mapping']:
           bp_source = hw_obj.Disk(
-            f'{self.source.path}{part_prefix}{part_map[0]}',
+            f'{self.source.path}{source_sep}{part_map[0]}',
             )
           bp_dest = pathlib.Path(
-            f'{self.destination.path}{part_prefix}{part_map[1]}',
+            f'{self.destination.path}{dest_sep}{part_map[1]}',
             )
           self.add_block_pair(bp_source, bp_dest, working_dir)
       else:
@@ -235,7 +234,7 @@ class State():
         for dest_num, part in enumerate(source_parts):
           dest_num += offset + 1
           bp_dest = pathlib.Path(
-            f'{self.destination.path}{part_prefix}{dest_num}',
+            f'{self.destination.path}{dest_sep}{dest_num}',
             )
           self.add_block_pair(part, bp_dest, working_dir)
 
@@ -836,6 +835,15 @@ def get_object(path):
 
   # Done
   return obj
+
+
+def get_partition_separator(name):
+  """Get partition separator based on device name, returns str."""
+  separator = ''
+  if re.search(r'(loop|mmc|nvme)', name, re.IGNORECASE):
+    separator = 'p'
+
+  return separator
 
 
 def get_working_dir(mode, destination):
