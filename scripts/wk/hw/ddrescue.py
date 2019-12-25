@@ -166,65 +166,34 @@ class State():
     # Safety Checks
     # TODO
 
-  def add_clone_block_pairs(self, source_parts, working_dir):
+  def add_clone_block_pairs(self, working_dir):
     """Add device to device block pairs and set settings if necessary."""
     source_sep = get_partition_separator(self.source.path.name)
     dest_sep = get_partition_separator(self.destination.path.name)
     settings = {}
 
-    def _check_settings(settings):
-      """Check settings for issues and update as necessary."""
-      if settings:
-        if settings['First Run']:
-          # Previous run aborted before starting recovery, settings discarded
-          settings = {}
-        else:
-          bail = False
-          for key in ('model', 'serial'):
-            if settings['Source'][key] != self.source.details[key]:
-              std.print_error(f"Clone settings don't match source {key}")
-              bail = True
-            if settings['Destination'][key] != self.destination.details[key]:
-              std.print_error(f"Clone settings don't match destination {key}")
-              bail = True
-          if bail:
-            raise std.GenericAbort()
-
-      # Update settings
-      if not settings:
-        settings = CLONE_SETTINGS.copy()
-      if not settings['Source']:
-        settings['Source'] = {
-          'model': self.source.details['model'],
-          'serial': self.source.details['serial'],
-          }
-      if not settings['Destination']:
-        settings['Destination'] = {
-          'model': self.destination.details['model'],
-          'serial': self.destination.details['serial'],
-          }
-
-      # Done
-      return settings
-
     # Clone settings
     settings = self.load_settings(working_dir)
-    settings = _check_settings(settings)
 
     # Add pairs
-    if not self.source.path.samefile(source_parts[0].path):
-      # One or more partitions selected for cloning
-      if settings['Partition Mapping']:
-        for part_map in settings['Partition Mapping']:
-          bp_source = hw_obj.Disk(
-            f'{self.source.path}{source_sep}{part_map[0]}',
-            )
-          bp_dest = pathlib.Path(
-            f'{self.destination.path}{dest_sep}{part_map[1]}',
-            )
-          self.add_block_pair(bp_source, bp_dest, working_dir)
+    if settings['Partition Mapping']:
+      # Resume previous run, load pairs from settings file
+      for part_map in settings['Partition Mapping']:
+        bp_source = hw_obj.Disk(
+          f'{self.source.path}{source_sep}{part_map[0]}',
+          )
+        bp_dest = pathlib.Path(
+          f'{self.destination.path}{dest_sep}{part_map[1]}',
+          )
+        self.add_block_pair(bp_source, bp_dest, working_dir)
+    else:
+      source_parts = select_disk_parts('Clone', self.source)
+      if self.source.path.samefile(source_parts[0].path):
+        # Whole disk (or single partition via args), skip settings
+        bp_dest = self.destination.path
+        self.add_block_pair(self.source, bp_dest, working_dir)
       else:
-        # New run and new settings
+        # New run, use new settings file
         offset = 0
         if std.ask('Create an empty Windows boot partition on the clone?'):
           offset = 2
@@ -246,13 +215,8 @@ class State():
           source_num = re.sub(r'^.*?(\d+)$', r'\1', part.path.name)
           settings['Partition Mapping'].append([source_num, dest_num])
 
-      # Save settings
-      self.save_settings(settings, working_dir)
-
-    else:
-      # Whole device or forced single partition selected, skip settings
-      bp_dest = self.destination.path
-      self.add_block_pair(self.source, bp_dest, working_dir)
+        # Save settings
+        self.save_settings(settings, working_dir)
 
   def add_image_block_pairs(self, source_parts, working_dir):
     """Add device to image file block pairs."""
@@ -298,9 +262,10 @@ class State():
       report.extend(
         build_block_pair_report(
           self.block_pairs,
-          self.load_settings(working_dir) if mode == 'Clone' else {},
+          self.load_settings(working_dir, False) if mode == 'Clone' else {},
           ),
         )
+      report.append(' ')
 
     # Map dir
     if working_dir:
@@ -381,6 +346,7 @@ class State():
   def init_recovery(self, docopt_args):
     """Select source/dest and set env."""
     std.clear_screen()
+    source_parts = []
 
     # Set log
     self.log_dir = log.format_log_path()
@@ -402,7 +368,6 @@ class State():
     self.source = get_object(docopt_args['<source>'])
     if not self.source:
       self.source = select_disk('Source')
-    source_parts = select_disk_parts(mode, self.source)
     self.update_top_panes()
 
     # Select destination
@@ -439,8 +404,9 @@ class State():
 
     # Add block pairs
     if mode == 'Clone':
-      self.add_clone_block_pairs(source_parts, working_dir)
+      self.add_clone_block_pairs(working_dir)
     else:
+      source_parts = select_disk_parts(mode, self.source)
       self.add_image_block_pairs(source_parts, working_dir)
 
     # Confirmation #2
@@ -478,8 +444,7 @@ class State():
     # Source / Dest
     self.update_top_panes()
 
-  def load_settings(self, working_dir):
-    # pylint: disable=no-self-use
+  def load_settings(self, working_dir, discard_unused_settings=False):
     """Load settings from previous run, returns dict."""
     settings = {}
     settings_file = pathlib.Path(
@@ -495,6 +460,37 @@ class State():
           LOG.error('Failed to load clone settings')
           std.print_error('Invalid clone settings detected.')
           raise std.GenericAbort()
+
+    # Check settings
+    if settings:
+      if settings['First Run'] and discard_unused_settings:
+        # Previous run aborted before starting recovery, discard settings
+        settings = {}
+      else:
+        bail = False
+        for key in ('model', 'serial'):
+          if settings['Source'][key] != self.source.details[key]:
+            std.print_error(f"Clone settings don't match source {key}")
+            bail = True
+          if settings['Destination'][key] != self.destination.details[key]:
+            std.print_error(f"Clone settings don't match destination {key}")
+            bail = True
+        if bail:
+          raise std.GenericAbort()
+
+    # Update settings
+    if not settings:
+      settings = CLONE_SETTINGS.copy()
+    if not settings['Source']:
+      settings['Source'] = {
+        'model': self.source.details['model'],
+        'serial': self.source.details['serial'],
+        }
+    if not settings['Destination']:
+      settings['Destination'] = {
+        'model': self.destination.details['model'],
+        'serial': self.destination.details['serial'],
+        }
 
     # Done
     return settings
@@ -625,10 +621,10 @@ def build_block_pair_report(block_pairs, settings):
       report.append(f'{" —— ":<9} --> System Reserved')
   for pair in block_pairs:
     report.append(f'{pair.source.name:<9} --> {pair.destination.name}')
-  report.append(' ')
 
   # Show resume messages as necessary
   if settings:
+    report.append(' ')
     if not settings['First Run']:
       report.append(
         std.color_string(
@@ -645,6 +641,10 @@ def build_block_pair_report(block_pairs, settings):
           ),
         )
   # TODO If anything recovered --> Add resume msg
+
+  # Remove double line-break
+  if report[-1] == ' ':
+    report.pop(-1)
 
   # Done
   return report
