@@ -9,13 +9,14 @@ import os
 import pathlib
 import plistlib
 import re
+import shutil
 import subprocess
 import time
 
 from collections import OrderedDict
 from docopt import docopt
 
-from wk import cfg, debug, exe, log, net, std, tmux
+from wk import cfg, debug, exe, io, log, net, std, tmux
 from wk.hw import obj as hw_obj
 from wk.hw import sensors as hw_sensors
 
@@ -25,11 +26,12 @@ DOCSTRING = f'''{cfg.main.KIT_NAME_FULL}: ddrescue TUI
 
 Usage:
   ddrescue-tui
-  ddrescue-tui (clone|image) [<source> [<destination>]]
+  ddrescue-tui [options] (clone|image) [<source> [<destination>]]
   ddrescue-tui (-h | --help)
 
 Options:
   -h --help           Show this page
+  --start-fresh       Ignore previous runs and start new recovery
 '''
 CLONE_SETTINGS = {
   'Source': None,
@@ -224,6 +226,23 @@ class State():
       bp_dest = self.destination
       self.add_block_pair(part, bp_dest, working_dir)
 
+  def clean_working_dir(self, working_dir):
+    """Clean working directory to ensure a fresh recovery session.
+
+    NOTE: Data from previous sessions will be preserved
+          in a backup directory.
+    """
+    backup_directory = pathlib.Path(f'{working_dir}/prev')
+    backup_directory = io.non_clobber_path(backup_directory)
+    backup_directory.mkdir()
+
+    # Move settings, maps, etc to backup_directory
+    for entry in os.scandir(working_directory):
+      if entry.name.endswith(('.dd', '.json', '.map')):
+        new_path = f'{backup_directory}/{entry.name}'
+        new_path = io.non_clobber_path(new_path)
+        shutil.move(entry.path, new_path)
+
   def confirm_selections(
       self, mode, prompt, working_dir=None, source_parts=None):
     """Show selection details and prompt for confirmation."""
@@ -401,6 +420,10 @@ class State():
     else:
       LOG.error('Failed to set preferred working directory')
       working_dir = pathlib.Path(os.getcwd())
+
+    # Start fresh if requested
+    if docopt_args['--start-fresh']:
+      self.clean_working_dir(working_dir)
 
     # Add block pairs
     if mode == 'Clone':
