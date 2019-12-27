@@ -712,6 +712,7 @@ class State():
 def build_block_pair_report(block_pairs, settings):
   """Build block pair report, returns list."""
   report = []
+  notes = []
   if block_pairs:
     report.append(std.color_string('Block Pairs', 'GREEN'))
   else:
@@ -730,9 +731,8 @@ def build_block_pair_report(block_pairs, settings):
 
   # Show resume messages as necessary
   if settings:
-    report.append(' ')
     if not settings['First Run']:
-      report.append(
+      notes.append(
         std.color_string(
           ['NOTE:', 'Clone settings loaded from previous run.'],
           ['BLUE', None],
@@ -740,24 +740,24 @@ def build_block_pair_report(block_pairs, settings):
         )
     if settings['Needs Format'] and settings['Table Type']:
       msg = f'Destination will be formatted using {settings["Table Type"]}'
-      report.append(
+      notes.append(
         std.color_string(
           ['NOTE:', msg],
           ['BLUE', None],
           ),
         )
   if any([pair.get_rescued_size() > 0 for pair in block_pairs]):
-    report.append(' ')
-    report.append(
+    notes.append(
       std.color_string(
         ['NOTE:', 'Resume data loaded from map file(s).'],
         ['BLUE', None],
         ),
       )
 
-  # Remove double line-break
-  if report[-1] == ' ':
-    report.pop(-1)
+  # Add notes to report
+  if notes:
+    report.append(' ')
+    report.extend(notes)
 
   # Done
   return report
