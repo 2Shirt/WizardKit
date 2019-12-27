@@ -16,6 +16,8 @@ import time
 from collections import OrderedDict
 from docopt import docopt
 
+import psutil
+
 from wk import cfg, debug, exe, io, log, net, std, tmux
 from wk.hw import obj as hw_obj
 from wk.hw import sensors as hw_sensors
@@ -36,6 +38,7 @@ Options:
 CLONE_SETTINGS = {
   'Source': None,
   'Destination': None,
+  'Create Boot Partition': False,
   'First Run': True,
   'Needs Format': False,
   'Table Type': None,
@@ -175,7 +178,7 @@ class State():
     settings = {}
 
     # Clone settings
-    settings = self.load_settings(working_dir)
+    settings = self.load_settings(working_dir, discard_unused_settings=True)
 
     # Add pairs
     if settings['Partition Mapping']:
@@ -196,10 +199,11 @@ class State():
         self.add_block_pair(self.source, bp_dest, working_dir)
       else:
         # New run, use new settings file
+        settings['Needs Format'] = True
         offset = 0
         if std.ask('Create an empty Windows boot partition on the clone?'):
           offset = 2
-          settings['Needs Format'] = True
+          settings['Create Boot Partition'] = True
           settings['Table Type'] = 'GPT'
           if std.choice(['G', 'M'], 'GPT or MBR partition table?') == 'M':
             offset = 1
@@ -281,7 +285,7 @@ class State():
       report.extend(
         build_block_pair_report(
           self.block_pairs,
-          self.load_settings(working_dir, False) if mode == 'Clone' else {},
+          self.load_settings(working_dir) if mode == 'Clone' else {},
           ),
         )
       report.append(' ')
@@ -427,6 +431,9 @@ class State():
       source_parts = select_disk_parts(mode, self.source)
       self.add_image_block_pairs(source_parts, working_dir)
 
+    # Safety Check
+    self.safety_check(mode, working_dir)
+
     # Confirmation #2
     self.confirm_selections(mode, 'Start recovery?', working_dir=working_dir)
 
@@ -512,6 +519,52 @@ class State():
 
     # Done
     return settings
+
+  def safety_check(self, mode, working_dir):
+    """Run safety check and abort if necessary."""
+    required_size = sum([pair.size for pair in self.block_pairs])
+
+    # Increase required_size if necessary
+    if mode == 'Clone' and settings['Needs Format']:
+      settings = self.load_settings(working_dir)
+      if settings['Table Type'] == 'GPT':
+        # Below is the size calculation for the GPT
+        #   1 LBA for the protective MBR
+        #   33 LBAs each for the primary and backup GPT tables
+        # Source: https://en.wikipedia.org/wiki/GUID_Partition_Table
+        required_size += (1 + 33 + 33) * self.destination.details['phy-sec']
+        if settings['Create Boot Partition']:
+          # 384MiB EFI System Partition and a 16MiB MS Reserved partition
+          required_size += (384 + 16) * 1024**2
+      else:
+        # MBR only requires one LBA but adding a full 4096 bytes anyway
+        required_size += 4096
+        if settings['Create Boot Partition']:
+          # 100MiB System Reserved partition
+          required_size += 100 * 1024**2
+
+    # Reduce required_size if necessary
+    if mode == 'Image':
+      for pair in self.block_pairs:
+        if pair.destination.exists():
+          # NOTE: This uses the "max space" of the destination
+          #       i.e. not the apparent size which is smaller for sparse files
+          #       While this can result in an out-of-space error it's better
+          #       than nothing.
+          required_size -= pair.destination.stat().st_size
+
+    # Check destination size
+    if mode == 'Clone':
+      destination_size = self.destination.details['size']
+      error_msg = 'A larger destination disk is required'
+    else:
+      # NOTE: Adding an extra 5% here to better ensure it will fit
+      destination_size = psutil.disk_usage(self.destination).free
+      destination_size *= 1.05
+      error_msg = 'Not enough free space on the destination'
+    if required_size > destination_size:
+      std.print_error(error_msg)
+      raise std.GenericAbort()
 
   def save_debug_reports(self):
     """Save debug reports to disk."""
@@ -631,7 +684,7 @@ def build_block_pair_report(block_pairs, settings):
     return report
 
   # Show block pair mapping
-  if settings and settings['Needs Format']:
+  if settings and settings['Create Boot Partition']:
     if settings['Table Type'] == 'GPT':
       report.append(f'{" —— ":<9} --> EFI System Partition')
       report.append(f'{" —— ":<9} --> Microsoft Reserved Partition')
