@@ -807,7 +807,7 @@ def get_log_filepath():
   return log_filepath
 
 
-def input_text(prompt='Enter text'):
+def input_text(prompt='Enter text', allow_empty_response=True):
   """Get text from user, returns string."""
   prompt = str(prompt)
   response = None
@@ -823,6 +823,11 @@ def input_text(prompt='Enter text'):
       # Ignore and try again
       LOG.warning('Exception occured', exc_info=True)
       print('', flush=True)
+    if not allow_empty_response:
+      if response is None or not response.strip():
+        # The None check here is used to avoid a TypeError if response is None
+        print(f'\r{prompt}', end='', flush=True)
+        response = None
 
   return response
 
