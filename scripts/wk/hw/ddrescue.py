@@ -10,10 +10,8 @@ import pathlib
 import plistlib
 import re
 import shutil
-import subprocess
 import time
 
-from collections import OrderedDict
 from docopt import docopt
 
 import psutil
@@ -46,6 +44,12 @@ CLONE_SETTINGS = {
     # (5, 1) ## Clone source partition #5 to destination partition #1
     ],
   }
+DDRESCUE_LOG_REGEX = re.compile(
+  r'^\s*(?P<key>\S+):\s+'
+  r'(?P<size>\d+)\s+'
+  r'(?P<unit>[PTGMKB]i?B?)',
+  re.IGNORECASE,
+  )
 LOG = logging.getLogger(__name__)
 MENU_ACTIONS = (
   'Start',
@@ -119,19 +123,51 @@ class BlockPair():
     # Read map file
     self.load_map_data()
 
+  def get_rescued_size(self):
+    """Get rescued size using map data.
+
+    NOTE: Returns 0 if no map data is available.
+    """
+    self.load_map_data()
+    return self.map_data.get('rescued', 0)
+
   def load_map_data(self):
     """Load map data from file.
 
     NOTE: If the file is missing it is assumed that recovery hasn't
           started yet so default values will be returned instead.
     """
-    self.map_data = {}
+    data = {'full recovery': False, 'pass completed': False}
 
-    # Read file
-    if self.map_path.exists():
-      with open(self.map_path, 'r') as _f:
-        #TODO
-        pass
+    # Get output from ddrescuelog
+    cmd = [
+      'ddrescuelog',
+      '--binary-prefixes',
+      '--show-status',
+      self.map_path,
+      ]
+    proc = exe.run_program(cmd, check=False)
+
+    # Parse output
+    for line in proc.stdout.splitlines():
+      _r = DDRESCUE_LOG_REGEX.search(line)
+      if _r:
+        data[_r.group('key')] = std.string_to_bytes(
+          f'{_r.group("size")} {_r.group("unit")}',
+          )
+      data['pass completed'] = 'current status: finished' in line.lower()
+
+    # Check if 100% done
+    cmd = [
+      'ddrescuelog',
+      '--done-status',
+      self.map_path,
+      ]
+    proc = exe.run_program(cmd, check=False)
+    data['full recovery'] = proc.returncode == 0
+
+    # Done
+    self.map_data.update(data)
 
   def pass_complete(self, pass_num):
     """Check if pass_num is complete based on map data, returns bool."""
@@ -418,7 +454,6 @@ class State():
 
     # Set working dir
     working_dir = get_working_dir(mode, self.destination)
-    os.chdir(working_dir)
 
     # Start fresh if requested
     if docopt_args['--start-fresh']:
@@ -523,10 +558,10 @@ class State():
   def safety_check(self, mode, working_dir):
     """Run safety check and abort if necessary."""
     required_size = sum([pair.size for pair in self.block_pairs])
+    settings = self.load_settings(working_dir) if mode == 'Clone' else {}
 
     # Increase required_size if necessary
-    if mode == 'Clone' and settings['Needs Format']:
-      settings = self.load_settings(working_dir)
+    if mode == 'Clone' and settings.get('Needs Format', False):
       if settings['Table Type'] == 'GPT':
         # Below is the size calculation for the GPT
         #   1 LBA for the protective MBR
@@ -711,7 +746,14 @@ def build_block_pair_report(block_pairs, settings):
           ['BLUE', None],
           ),
         )
-  # TODO If anything recovered --> Add resume msg
+  if any([pair.get_rescued_size() > 0 for pair in block_pairs]):
+    report.append(' ')
+    report.append(
+      std.color_string(
+        ['NOTE:', 'Resume data loaded from map file(s).'],
+        ['BLUE', None],
+        ),
+      )
 
   # Remove double line-break
   if report[-1] == ' ':
@@ -902,7 +944,7 @@ def fstype_is_ok(path, map_dir=False):
 
   # Get fstype
   if PLATFORM == 'Darwin':
-    # TODO: leave as None for now
+    # TODO: Determine fstype under macOS
     pass
   elif PLATFORM == 'Linux':
     cmd = [
@@ -1005,13 +1047,15 @@ def get_working_dir(mode, destination):
     working_dir = pathlib.Path(os.getcwd())
 
   # Set subdir using ticket ID
-  working_dir = working_dir.joinpath(ticket_id)
-  LOG.info('Set working directory to: %s', working_dir)
+  if mode == 'Clone':
+    working_dir = working_dir.joinpath(ticket_id)
 
   # Create directory
   working_dir.mkdir(parents=True, exist_ok=True)
+  os.chdir(working_dir)
 
   # Done
+  LOG.info('Set working directory to: %s', working_dir)
   return working_dir
 
 
