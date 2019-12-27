@@ -19,13 +19,6 @@ from collections import OrderedDict
 
 import requests
 
-try:
-  from termios import tcflush, TCIOFLUSH
-except ImportError:
-  if os.name == 'posix':
-    # Not worried about this under Windows
-    raise
-
 from wk.cfg.main import (
   ENABLED_UPLOAD_DATA,
   INDENT,
@@ -820,13 +813,11 @@ def input_text(prompt='Enter text'):
   response = None
   if prompt[-1:] != ' ':
     prompt += ' '
+  print(prompt, end='', flush=True)
 
   while response is None:
-    if os.name == 'posix':
-      # Flush input to (hopefully) avoid EOFError
-      tcflush(sys.stdin, TCIOFLUSH)
     try:
-      response = input(prompt)
+      response = input()
       LOG.debug('%s%s', prompt, response)
     except EOFError:
       # Ignore and try again
