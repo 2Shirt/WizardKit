@@ -232,14 +232,14 @@ class State():
     NOTE: Data from previous sessions will be preserved
           in a backup directory.
     """
-    backup_directory = pathlib.Path(f'{working_dir}/prev')
-    backup_directory = io.non_clobber_path(backup_directory)
-    backup_directory.mkdir()
+    backup_dir = pathlib.Path(f'{working_dir}/prev')
+    backup_dir = io.non_clobber_path(backup_dir)
+    backup_dir.mkdir()
 
-    # Move settings, maps, etc to backup_directory
-    for entry in os.scandir(working_directory):
+    # Move settings, maps, etc to backup_dir
+    for entry in os.scandir(working_dir):
       if entry.name.endswith(('.dd', '.json', '.map')):
-        new_path = f'{backup_directory}/{entry.name}'
+        new_path = f'{backup_dir}/{entry.name}'
         new_path = io.non_clobber_path(new_path)
         shutil.move(entry.path, new_path)
 
@@ -414,12 +414,7 @@ class State():
 
     # Set working dir
     working_dir = get_working_dir(mode, self.destination)
-    if working_dir:
-      LOG.info('Set working directory to: %s', working_dir)
-      os.chdir(working_dir)
-    else:
-      LOG.error('Failed to set preferred working directory')
-      working_dir = pathlib.Path(os.getcwd())
+    os.chdir(working_dir)
 
     # Start fresh if requested
     if docopt_args['--start-fresh']:
@@ -923,7 +918,20 @@ def get_partition_separator(name):
 
 def get_working_dir(mode, destination):
   """Get working directory using mode and destination, returns path."""
+  ticket_id = None
   working_dir = None
+
+  # Set ticket ID
+  while ticket_id is None:
+    ticket_id = std.input_text(
+      prompt='Please enter ticket ID:',
+      allow_empty_response=False,
+      )
+    ticket_id = ticket_id.replace(' ', '_')
+    if not re.match(r'^\d+', ticket_id):
+      ticket_id = None
+
+  # Use preferred path if possible
   if mode == 'Clone':
     std.print_info('Mounting backup shares...')
     net.mount_backup_shares(read_write=True)
@@ -937,6 +945,18 @@ def get_working_dir(mode, destination):
     path = pathlib.Path(destination).resolve()
     if path.exists() and fstype_is_ok(path, map_dir=False):
       working_dir = path
+
+  # Default to current dir if necessary
+  if not working_dir:
+    LOG.error('Failed to set preferred working directory')
+    working_dir = pathlib.Path(os.getcwd())
+
+  # Set subdir using ticket ID
+  working_dir = working_dir.joinpath(ticket_id)
+  LOG.info('Set working directory to: %s', working_dir)
+
+  # Create directory
+  working_dir.mkdir(parents=True, exist_ok=True)
 
   # Done
   return working_dir
