@@ -12,6 +12,7 @@ import re
 import shutil
 import time
 
+from collections import OrderedDict
 from docopt import docopt
 
 import psutil
@@ -96,6 +97,11 @@ class BlockPair():
     self.map_data = {}
     self.map_path = None
     self.size = source.details['size']
+    self.status = OrderedDict({
+      'read': 'Pending',
+      'trim': 'Pending',
+      'scrape': 'Pending',
+      })
 
     # Set map file
     # e.g. '(Clone|Image)_Model[_p#]_Size[_Label].map'
@@ -122,6 +128,17 @@ class BlockPair():
 
     # Read map file
     self.load_map_data()
+
+    # Set initial status
+    percent = 100 * self.map_data.get('rescued', 0) / self.size
+    for name in self.status.keys():
+      if self.pass_complete(name):
+        self.status[name] = percent
+      else:
+        # Stop checking
+        if percent > 0:
+          self.status[name] = percent
+        break
 
   def get_rescued_size(self):
     """Get rescued size using map data.
@@ -169,11 +186,26 @@ class BlockPair():
     # Done
     self.map_data.update(data)
 
-  def pass_complete(self, pass_num):
+  def pass_complete(self, pass_name):
     """Check if pass_num is complete based on map data, returns bool."""
     complete = False
+    pending_size = 0
 
-    # TODO
+    # Check map data
+    if self.map_data.get('full recovery', False):
+      complete = True
+    elif 'non-tried' not in self.map_data:
+      # Assuming recovery has not been attempted yet
+      complete = False
+    else:
+      # Check that current and previous passes are complete
+      pending_size = self.map_data['non-tried']
+      if pass_name in ('trim', 'scrape'):
+        pending_size += self.map_data['non-trimmed']
+      if pass_name == 'scrape':
+        pending_size += self.map_data['non-scraped']
+      if pending_size == 0:
+        complete = True
 
     # Done
     return complete
