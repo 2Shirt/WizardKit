@@ -438,19 +438,19 @@ class State():
         self.destination = select_path('Destination')
     self.update_top_panes()
 
-    # Update panes
-    self.panes['Progress'] = tmux.split_window(
-      lines=cfg.ddrescue.TMUX_SIDE_WIDTH,
-      watch_file=f'{self.log_dir}/progress.out',
-      )
-    self.update_progress_pane()
-
     # Confirmation #1
     self.confirm_selections(
       mode=mode,
       prompt='Are these selections correct?',
       source_parts=source_parts,
       )
+
+    # Update panes
+    self.panes['Progress'] = tmux.split_window(
+      lines=cfg.ddrescue.TMUX_SIDE_WIDTH,
+      watch_file=f'{self.log_dir}/progress.out',
+      )
+    self.update_progress_pane('Idle')
 
     # Set working dir
     working_dir = get_working_dir(mode, self.destination)
@@ -476,6 +476,7 @@ class State():
     # if cloning and not resuming format destination
 
     # Done
+    self.update_progress_pane('Idle')
     # Ready for main menu
 
   def init_tmux(self):
@@ -632,12 +633,54 @@ class State():
       std.print_error('Failed to save clone settings')
       raise std.GenericAbort()
 
-  def update_progress_pane(self):
+  def update_progress_pane(self, status):
     """Update progress pane."""
     report = []
+    separator = '─────────────────────'
     width = cfg.ddrescue.TMUX_SIDE_WIDTH
+    # TODO: Finish update_progress_pane()
 
-    #TODO
+    # Status
+    report.append(std.color_string(f'{"Status":^{width}}', 'BLUE'))
+    report.append(f'{status:^{width}}')
+    report.append(separator)
+
+    # Overall progress
+    if self.block_pairs:
+      total_rescued = sum(
+        [pair.map_data.get('rescued', 0) for pair in self.block_pairs],
+        )
+      total_rescued = 400 * 1024**2
+      total_size = sum([pair.size for pair in self.block_pairs])
+      percent = total_rescued / total_size
+      report.append(std.color_string('Overall Progress', 'BLUE'))
+      report.append(
+        std.color_string(
+          ['Rescued:', f'{100*total_rescued/total_size:>{width-11}.2f} %'],
+          [None, get_percent_color(percent)],
+          ),
+        )
+      report.append(
+        std.color_string(
+          f'{std.bytes_to_string(total_rescued, decimals=2):>{width}}',
+          get_percent_color(percent),
+          ),
+        )
+      report.append(separator)
+
+    # Block pair progress
+    for pair in self.block_pairs:
+      report.append(std.color_string(pair.source, 'BLUE'))
+      report.append(f'Pass 1 {"TODO":>{width-7}}')
+      report.append(f'Pass 2 {"TODO":>{width-7}}')
+      report.append(f'Pass 3 {"TODO":>{width-7}}')
+      report.append(' ')
+
+    # EToC
+    if status in ('In Progress', 'NEEDS ATTENTION'):
+      report.append(separator)
+      report.append(std.color_string('Estimated Pass Finish', 'BLUE'))
+      report.append('TODO')
 
     # Write to progress file
     out_path = pathlib.Path(f'{self.log_dir}/progress.out')
@@ -1009,6 +1052,20 @@ def get_partition_separator(name):
     separator = 'p'
 
   return separator
+
+
+def get_percent_color(percent):
+  """Get color based on percentage, returns str."""
+  color = 'RED'
+  if percent > 100:
+    color = 'PURPLE'
+  elif percent >= 99:
+    color = 'GREEN'
+  elif percent >= 90:
+    color = 'YELLOW'
+
+  # Done
+  return color
 
 
 def get_working_dir(mode, destination):
