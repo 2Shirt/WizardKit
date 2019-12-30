@@ -502,13 +502,13 @@ class State():
     self.safety_check(mode, working_dir)
 
     # Confirmation #2
+    self.update_progress_pane('Idle')
     self.confirm_selections(mode, 'Start recovery?', working_dir=working_dir)
 
     # Prep destination
     # if cloning and not resuming format destination
 
     # Done
-    self.update_progress_pane('Idle')
     # Ready for main menu
 
   def init_tmux(self):
@@ -665,16 +665,23 @@ class State():
       std.print_error('Failed to save clone settings')
       raise std.GenericAbort()
 
-  def update_progress_pane(self, status):
+  def update_progress_pane(self, overall_status):
     """Update progress pane."""
     report = []
     separator = '─────────────────────'
     width = cfg.ddrescue.TMUX_SIDE_WIDTH
-    # TODO: Finish update_progress_pane()
 
     # Status
     report.append(std.color_string(f'{"Status":^{width}}', 'BLUE'))
-    report.append(f'{status:^{width}}')
+    if 'NEEDS ATTENTION' in overall_status:
+      report.append(
+        std.color_string(
+          f'{overall_status:^{width}}',
+        'YELLOW_BLINK',
+        ),
+      )
+    else:
+      report.append(f'{overall_status:^{width}}')
     report.append(separator)
 
     # Overall progress
@@ -682,15 +689,11 @@ class State():
       total_rescued = sum(
         [pair.map_data.get('rescued', 0) for pair in self.block_pairs],
         )
-      total_rescued = 400 * 1024**2
       total_size = sum([pair.size for pair in self.block_pairs])
-      percent = total_rescued / total_size
+      percent = 100 * total_rescued / total_size
       report.append(std.color_string('Overall Progress', 'BLUE'))
       report.append(
-        std.color_string(
-          ['Rescued:', f'{100*total_rescued/total_size:>{width-11}.2f} %'],
-          [None, get_percent_color(percent)],
-          ),
+        f'Rescued: {format_status_string(percent, width=width-9)}',
         )
       report.append(
         std.color_string(
@@ -703,13 +706,16 @@ class State():
     # Block pair progress
     for pair in self.block_pairs:
       report.append(std.color_string(pair.source, 'BLUE'))
-      report.append(f'Pass 1 {"TODO":>{width-7}}')
-      report.append(f'Pass 2 {"TODO":>{width-7}}')
-      report.append(f'Pass 3 {"TODO":>{width-7}}')
+      for name, status in pair.status.items():
+        name = name.title()
+        report.append(
+          f'{name}{format_status_string(status, width=width-len(name))}',
+          )
       report.append(' ')
 
     # EToC
-    if status in ('In Progress', 'NEEDS ATTENTION'):
+    # TODO: Finish update_progress_pane() [EToC]
+    if overall_status in ('Active', 'NEEDS ATTENTION'):
       report.append(separator)
       report.append(std.color_string('Estimated Pass Finish', 'BLUE'))
       report.append('TODO')
