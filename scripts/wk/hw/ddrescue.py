@@ -1012,6 +1012,40 @@ def build_settings_menu(silent=True):
   return menu
 
 
+def format_status_string(status, width):
+  """Format colored status string, returns str."""
+  color = None
+  percent = -1
+  status_str = str(status)
+
+  # Check if status is percentage
+  try:
+    percent = float(status_str)
+  except ValueError:
+    # Assuming status is text
+    pass
+
+  # Format status
+  if percent >= 0:
+    # Percentage
+    color = get_percent_color(percent)
+    status_str = f'{percent:{width-2}.2f} %'
+    if '100.00' in status_str and percent < 100:
+      # Always round down to 99.99%
+      status_str = f'{"99.99 %":>{width}}'
+  else:
+    # Text
+    color = STATUS_COLORS.get(status_str, None)
+    status_str = f'{status_str:>{width}}'
+
+  # Add color if necessary
+  if color:
+    status_str = std.color_string(status_str, color)
+
+  # Done
+  return status_str
+
+
 def fstype_is_ok(path, map_dir=False):
   """Check if filesystem type is acceptable, returns bool."""
   is_ok = False
@@ -1088,13 +1122,15 @@ def get_partition_separator(name):
 
 def get_percent_color(percent):
   """Get color based on percentage, returns str."""
-  color = 'RED'
+  color = None
   if percent > 100:
     color = 'PURPLE'
   elif percent >= 99:
     color = 'GREEN'
   elif percent >= 90:
     color = 'YELLOW'
+  elif percent > 0:
+    color = 'RED'
 
   # Done
   return color
