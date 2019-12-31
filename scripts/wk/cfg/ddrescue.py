@@ -27,6 +27,7 @@ DDRESCUE_SETTINGS = {
     '--min-read-rate':    {'Selected': True,  'Value': '64KiB',             },
     '--reopen-on-error':  {'Selected': True,                                },
     '--retry-passes':     {'Selected': True,  'Value': '0',                 },
+    '--reverse':          {'Selected': False,                               },
     '--test-mode':        {'Selected': False, 'Value': 'test.map',          },
     '--timeout':          {'Selected': True,  'Value': '30m',               },
     '-vvvv':              {'Selected': True,                'Hidden': True, },

@@ -69,7 +69,6 @@ MENU_ACTIONS = (
 MENU_TOGGLES = {
   'Auto continue (if recovery % over threshold)': True,
   'Retry (mark non-rescued sectors "non-tried")': False,
-  'Reverse direction': False,
   }
 PANE_RATIOS = (
   12, # SMART
@@ -998,8 +997,8 @@ def build_settings_menu(silent=True):
         preset = _p
 
   # Add default settings
-  menu.add_action('Main Menu')
   menu.add_action('Load Preset')
+  menu.add_action('Main Menu')
   for name, details in cfg.ddrescue.DDRESCUE_SETTINGS['Default'].items():
     menu.add_option(name, details.copy())
 
@@ -1092,6 +1091,26 @@ def fstype_is_ok(path, map_dir=False):
 
   # Done
   return is_ok
+
+
+def get_ddrescue_settings(main_menu, settings_menu):
+  """Get ddrescue settings from menu selections, returns list."""
+  settings = []
+
+  # Check menu selections
+  for name, details in main_menu.toggles.items():
+    if 'Retry' in name and details['Selected']:
+      settings.append('--retrim')
+      settings.append('--try-again')
+  for name, details in settings_menu.options.items():
+    if details['Selected']:
+      if 'Value' in details:
+        settings.append(f'{name}={details["Value"]}')
+      else:
+        settings.append(name)
+
+  # Done
+  return settings
 
 
 def get_etoc():
@@ -1351,6 +1370,14 @@ def mount_raw_image_macos(path):
 def run_recovery(state, main_menu, settings_menu):
   """Run recovery passes."""
   atexit.register(state.save_debug_reports)
+  attempted_recovery = False
+  auto_continue = False
+
+  # Get settings
+  for name, details in main_menu.toggles.items():
+    if 'Auto continue' in name and details['Selected']:
+      auto_continue = True
+  settings = get_ddrescue_settings(main_menu, settings_menu)
 
   # Start SMART/Journal
   state.panes['SMART'] = tmux.split_window(
@@ -1361,9 +1388,19 @@ def run_recovery(state, main_menu, settings_menu):
     lines=4, vertical=True, cmd='journalctl --dmesg --follow',
     )
 
+  # Check if retrying
+  if '--retrim' in settings:
+    for pair in state.block_pairs:
+      for name in pair.status.keys():
+        pair.status[name] = 'Pending'
+
   # TODO
   # Run ddrescue
   state.update_progress_pane('Active')
+  print('ddrescue settings:')
+  for arg in settings:
+    print(f'  {arg}')
+  std.pause('Run ddrescue pass?')
 
   # Stop SMART/Journal
   for pane in ('SMART', 'Journal'):
