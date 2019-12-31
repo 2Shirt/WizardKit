@@ -2,8 +2,6 @@
 # pylint: disable=bad-whitespace,line-too-long
 # vim: sts=2 sw=2 ts=2
 
-import re
-
 from collections import OrderedDict
 
 

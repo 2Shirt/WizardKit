@@ -405,17 +405,19 @@ class State():
     if forced or needs_fixed:
       self.update_top_panes()
 
-    # SMART/Journal
+    # Return if Progress pane not present
     if 'Progress' not in self.panes:
-      # Assumning we're still selecting source/dest
       return
-    height = tmux.get_pane_size(self.panes['Progress'])[1] - 2
-    p_ratios = [int((x/sum(PANE_RATIOS)) * height) for x in PANE_RATIOS]
-    if 'SMART' in self.panes:
-      tmux.resize_pane(self.panes['SMART'], height=p_ratios[0])
-      tmux.resize_pane(height=p_ratios[1])
-    if 'Journal' in self.panes:
-      tmux.resize_pane(self.panes['Journal'], height=p_ratios[2])
+
+    # SMART/Journal
+    if forced or needs_fixed:
+      height = tmux.get_pane_size(self.panes['Progress'])[1] - 2
+      p_ratios = [int((x/sum(PANE_RATIOS)) * height) for x in PANE_RATIOS]
+      if 'SMART' in self.panes:
+        tmux.resize_pane(self.panes['SMART'], height=p_ratios[0])
+        tmux.resize_pane(height=p_ratios[1])
+      if 'Journal' in self.panes:
+        tmux.resize_pane(self.panes['Journal'], height=p_ratios[2])
 
   def fix_tmux_layout_loop(self):
     """Fix tmux layout on a loop.
@@ -1349,16 +1351,24 @@ def mount_raw_image_macos(path):
 def run_recovery(state, main_menu, settings_menu):
   """Run recovery passes."""
   atexit.register(state.save_debug_reports)
-  state.update_progress_pane('Active')
 
   # Start SMART/Journal
-  # TODO
+  state.panes['SMART'] = tmux.split_window(
+    behind=True, lines=12, vertical=True,
+    watch_file=f'{state.log_dir}/smart.out',
+    )
+  state.panes['Journal'] = tmux.split_window(
+    lines=4, vertical=True, cmd='journalctl --dmesg --follow',
+    )
 
   # TODO
   # Run ddrescue
+  state.update_progress_pane('Active')
 
   # Stop SMART/Journal
-  # TODO
+  for pane in ('SMART', 'Journal'):
+    if pane in state.panes:
+      tmux.kill_pane(state.panes.pop(pane))
 
   # Done
   state.save_debug_reports()

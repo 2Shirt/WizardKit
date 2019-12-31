@@ -275,15 +275,17 @@ class Disk(BaseObj):
     # Done
     return report
 
-  def generate_report(self):
+  def generate_report(self, header=True):
     """Generate Disk report, returns list."""
     report = []
-    report.append(color_string(f'Device ({self.path.name})', 'BLUE'))
-    report.append(f'  {self.description}')
+    if header:
+      report.append(color_string(f'Device ({self.path.name})', 'BLUE'))
+      report.append(f'  {self.description}')
 
     # Attributes
     if self.attributes:
-      report.append(color_string('Attributes', 'BLUE'))
+      if header:
+        report.append(color_string('Attributes', 'BLUE'))
       report.extend(self.generate_attribute_report())
 
     # Notes
