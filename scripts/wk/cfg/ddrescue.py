@@ -14,8 +14,12 @@ TMUX_LAYOUT = OrderedDict({
 })
 
 # ddrescue
-AUTO_PASS_1_THRESHOLD = 95
-AUTO_PASS_2_THRESHOLD = 98
+AUTO_PASS_THRESHOLDS = {
+  # NOTE: The scrape key is set to infinity to force a break
+  'read': 95,
+  'trim': 98,
+  'scrape': float('inf'),
+  }
 DDRESCUE_SETTINGS = {
   'Default': {
     '--binary-prefixes':  {'Selected': True,                'Hidden': True, },

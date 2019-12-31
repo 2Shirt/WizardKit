@@ -140,7 +140,7 @@ class BlockPair():
     self.load_map_data()
 
     # Set initial status
-    percent = 100 * self.map_data.get('rescued', 0) / self.size
+    percent = self.get_percent_recovered()
     for name in self.status.keys():
       if self.pass_complete(name):
         self.status[name] = percent
@@ -149,6 +149,10 @@ class BlockPair():
         if percent > 0:
           self.status[name] = percent
         break
+
+  def get_percent_recovered(self):
+    """Get percent rescued from map_data, returns float."""
+    return 100 * self.map_data.get('rescued', 0) / self.size
 
   def get_rescued_size(self):
     """Get rescued size using map data.
@@ -581,6 +585,23 @@ class State():
     # Done
     return settings
 
+  def pass_above_threshold(self, pass_name):
+    """Check if all block_pairs meet the pass threshold, returns bool."""
+    threshold = cfg.ddrescue.AUTO_PASS_THRESHOLDS[pass_name]
+    return all(
+      [p.get_percent_recovered() >= threshold for p in self.block_pairs],
+      )
+
+  def pass_complete(self, pass_name):
+    """Check if all block_pairs completed pass_name, returns bool."""
+    return all([p.pass_complete(pass_name) for p in self.block_pairs])
+
+  def retry_all_passes(self):
+    """Set all statuses to Pending."""
+    for pair in self.block_pairs:
+      for name in pair.status.keys():
+        pair.status[name] = 'Pending'
+
   def safety_check(self, mode, working_dir):
     """Run safety check and abort if necessary."""
     required_size = sum([pair.size for pair in self.block_pairs])
@@ -687,8 +708,8 @@ class State():
         )
       report.append(
         std.color_string(
-          f'{std.bytes_to_string(total_rescued, decimals=2):>{width}}',
-          get_percent_color(percent),
+          [f'{std.bytes_to_string(total_rescued, decimals=2):>{width}}'],
+          [get_percent_color(percent)],
           ),
         )
       report.append(separator)
@@ -1367,6 +1388,17 @@ def mount_raw_image_macos(path):
   return loopback_path
 
 
+def run_ddrescue(state, block_pair, settings):
+  """Run ddrescue using passed settings."""
+  state.update_progress_pane('Active')
+  print('Running ddrescue')
+  print(f'  {block_pair.source} --> {block_pair.destination}')
+  print('Using these settings:')
+  for _s in settings:
+    print(f'  {_s}')
+  std.pause()
+
+
 def run_recovery(state, main_menu, settings_menu):
   """Run recovery passes."""
   atexit.register(state.save_debug_reports)
@@ -1390,17 +1422,31 @@ def run_recovery(state, main_menu, settings_menu):
 
   # Check if retrying
   if '--retrim' in settings:
-    for pair in state.block_pairs:
-      for name in pair.status.keys():
-        pair.status[name] = 'Pending'
+    state.retry_all_passes()
 
-  # TODO
-  # Run ddrescue
-  state.update_progress_pane('Active')
-  print('ddrescue settings:')
-  for arg in settings:
-    print(f'  {arg}')
-  std.pause('Run ddrescue pass?')
+  # Run pass(es)
+  for pass_name in ('read', 'trim', 'scrape'):
+    if state.pass_complete(pass_name):
+      # Skip to next pass
+      # NOTE: This bypasses auto_continue
+      continue
+
+    # Run ddrescue
+    for pair in state.block_pairs:
+      if not pair.pass_complete(pass_name):
+        attempted_recovery = True
+        run_ddrescue(state, pair, settings)
+
+    # Continue or return to menu
+    all_complete = state.pass_complete(pass_name)
+    all_above_threshold = state.pass_above_threshold(pass_name)
+    if not (all_complete and all_above_threshold and auto_continue):
+      break
+
+  # Show warning if nothing was done
+  if not attempted_recovery:
+    std.print_warning('No actions performed')
+    std.print_standard(' ')
 
   # Stop SMART/Journal
   for pane in ('SMART', 'Journal'):
