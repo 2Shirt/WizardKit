@@ -9,7 +9,6 @@ import logging
 import os
 import pathlib
 import plistlib
-import pytz
 import re
 import shutil
 import time
@@ -18,10 +17,10 @@ from collections import OrderedDict
 from docopt import docopt
 
 import psutil
+import pytz
 
 from wk import cfg, debug, exe, io, log, net, std, tmux
 from wk.hw import obj as hw_obj
-from wk.hw import sensors as hw_sensors
 
 
 # STATIC VARIABLES
@@ -248,9 +247,6 @@ class State():
         working_dir=working_dir,
         ))
 
-    # Safety Checks
-    # TODO
-
   def add_clone_block_pairs(self, working_dir):
     """Add device to device block pairs and set settings if necessary."""
     source_sep = get_partition_separator(self.source.path.name)
@@ -310,22 +306,6 @@ class State():
       bp_dest = self.destination
       self.add_block_pair(part, bp_dest, working_dir)
 
-  def clean_working_dir(self, working_dir):
-    """Clean working directory to ensure a fresh recovery session.
-
-    NOTE: Data from previous sessions will be preserved
-          in a backup directory.
-    """
-    backup_dir = pathlib.Path(f'{working_dir}/prev')
-    backup_dir = io.non_clobber_path(backup_dir)
-    backup_dir.mkdir()
-
-    # Move settings, maps, etc to backup_dir
-    for entry in os.scandir(working_dir):
-      if entry.name.endswith(('.dd', '.json', '.map')):
-        new_path = f'{backup_dir}/{entry.name}'
-        new_path = io.non_clobber_path(new_path)
-        shutil.move(entry.path, new_path)
 
   def confirm_selections(
       self, mode, prompt, working_dir=None, source_parts=None):
@@ -446,35 +426,6 @@ class State():
       self.fix_tmux_layout(forced=False)
       std.sleep(1)
 
-  def get_etoc(self):
-    """Get EToC from ddrescue output, returns str."""
-    delta = None
-    delta_dict = {}
-    etoc = 'Unknown'
-    now = datetime.datetime.now(tz=TIMEZONE)
-    output = tmux.capture_pane()
-
-    # Search for EToC delta
-    matches = re.findall(f'remaining time:.*$', output, re.MULTILINE)
-    if matches:
-      match = REGEX_REMAINING_TIME.search(matches[-1])
-      if match.group('na'):
-        etoc = 'N/A'
-      else:
-        for key in ('days', 'hours', 'minutes', 'seconds'):
-          delta_dict[key] = match.group(key)
-        delta_dict = {k: int(v) if v else 0 for k, v in delta_dict.items()}
-        delta = datetime.timedelta(**delta_dict)
-
-    # Calc EToC if delta found
-    if delta:
-      etoc_datetime = now + delta
-      etoc = etoc_datetime.strftime('%Y-%m-%d %H:%M %Z')
-
-    # Done
-    return etoc
-
-
   def init_recovery(self, docopt_args):
     """Select source/dest and set env."""
     std.clear_screen()
@@ -530,7 +481,7 @@ class State():
 
     # Start fresh if requested
     if docopt_args['--start-fresh']:
-      self.clean_working_dir(working_dir)
+      clean_working_dir(working_dir)
 
     # Add block pairs
     if mode == 'Clone':
@@ -546,7 +497,7 @@ class State():
     self.update_progress_pane('Idle')
     self.confirm_selections(mode, 'Start recovery?', working_dir=working_dir)
 
-    # Prep destination
+    # TODO: Prep destination
     # if cloning and not resuming format destination
 
     # Done
@@ -716,11 +667,8 @@ class State():
     report.append(std.color_string(f'{"Status":^{width}}', 'BLUE'))
     if 'NEEDS ATTENTION' in overall_status:
       report.append(
-        std.color_string(
-          f'{overall_status:^{width}}',
-        'YELLOW_BLINK',
-        ),
-      )
+        std.color_string(f'{overall_status:^{width}}', 'YELLOW_BLINK'),
+        )
     else:
       report.append(f'{overall_status:^{width}}')
     report.append(separator)
@@ -755,9 +703,8 @@ class State():
       report.append(' ')
 
     # EToC
-    # TODO: Finish update_progress_pane() [EToC]
     if overall_status in ('Active', 'NEEDS ATTENTION'):
-      etoc = self.get_etoc()
+      etoc = get_etoc()
       report.append(separator)
       report.append(std.color_string('Estimated Pass Finish', 'BLUE'))
       if overall_status == 'NEEDS ATTENTION' or etoc == 'N/A':
@@ -1063,6 +1010,24 @@ def build_settings_menu(silent=True):
   return menu
 
 
+def clean_working_dir(working_dir):
+  """Clean working directory to ensure a fresh recovery session.
+
+  NOTE: Data from previous sessions will be preserved
+        in a backup directory.
+  """
+  backup_dir = pathlib.Path(f'{working_dir}/prev')
+  backup_dir = io.non_clobber_path(backup_dir)
+  backup_dir.mkdir()
+
+  # Move settings, maps, etc to backup_dir
+  for entry in os.scandir(working_dir):
+    if entry.name.endswith(('.dd', '.json', '.map')):
+      new_path = f'{backup_dir}/{entry.name}'
+      new_path = io.non_clobber_path(new_path)
+      shutil.move(entry.path, new_path)
+
+
 def format_status_string(status, width):
   """Format colored status string, returns str."""
   color = None
@@ -1125,6 +1090,35 @@ def fstype_is_ok(path, map_dir=False):
 
   # Done
   return is_ok
+
+
+def get_etoc():
+  """Get EToC from ddrescue output, returns str."""
+  delta = None
+  delta_dict = {}
+  etoc = 'Unknown'
+  now = datetime.datetime.now(tz=TIMEZONE)
+  output = tmux.capture_pane()
+
+  # Search for EToC delta
+  matches = re.findall(f'remaining time:.*$', output, re.MULTILINE)
+  if matches:
+    match = REGEX_REMAINING_TIME.search(matches[-1])
+    if match.group('na'):
+      etoc = 'N/A'
+    else:
+      for key in ('days', 'hours', 'minutes', 'seconds'):
+        delta_dict[key] = match.group(key)
+      delta_dict = {k: int(v) if v else 0 for k, v in delta_dict.items()}
+      delta = datetime.timedelta(**delta_dict)
+
+  # Calc EToC if delta found
+  if delta:
+    etoc_datetime = now + delta
+    etoc = etoc_datetime.strftime('%Y-%m-%d %H:%M %Z')
+
+  # Done
+  return etoc
 
 
 def get_object(path):
