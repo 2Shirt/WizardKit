@@ -46,22 +46,6 @@ DDRESCUE_SETTINGS = {
     '--timeout':          {'Selected': False, 'Value': '30m',               },
     },
   }
-ETOC_REFRESH_RATE = 30 # in seconds
-REGEX_DDRESCUE_LOG = re.compile(
-  r'^\s*(?P<key>\S+):\s+'
-  r'(?P<size>\d+)\s+'
-  r'(?P<unit>[PTGMKB])i?B?',
-  re.IGNORECASE,
-  )
-REGEX_REMAINING_TIME = re.compile(
-  r'remaining time:'
-  r'\s*((?P<days>\d+)d)?'
-  r'\s*((?P<hours>\d+)h)?'
-  r'\s*((?P<minutes>\d+)m)?'
-  r'\s*((?P<seconds>\d+)s)?'
-  r'\s*(?P<na>n/a)?',
-  re.IGNORECASE
-  )
 
 
 if __name__ == '__main__':

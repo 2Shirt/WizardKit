@@ -3,11 +3,13 @@
 # vim: sts=2 sw=2 ts=2
 
 import atexit
+import datetime
 import json
 import logging
 import os
 import pathlib
 import plistlib
+import pytz
 import re
 import shutil
 import time
@@ -51,6 +53,15 @@ DDRESCUE_LOG_REGEX = re.compile(
   r'(?P<unit>[PTGMKB]i?B?)',
   re.IGNORECASE,
   )
+REGEX_REMAINING_TIME = re.compile(
+  r'remaining time:'
+  r'\s*((?P<days>\d+)d)?'
+  r'\s*((?P<hours>\d+)h)?'
+  r'\s*((?P<minutes>\d+)m)?'
+  r'\s*((?P<seconds>\d+)s)?'
+  r'\s*(?P<na>n/a)?',
+  re.IGNORECASE
+  )
 LOG = logging.getLogger(__name__)
 MENU_ACTIONS = (
   'Start',
@@ -81,6 +92,7 @@ STATUS_COLORS = {
   'Working': 'YELLOW',
   'ERROR': 'RED',
   }
+TIMEZONE = pytz.timezone(cfg.main.LINUX_TIME_ZONE)
 
 
 # Classes
@@ -434,6 +446,35 @@ class State():
       self.fix_tmux_layout(forced=False)
       std.sleep(1)
 
+  def get_etoc(self):
+    """Get EToC from ddrescue output, returns str."""
+    delta = None
+    delta_dict = {}
+    etoc = 'Unknown'
+    now = datetime.datetime.now(tz=TIMEZONE)
+    output = tmux.capture_pane()
+
+    # Search for EToC delta
+    matches = re.findall(f'remaining time:.*$', output, re.MULTILINE)
+    if matches:
+      match = REGEX_REMAINING_TIME.search(matches[-1])
+      if match.group('na'):
+        etoc = 'N/A'
+      else:
+        for key in ('days', 'hours', 'minutes', 'seconds'):
+          delta_dict[key] = match.group(key)
+        delta_dict = {k: int(v) if v else 0 for k, v in delta_dict.items()}
+        delta = datetime.timedelta(**delta_dict)
+
+    # Calc EToC if delta found
+    if delta:
+      etoc_datetime = now + delta
+      etoc = etoc_datetime.strftime('%Y-%m-%d %H:%M %Z')
+
+    # Done
+    return etoc
+
+
   def init_recovery(self, docopt_args):
     """Select source/dest and set env."""
     std.clear_screen()
@@ -716,9 +757,13 @@ class State():
     # EToC
     # TODO: Finish update_progress_pane() [EToC]
     if overall_status in ('Active', 'NEEDS ATTENTION'):
+      etoc = self.get_etoc()
       report.append(separator)
       report.append(std.color_string('Estimated Pass Finish', 'BLUE'))
-      report.append('TODO')
+      if overall_status == 'NEEDS ATTENTION' or etoc == 'N/A':
+        report.append(std.color_string('N/A', 'YELLOW'))
+      else:
+        report.append(etoc)
 
     # Write to progress file
     out_path = pathlib.Path(f'{self.log_dir}/progress.out')
@@ -1310,6 +1355,7 @@ def mount_raw_image_macos(path):
 def run_recovery(state, main_menu, settings_menu):
   """Run recovery passes."""
   atexit.register(state.save_debug_reports)
+  state.update_progress_pane('Active')
 
   # Start SMART/Journal
   # TODO
@@ -1324,6 +1370,7 @@ def run_recovery(state, main_menu, settings_menu):
   state.save_debug_reports()
   atexit.unregister(state.save_debug_reports)
   std.pause('Press Enter to return to main menu...')
+  state.update_progress_pane('Idle')
 
 
 def select_disk(prompt, skip_disk=None):
