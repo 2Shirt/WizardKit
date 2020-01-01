@@ -33,6 +33,8 @@ Usage:
 
 Options:
   -h --help           Show this page
+  -s --dry-run        Print commands to be used instead of running them
+  --force-local-map   Skip mounting shares and save map to current dir
   --start-fresh       Ignore previous runs and start new recovery
 '''
 CLONE_SETTINGS = {
@@ -482,7 +484,9 @@ class State():
     self.update_progress_pane('Idle')
 
     # Set working dir
-    working_dir = get_working_dir(mode, self.destination)
+    working_dir = get_working_dir(
+      mode, self.destination, force_local=docopt_args['--force-local-map'],
+      )
 
     # Start fresh if requested
     if docopt_args['--start-fresh']:
@@ -1223,7 +1227,7 @@ def get_percent_color(percent):
   return color
 
 
-def get_working_dir(mode, destination):
+def get_working_dir(mode, destination, force_local=False):
   """Get working directory using mode and destination, returns path."""
   ticket_id = None
   working_dir = None
@@ -1239,7 +1243,11 @@ def get_working_dir(mode, destination):
       ticket_id = None
 
   # Use preferred path if possible
-  if mode == 'Clone':
+  if mode == 'Image':
+    path = pathlib.Path(destination).resolve()
+    if path.exists() and fstype_is_ok(path, map_dir=False):
+      working_dir = path
+  elif mode == 'Clone' and not force_local:
     std.print_info('Mounting backup shares...')
     net.mount_backup_shares(read_write=True)
     for server in cfg.net.BACKUP_SERVERS:
@@ -1248,10 +1256,6 @@ def get_working_dir(mode, destination):
         # Acceptable path found
         working_dir = path
         break
-  else:
-    path = pathlib.Path(destination).resolve()
-    if path.exists() and fstype_is_ok(path, map_dir=False):
-      working_dir = path
 
   # Default to current dir if necessary
   if not working_dir:
@@ -1274,9 +1278,10 @@ def get_working_dir(mode, destination):
 def main():
   """Main function for ddrescue TUI."""
   args = docopt(DOCSTRING)
+  args['--dry-run'] = True # TODO: Remove dry-run safety net
   log.update_log_path(dest_name='ddrescue-TUI', timestamp=True)
 
-  # Safety check
+  # Check if running inside tmux
   if 'TMUX' not in os.environ:
     LOG.error('tmux session not found')
     raise RuntimeError('tmux session not found')
