@@ -1244,7 +1244,11 @@ def get_working_dir(mode, destination, force_local=False):
 
   # Use preferred path if possible
   if mode == 'Image':
-    path = pathlib.Path(destination).resolve()
+    try:
+      path = pathlib.Path(destination).resolve()
+    except TypeError:
+      std.print_error(f'Invalid destination: {destination}')
+      raise std.GenericAbort()
     if path.exists() and fstype_is_ok(path, map_dir=False):
       working_dir = path
   elif mode == 'Clone' and not force_local:
