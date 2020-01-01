@@ -1435,8 +1435,8 @@ def run_recovery(state, main_menu, settings_menu):
 
   # Run pass(es)
   for pass_name in ('read', 'trim', 'scrape'):
-    if state.pass_complete(pass_name):
-      # Skip to next pass
+    if not '--retrim' in settings and state.pass_complete(pass_name):
+      # Skip to next pass (unless retry selected)
       # NOTE: This bypasses auto_continue
       continue
 
