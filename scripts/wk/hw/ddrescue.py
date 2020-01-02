@@ -6,6 +6,7 @@ import atexit
 import datetime
 import json
 import logging
+import math
 import os
 import pathlib
 import plistlib
@@ -257,6 +258,7 @@ class State():
     source_sep = get_partition_separator(self.source.path.name)
     dest_sep = get_partition_separator(self.destination.path.name)
     settings = {}
+    source_parts = []
 
     # Clone settings
     settings = self.load_settings(working_dir, discard_unused_settings=True)
@@ -304,6 +306,9 @@ class State():
 
         # Save settings
         self.save_settings(settings, working_dir)
+
+    # Done
+    return source_parts
 
   def add_image_block_pairs(self, source_parts, working_dir):
     """Add device to image file block pairs."""
@@ -494,7 +499,7 @@ class State():
 
     # Add block pairs
     if mode == 'Clone':
-      self.add_clone_block_pairs(working_dir)
+      source_parts = self.add_clone_block_pairs(working_dir)
     else:
       source_parts = select_disk_parts(mode, self.source)
       self.add_image_block_pairs(source_parts, working_dir)
@@ -506,8 +511,11 @@ class State():
     self.update_progress_pane('Idle')
     self.confirm_selections(mode, 'Start recovery?', working_dir=working_dir)
 
-    # TODO: Prep destination
-    # if cloning and not resuming format destination
+    # Prep destination
+    if mode == 'Clone':
+      self.prep_destination(
+        source_parts, working_dir, dry_run=docopt_args['--dry-run'],
+        )
 
     # Done
     # Ready for main menu
@@ -599,6 +607,91 @@ class State():
   def pass_complete(self, pass_name):
     """Check if all block_pairs completed pass_name, returns bool."""
     return all([p.pass_complete(pass_name) for p in self.block_pairs])
+
+  def prep_destination(self, source_parts, working_dir, dry_run=False):
+    """Prep destination as necessary."""
+    dest_prefix = str(self.destination.path)
+    dest_prefix += get_partition_separator(self.destination.path.name)
+    esp_type = 'C12A7328-F81F-11D2-BA4B-00A0C93EC93B'
+    msr_type = 'E3C9E316-0B5C-4DB8-817D-F92DF00215AE'
+    part_num = 0
+    sfdisk_script = []
+    settings = self.load_settings(working_dir)
+
+    # Bail early
+    if not settings['Needs Format']:
+      return
+    print(f'{source_parts=}')
+    print(f'{working_dir=}')
+    print(f'{dry_run=}')
+    print(settings)
+    std.pause()
+
+    # Add partition table settings
+    if settings['Table Type'] == 'GPT':
+      sfdisk_script.append('label: gpt')
+    else:
+      sfdisk_script.append('label: dos')
+    sfdisk_script.append('unit: sectors')
+    sfdisk_script.append('')
+
+    # Add boot partition if requested
+    if settings['Create Boot Partition']:
+      if settings['Table Type'] == 'GPT':
+        part_num += 1
+        sfdisk_script.append(
+          f'{dest_prefix}{part_num} : '
+          f'size=384MiB, type={esp_type}, name="EFI System"',
+          )
+        part_num += 1
+        sfdisk_script.append(
+          f'{dest_prefix}{part_num} : '
+          f'size=16MiB, type={msr_type}, name="Microsoft Reserved"',
+          )
+      elif settings['Table Type'] == 'MBR':
+        part_num += 1
+        sfdisk_script.append(
+          f'{dest_prefix}{part_num} : '
+          f'size=100MiB, type=7, name="System Reserved"',
+          )
+
+    # Add selected partition(s)
+    for part in source_parts:
+      line = ''
+      num_sectors = part.details['size'] / self.destination.details['log-sec']
+      num_sectors = math.ceil(num_sectors)
+      part_num += 1
+
+      # Build sfdisk line for part
+      # TODO: Move to separate function to support both DOS/GPT types
+      line = f'{dest_prefix}{part_num} : '
+      line += f'size={num_sectors}, type={part.details["parttype"].upper()}'
+      if part.details['partlabel']:
+        line += f', name="{part.details["partlabel"]}"'
+      if part.details['partuuid']:
+        line += f', uuid={part.details["partuuid"].upper()}'
+
+      # Add line to script
+      sfdisk_script.append(line)
+
+    # Save sfdisk script
+    script_path = f'{working_dir}/sfdisk_{self.destination.path.name}.script'
+    with open(script_path, 'w') as _f:
+      _f.write('\n'.join(sfdisk_script))
+
+    # Format disk
+    if dry_run:
+      std.print_warning('Not formatting disk during dry run')
+      std.print_info('Script for sfdisk:')
+      std.print_report(sfdisk_script)
+      std.pause()
+    else:
+      # TODO
+      pass
+
+    # Update settings
+    settings['Needs Format'] = not dry_run
+    self.save_settings(settings, working_dir)
 
   def retry_all_passes(self):
     """Set all statuses to Pending."""
@@ -1435,7 +1528,7 @@ def run_recovery(state, main_menu, settings_menu):
 
   # Run pass(es)
   for pass_name in ('read', 'trim', 'scrape'):
-    if not '--retrim' in settings and state.pass_complete(pass_name):
+    if '--retrim' not in settings and state.pass_complete(pass_name):
       # Skip to next pass (unless retry selected)
       # NOTE: This bypasses auto_continue
       continue

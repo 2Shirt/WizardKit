@@ -1,5 +1,6 @@
 """WizardKit: Hardware objects (mostly)"""
 # vim: sts=2 sw=2 ts=2
+# TODO: Get log-sec data under Linux and macOS
 
 import logging
 import pathlib
@@ -315,6 +316,7 @@ class Disk(BaseObj):
     self.details['bus'] = str(self.details.get('bus', '???')).upper()
     self.details['bus'] = self.details['bus'].replace('IMAGE', 'Image')
     self.details['bus'] = self.details['bus'].replace('NVME', 'NVMe')
+    self.details['log-sec'] = self.details.get('log-sec', 512)
     self.details['model'] = self.details.get('model', 'Unknown Model')
     self.details['name'] = self.details.get('name', self.path)
     self.details['phy-sec'] = self.details.get('phy-sec', 512)
