@@ -621,11 +621,6 @@ class State():
     # Bail early
     if not settings['Needs Format']:
       return
-    print(f'{source_parts=}')
-    print(f'{working_dir=}')
-    print(f'{dry_run=}')
-    print(settings)
-    std.pause()
 
     # Add partition table settings
     if settings['Table Type'] == 'GPT':
@@ -640,39 +635,46 @@ class State():
       if settings['Table Type'] == 'GPT':
         part_num += 1
         sfdisk_script.append(
-          f'{dest_prefix}{part_num} : '
-          f'size=384MiB, type={esp_type}, name="EFI System"',
+          build_sfdisk_partition_line(
+            table_type='GPT',
+            dev_path=f'{dest_prefix}{part_num}',
+            size='384MiB',
+            details={'parttype': esp_type, 'partlabel': 'EFI System'},
+            ),
           )
         part_num += 1
         sfdisk_script.append(
-          f'{dest_prefix}{part_num} : '
-          f'size=16MiB, type={msr_type}, name="Microsoft Reserved"',
+          build_sfdisk_partition_line(
+            table_type=settings['Table Type'],
+            dev_path=f'{dest_prefix}{part_num}',
+            size='16MiB',
+            details={'parttype': msr_type, 'partlabel': 'Microsoft Reserved'},
+            ),
           )
       elif settings['Table Type'] == 'MBR':
         part_num += 1
         sfdisk_script.append(
-          f'{dest_prefix}{part_num} : '
-          f'size=100MiB, type=7, name="System Reserved"',
+          build_sfdisk_partition_line(
+            table_type='MBR',
+            dev_path=f'{dest_prefix}{part_num}',
+            size='100MiB',
+            details={'parttype': '0x7', 'partlabel': 'System Reserved'},
+            ),
           )
 
     # Add selected partition(s)
     for part in source_parts:
-      line = ''
       num_sectors = part.details['size'] / self.destination.details['log-sec']
       num_sectors = math.ceil(num_sectors)
       part_num += 1
-
-      # Build sfdisk line for part
-      # TODO: Move to separate function to support both DOS/GPT types
-      line = f'{dest_prefix}{part_num} : '
-      line += f'size={num_sectors}, type={part.details["parttype"].upper()}'
-      if part.details['partlabel']:
-        line += f', name="{part.details["partlabel"]}"'
-      if part.details['partuuid']:
-        line += f', uuid={part.details["partuuid"].upper()}'
-
-      # Add line to script
-      sfdisk_script.append(line)
+      sfdisk_script.append(
+        build_sfdisk_partition_line(
+          table_type=settings['Table Type'],
+          dev_path=f'{dest_prefix}{part_num}',
+          size=num_sectors,
+          details=part.details,
+          ),
+        )
 
     # Save sfdisk script
     script_path = f'{working_dir}/sfdisk_{self.destination.path.name}.script'
@@ -1127,6 +1129,47 @@ def build_settings_menu(silent=True):
 
   # Done
   return menu
+
+
+def build_sfdisk_partition_line(table_type, dev_path, size, details):
+  """Build sfdisk partition line using passed details, returns str."""
+  line = f'{dev_path} : size={size}'
+  dest_type = ''
+  source_filesystem = str(details.get('fstype', '')).upper()
+  source_table_type = ''
+  source_type = details.get('parttype', '')
+
+  # Set dest type
+  if re.match(r'^0x\w+$', source_type):
+    # Both source and dest are MBR
+    source_table_type = 'MBR'
+    if table_type == 'MBR':
+      dest_type = source_type.replace('0x', '').lower()
+  elif re.match(r'^\w{8}-\w{4}-\w{4}-\w{4}-\w{12}$', source_type):
+    # Source is a GPT type
+    source_table_type = 'GPT'
+    if table_type == 'GPT':
+      dest_type = source_type.upper()
+  if not dest_type:
+    # Assuming changing table types, set based on FS
+    if source_filesystem in cfg.ddrescue.PARTITION_TYPES[table_type]:
+      dest_type = cfg.ddrescue.PARTITION_TYPES[table_type][source_filesystem]
+  line += f', type={dest_type}'
+
+  # Safety Check
+  if not dest_type:
+    std.print_error(f'Failed to determine partition type for: {dev_path}')
+    raise std.GenericAbort()
+
+  # Add extra details
+  if details.get('partlabel', ''):
+    line += f', name="{details["partlabel"]}"'
+  if details.get('partuuid', '') and source_table_type == table_type:
+    # Only add UUID if source/dest table types match
+    line += f', uuid={details["partuuid"].upper()}'
+
+  # Done
+  return line
 
 
 def clean_working_dir(working_dir):

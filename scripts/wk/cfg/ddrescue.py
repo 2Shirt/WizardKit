@@ -49,6 +49,18 @@ DDRESCUE_SETTINGS = {
     '--timeout':          {'Selected': False, 'Value': '30m',               },
     },
   }
+PARTITION_TYPES = {
+  'GPT': {
+    'NTFS':   'EBD0A0A2-B9E5-4433-87C0-68B6B72699C7', # Basic Data Partition
+    'VFAT':   'EBD0A0A2-B9E5-4433-87C0-68B6B72699C7', # Basic Data Partition
+    'EXFAT':  'EBD0A0A2-B9E5-4433-87C0-68B6B72699C7', # Basic Data Partition
+    },
+  'MBR': {
+    'EXFAT':  7,  # 0x7
+    'NTFS':   7,  # 0x7
+    'VFAT':   11, # 0xb
+    },
+  }
 
 
 if __name__ == '__main__':
