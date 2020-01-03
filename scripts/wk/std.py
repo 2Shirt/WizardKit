@@ -737,6 +737,13 @@ def color_string(strings, colors, sep=' '):
   if isinstance(colors, (str, pathlib.Path)):
     colors = (colors,)
 
+  # Convert to strings if necessary
+  try:
+    iterator = iter(strings)
+  except TypeError:
+    # Assuming single element passed, convert to string
+    strings = (str(strings),)
+
   # Build new string with color escapes added
   for string, color in itertools.zip_longest(strings, colors):
     color_code = COLORS.get(color, clear_code)
