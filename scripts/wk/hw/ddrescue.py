@@ -240,6 +240,15 @@ class BlockPair():
       std.print_error(f'Invalid destination: {self.destination}')
       raise std.GenericAbort()
 
+  def update_progress(self, pass_name):
+    """Update progress via map data."""
+    self.load_map_data()
+
+    # Update status
+    percent = self.get_percent_recovered()
+    if percent > 0:
+      self.status[pass_name] = percent
+
 
 class State():
   """Object for tracking hardware diagnostic data."""
@@ -731,6 +740,11 @@ class State():
     """Run safety check and abort if necessary."""
     required_size = sum([pair.size for pair in self.block_pairs])
     settings = self.load_settings(working_dir) if mode == 'Clone' else {}
+
+    # Check dest SMART if cloning
+    if mode == 'Clone':
+      # TODO: Check dest SMART
+      pass
 
     # Increase required_size if necessary
     if mode == 'Clone' and settings.get('Needs Format', False):
@@ -1577,14 +1591,37 @@ def mount_raw_image_macos(path):
   return loopback_path
 
 
-def run_ddrescue(state, block_pair, settings):
+def run_ddrescue(state, block_pair, pass_name, settings):
   """Run ddrescue using passed settings."""
   state.update_progress_pane('Active')
-  print('Running ddrescue')
-  print(f'  {block_pair.source} --> {block_pair.destination}')
-  print('Using these settings:')
-  for _s in settings:
-    print(f'  {_s}')
+  i = 0
+
+  while True:
+    # Update SMART pane (every 30 seconds)
+    if i % 30 == 0:
+      now = datetime.datetime.now().strftime('%Y-%m-%d %H:%M %Z')
+      with open(f'{state.log_dir}/smart.out', 'w') as _f:
+        _f.write(
+          std.color_string(
+            ['SMART Attributes', f'Updated: {now}\n'],
+            ['BLUE', 'YELLOW'],
+            sep='\t\t',
+            ),
+          )
+        _f.write('\n'.join(state.source.generate_report(header=False)))
+
+    # Update progress
+    block_pair.update_progress(pass_name)
+    state.update_progress_pane('Active')
+
+    # Run
+    # TODO: Make ddrescue calls real
+    print('Running ddrescue')
+    print(f'  {block_pair.source} --> {block_pair.destination}')
+    print('Using these settings:')
+    for _s in settings:
+      print(f'  {_s}')
+    break
   std.pause()
 
 
@@ -1622,14 +1659,19 @@ def run_recovery(state, main_menu, settings_menu):
 
     # Run ddrescue
     for pair in state.block_pairs:
+      abort = False
       if not pair.pass_complete(pass_name):
         attempted_recovery = True
-        run_ddrescue(state, pair, settings)
+        try:
+          run_ddrescue(state, pair, pass_name, settings)
+        except KeyboardInterrupt:
+          abort = True
+          break
 
     # Continue or return to menu
     all_complete = state.pass_complete(pass_name)
     all_above_threshold = state.pass_above_threshold(pass_name)
-    if not (all_complete and all_above_threshold and auto_continue):
+    if abort or not (all_complete and all_above_threshold and auto_continue):
       break
 
   # Show warning if nothing was done
