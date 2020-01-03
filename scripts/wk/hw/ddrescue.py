@@ -227,6 +227,19 @@ class BlockPair():
     # Done
     return complete
 
+  def safety_check(self, dry_run=False):
+    """Run safety check and abort if necessary."""
+    dest_size = -1
+    if self.destination.exists():
+      dest_size = self.destination.stat().st_size
+
+    # Raise exception if necessary
+    if dry_run:
+      std.print_warning(f'Assuming destination is okay ({self.destination})')
+    elif dest_size < self.size:
+      std.print_error('Invalid destination: {self.destination}')
+      raise std.GenericAbort()
+
 
 class State():
   """Object for tracking hardware diagnostic data."""
@@ -322,7 +335,6 @@ class State():
     for part in source_parts:
       bp_dest = self.destination
       self.add_block_pair(part, bp_dest, working_dir)
-
 
   def confirm_selections(
       self, mode, prompt, working_dir=None, source_parts=None):
@@ -524,8 +536,9 @@ class State():
         source_parts, working_dir, dry_run=docopt_args['--dry-run'],
         )
 
-    # Done
-    # Ready for main menu
+    # Safety Check #2
+    for pair in self.block_pairs:
+      pair.safety_check(dry_run=docopt_args['--dry-run'])
 
   def init_tmux(self):
     """Initialize tmux layout."""
@@ -689,12 +702,7 @@ class State():
       _f.write('\n'.join(sfdisk_script))
 
     # Format disk
-    if dry_run:
-      std.print_warning('Not formatting disk during dry run')
-      std.print_info('Script for sfdisk:')
-      std.print_report(sfdisk_script)
-      std.pause()
-    else:
+    if not dry_run:
       # TODO
       pass
 
