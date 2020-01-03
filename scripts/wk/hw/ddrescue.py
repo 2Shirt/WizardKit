@@ -629,6 +629,23 @@ class State():
     # Done
     return settings
 
+  def mark_started(self):
+    """Edit clone settings, if applicable, to mark recovery as started."""
+    # Skip if not cloning
+    if self.mode != 'Clone':
+      return
+
+    # Skip if not using settings
+    # i.e. Cloning whole disk (or single partition via args)
+    if self.source.path.samefile(self.block_pairs[0].source):
+      return
+
+    # Update settings
+    settings = self.load_settings()
+    if settings.get('First Run', False):
+      settings['First Run'] = False
+      self.save_settings(settings)
+
   def pass_above_threshold(self, pass_name):
     """Check if all block_pairs meet the pass threshold, returns bool."""
     threshold = cfg.ddrescue.AUTO_PASS_THRESHOLDS[pass_name]
@@ -1751,6 +1768,7 @@ def run_recovery(state, main_menu, settings_menu, dry_run=True):
       abort = False
       if not pair.pass_complete(pass_name):
         attempted_recovery = True
+        state.mark_started()
         try:
           run_ddrescue(state, pair, pass_name, settings, dry_run=dry_run)
         except KeyboardInterrupt:
