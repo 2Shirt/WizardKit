@@ -701,10 +701,20 @@ class State():
     with open(script_path, 'w') as _f:
       _f.write('\n'.join(sfdisk_script))
 
+    # Skip real format for dry runs
+    if dry_run:
+      return
+
     # Format disk
-    if not dry_run:
-      # TODO
-      pass
+    with open(script_path, 'r') as _f:
+      proc = exe.run_program(
+        cmd=['sudo', 'sfdisk', self.destination.path],
+        stdin=_f,
+        check=False,
+        )
+      if proc.returncode != 0:
+        std.print_error('Error(s) encoundtered while formatting destination')
+        raise std.GenericAbort()
 
     # Update settings
     settings['Needs Format'] = not dry_run

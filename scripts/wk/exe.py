@@ -78,7 +78,7 @@ def build_cmd_kwargs(cmd, minimized=False, pipe=True, shell=False, **kwargs):
     }
 
   # Add additional kwargs if applicable
-  for key in ('check', 'cwd', 'encoding', 'errors', 'stderr', 'stdout'):
+  for key in 'check cwd encoding errors stderr stdin stdout'.split():
     if key in kwargs:
       cmd_kwargs[key] = kwargs[key]
 
