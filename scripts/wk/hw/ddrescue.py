@@ -1675,14 +1675,15 @@ def run_ddrescue(state, block_pair, pass_name, settings, dry_run=True):
     except KeyboardInterrupt:
       # Wait a bit to let ddrescue exit safely
       warning_message = 'Aborted'
-      proc.wait(timeout=10)
-      proc.terminate()
+      std.sleep(2)
+      exe.run_program(['sudo', 'killall', 'ddrescue'], check=False)
       break
     except subprocess.TimeoutExpired:
       # Continue to next loop to update panes
       pass
     else:
       # Done
+      std.sleep(1)
       break
 
   # Update progress
