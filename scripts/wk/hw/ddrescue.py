@@ -532,8 +532,10 @@ class State():
       source_parts = select_disk_parts(mode, self.source)
       self.add_image_block_pairs(source_parts, working_dir)
 
-    # Safety Check
-    self.safety_check(mode, working_dir)
+    # Safety Checks #1
+    if mode == 'Clone':
+      self.safety_check_destination()
+    self.safety_check_size(mode, working_dir)
 
     # Confirmation #2
     self.update_progress_pane('Idle')
@@ -545,7 +547,7 @@ class State():
         source_parts, working_dir, dry_run=docopt_args['--dry-run'],
         )
 
-    # Safety Check #2
+    # Safety Checks #2
     if not docopt_args['--dry-run']:
       for pair in self.block_pairs:
         pair.safety_check()
@@ -736,15 +738,21 @@ class State():
       for name in pair.status.keys():
         pair.status[name] = 'Pending'
 
-  def safety_check(self, mode, working_dir):
-    """Run safety check and abort if necessary."""
+  def safety_check_destination(self):
+    """Run safety checks for destination and abort if necessary."""
+    try:
+      self.destination.safety_checks()
+    except hw_obj.CriticalHardwareError:
+      std.print_error(
+        f'Critical error(s) detected for: {self.destination.path}',
+        )
+      raise std.GenericAbort()
+
+
+  def safety_check_size(self, mode, working_dir):
+    """Run size safety check and abort if necessary."""
     required_size = sum([pair.size for pair in self.block_pairs])
     settings = self.load_settings(working_dir) if mode == 'Clone' else {}
-
-    # Check dest SMART if cloning
-    if mode == 'Clone':
-      # TODO: Check dest SMART
-      pass
 
     # Increase required_size if necessary
     if mode == 'Clone' and settings.get('Needs Format', False):
