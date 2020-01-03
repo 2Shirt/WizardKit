@@ -12,6 +12,7 @@ import pathlib
 import plistlib
 import re
 import shutil
+import subprocess
 import time
 
 from collections import OrderedDict
@@ -640,7 +641,7 @@ class State():
     """Check if all block_pairs completed pass_name, returns bool."""
     return all([p.pass_complete(pass_name) for p in self.block_pairs])
 
-  def prep_destination(self, source_parts, working_dir, dry_run=False):
+  def prep_destination(self, source_parts, working_dir, dry_run=True):
     """Prep destination as necessary."""
     dest_prefix = str(self.destination.path)
     dest_prefix += get_partition_separator(self.destination.path.name)
@@ -1003,6 +1004,30 @@ def build_block_pair_report(block_pairs, settings):
 
   # Done
   return report
+
+
+def build_ddrescue_cmd(block_pair, pass_name, settings):
+  """Build ddrescue cmd using passed details, returns list."""
+  cmd = ['sudo', 'ddrescue']
+  if (block_pair.destination.is_block_device()
+      or block_pair.destination.is_char_device()):
+    cmd.append('--force')
+  if pass_name == 'read':
+    cmd.extend(['--no-trim', '--no-scrape'])
+  elif pass_name == 'trim':
+    # Allow trimming
+    cmd.append('--no-scrape')
+  elif pass_name == 'scrape':
+    # Allow trimming and scraping
+    pass
+  cmd.extend(settings)
+  cmd.append(block_pair.source)
+  cmd.append(block_pair.destination)
+  cmd.append(block_pair.map_path)
+
+  # Done
+  LOG.debug('ddrescue cmd: %s', cmd)
+  return cmd
 
 
 def build_directory_report(path):
@@ -1519,7 +1544,7 @@ def main():
 
     # Start recovery
     if 'Start' in selection:
-      run_recovery(state, main_menu, settings_menu)
+      run_recovery(state, main_menu, settings_menu, dry_run=args['--dry-run'])
 
     # Quit
     if 'Quit' in selection:
@@ -1599,41 +1624,94 @@ def mount_raw_image_macos(path):
   return loopback_path
 
 
-def run_ddrescue(state, block_pair, pass_name, settings):
+def run_ddrescue(state, block_pair, pass_name, settings, dry_run=True):
   """Run ddrescue using passed settings."""
+  cmd = build_ddrescue_cmd(block_pair, pass_name, settings)
+  proc = None
   state.update_progress_pane('Active')
-  i = 0
+  std.clear_screen()
+  warning_message = ''
 
+  def _update_smart_pane(iteration):
+    """Update SMART pane every 30 seconds."""
+    if iteration % 30 != 0:
+      return
+    state.source.update_smart_details()
+    now = datetime.datetime.now().strftime('%Y-%m-%d %H:%M %Z')
+    with open(f'{state.log_dir}/smart.out', 'w') as _f:
+      _f.write(
+        std.color_string(
+          ['SMART Attributes', f'Updated: {now}\n'],
+          ['BLUE', 'YELLOW'],
+          sep='\t\t',
+          ),
+        )
+      _f.write('\n'.join(state.source.generate_report(header=False)))
+
+  # Dry run
+  if dry_run:
+    std.print_info('ddrescue cmd:')
+    for _c in cmd:
+      std.print_standard(f'  {_c}')
+    std.pause()
+    return
+
+  # Start ddrescue
+  proc = exe.popen_program(cmd)
+
+  # ddrescue loop
+  _i = 0
   while True:
-    # Update SMART pane (every 30 seconds)
-    if i % 30 == 0:
-      now = datetime.datetime.now().strftime('%Y-%m-%d %H:%M %Z')
-      with open(f'{state.log_dir}/smart.out', 'w') as _f:
-        _f.write(
-          std.color_string(
-            ['SMART Attributes', f'Updated: {now}\n'],
-            ['BLUE', 'YELLOW'],
-            sep='\t\t',
-            ),
-          )
-        _f.write('\n'.join(state.source.generate_report(header=False)))
+    _update_smart_pane(_i)
+    _i += 1
 
     # Update progress
     block_pair.update_progress(pass_name)
     state.update_progress_pane('Active')
 
-    # Run
-    # TODO: Make ddrescue calls real
-    print('Running ddrescue')
-    print(f'  {block_pair.source} --> {block_pair.destination}')
-    print('Using these settings:')
-    for _s in settings:
-      print(f'  {_s}')
-    break
-  std.pause()
+    # Check if complete
+    try:
+      proc.wait(timeout=1)
+    except KeyboardInterrupt:
+      # Wait a bit to let ddrescue exit safely
+      warning_message = 'Aborted'
+      proc.wait(timeout=10)
+      proc.terminate()
+      break
+    except subprocess.TimeoutExpired:
+      # Continue to next loop to update panes
+      pass
+    else:
+      # Done
+      break
+
+  # Update progress
+  # NOTE: Using 'Active' here to avoid flickering between block pairs
+  block_pair.update_progress(pass_name)
+  state.update_progress_pane('Active')
+
+  # Check result
+  if proc.poll():
+    # True if return code is non-zero (poll() returns None if still running)
+    warning_message = 'Error(s) encountered, see message above'
+  if warning_message:
+    print(' ')
+    print(' ')
+    std.print_error('DDRESCUE PROCESS HALTED')
+    print(' ')
+    std.print_warning(warning_message)
+
+  # Needs attention?
+  if str(proc.poll()) != '0':
+    state.update_progress_pane('NEEDS ATTENTION')
+    std.pause('Press Enter to return to main menu...')
+
+  # Aborted?
+  if 'Aborted' in warning_message:
+    raise std.GenericAbort()
 
 
-def run_recovery(state, main_menu, settings_menu):
+def run_recovery(state, main_menu, settings_menu, dry_run=True):
   """Run recovery passes."""
   atexit.register(state.save_debug_reports)
   attempted_recovery = False
@@ -1671,7 +1749,7 @@ def run_recovery(state, main_menu, settings_menu):
       if not pair.pass_complete(pass_name):
         attempted_recovery = True
         try:
-          run_ddrescue(state, pair, pass_name, settings)
+          run_ddrescue(state, pair, pass_name, settings, dry_run=dry_run)
         except KeyboardInterrupt:
           abort = True
           break
