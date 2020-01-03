@@ -256,8 +256,8 @@ class State():
   def __init__(self):
     self.block_pairs = []
     self.destination = None
-    self.layout = cfg.ddrescue.TMUX_LAYOUT.copy()
     self.log_dir = None
+    self.mode = None
     self.panes = {}
     self.source = None
     self.working_dir = None
@@ -346,7 +346,7 @@ class State():
       bp_dest = self.destination
       self.add_block_pair(part, bp_dest)
 
-  def confirm_selections(self, mode, prompt, source_parts=None):
+  def confirm_selections(self, prompt, source_parts=None):
     """Show selection details and prompt for confirmation."""
     report = []
 
@@ -357,7 +357,7 @@ class State():
 
     # Destination
     report.append(std.color_string('Destination', 'GREEN'))
-    if mode == 'Clone':
+    if self.mode == 'Clone':
       report[-1] += std.color_string(' (ALL DATA WILL BE DELETED)', 'RED')
     report.extend(build_object_report(self.destination))
     report.append(' ')
@@ -365,7 +365,7 @@ class State():
     # Show deletion warning if necessary
     # NOTE: The check for block_pairs is to limit this section
     #       to the second confirmation
-    if mode == 'Clone' and self.block_pairs:
+    if self.mode == 'Clone' and self.block_pairs:
       report.append(std.color_string('WARNING', 'YELLOW'))
       report.append(
         'All data will be deleted from the destination listed above.',
@@ -383,7 +383,7 @@ class State():
       report.extend(
         build_block_pair_report(
           self.block_pairs,
-          self.load_settings() if mode == 'Clone' else {},
+          self.load_settings() if self.mode == 'Clone' else {},
           ),
         )
       report.append(' ')
@@ -430,11 +430,12 @@ class State():
 
   def fix_tmux_layout(self, forced=True):
     """Fix tmux layout based on cfg.ddrescue.TMUX_LAYOUT."""
-    needs_fixed = tmux.layout_needs_fixed(self.panes, self.layout)
+    layout = cfg.ddrescue.TMUX_LAYOUT
+    needs_fixed = tmux.layout_needs_fixed(self.panes, layout)
 
     # Main layout fix
     try:
-      tmux.fix_layout(self.panes, self.layout, forced=forced)
+      tmux.fix_layout(self.panes, layout, forced=forced)
     except RuntimeError:
       # Assuming self.panes changed while running
       pass
@@ -485,7 +486,7 @@ class State():
       )
 
     # Set mode
-    mode = set_mode(docopt_args)
+    self.mode = set_mode(docopt_args)
 
     # Select source
     self.source = get_object(docopt_args['<source>'])
@@ -496,15 +497,14 @@ class State():
     # Select destination
     self.destination = get_object(docopt_args['<destination>'])
     if not self.destination:
-      if mode == 'Clone':
+      if self.mode == 'Clone':
         self.destination = select_disk('Destination', self.source)
-      elif mode == 'Image':
+      elif self.mode == 'Image':
         self.destination = select_path('Destination')
     self.update_top_panes()
 
     # Confirmation #1
     self.confirm_selections(
-      mode=mode,
       prompt='Are these selections correct?',
       source_parts=source_parts,
       )
@@ -518,7 +518,9 @@ class State():
 
     # Set working dir
     self.working_dir = get_working_dir(
-      mode, self.destination, force_local=docopt_args['--force-local-map'],
+      self.mode,
+      self.destination,
+      force_local=docopt_args['--force-local-map'],
       )
 
     # Start fresh if requested
@@ -526,23 +528,23 @@ class State():
       clean_working_dir(self.working_dir)
 
     # Add block pairs
-    if mode == 'Clone':
+    if self.mode == 'Clone':
       source_parts = self.add_clone_block_pairs()
     else:
-      source_parts = select_disk_parts(mode, self.source)
+      source_parts = select_disk_parts(self.mode, self.source)
       self.add_image_block_pairs(source_parts)
 
     # Safety Checks #1
-    if mode == 'Clone':
+    if self.mode == 'Clone':
       self.safety_check_destination()
-    self.safety_check_size(mode)
+    self.safety_check_size()
 
     # Confirmation #2
     self.update_progress_pane('Idle')
-    self.confirm_selections(mode, 'Start recovery?')
+    self.confirm_selections('Start recovery?')
 
     # Prep destination
-    if mode == 'Clone':
+    if self.mode == 'Clone':
       self.prep_destination(source_parts, dry_run=docopt_args['--dry-run'])
 
     # Safety Checks #2
@@ -750,13 +752,13 @@ class State():
       raise std.GenericAbort()
 
 
-  def safety_check_size(self, mode):
+  def safety_check_size(self):
     """Run size safety check and abort if necessary."""
     required_size = sum([pair.size for pair in self.block_pairs])
-    settings = self.load_settings() if mode == 'Clone' else {}
+    settings = self.load_settings() if self.mode == 'Clone' else {}
 
     # Increase required_size if necessary
-    if mode == 'Clone' and settings.get('Needs Format', False):
+    if self.mode == 'Clone' and settings.get('Needs Format', False):
       if settings['Table Type'] == 'GPT':
         # Below is the size calculation for the GPT
         #   1 LBA for the protective MBR
@@ -774,7 +776,7 @@ class State():
           required_size += 100 * 1024**2
 
     # Reduce required_size if necessary
-    if mode == 'Image':
+    if self.mode == 'Image':
       for pair in self.block_pairs:
         if pair.destination.exists():
           # NOTE: This uses the "max space" of the destination
@@ -784,7 +786,7 @@ class State():
           required_size -= pair.destination.stat().st_size
 
     # Check destination size
-    if mode == 'Clone':
+    if self.mode == 'Clone':
       destination_size = self.destination.details['size']
       error_msg = 'A larger destination disk is required'
     else:
