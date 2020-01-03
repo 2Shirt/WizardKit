@@ -285,12 +285,19 @@ class State():
         settings['Needs Format'] = True
         offset = 0
         if std.ask('Create an empty Windows boot partition on the clone?'):
-          offset = 2
           settings['Create Boot Partition'] = True
-          settings['Table Type'] = 'GPT'
-          if std.choice(['G', 'M'], 'GPT or MBR partition table?') == 'M':
-            offset = 1
+          user_choice = std.choice(
+            ['G', 'M', 'S'],
+            'Use GPT, MBR, or match Source type?',
+            )
+          if user_choice == 'G':
+            settings['Table Type'] = 'GPT'
+          elif user_choice == 'M':
             settings['Table Type'] = 'MBR'
+          else:
+            # Match source type
+            settings['Table Type'] = get_table_type(self.source)
+          offset = 2 if settings['Table Type'] == 'GPT' else 1
 
         # Add pairs
         for dest_num, part in enumerate(source_parts):
@@ -1361,6 +1368,24 @@ def get_percent_color(percent):
 
   # Done
   return color
+
+
+def get_table_type(disk):
+  """Get disk partition table type, returns str.
+
+  NOTE: If resulting table type is not GPT or MBR
+        then an exception is raised.
+  """
+  table_type = str(disk.details.get('pttype', '')).upper()
+  table_type = table_type.replace('DOS', 'MBR')
+
+  # Check type
+  if table_type not in ('GPT', 'MBR'):
+    std.print_error(f'Unsupported partition table type: {table_type}')
+    raise std.GenericAbort()
+
+  # Done
+  return table_type
 
 
 def get_working_dir(mode, destination, force_local=False):
