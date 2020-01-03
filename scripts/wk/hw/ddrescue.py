@@ -256,27 +256,27 @@ class State():
   def __init__(self):
     self.block_pairs = []
     self.destination = None
-    self.disks = []
     self.layout = cfg.ddrescue.TMUX_LAYOUT.copy()
     self.log_dir = None
     self.panes = {}
     self.source = None
+    self.working_dir = None
 
     # Start a background process to maintain layout
     self.init_tmux()
     exe.start_thread(self.fix_tmux_layout_loop)
 
-  def add_block_pair(self, source, destination, working_dir):
+  def add_block_pair(self, source, destination):
     """Add BlockPair object and run safety checks."""
     self.block_pairs.append(
       BlockPair(
         source=source,
         destination=destination,
         model=self.source.details['model'],
-        working_dir=working_dir,
+        working_dir=self.working_dir,
         ))
 
-  def add_clone_block_pairs(self, working_dir):
+  def add_clone_block_pairs(self):
     """Add device to device block pairs and set settings if necessary."""
     source_sep = get_partition_separator(self.source.path.name)
     dest_sep = get_partition_separator(self.destination.path.name)
@@ -284,7 +284,7 @@ class State():
     source_parts = []
 
     # Clone settings
-    settings = self.load_settings(working_dir, discard_unused_settings=True)
+    settings = self.load_settings(discard_unused_settings=True)
 
     # Add pairs
     if settings['Partition Mapping']:
@@ -296,13 +296,13 @@ class State():
         bp_dest = pathlib.Path(
           f'{self.destination.path}{dest_sep}{part_map[1]}',
           )
-        self.add_block_pair(bp_source, bp_dest, working_dir)
+        self.add_block_pair(bp_source, bp_dest)
     else:
       source_parts = select_disk_parts('Clone', self.source)
       if self.source.path.samefile(source_parts[0].path):
         # Whole disk (or single partition via args), skip settings
         bp_dest = self.destination.path
-        self.add_block_pair(self.source, bp_dest, working_dir)
+        self.add_block_pair(self.source, bp_dest)
       else:
         # New run, use new settings file
         settings['Needs Format'] = True
@@ -328,26 +328,25 @@ class State():
           bp_dest = pathlib.Path(
             f'{self.destination.path}{dest_sep}{dest_num}',
             )
-          self.add_block_pair(part, bp_dest, working_dir)
+          self.add_block_pair(part, bp_dest)
 
           # Add to settings file
           source_num = re.sub(r'^.*?(\d+)$', r'\1', part.path.name)
           settings['Partition Mapping'].append([source_num, dest_num])
 
         # Save settings
-        self.save_settings(settings, working_dir)
+        self.save_settings(settings)
 
     # Done
     return source_parts
 
-  def add_image_block_pairs(self, source_parts, working_dir):
+  def add_image_block_pairs(self, source_parts):
     """Add device to image file block pairs."""
     for part in source_parts:
       bp_dest = self.destination
-      self.add_block_pair(part, bp_dest, working_dir)
+      self.add_block_pair(part, bp_dest)
 
-  def confirm_selections(
-      self, mode, prompt, working_dir=None, source_parts=None):
+  def confirm_selections(self, mode, prompt, source_parts=None):
     """Show selection details and prompt for confirmation."""
     report = []
 
@@ -384,17 +383,17 @@ class State():
       report.extend(
         build_block_pair_report(
           self.block_pairs,
-          self.load_settings(working_dir) if mode == 'Clone' else {},
+          self.load_settings() if mode == 'Clone' else {},
           ),
         )
       report.append(' ')
 
     # Map dir
-    if working_dir:
+    if self.working_dir:
       report.append(std.color_string('Map Save Directory', 'GREEN'))
-      report.append(f'{working_dir}/')
+      report.append(f'{self.working_dir}/')
       report.append(' ')
-      if not fstype_is_ok(working_dir, map_dir=True):
+      if not fstype_is_ok(self.working_dir, map_dir=True):
         report.append(
           std.color_string(
             'Map file(s) are being saved to a non-recommended filesystem.',
@@ -518,35 +517,33 @@ class State():
     self.update_progress_pane('Idle')
 
     # Set working dir
-    working_dir = get_working_dir(
+    self.working_dir = get_working_dir(
       mode, self.destination, force_local=docopt_args['--force-local-map'],
       )
 
     # Start fresh if requested
     if docopt_args['--start-fresh']:
-      clean_working_dir(working_dir)
+      clean_working_dir(self.working_dir)
 
     # Add block pairs
     if mode == 'Clone':
-      source_parts = self.add_clone_block_pairs(working_dir)
+      source_parts = self.add_clone_block_pairs()
     else:
       source_parts = select_disk_parts(mode, self.source)
-      self.add_image_block_pairs(source_parts, working_dir)
+      self.add_image_block_pairs(source_parts)
 
     # Safety Checks #1
     if mode == 'Clone':
       self.safety_check_destination()
-    self.safety_check_size(mode, working_dir)
+    self.safety_check_size(mode)
 
     # Confirmation #2
     self.update_progress_pane('Idle')
-    self.confirm_selections(mode, 'Start recovery?', working_dir=working_dir)
+    self.confirm_selections(mode, 'Start recovery?')
 
     # Prep destination
     if mode == 'Clone':
-      self.prep_destination(
-        source_parts, working_dir, dry_run=docopt_args['--dry-run'],
-        )
+      self.prep_destination(source_parts, dry_run=docopt_args['--dry-run'])
 
     # Safety Checks #2
     if not docopt_args['--dry-run']:
@@ -579,11 +576,11 @@ class State():
     # Source / Dest
     self.update_top_panes()
 
-  def load_settings(self, working_dir, discard_unused_settings=False):
+  def load_settings(self, discard_unused_settings=False):
     """Load settings from previous run, returns dict."""
     settings = {}
     settings_file = pathlib.Path(
-      f'{working_dir}/Clone_{self.source.details["model"]}.json',
+      f'{self.working_dir}/Clone_{self.source.details["model"]}.json',
       )
 
     # Try loading JSON data
@@ -641,7 +638,7 @@ class State():
     """Check if all block_pairs completed pass_name, returns bool."""
     return all([p.pass_complete(pass_name) for p in self.block_pairs])
 
-  def prep_destination(self, source_parts, working_dir, dry_run=True):
+  def prep_destination(self, source_parts, dry_run=True):
     """Prep destination as necessary."""
     dest_prefix = str(self.destination.path)
     dest_prefix += get_partition_separator(self.destination.path.name)
@@ -649,7 +646,7 @@ class State():
     msr_type = 'E3C9E316-0B5C-4DB8-817D-F92DF00215AE'
     part_num = 0
     sfdisk_script = []
-    settings = self.load_settings(working_dir)
+    settings = self.load_settings()
 
     # Bail early
     if not settings['Needs Format']:
@@ -710,7 +707,10 @@ class State():
         )
 
     # Save sfdisk script
-    script_path = f'{working_dir}/sfdisk_{self.destination.path.name}.script'
+    script_path = (
+      f'{self.working_dir}/'
+      f'sfdisk_{self.destination.path.name}.script'
+      )
     with open(script_path, 'w') as _f:
       _f.write('\n'.join(sfdisk_script))
 
@@ -731,7 +731,7 @@ class State():
 
     # Update settings
     settings['Needs Format'] = False
-    self.save_settings(settings, working_dir)
+    self.save_settings(settings)
 
   def retry_all_passes(self):
     """Set all statuses to Pending."""
@@ -750,10 +750,10 @@ class State():
       raise std.GenericAbort()
 
 
-  def safety_check_size(self, mode, working_dir):
+  def safety_check_size(self, mode):
     """Run size safety check and abort if necessary."""
     required_size = sum([pair.size for pair in self.block_pairs])
-    settings = self.load_settings(working_dir) if mode == 'Clone' else {}
+    settings = self.load_settings() if mode == 'Clone' else {}
 
     # Increase required_size if necessary
     if mode == 'Clone' and settings.get('Needs Format', False):
@@ -812,11 +812,11 @@ class State():
       with open(f'{debug_dir}/bp_part#.report', 'a') as _f:
         _f.write('\n'.join(debug.generate_object_report(_bp)))
 
-  def save_settings(self, settings, working_dir):
+  def save_settings(self, settings):
     # pylint: disable=no-self-use
     """Save settings for future runs."""
     settings_file = pathlib.Path(
-      f'{working_dir}/Clone_{self.source.details["model"]}.json',
+      f'{self.working_dir}/Clone_{self.source.details["model"]}.json',
       )
 
     # Try saving JSON data
@@ -1676,7 +1676,7 @@ def run_ddrescue(state, block_pair, pass_name, settings, dry_run=True):
       # Wait a bit to let ddrescue exit safely
       warning_message = 'Aborted'
       std.sleep(2)
-      exe.run_program(['sudo', 'killall', 'ddrescue'], check=False)
+      exe.run_program(['sudo', 'kill', str(proc.pid)], check=False)
       break
     except subprocess.TimeoutExpired:
       # Continue to next loop to update panes
