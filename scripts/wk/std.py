@@ -739,7 +739,7 @@ def color_string(strings, colors, sep=' '):
 
   # Convert to strings if necessary
   try:
-    iterator = iter(strings)
+    iter(strings)
   except TypeError:
     # Assuming single element passed, convert to string
     strings = (str(strings),)

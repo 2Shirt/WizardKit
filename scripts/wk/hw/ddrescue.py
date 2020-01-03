@@ -227,17 +227,17 @@ class BlockPair():
     # Done
     return complete
 
-  def safety_check(self, dry_run=False):
+  def safety_check(self):
     """Run safety check and abort if necessary."""
     dest_size = -1
     if self.destination.exists():
-      dest_size = self.destination.stat().st_size
+      dest_obj = hw_obj.Disk(self.destination)
+      dest_size = dest_obj.details['size']
+      del dest_obj
 
     # Raise exception if necessary
-    if dry_run:
-      std.print_warning(f'Assuming destination is okay ({self.destination})')
-    elif dest_size < self.size:
-      std.print_error('Invalid destination: {self.destination}')
+    if dest_size < self.size:
+      std.print_error(f'Invalid destination: {self.destination}')
       raise std.GenericAbort()
 
 
@@ -537,8 +537,9 @@ class State():
         )
 
     # Safety Check #2
-    for pair in self.block_pairs:
-      pair.safety_check(dry_run=docopt_args['--dry-run'])
+    if not docopt_args['--dry-run']:
+      for pair in self.block_pairs:
+        pair.safety_check()
 
   def init_tmux(self):
     """Initialize tmux layout."""
@@ -717,7 +718,7 @@ class State():
         raise std.GenericAbort()
 
     # Update settings
-    settings['Needs Format'] = not dry_run
+    settings['Needs Format'] = False
     self.save_settings(settings, working_dir)
 
   def retry_all_passes(self):
