@@ -312,19 +312,19 @@ class State():
         # New run, use new settings file
         settings['Needs Format'] = True
         offset = 0
+        user_choice = std.choice(
+          ['G', 'M', 'S'],
+          'Format clone using GPT, MBR, or match Source type?',
+          )
+        if user_choice == 'G':
+          settings['Table Type'] = 'GPT'
+        elif user_choice == 'M':
+          settings['Table Type'] = 'MBR'
+        else:
+          # Match source type
+          settings['Table Type'] = get_table_type(self.source)
         if std.ask('Create an empty Windows boot partition on the clone?'):
           settings['Create Boot Partition'] = True
-          user_choice = std.choice(
-            ['G', 'M', 'S'],
-            'Use GPT, MBR, or match Source type?',
-            )
-          if user_choice == 'G':
-            settings['Table Type'] = 'GPT'
-          elif user_choice == 'M':
-            settings['Table Type'] = 'MBR'
-          else:
-            # Match source type
-            settings['Table Type'] = get_table_type(self.source)
           offset = 2 if settings['Table Type'] == 'GPT' else 1
 
         # Add pairs
@@ -1249,7 +1249,7 @@ def build_sfdisk_partition_line(table_type, dev_path, size, details):
       dest_type = source_type.upper()
   if not dest_type:
     # Assuming changing table types, set based on FS
-    if source_filesystem in cfg.ddrescue.PARTITION_TYPES[table_type]:
+    if source_filesystem in cfg.ddrescue.PARTITION_TYPES.get(table_type, {}):
       dest_type = cfg.ddrescue.PARTITION_TYPES[table_type][source_filesystem]
   line += f', type={dest_type}'
 
