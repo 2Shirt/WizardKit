@@ -268,10 +268,10 @@ class State():
     self.working_dir = None
 
     # Start a background process to maintain layout
-    self.init_tmux()
-    exe.start_thread(self.fix_tmux_layout_loop)
+    self._init_tmux()
+    exe.start_thread(self._fix_tmux_layout_loop)
 
-  def add_block_pair(self, source, destination):
+  def _add_block_pair(self, source, destination):
     """Add BlockPair object and run safety checks."""
     self.block_pairs.append(
       BlockPair(
@@ -280,6 +280,71 @@ class State():
         model=self.source.details['model'],
         working_dir=self.working_dir,
         ))
+
+  def _fix_tmux_layout(self, forced=True):
+    """Fix tmux layout based on cfg.ddrescue.TMUX_LAYOUT."""
+    layout = cfg.ddrescue.TMUX_LAYOUT
+    needs_fixed = tmux.layout_needs_fixed(self.panes, layout)
+
+    # Main layout fix
+    try:
+      tmux.fix_layout(self.panes, layout, forced=forced)
+    except RuntimeError:
+      # Assuming self.panes changed while running
+      pass
+
+    # Source/Destination
+    if forced or needs_fixed:
+      self.update_top_panes()
+
+    # Return if Progress pane not present
+    if 'Progress' not in self.panes:
+      return
+
+    # SMART/Journal
+    if forced or needs_fixed:
+      height = tmux.get_pane_size(self.panes['Progress'])[1] - 2
+      p_ratios = [int((x/sum(PANE_RATIOS)) * height) for x in PANE_RATIOS]
+      if 'SMART' in self.panes:
+        tmux.resize_pane(self.panes['SMART'], height=p_ratios[0])
+        tmux.resize_pane(height=p_ratios[1])
+      if 'Journal' in self.panes:
+        tmux.resize_pane(self.panes['Journal'], height=p_ratios[2])
+
+  def _fix_tmux_layout_loop(self):
+    """Fix tmux layout on a loop.
+
+    NOTE: This should be called as a thread.
+    """
+    while True:
+      self._fix_tmux_layout(forced=False)
+      std.sleep(1)
+
+  def _init_tmux(self):
+    """Initialize tmux layout."""
+    tmux.kill_all_panes()
+
+    # Source (placeholder)
+    self.panes['Source'] = tmux.split_window(
+      behind=True,
+      lines=2,
+      text=' ',
+      vertical=True,
+      )
+
+    # Started
+    self.panes['Started'] = tmux.split_window(
+      lines=cfg.ddrescue.TMUX_SIDE_WIDTH,
+      target_id=self.panes['Source'],
+      text=std.color_string(
+        ['Started', time.strftime("%Y-%m-%d %H:%M %Z")],
+        ['BLUE', None],
+        sep='\n',
+        ),
+      )
+
+    # Source / Dest
+    self.update_top_panes()
 
   def add_clone_block_pairs(self):
     """Add device to device block pairs and set settings if necessary."""
@@ -301,13 +366,13 @@ class State():
         bp_dest = pathlib.Path(
           f'{self.destination.path}{dest_sep}{part_map[1]}',
           )
-        self.add_block_pair(bp_source, bp_dest)
+        self._add_block_pair(bp_source, bp_dest)
     else:
       source_parts = select_disk_parts('Clone', self.source)
       if self.source.path.samefile(source_parts[0].path):
         # Whole disk (or single partition via args), skip settings
         bp_dest = self.destination.path
-        self.add_block_pair(self.source, bp_dest)
+        self._add_block_pair(self.source, bp_dest)
       else:
         # New run, use new settings file
         settings['Needs Format'] = True
@@ -333,7 +398,7 @@ class State():
           bp_dest = pathlib.Path(
             f'{self.destination.path}{dest_sep}{dest_num}',
             )
-          self.add_block_pair(part, bp_dest)
+          self._add_block_pair(part, bp_dest)
 
           # Add to settings file
           source_num = re.sub(r'^.*?(\d+)$', r'\1', part.path.name)
@@ -349,7 +414,7 @@ class State():
     """Add device to image file block pairs."""
     for part in source_parts:
       bp_dest = self.destination
-      self.add_block_pair(part, bp_dest)
+      self._add_block_pair(part, bp_dest)
 
   def confirm_selections(self, prompt, source_parts=None):
     """Show selection details and prompt for confirmation."""
@@ -433,44 +498,7 @@ class State():
     if not std.ask(prompt):
       raise std.GenericAbort()
 
-  def fix_tmux_layout(self, forced=True):
-    """Fix tmux layout based on cfg.ddrescue.TMUX_LAYOUT."""
-    layout = cfg.ddrescue.TMUX_LAYOUT
-    needs_fixed = tmux.layout_needs_fixed(self.panes, layout)
 
-    # Main layout fix
-    try:
-      tmux.fix_layout(self.panes, layout, forced=forced)
-    except RuntimeError:
-      # Assuming self.panes changed while running
-      pass
-
-    # Source/Destination
-    if forced or needs_fixed:
-      self.update_top_panes()
-
-    # Return if Progress pane not present
-    if 'Progress' not in self.panes:
-      return
-
-    # SMART/Journal
-    if forced or needs_fixed:
-      height = tmux.get_pane_size(self.panes['Progress'])[1] - 2
-      p_ratios = [int((x/sum(PANE_RATIOS)) * height) for x in PANE_RATIOS]
-      if 'SMART' in self.panes:
-        tmux.resize_pane(self.panes['SMART'], height=p_ratios[0])
-        tmux.resize_pane(height=p_ratios[1])
-      if 'Journal' in self.panes:
-        tmux.resize_pane(self.panes['Journal'], height=p_ratios[2])
-
-  def fix_tmux_layout_loop(self):
-    """Fix tmux layout on a loop.
-
-    NOTE: This should be called as a thread.
-    """
-    while True:
-      self.fix_tmux_layout(forced=False)
-      std.sleep(1)
 
   def init_recovery(self, docopt_args):
     """Select source/dest and set env."""
@@ -556,32 +584,6 @@ class State():
     if not docopt_args['--dry-run']:
       for pair in self.block_pairs:
         pair.safety_check()
-
-  def init_tmux(self):
-    """Initialize tmux layout."""
-    tmux.kill_all_panes()
-
-    # Source (placeholder)
-    self.panes['Source'] = tmux.split_window(
-      behind=True,
-      lines=2,
-      text=' ',
-      vertical=True,
-      )
-
-    # Started
-    self.panes['Started'] = tmux.split_window(
-      lines=cfg.ddrescue.TMUX_SIDE_WIDTH,
-      target_id=self.panes['Source'],
-      text=std.color_string(
-        ['Started', time.strftime("%Y-%m-%d %H:%M %Z")],
-        ['BLUE', None],
-        sep='\n',
-        ),
-      )
-
-    # Source / Dest
-    self.update_top_panes()
 
   def load_settings(self, discard_unused_settings=False):
     """Load settings from previous run, returns dict."""
@@ -772,7 +774,6 @@ class State():
         f'Critical error(s) detected for: {self.destination.path}',
         )
       raise std.GenericAbort()
-
 
   def safety_check_size(self):
     """Run size safety check and abort if necessary."""
