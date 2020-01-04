@@ -246,6 +246,11 @@ class BlockPair():
       std.print_error(f'Invalid destination: {self.destination}')
       raise std.GenericAbort()
 
+  def skip_pass(self, pass_name):
+    """Mark pass as skipped if applicable."""
+    if self.status[pass_name] == 'Pending':
+      self.status[pass_name] = 'Skipped'
+
   def update_progress(self, pass_name):
     """Update progress via map data."""
     self.load_map_data()
@@ -254,6 +259,13 @@ class BlockPair():
     percent = self.get_percent_recovered()
     if percent > 0:
       self.status[pass_name] = percent
+
+    # Mark future passes as skipped if applicable
+    if percent == 100:
+      if pass_name == 'read':
+        self.status['trim'] = 'Skipped'
+      if pass_name in ('read', 'trim'):
+        self.status['scrape'] = 'Skipped'
 
 
 class State():
@@ -853,7 +865,6 @@ class State():
         _f.write('\n')
 
   def save_settings(self, settings):
-    # pylint: disable=no-self-use
     """Save settings for future runs."""
     settings_file = pathlib.Path(
       f'{self.working_dir}/Clone_{self.source.details["model"]}.json',
@@ -866,6 +877,12 @@ class State():
     except OSError:
       std.print_error('Failed to save clone settings')
       raise std.GenericAbort()
+
+  def skip_pass(self, pass_name):
+    """Mark block_pairs as skipped if applicable."""
+    for pair in self.block_pairs:
+      if pair.status[pass_name] == 'Pending':
+        pair.status[pass_name] = 'Skipped'
 
   def update_progress_pane(self, overall_status):
     """Update progress pane."""
@@ -1672,7 +1689,6 @@ def mount_raw_image_macos(path):
 def run_ddrescue(state, block_pair, pass_name, settings, dry_run=True):
   """Run ddrescue using passed settings."""
   cmd = build_ddrescue_cmd(block_pair, pass_name, settings)
-  proc = None
   state.update_progress_pane('Active')
   std.clear_screen()
   warning_message = ''
@@ -1788,11 +1804,14 @@ def run_recovery(state, main_menu, settings_menu, dry_run=True):
     # Skip to next pass (unless retry selected)
     if '--retrim' not in settings and state.pass_complete(pass_name):
       # NOTE: This bypasses auto_continue
+      state.skip_pass(pass_name)
       continue
 
     # Run ddrescue
     for pair in state.block_pairs:
-      if not pair.pass_complete(pass_name):
+      if '--retrim' not in settings and pair.pass_complete(pass_name):
+        pair.skip_pass(pass_name)
+      else:
         attempted_recovery = True
         state.mark_started()
         try:
