@@ -1,6 +1,5 @@
 """WizardKit: Hardware objects (mostly)"""
 # vim: sts=2 sw=2 ts=2
-# TODO: Get log-sec data under Linux and macOS
 
 import logging
 import pathlib

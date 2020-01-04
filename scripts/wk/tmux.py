@@ -24,6 +24,16 @@ def capture_pane(pane_id=None):
   return proc.stdout.strip()
 
 
+def clear_pane(pane_id=None):
+  """Clear pane buffer for current or target pane."""
+  cmd = ['tmux', 'send-keys', '-R']
+  if pane_id:
+    cmd.extend(['-t', pane_id])
+
+  # Clear pane
+  run_program(cmd, check=False)
+
+
 def fix_layout(panes, layout, forced=False):
   """Fix pane sizes based on layout."""
   if not (forced or layout_needs_fixed(panes, layout)):

@@ -1673,10 +1673,8 @@ def run_ddrescue(state, block_pair, pass_name, settings, dry_run=True):
   std.clear_screen()
   warning_message = ''
 
-  def _update_smart_pane(iteration):
+  def _update_smart_pane():
     """Update SMART pane every 30 seconds."""
-    if iteration % 30 != 0:
-      return
     state.source.update_smart_details()
     now = datetime.datetime.now(tz=TIMEZONE).strftime('%Y-%m-%d %H:%M %Z')
     with open(f'{state.log_dir}/smart.out', 'w') as _f:
@@ -1691,10 +1689,7 @@ def run_ddrescue(state, block_pair, pass_name, settings, dry_run=True):
 
   # Dry run
   if dry_run:
-    std.print_info('ddrescue cmd:')
-    for _c in cmd:
-      std.print_standard(f'  {_c}')
-    std.pause()
+    LOG.info('ddrescue cmd: %s', cmd)
     return
 
   # Start ddrescue
@@ -1703,7 +1698,12 @@ def run_ddrescue(state, block_pair, pass_name, settings, dry_run=True):
   # ddrescue loop
   _i = 0
   while True:
-    _update_smart_pane(_i)
+    if _i % 30 == 0:
+      # Update SMART pane
+      _update_smart_pane()
+    if _i % 60 == 0:
+      # Clear ddrescue pane
+      tmux.clear_pane()
     _i += 1
 
     # Update progress
