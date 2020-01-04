@@ -36,7 +36,7 @@ Usage:
 Options:
   -h --help           Show this page
   -s --dry-run        Print commands to be used instead of running them
-  --force-local-map   Skip mounting shares and save map to current dir
+  --force-local-map   Skip mounting shares and save map to local drive
   --start-fresh       Ignore previous runs and start new recovery
 '''
 CLONE_SETTINGS = {
@@ -841,12 +841,16 @@ class State():
 
     # State (self)
     with open(f'{debug_dir}/state.report', 'a') as _f:
+      _f.write('[Debug report]\n')
       _f.write('\n'.join(debug.generate_object_report(self)))
+      _f.write('\n')
 
     # Block pairs
     for _bp in self.block_pairs:
-      with open(f'{debug_dir}/bp_part#.report', 'a') as _f:
+      with open(f'{debug_dir}/block_pairs.report', 'a') as _f:
+        _f.write('[Debug report]\n')
         _f.write('\n'.join(debug.generate_object_report(_bp)))
+        _f.write('\n')
 
   def save_settings(self, settings):
     # pylint: disable=no-self-use
@@ -1794,7 +1798,6 @@ def run_recovery(state, main_menu, settings_menu, dry_run=True):
         try:
           run_ddrescue(state, pair, pass_name, settings, dry_run=dry_run)
         except (KeyboardInterrupt, std.GenericAbort):
-          LOG.warning('User stopped recovery (2)')
           abort = True
           break
 
