@@ -498,7 +498,15 @@ class State():
     if not std.ask(prompt):
       raise std.GenericAbort()
 
+  def get_percent_recovered(self):
+    """Get total percent rescued from block_pairs, returns float."""
+    total_rescued = self.get_rescued_size()
+    total_size = sum([pair.size for pair in self.block_pairs])
+    return 100 * total_rescued / total_size
 
+  def get_rescued_size(self):
+    """Get total rescued size from all block pairs, returns int."""
+    return sum([pair.get_rescued_size() for pair in self.block_pairs])
 
   def init_recovery(self, docopt_args):
     """Select source/dest and set env."""
@@ -870,11 +878,8 @@ class State():
 
     # Overall progress
     if self.block_pairs:
-      total_rescued = sum(
-        [pair.map_data.get('rescued', 0) for pair in self.block_pairs],
-        )
-      total_size = sum([pair.size for pair in self.block_pairs])
-      percent = 100 * total_rescued / total_size
+      total_rescued = self.get_rescued_size()
+      percent = self.get_percent_recovered()
       report.append(std.color_string('Overall Progress', 'BLUE'))
       report.append(
         f'Rescued: {format_status_string(percent, width=width-9)}',
@@ -1574,7 +1579,14 @@ def main():
 
     # Quit
     if 'Quit' in selection:
-      break
+      total_percent = state.get_percent_recovered()
+      if total_percent == 100:
+        break
+
+      # Recovey < 100%
+      std.print_warning('Recovery is less than 100%')
+      if std.ask('Are you sure you want to quit?'):
+        break
 
 
 def mount_raw_image(path):
