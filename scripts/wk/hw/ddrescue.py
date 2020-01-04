@@ -1713,8 +1713,10 @@ def run_ddrescue(state, block_pair, pass_name, settings, dry_run=True):
     # Check if complete
     try:
       proc.wait(timeout=1)
+      break
     except KeyboardInterrupt:
       # Wait a bit to let ddrescue exit safely
+      LOG.warning('ddrescue stopped by user')
       warning_message = 'Aborted'
       std.sleep(2)
       exe.run_program(['sudo', 'kill', str(proc.pid)], check=False)
@@ -1747,9 +1749,6 @@ def run_ddrescue(state, block_pair, pass_name, settings, dry_run=True):
   if str(proc.poll()) != '0':
     state.update_progress_pane('NEEDS ATTENTION')
     std.pause('Press Enter to return to main menu...')
-
-  # Aborted?
-  if 'Aborted' in warning_message:
     raise std.GenericAbort()
 
 
@@ -1780,20 +1779,22 @@ def run_recovery(state, main_menu, settings_menu, dry_run=True):
 
   # Run pass(es)
   for pass_name in ('read', 'trim', 'scrape'):
+    abort = False
+
+    # Skip to next pass (unless retry selected)
     if '--retrim' not in settings and state.pass_complete(pass_name):
-      # Skip to next pass (unless retry selected)
       # NOTE: This bypasses auto_continue
       continue
 
     # Run ddrescue
     for pair in state.block_pairs:
-      abort = False
       if not pair.pass_complete(pass_name):
         attempted_recovery = True
         state.mark_started()
         try:
           run_ddrescue(state, pair, pass_name, settings, dry_run=dry_run)
-        except KeyboardInterrupt:
+        except (KeyboardInterrupt, std.GenericAbort):
+          LOG.warning('User stopped recovery (2)')
           abort = True
           break
 
@@ -1801,6 +1802,7 @@ def run_recovery(state, main_menu, settings_menu, dry_run=True):
     all_complete = state.pass_complete(pass_name)
     all_above_threshold = state.pass_above_threshold(pass_name)
     if abort or not (all_complete and all_above_threshold and auto_continue):
+      LOG.warning('Recovery halted')
       break
 
   # Show warning if nothing was done
@@ -1816,7 +1818,6 @@ def run_recovery(state, main_menu, settings_menu, dry_run=True):
   # Done
   state.save_debug_reports()
   atexit.unregister(state.save_debug_reports)
-  std.pause('Press Enter to return to main menu...')
   state.update_progress_pane('Idle')
 
 
