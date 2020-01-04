@@ -1599,6 +1599,7 @@ def main():
 
     # Start recovery
     if 'Start' in selection:
+      std.clear_screen()
       run_recovery(state, main_menu, settings_menu, dry_run=args['--dry-run'])
 
     # Quit
@@ -1827,15 +1828,16 @@ def run_recovery(state, main_menu, settings_menu, dry_run=True):
       LOG.warning('Recovery halted')
       break
 
-  # Show warning if nothing was done
-  if not attempted_recovery:
-    std.print_warning('No actions performed')
-    std.print_standard(' ')
-
   # Stop SMART/Journal
   for pane in ('SMART', 'Journal'):
     if pane in state.panes:
       tmux.kill_pane(state.panes.pop(pane))
+
+  # Show warning if nothing was done
+  if not attempted_recovery:
+    std.print_warning('No actions performed')
+    std.print_standard(' ')
+    std.pause('Press Enter to return to main menu...')
 
   # Done
   state.save_debug_reports()
