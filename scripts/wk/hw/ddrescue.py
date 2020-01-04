@@ -53,7 +53,8 @@ CLONE_SETTINGS = {
 DDRESCUE_LOG_REGEX = re.compile(
   r'^\s*(?P<key>\S+):\s+'
   r'(?P<size>\d+)\s+'
-  r'(?P<unit>[PTGMKB]i?B?)',
+  r'(?P<unit>[PTGMKB]i?B?)'
+  r'.*\(\s*(?P<percent>\d+\.?\d*)%\)$',
   re.IGNORECASE,
   )
 REGEX_REMAINING_TIME = re.compile(
@@ -187,9 +188,13 @@ class BlockPair():
     for line in proc.stdout.splitlines():
       _r = DDRESCUE_LOG_REGEX.search(line)
       if _r:
-        data[_r.group('key')] = std.string_to_bytes(
-          f'{_r.group("size")} {_r.group("unit")}',
-          )
+        if _r.group('key') == 'rescued' and _r.group('percent') == '100':
+          # Fix rounding errors from ddrescuelog output
+          data['rescued'] = self.size
+        else:
+          data[_r.group('key')] = std.string_to_bytes(
+            f'{_r.group("size")} {_r.group("unit")}',
+            )
       data['pass completed'] = 'current status: finished' in line.lower()
 
     # Check if 100% done
@@ -1302,6 +1307,7 @@ def format_status_string(status, width):
     status_str = f'{percent:{width-2}.2f} %'
     if '100.00' in status_str and percent < 100:
       # Always round down to 99.99%
+      LOG.warning('Rounding down to 99.99 from %s', percent)
       status_str = f'{"99.99 %":>{width}}'
   else:
     # Text
