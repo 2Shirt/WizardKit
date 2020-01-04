@@ -674,6 +674,9 @@ class State():
 
   def prep_destination(self, source_parts, dry_run=True):
     """Prep destination as necessary."""
+    # TODO: Split into Linux and macOS
+    #       logical sector size is not easily found under macOS
+    #       It might be easier to rewrite this section using macOS tools
     dest_prefix = str(self.destination.path)
     dest_prefix += get_partition_separator(self.destination.path.name)
     esp_type = 'C12A7328-F81F-11D2-BA4B-00A0C93EC93B'
@@ -1675,7 +1678,7 @@ def run_ddrescue(state, block_pair, pass_name, settings, dry_run=True):
     if iteration % 30 != 0:
       return
     state.source.update_smart_details()
-    now = datetime.datetime.now().strftime('%Y-%m-%d %H:%M %Z')
+    now = datetime.datetime.now(tz=TIMEZONE).strftime('%Y-%m-%d %H:%M %Z')
     with open(f'{state.log_dir}/smart.out', 'w') as _f:
       _f.write(
         std.color_string(
