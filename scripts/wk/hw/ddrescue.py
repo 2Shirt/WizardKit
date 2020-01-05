@@ -140,20 +140,10 @@ class BlockPair():
     else:
       # Cloning
       self.map_path = pathlib.Path(f'{working_dir}/Clone_{map_name}.map')
-
-    # Read map file
-    self.load_map_data()
+    self.map_path.touch()
 
     # Set initial status
-    percent = self.get_percent_recovered()
-    for name in self.status.keys():
-      if self.pass_complete(name):
-        self.status[name] = percent
-      else:
-        # Stop checking
-        if percent > 0:
-          self.status[name] = percent
-        break
+    self.set_initial_status()
 
   def get_percent_recovered(self):
     """Get percent rescued from map_data, returns float."""
@@ -197,14 +187,16 @@ class BlockPair():
             )
       data['pass completed'] = 'current status: finished' in line.lower()
 
-    # Check if 100% done
-    cmd = [
-      'ddrescuelog',
-      '--done-status',
-      self.map_path,
-      ]
-    proc = exe.run_program(cmd, check=False)
-    data['full recovery'] = proc.returncode == 0
+    # Check if 100% done (only if map is present and non-zero size
+    # NOTE: ddrescuelog returns 0 (i.e. 100% done) for empty files
+    if self.map_path.exists() and self.map_path.stat().st_size != 0:
+      cmd = [
+        'ddrescuelog',
+        '--done-status',
+        self.map_path,
+        ]
+      proc = exe.run_program(cmd, check=False)
+      data['full recovery'] = proc.returncode == 0
 
     # Done
     self.map_data.update(data)
@@ -245,6 +237,19 @@ class BlockPair():
     if dest_size < self.size:
       std.print_error(f'Invalid destination: {self.destination}')
       raise std.GenericAbort()
+
+  def set_initial_status(self):
+    """Read map data and set initial statuses."""
+    self.load_map_data()
+    percent = self.get_percent_recovered()
+    for name in self.status.keys():
+      if self.pass_complete(name):
+        self.status[name] = percent
+      else:
+        # Stop checking
+        if percent > 0:
+          self.status[name] = percent
+        break
 
   def skip_pass(self, pass_name):
     """Mark pass as skipped if applicable."""
@@ -783,10 +788,29 @@ class State():
     self.save_settings(settings)
 
   def retry_all_passes(self):
-    """Set all statuses to Pending."""
+    """Prep block_pairs for a retry recovery attempt."""
+    bad_statuses = ('*', '/', '-')
     for pair in self.block_pairs:
+      map_data = []
+
+      # Reset status strings
       for name in pair.status.keys():
         pair.status[name] = 'Pending'
+
+      # Mark all non-trimmed, non-scraped, and bad areas as non-tried
+      with open(pair.map_path, 'r') as _f:
+        for line in _f.readlines():
+          line = line.strip()
+          if line.startswith('0x') and line.endswith(bad_statuses):
+            line = f'{line[:-1]}?'
+          map_data.append(line)
+
+      # Save updated map
+      with open(pair.map_path, 'w') as _f:
+        _f.write('\n'.join(map_data))
+
+      # Reinitialize status
+      pair.set_initial_status()
 
   def safety_check_destination(self):
     """Run safety checks for destination and abort if necessary."""
@@ -1382,15 +1406,11 @@ def fstype_is_ok(path, map_dir=False):
   return is_ok
 
 
-def get_ddrescue_settings(main_menu, settings_menu):
+def get_ddrescue_settings(settings_menu):
   """Get ddrescue settings from menu selections, returns list."""
   settings = []
 
   # Check menu selections
-  for name, details in main_menu.toggles.items():
-    if 'Retry' in name and details['Selected']:
-      settings.append('--retrim')
-      settings.append('--try-again')
   for name, details in settings_menu.options.items():
     if details['Selected']:
       if 'Value' in details:
@@ -1783,7 +1803,10 @@ def run_recovery(state, main_menu, settings_menu, dry_run=True):
   for name, details in main_menu.toggles.items():
     if 'Auto continue' in name and details['Selected']:
       auto_continue = True
-  settings = get_ddrescue_settings(main_menu, settings_menu)
+    if 'Retry' in name and details['Selected']:
+      details['Selected'] = False
+      state.retry_all_passes()
+  settings = get_ddrescue_settings(settings_menu)
 
   # Start SMART/Journal
   state.panes['SMART'] = tmux.split_window(
@@ -1794,25 +1817,19 @@ def run_recovery(state, main_menu, settings_menu, dry_run=True):
     lines=4, vertical=True, cmd='journalctl --dmesg --follow',
     )
 
-  # Check if retrying
-  if '--retrim' in settings:
-    state.retry_all_passes()
-
   # Run pass(es)
   for pass_name in ('read', 'trim', 'scrape'):
     abort = False
 
-    # Skip to next pass (unless retry selected)
-    if '--retrim' not in settings and state.pass_complete(pass_name):
+    # Skip to next pass
+    if state.pass_complete(pass_name):
       # NOTE: This bypasses auto_continue
       state.skip_pass(pass_name)
       continue
 
     # Run ddrescue
     for pair in state.block_pairs:
-      if '--retrim' not in settings and pair.pass_complete(pass_name):
-        pair.skip_pass(pass_name)
-      else:
+      if not pair.pass_complete(pass_name):
         attempted_recovery = True
         state.mark_started()
         try:
