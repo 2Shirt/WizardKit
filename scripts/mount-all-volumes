@@ -14,11 +14,10 @@ def main():
   # Mount volumes and get report
   wk.std.print_standard('Mounting volumes...')
   report = wk.os.linux.mount_volumes()
-  report = [f'    {line}' for line in report]
 
   # Show results
   wk.std.print_info('Results')
-  wk.std.print_report(report)
+  wk.std.print_report(report, indent=2)
 
 
 if __name__ == '__main__':
