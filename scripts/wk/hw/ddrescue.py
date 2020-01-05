@@ -139,6 +139,7 @@ class BlockPair():
       # Imaging
       self.map_path = pathlib.Path(f'{destination}/Image_{map_name}.map')
       self.destination = self.map_path.with_suffix('.dd')
+      self.destination.touch()
     else:
       # Cloning
       self.map_path = pathlib.Path(f'{working_dir}/Clone_{map_name}.map')
@@ -235,8 +236,8 @@ class BlockPair():
       dest_size = dest_obj.details['size']
       del dest_obj
 
-    # Raise exception if necessary
-    if dest_size < self.size:
+    # Check destination size if cloning
+    if not self.destination.is_file() and dest_size < self.size:
       std.print_error(f'Invalid destination: {self.destination}')
       raise std.GenericAbort()
 
