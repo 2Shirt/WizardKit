@@ -120,7 +120,9 @@ class BlockPair():
 
     # Set map file
     # e.g. '(Clone|Image)_Model[_p#]_Size[_Label].map'
-    map_name = model
+    map_name = model if model else 'None'
+    if source.details['bus'] == 'Image':
+      map_name = 'Image'
     if source.details['parent']:
       part_num = re.sub(r"^.*?(\d+)$", r"\1", source.path.name)
       map_name += f'_p{part_num}'
