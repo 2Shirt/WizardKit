@@ -743,6 +743,11 @@ def color_string(strings, colors, sep=' '):
   except TypeError:
     # Assuming single element passed, convert to string
     strings = (str(strings),)
+  try:
+    iter(colors)
+  except TypeError:
+    # Assuming single element passed, convert to string
+    colors = (str(colors),)
 
   # Build new string with color escapes added
   for string, color in itertools.zip_longest(strings, colors):
