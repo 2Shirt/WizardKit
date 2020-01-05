@@ -912,9 +912,11 @@ def print_info(msg, log=True, **kwargs):
     LOG.info(msg)
 
 
-def print_report(report, log=True):
+def print_report(report, indent=None, log=True):
   """Print report to screen and optionally to log."""
   for line in report:
+    if indent:
+      line = f'{" "*indent}{line}'
     print(line)
     if log:
       LOG.info(strip_colors(line))
