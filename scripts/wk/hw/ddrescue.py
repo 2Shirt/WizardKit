@@ -770,9 +770,11 @@ class State():
 
     # Skip real format for dry runs
     if dry_run:
+      LOG.info('Dry run, refusing to format destination')
       return
 
     # Format disk
+    LOG.warning('Formatting destination: %s', self.destination.path)
     with open(script_path, 'r') as _f:
       proc = exe.run_program(
         cmd=['sudo', 'sfdisk', self.destination.path],
@@ -790,6 +792,9 @@ class State():
   def retry_all_passes(self):
     """Prep block_pairs for a retry recovery attempt."""
     bad_statuses = ('*', '/', '-')
+    LOG.warning('Updating block_pairs for retry')
+
+    # Update all block_pairs
     for pair in self.block_pairs:
       map_data = []
 
