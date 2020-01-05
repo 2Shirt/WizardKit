@@ -1589,7 +1589,6 @@ def get_working_dir(mode, destination, force_local=False):
 def main():
   """Main function for ddrescue TUI."""
   args = docopt(DOCSTRING)
-  args['--dry-run'] = True # TODO: Remove dry-run safety net
   log.update_log_path(dest_name='ddrescue-TUI', timestamp=True)
 
   # Check if running inside tmux
