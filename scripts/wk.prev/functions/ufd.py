@@ -71,31 +71,6 @@ def find_first_partition(dev_path):
   return part_path
 
 
-def get_user_home(user):
-  """Get path to user's home dir, returns str."""
-  home_dir = None
-  cmd = ['getent', 'passwd', user]
-  result = run_program(cmd, encoding='utf-8', errors='ignore', check=False)
-  try:
-    home_dir = result.stdout.split(':')[5]
-  except Exception:
-    # Just use HOME from ENV (or '/root' if that fails)
-    home_dir = os.environ.get('HOME', '/root')
-
-  return home_dir
-
-
-def get_user_name():
-  """Get real user name, returns str."""
-  user = None
-  if 'SUDO_USER' in os.environ:
-    user = os.environ.get('SUDO_USER', 'Unknown')
-  else:
-    user = os.environ.get('USER', 'Unknown')
-
-  return user
-
-
 def hide_items(ufd_dev, items):
   """Set FAT32 hidden flag for items."""
   # pylint: disable=invalid-name
@@ -229,11 +204,6 @@ def remove_arch():
   This ensures a clean installation to the UFD and resets the boot files
   """
   shutil.rmtree(find_path('/mnt/UFD/arch'))
-
-
-def running_as_root():
-  """Check if running with effective UID of 0, returns bool."""
-  return os.geteuid() == 0
 
 
 def show_selections(args, sources, ufd_dev, ufd_sources):

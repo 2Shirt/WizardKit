@@ -2,6 +2,7 @@
 # vim: sts=2 sw=2 ts=2
 
 import logging
+import os
 import pathlib
 import re
 import subprocess
@@ -17,6 +18,44 @@ UUID_CORESTORAGE = '53746f72-6167-11aa-aa11-00306543ecac'
 
 
 # Functions
+def get_user_home(user):
+  """Get path to user's home dir, returns pathlib.Path obj."""
+  home = None
+
+  # Get path from user details
+  cmd = ['getent', 'passwd', user]
+  proc = run_program(cmd, check=False)
+  try:
+    home = proc.stdout.split(':')[5]
+  except IndexError:
+    # Try using environment variable
+    home = os.environ.get('HOME')
+
+  # Raise exception if necessary
+  if not home:
+    raise RuntimeError(f'Failed to find home for: {user}')
+
+  # Done
+  return pathlib.Path(home)
+
+
+def get_user_name():
+  """Get real user name, returns str."""
+  user = None
+
+  # Query environment
+  user = os.environ.get('SUDO_USER')
+  if not user:
+    user = os.environ.get('USER')
+
+  # Raise exception if necessary
+  if not user:
+    raise RuntimeError('Failed to determine user')
+
+  # Done
+  return user
+
+
 def make_temp_file():
   """Make temporary file, returns pathlib.Path() obj."""
   proc = run_program(['mktemp'], check=False)
@@ -109,6 +148,11 @@ def mount_volumes(device_path=None, read_write=False, scan_corestorage=False):
 
   # Done
   return report
+
+
+def running_as_root():
+  """Check if running with effective UID of 0, returns bool."""
+  return os.geteuid() == 0
 
 
 def scan_corestorage_container(container, timeout=300):
