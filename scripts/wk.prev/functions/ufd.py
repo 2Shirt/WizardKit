@@ -10,35 +10,6 @@ from collections import OrderedDict
 from functions.common import *
 
 
-def case_insensitive_search(path, item):
-  """Search path for item case insensitively, returns str."""
-  regex_match = '^{}$'.format(item)
-  real_path = ''
-
-  # Quick check first
-  if os.path.exists('{}/{}'.format(path, item)):
-    real_path = '{}{}{}'.format(
-      path,
-      '' if path == '/' else '/',
-      item,
-      )
-
-  # Check all items in dir
-  for entry in os.scandir(path):
-    if re.match(regex_match, entry.name, re.IGNORECASE):
-      real_path = '{}{}{}'.format(
-        path,
-        '' if path == '/' else '/',
-        entry.name,
-        )
-
-  # Done
-  if not real_path:
-    raise FileNotFoundError('{}/{}'.format(path, item))
-
-  return real_path
-
-
 def confirm_selections(args):
   """Ask tech to confirm selections, twice if necessary."""
   if not ask('Is the above information correct?'):
@@ -98,33 +69,6 @@ def find_first_partition(dev_path):
   part_path = result.stdout.splitlines()[-1].strip()
 
   return part_path
-
-
-def find_path(path):
-  """Find path case-insensitively, returns pathlib.Path obj."""
-  path_obj = pathlib.Path(path).resolve()
-
-  # Quick check first
-  if path_obj.exists():
-    return path_obj
-
-  # Fix case
-  parts = path_obj.relative_to('/').parts
-  real_path = '/'
-  for part in parts:
-    try:
-      real_path = case_insensitive_search(real_path, part)
-    except NotADirectoryError:
-      # Reclassify error
-      raise FileNotFoundError(path)
-
-  # Raise error if path doesn't exist
-  path_obj = pathlib.Path(real_path)
-  if not path_obj.exists():
-    raise FileNotFoundError(path_obj)
-
-  # Done
-  return path_obj
 
 
 def get_user_home(user):
@@ -277,55 +221,6 @@ def prep_device(dev_path, label, use_mbr=False, indent=2):
     function=run_program,
     cmd=cmd,
     )
-
-
-def recursive_copy(source, dest, overwrite=False):
-  """Copy source to dest recursively.
-
-  NOTE: This uses rsync style source/dest syntax.
-  If the source has a trailing slash then it's contents are copied,
-  otherwise the source itself is copied.
-
-  Examples assuming "ExDir/ExFile.txt" exists:
-  recursive_copy("ExDir", "Dest/") results in "Dest/ExDir/ExFile.txt"
-  recursive_copy("ExDir/", "Dest/") results in "Dest/ExFile.txt"
-
-  NOTE 2: dest does not use find_path because it might not exist.
-  """
-  copy_contents = source.endswith('/')
-  source = find_path(source)
-  dest = pathlib.Path(dest).resolve().joinpath(source.name)
-  os.makedirs(dest.parent, exist_ok=True)
-
-  if source.is_dir():
-    if copy_contents:
-      # Trailing slash syntax
-      for item in os.scandir(source):
-        recursive_copy(item.path, dest.parent, overwrite=overwrite)
-    elif not dest.exists():
-      # No conflict, copying whole tree (no merging needed)
-      shutil.copytree(source, dest)
-    elif not dest.is_dir():
-      # Refusing to replace file with dir
-      raise FileExistsError('Refusing to replace file: {}'.format(dest))
-    else:
-      # Dest exists and is a dir, merge dirs
-      for item in os.scandir(source):
-        recursive_copy(item.path, dest, overwrite=overwrite)
-  elif source.is_file():
-    if not dest.exists():
-      # No conflict, copying file
-      shutil.copy2(source, dest)
-    elif not dest.is_file():
-      # Refusing to replace dir with file
-      raise FileExistsError('Refusing to replace dir: {}'.format(dest))
-    elif overwrite:
-      # Dest file exists, deleting and replacing file
-      os.remove(dest)
-      shutil.copy2(source, dest)
-    else:
-      # Refusing to delete file when overwrite=False
-      raise FileExistsError('Refusing to delete file: {}'.format(dest))
 
 
 def remove_arch():
