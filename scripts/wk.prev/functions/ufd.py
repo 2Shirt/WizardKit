@@ -128,19 +128,6 @@ def is_valid_path(path_obj, path_type):
   return valid_path
 
 
-def mount(mount_source, mount_point, read_write=False):
-  """Mount mount_source on mount_point."""
-  os.makedirs(mount_point, exist_ok=True)
-  cmd = [
-    'mount',
-    mount_source,
-    mount_point,
-    '-o',
-    'rw' if read_write else 'ro',
-    ]
-  run_program(cmd)
-
-
 def prep_device(dev_path, label, use_mbr=False, indent=2):
   """Format device in preparation for applying the WizardKit components
 
@@ -248,12 +235,6 @@ def show_selections(args, sources, ufd_dev, ufd_sources):
   elif args['--use-mbr']:
     print_warning('Formatting using legacy MBR')
   print_standard(' ')
-
-
-def unmount(mount_point):
-  """Unmount mount_point."""
-  cmd = ['umount', mount_point]
-  run_program(cmd)
 
 
 def update_boot_entries(boot_entries, boot_files, iso_label, ufd_label):

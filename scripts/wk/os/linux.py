@@ -62,6 +62,27 @@ def make_temp_file():
   return pathlib.Path(proc.stdout.strip())
 
 
+def mount(source, mount_point=None, read_write=False):
+  """Mount source (on mount_point if provided).
+
+  NOTE: If not running_as_root() then udevil will be used.
+  """
+  cmd = [
+    'mount',
+    '-o', 'rw' if read_write else 'ro',
+    source,
+    ]
+  if not running_as_root():
+    cmd.insert(0, 'udevil')
+  if mount_point:
+    cmd.append(mount_point)
+
+  # Run mount command
+  proc = run_program(cmd, check=False)
+  if not proc.returncode == 0:
+    raise RuntimeError(f'Failed to mount: {source} on {mount_point}')
+
+
 def mount_volumes(device_path=None, read_write=False, scan_corestorage=False):
   """Mount all detected volumes, returns list.
 
@@ -117,12 +138,7 @@ def mount_volumes(device_path=None, read_write=False, scan_corestorage=False):
 
     # Attempt to mount volume
     if not already_mounted:
-      cmd = [
-        'udevil',
-        'mount',
-        '-o', 'rw' if read_write else 'ro',
-        vol.path,
-        ]
+      mount(vol.path, read_write=read_write)
       proc = run_program(cmd, check=False)
       if proc.returncode:
         result += 'Failed to mount'
@@ -200,6 +216,24 @@ def scan_corestorage_container(container, timeout=300):
 
   # Done
   return inner_volumes
+
+
+def unmount(source_or_mountpoint):
+  """Unmount source_or_mountpoint.
+
+  NOTE: If not running_as_root() then udevil will be used.
+  """
+  cmd = [
+    'umount',
+    source_or_mountpoint,
+    ]
+  if not running_as_root():
+    cmd.insert(0, 'udevil')
+
+  # Run unmount command
+  proc = run_program(cmd, check=False)
+  if not proc.returncode == 0:
+    raise RuntimeError(f'Failed to unmount: {source_or_mountpoint}')
 
 
 if __name__ == '__main__':
