@@ -9,9 +9,10 @@ import os
 import shutil
 
 from collections import OrderedDict
+from docopt import docopt
 
-from wk import io, std
-from wk.cfg.main import KIT_NAME_SHORT
+from wk import io, log, std
+from wk.cfg.main import KIT_NAME_FULL, KIT_NAME_SHORT
 from wk.cfg.ufd import BOOT_ENTRIES, BOOT_FILES, ITEMS, ITEMS_HIDDEN, SOURCES
 from wk.exe import run_program
 from wk.os import linux
@@ -47,6 +48,109 @@ UFD_LABEL = f'{KIT_NAME_SHORT}_UFD'
 
 
 # Functions
+def build_ufd():
+  """Build UFD using selected sources."""
+  args = docopt(DOCSTRING)
+  log.update_log_path(dest_name='build-ufd', timestamp=True)
+  try_print = std.TryAndPrint()
+  try_print.indent = 2
+
+  # Check if running with root permissions
+  if not linux.running_as_root():
+    std.print_error('This script is meant to be run as root')
+    std.abort()
+
+  # Show header
+  std.print_success(KIT_NAME_FULL)
+  std.print_warning('UFD Build Tool')
+  std.print_warning(' ')
+
+  # Verify selections
+  ufd_dev = verify_ufd(args['--ufd-device'])
+  sources = verify_sources(args, SOURCES)
+  show_selections(args, sources, ufd_dev, SOURCES)
+  if not args['--force']:
+    confirm_selections(update=args['--update'])
+
+  # Prep UFD
+  if not args['--update']:
+    std.print_info('Prep UFD')
+    prep_device(ufd_dev, UFD_LABEL, use_mbr=args['--use-mbr'])
+
+  # Mount UFD
+  try_print.run(
+    message='Mounting UFD...',
+    function=linux.mount,
+    mount_source=find_first_partition(ufd_dev),
+    mount_point='/mnt/UFD',
+    read_write=True,
+    )
+
+  # Remove Arch folder
+  if args['--update']:
+    try_print.run(
+      message='Removing Linux...',
+      function=remove_arch,
+      )
+
+  # Copy sources
+  std.print_standard(' ')
+  std.print_info('Copy Sources')
+  for s_label, s_path in sources.items():
+    try_print.run(
+      message='Copying {}...'.format(s_label),
+      function=copy_source,
+      source=s_path,
+      items=ITEMS[s_label],
+      overwrite=True,
+      )
+
+  # Update boot entries
+  std.print_standard(' ')
+  std.print_info('Boot Setup')
+  try_print.run(
+    message='Updating boot entries...',
+    function=update_boot_entries,
+    )
+
+  # Install syslinux (to partition)
+  try_print.run(
+    message='Syslinux (partition)...',
+    function=install_syslinux_to_partition,
+    partition=find_first_partition(ufd_dev),
+    )
+
+  # Unmount UFD
+  try_print.run(
+    message='Unmounting UFD...',
+    function=linux.unmount,
+    mount_point='/mnt/UFD',
+    )
+
+  # Install syslinux (to device)
+  try_print.run(
+    message='Syslinux (device)...',
+    function=install_syslinux_to_dev,
+    ufd_dev=ufd_dev,
+    use_mbr=args['--use-mbr'],
+    )
+
+  # Hide items
+  std.print_standard(' ')
+  std.print_info('Final Touches')
+  try_print.run(
+    message='Hiding items...',
+    function=hide_items,
+    ufd_dev=ufd_dev,
+    items=ITEMS_HIDDEN,
+    )
+
+  # Done
+  std.print_standard('\nDone.')
+  if not args['--force']:
+    std.pause('Press Enter to exit...')
+
+
 def confirm_selections(update=False):
   """Ask tech to confirm selections, twice if necessary."""
   if not std.ask('Is the above information correct?'):
@@ -178,6 +282,7 @@ def prep_device(dev_path, label, use_mbr=False):
   4. Format partition (FAT32, 4K aligned)
   """
   try_print = std.TryAndPrint()
+  try_print.indent = 2
 
   # Zero-out first 64MB
   cmd = [
@@ -283,12 +388,12 @@ def show_selections(args, sources, ufd_dev, ufd_sources):
   std.print_standard(' ')
 
 
-def update_boot_entries(boot_entries, boot_files, iso_label, ufd_label):
+def update_boot_entries():
   """Update boot files for UFD usage"""
   configs = []
 
   # Find config files
-  for c_path, c_ext in boot_files.items():
+  for c_path, c_ext in BOOT_FILES.items():
     c_path = io.case_insensitive_path('/mnt/UFD{c_path}')
     for item in os.scandir(c_path):
       if item.name.lower().endswith(c_ext.lower()):
@@ -299,13 +404,13 @@ def update_boot_entries(boot_entries, boot_files, iso_label, ufd_label):
     'sed',
     '--in-place',
     '--regexp-extended',
-    f's/{iso_label}/{ufd_label}/',
+    f's/{ISO_LABEL}/{UFD_LABEL}/',
     *configs,
     ]
   run_program(cmd)
 
   # Uncomment extra entries if present
-  for b_path, b_comment in boot_entries.items():
+  for b_path, b_comment in BOOT_ENTRIES.items():
     try:
       io.case_insensitive_path(f'/mnt/UFD{b_path}')
     except (FileNotFoundError, NotADirectoryError):
