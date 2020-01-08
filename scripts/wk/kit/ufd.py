@@ -1,6 +1,7 @@
 """WizardKit: UFD Functions"""
 # vim: sts=2 sw=2 ts=2
 # TODO: Replace some lsblk usage with hw_obj?
+# TODO: Reduce imports if possible
 # TODO: Needs testing
 
 import logging
@@ -10,12 +11,39 @@ import shutil
 from collections import OrderedDict
 
 from wk import io, std
+from wk.cfg.main import KIT_NAME_SHORT
+from wk.cfg.ufd import BOOT_ENTRIES, BOOT_FILES, ITEMS, ITEMS_HIDDEN, SOURCES
 from wk.exe import run_program
 from wk.os import linux
 
 
 # STATIC VARIABLES
+DOCSTRING = '''WizardKit: Build UFD
+
+Usage:
+  build-ufd [options] --ufd-device PATH --linux PATH
+            [--linux-minimal PATH]
+            [--main-kit PATH]
+            [--winpe PATH]
+            [--extra-dir PATH]
+  build-ufd (-h | --help)
+
+Options:
+  -e PATH, --extra-dir PATH
+  -k PATH, --main-kit PATH
+  -l PATH, --linux PATH
+  -m PATH, --linux-minimal PATH
+  -u PATH, --ufd-device PATH
+  -w PATH, --winpe PATH
+
+  -h --help             Show this page
+  -M --use-mbr          Use real MBR instead of GPT w/ Protective MBR
+  -F --force            Bypass all confirmation messages. USE WITH EXTREME CAUTION!
+  -U --update           Don't format device, just update
+'''
 LOG = logging.getLogger(__name__)
+ISO_LABEL = f'{KIT_NAME_SHORT}_LINUX'
+UFD_LABEL = f'{KIT_NAME_SHORT}_UFD'
 
 
 # Functions
