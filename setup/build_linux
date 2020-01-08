@@ -11,10 +11,10 @@ set -o pipefail
 DATE="$(date +%F)"
 DATETIME="$(date +%F_%H%M)"
 ROOT_DIR="$(realpath $(dirname "$0"))"
-BUILD_DIR="$ROOT_DIR/BUILD_LINUX"
+BUILD_DIR="$ROOT_DIR/setup/BUILD_LINUX"
 LIVE_DIR="$BUILD_DIR/live"
 LOG_DIR="$BUILD_DIR/logs"
-OUT_DIR="$ROOT_DIR/OUT_LINUX"
+OUT_DIR="$ROOT_DIR/setup/OUT_LINUX"
 REPO_DIR="$BUILD_DIR/repo"
 SKEL_DIR="$LIVE_DIR/airootfs/etc/skel"
 TEMP_DIR="$BUILD_DIR/temp"
@@ -57,7 +57,7 @@ function cleanup() {
 
 function fix_kit_permissions() {
     # GitHub zip archives don't preserve the correct permissions
-    for d in .bin .cbin .kit_items .linux_items .pe_items Images; do
+    for d in docs images scripts setup; do
         find "$ROOT_DIR/$d" -type d -exec chmod 755 "{}" \;
     done
 }
@@ -80,7 +80,7 @@ function load_settings() {
     if [[ "${1:-}" == "--edit" ]]; then
         # Copy settings
         if [[ ! -e "$BUILD_DIR/main.py" ]] || ask "Overwrite main.py?"; then
-            cp -bv "$ROOT_DIR/.bin/Scripts/settings/main.py" "$BUILD_DIR/main.py"
+            cp -bv "$ROOT_DIR/scripts/wk/cfg/main.py" "$BUILD_DIR/main.py"
             dos2unix "$BUILD_DIR/main.py"
         fi
 
@@ -89,7 +89,7 @@ function load_settings() {
         "$EDITOR" "$BUILD_DIR/main.py"
     else
         # Load settings from $LIVE_DIR
-        _main_path="$LIVE_DIR/airootfs/usr/local/bin/settings/main.py"
+        _main_path="$LIVE_DIR/airootfs/usr/local/bin/wk/cfg/main.py"
     fi
 
     # Load settings
@@ -118,13 +118,13 @@ function copy_live_env() {
     rm "$LIVE_DIR/syslinux"/*.cfg "$LIVE_DIR/syslinux"/*.png
     
     # Add items
-    rsync -aI "$ROOT_DIR/.linux_items/include/" "$LIVE_DIR/"
+    rsync -aI "$ROOT_DIR/setup/linux/include/" "$LIVE_DIR/"
     if [[ "${1:-}" != "--minimal" ]]; then
-      rsync -aI "$ROOT_DIR/.linux_items/include_x/" "$LIVE_DIR/"
+      rsync -aI "$ROOT_DIR/setup/linux/include_x/" "$LIVE_DIR/"
     fi
     mkdir -p "$LIVE_DIR/airootfs/usr/local/bin"
-    rsync -aI "$ROOT_DIR/.bin/Scripts/" "$LIVE_DIR/airootfs/usr/local/bin/"
-    cp -a "$BUILD_DIR/main.py" "$LIVE_DIR/airootfs/usr/local/bin/settings/"
+    rsync -aI "$ROOT_DIR/scripts/" "$LIVE_DIR/airootfs/usr/local/bin/"
+    cp -a "$BUILD_DIR/main.py" "$LIVE_DIR/airootfs/usr/local/bin/wk/cfg/"
 }
 
 function run_elevated() {
@@ -155,8 +155,8 @@ function update_live_env() {
 
     # Boot config (legacy)
     mkdir -p "$LIVE_DIR/arch"
-    cp "$ROOT_DIR/Images/Pxelinux.png" "$LIVE_DIR/arch/pxelinux.png"
-    cp "$ROOT_DIR/Images/Syslinux.png" "$LIVE_DIR/arch/syslinux.png"
+    cp "$ROOT_DIR/images/Pxelinux.png" "$LIVE_DIR/arch/pxelinux.png"
+    cp "$ROOT_DIR/images/Syslinux.png" "$LIVE_DIR/arch/syslinux.png"
     sed -i -r "s/_+/$KIT_NAME_FULL/" "$LIVE_DIR/syslinux/wk_head.cfg"
     mkdir -p "$TEMP_DIR" 2>/dev/null
     curl -Lo "$TEMP_DIR/wimboot.zip" "http://git.ipxe.org/releases/wimboot/wimboot-latest.zip"
@@ -165,7 +165,7 @@ function update_live_env() {
     # Boot config (UEFI)
     mkdir -p "$LIVE_DIR/EFI/boot"
     cp  "/usr/share/refind/refind_x64.efi" "$LIVE_DIR/EFI/boot/bootx64.efi"
-    cp "$ROOT_DIR/Images/rEFInd.png" "$LIVE_DIR/EFI/boot/rEFInd.png"
+    cp "$ROOT_DIR/images/rEFInd.png" "$LIVE_DIR/EFI/boot/rEFInd.png"
     rsync -aI "/usr/share/refind/drivers_x64/" "$LIVE_DIR/EFI/boot/drivers_x64/"
     rsync -aI "/usr/share/refind/icons/" "$LIVE_DIR/EFI/boot/icons/" --exclude "/usr/share/refind/icons/svg"
     sed -i "s/%ARCHISO_LABEL%/${label}/" "$LIVE_DIR/EFI/boot/refind.conf"
@@ -199,12 +199,12 @@ function update_live_env() {
     # Live packages
     while read -r p; do
         sed -i "/$p/d" "$LIVE_DIR/packages.x86_64"
-    done < "$ROOT_DIR/.linux_items/packages/live_remove"
-    cat "$ROOT_DIR/.linux_items/packages/live_add" >> "$LIVE_DIR/packages.x86_64"
+    done < "$ROOT_DIR/setup/linux/packages/live_remove"
+    cat "$ROOT_DIR/setup/linux/packages/live_add" >> "$LIVE_DIR/packages.x86_64"
     if [[ "${1:-}" == "--minimal" ]]; then
-        cat "$ROOT_DIR/.linux_items/packages/live_add_min" >> "$LIVE_DIR/packages.x86_64"
+        cat "$ROOT_DIR/setup/linux/packages/live_add_min" >> "$LIVE_DIR/packages.x86_64"
     else
-        cat "$ROOT_DIR/.linux_items/packages/live_add_x" >> "$LIVE_DIR/packages.x86_64"
+        cat "$ROOT_DIR/setup/linux/packages/live_add_x" >> "$LIVE_DIR/packages.x86_64"
     fi
     echo "[custom]" >> "$LIVE_DIR/pacman.conf"
     echo "SigLevel = Optional TrustAll" >> "$LIVE_DIR/pacman.conf"
@@ -246,7 +246,7 @@ function update_live_env() {
     echo 'rm /root/.zlogin' >> "$LIVE_DIR/airootfs/root/customize_airootfs.sh"
     sed -i -r '/.*PermitRootLogin.*/d' "$LIVE_DIR/airootfs/root/customize_airootfs.sh"
     echo "sed -i -r '/.*PermitRootLogin.*/d' /etc/ssh/sshd_config" >> "$LIVE_DIR/airootfs/root/customize_airootfs.sh"
-    cp "$ROOT_DIR/.linux_items/authorized_keys" "$SKEL_DIR/.ssh/authorized_keys"
+    cp "$ROOT_DIR/setup/linux/authorized_keys" "$SKEL_DIR/.ssh/authorized_keys"
     
     # Root user
     echo "echo 'root:$ROOT_PASSWORD' | chpasswd" >> "$LIVE_DIR/airootfs/root/customize_airootfs.sh"
@@ -279,11 +279,11 @@ function update_live_env() {
 
       # Wallpaper
       mkdir -p "$LIVE_DIR/airootfs/usr/share/wallpaper"
-      cp "$ROOT_DIR/Images/Linux.png" "$LIVE_DIR/airootfs/usr/share/wallpaper/burned.in"
+      cp "$ROOT_DIR/images/Linux.png" "$LIVE_DIR/airootfs/usr/share/wallpaper/burned.in"
     fi
 
     # WiFi
-    cp "$ROOT_DIR/.linux_items/known_networks" "$LIVE_DIR/airootfs/root/known_networks"
+    cp "$ROOT_DIR/setup/linux/known_networks" "$LIVE_DIR/airootfs/root/known_networks"
     echo "add-known-networks --user=$username" >> "$LIVE_DIR/airootfs/root/customize_airootfs.sh"
 }
 
@@ -315,7 +315,7 @@ function update_repo() {
         makepkg -d
         popd >/dev/null
         mv -n $p/*xz "$REPO_DIR"/
-    done < "$ROOT_DIR/.linux_items/packages/aur"
+    done < "$ROOT_DIR/setup/linux/packages/aur"
     popd >/dev/null
 
     # Build custom repo database
@@ -329,7 +329,7 @@ function install_deps() {
     packages=
     while read -r line; do
         packages="$packages $line"
-    done < "$ROOT_DIR/.linux_items/packages/dependencies"
+    done < "$ROOT_DIR/setup/linux/packages/dependencies"
     run_elevated pacman -Syu --needed --noconfirm $packages
 }
 
@@ -347,7 +347,7 @@ function build_iso() {
     chmod 600 "$LIVE_DIR/airootfs/etc/skel/.ssh/id_rsa"
 
     # Removing cached (and possibly outdated) custom repo packages
-    for package in $(cat "$ROOT_DIR/.linux_items/packages/aur"); do
+    for package in $(cat "$ROOT_DIR/setup/linux/packages/aur"); do
         for p in /var/cache/pacman/pkg/*${package}*; do
             if [[ -f "${p}" ]]; then
                 rm "${p}"
