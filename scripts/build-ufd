@@ -51,7 +51,7 @@ if __name__ == '__main__':
     sources = verify_sources(args, UFD_SOURCES)
     show_selections(args, sources, ufd_dev, UFD_SOURCES)
     if not args['--force']:
-      confirm_selections(args)
+      confirm_selections(update=args['--update'])
 
     # Prep UFD
     if not args['--update']:

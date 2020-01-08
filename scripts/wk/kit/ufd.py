@@ -1,32 +1,43 @@
-"""Wizard Kit: Functions - UFD"""
-# pylint: disable=broad-except,wildcard-import
+"""WizardKit: UFD Functions"""
 # vim: sts=2 sw=2 ts=2
+# TODO: Replace some lsblk usage with hw_obj?
+# TODO: Needs testing
 
+import logging
 import os
-import re
 import shutil
-import pathlib
+
 from collections import OrderedDict
-from functions.common import *
+
+from wk import io, std
+from wk.exe import run_program
+from wk.os import linux
 
 
-def confirm_selections(args):
+# STATIC VARIABLES
+LOG = logging.getLogger(__name__)
+
+
+# Functions
+def confirm_selections(update=False):
   """Ask tech to confirm selections, twice if necessary."""
-  if not ask('Is the above information correct?'):
-    abort(False)
-  ## Safety check
-  if not args['--update']:
-    print_standard(' ')
-    print_warning('SAFETY CHECK')
-    print_standard(
-      'All data will be DELETED from the disk and partition(s) listed above.')
-    print_standard(
-      'This is irreversible and will lead to {RED}DATA LOSS.{CLEAR}'.format(
-        **COLORS))
-    if not ask('Asking again to confirm, is this correct?'):
-      abort(False)
+  if not std.ask('Is the above information correct?'):
+    std.abort()
 
-  print_standard(' ')
+  # Safety check
+  if not update:
+    std.print_standard(' ')
+    std.print_warning('SAFETY CHECK')
+    std.print_standard(
+      'All data will be DELETED from the disk and partition(s) listed above.')
+    std.print_colored(
+      ['This is irreversible and will lead to', 'DATA LOSS'],
+      [None, 'RED'],
+      )
+    if not std.ask('Asking again to confirm, is this correct?'):
+      std.abort()
+
+  std.print_standard(' ')
 
 
 def copy_source(source, items, overwrite=False):
@@ -35,28 +46,29 @@ def copy_source(source, items, overwrite=False):
 
   # Mount source if necessary
   if is_image:
-    mount(source, '/mnt/Source')
+    linux.mount(source, '/mnt/Source')
 
   # Copy items
   for i_source, i_dest in items:
-    i_source = '{}{}'.format(
-      '/mnt/Source' if is_image else source,
-      i_source,
-      )
-    i_dest = '/mnt/UFD{}'.format(i_dest)
+    i_source = f'{"/mnt/Source" if is_image else source}{i_source}'
+    i_dest = f'/mnt/UFD{i_dest}'
     try:
-      recursive_copy(i_source, i_dest, overwrite=overwrite)
+      io.recursive_copy(i_source, i_dest, overwrite=overwrite)
     except FileNotFoundError:
       # Going to assume (hope) that this is fine
       pass
 
   # Unmount source if necessary
   if is_image:
-    unmount('/mnt/Source')
+    linux.unmount('/mnt/Source')
 
 
 def find_first_partition(dev_path):
-  """Find path to first partition of dev, returns str."""
+  """Find path to first partition of dev, returns str.
+
+  NOTE: This assumes the dev was just partitioned with
+        a single partition.
+  """
   cmd = [
     'lsblk',
     '--list',
@@ -65,23 +77,25 @@ def find_first_partition(dev_path):
     '--paths',
     dev_path,
     ]
-  result = run_program(cmd, encoding='utf-8', errors='ignore')
-  part_path = result.stdout.splitlines()[-1].strip()
 
+  # Run cmd
+  proc = run_program(cmd)
+  part_path = proc.stdout.splitlines()[-1].strip()
+
+  # Done
   return part_path
 
 
 def hide_items(ufd_dev, items):
   """Set FAT32 hidden flag for items."""
-  # pylint: disable=invalid-name
-  with open('/root/.mtoolsrc', 'w') as f:
-    f.write('drive U: file="{}"\n'.format(
-      find_first_partition(ufd_dev)))
-    f.write('mtools_skip_check=1\n')
+  first_partition = find_first_partition(ufd_dev)
+  with open('/root/.mtoolsrc', 'w') as _f:
+    _f.write(f'drive U: file="{first_partition}"\n')
+    _f.write('mtools_skip_check=1\n')
 
   # Hide items
   for item in items:
-    cmd = ['yes | mattrib +h "U:/{}"'.format(item)]
+    cmd = [f'yes | mattrib +h "U:/{item}"']
     run_program(cmd, check=False, shell=True)
 
 
@@ -91,10 +105,8 @@ def install_syslinux_to_dev(ufd_dev, use_mbr):
     'dd',
     'bs=440',
     'count=1',
-    'if=/usr/lib/syslinux/bios/{}.bin'.format(
-      'mbr' if use_mbr else 'gptmbr',
-      ),
-    'of={}'.format(ufd_dev),
+    f'if=/usr/lib/syslinux/bios/{"mbr" if use_mbr else "gptmbr"}.bin',
+    f'of={ufd_dev}',
     ]
   run_program(cmd)
 
@@ -128,7 +140,7 @@ def is_valid_path(path_obj, path_type):
   return valid_path
 
 
-def prep_device(dev_path, label, use_mbr=False, indent=2):
+def prep_device(dev_path, label, use_mbr=False):
   """Format device in preparation for applying the WizardKit components
 
   This is done is four steps:
@@ -137,35 +149,44 @@ def prep_device(dev_path, label, use_mbr=False, indent=2):
   3. Set boot flag
   4. Format partition (FAT32, 4K aligned)
   """
+  try_print = std.TryAndPrint()
+
   # Zero-out first 64MB
-  cmd = 'dd bs=4M count=16 if=/dev/zero of={}'.format(dev_path).split()
-  try_and_print(
-    indent=indent,
-    message='Zeroing first 64MB...',
+  cmd = [
+    'dd',
+    'bs=4M',
+    'count=16',
+    'if=/dev/zero',
+    f'of={dev_path}',
+    ]
+  try_print.run(
+    message='Zeroing first 64MiB...',
     function=run_program,
     cmd=cmd,
     )
 
   # Create partition table
-  cmd = 'parted {} --script -- mklabel {} mkpart primary fat32 4MiB {}'.format(
-    dev_path,
-    'msdos' if use_mbr else 'gpt',
+  cmd = [
+    'parted', dev_path,
+    '--script',
+    '--',
+    'mklabel', 'msdos' if use_mbr else 'gpt',
     '-1s' if use_mbr else '-4MiB',
-    ).split()
-  try_and_print(
-    indent=indent,
+    ]
+  try_print.run(
     message='Creating partition table...',
     function=run_program,
     cmd=cmd,
     )
 
   # Set boot flag
-  cmd = 'parted {} set 1 {} on'.format(
-    dev_path,
+  cmd = [
+    'parted', dev_path,
+    'set', '1',
     'boot' if use_mbr else 'legacy_boot',
-    ).split()
-  try_and_print(
-    indent=indent,
+    'on',
+    ]
+  try_print.run(
     message='Setting boot flag...',
     function=run_program,
     cmd=cmd,
@@ -173,12 +194,12 @@ def prep_device(dev_path, label, use_mbr=False, indent=2):
 
   # Format partition
   cmd = [
-    'mkfs.vfat', '-F', '32',
+    'mkfs.vfat',
+    '-F', '32',
     '-n', label,
     find_first_partition(dev_path),
     ]
-  try_and_print(
-    indent=indent,
+  try_print.run(
     message='Formatting partition...',
     function=run_program,
     cmd=cmd,
@@ -190,51 +211,48 @@ def remove_arch():
 
   This ensures a clean installation to the UFD and resets the boot files
   """
-  shutil.rmtree(find_path('/mnt/UFD/arch'))
+  shutil.rmtree(io.case_insensitive_path('/mnt/UFD/arch'))
 
 
 def show_selections(args, sources, ufd_dev, ufd_sources):
   """Show selections including non-specified options."""
 
   # Sources
-  print_info('Sources')
+  std.print_info('Sources')
   for label in ufd_sources.keys():
     if label in sources:
-      print_standard('  {label:<18} {path}'.format(
-        label=label+':',
-        path=sources[label],
-        ))
+      std.print_standard(f'  {label+":":<18} {sources["label"]}')
     else:
-      print_standard('  {label:<18} {YELLOW}Not Specified{CLEAR}'.format(
-        label=label+':',
-        **COLORS,
-        ))
-  print_standard(' ')
+      std.print_colored(
+        [f'  {label+":":<18}', 'Not Specified'],
+        [None, 'YELLOW'],
+        )
+  std.print_standard(' ')
 
   # Destination
-  print_info('Destination')
+  std.print_info('Destination')
   cmd = [
     'lsblk', '--nodeps', '--noheadings', '--paths',
     '--output', 'NAME,FSTYPE,TRAN,SIZE,VENDOR,MODEL,SERIAL',
     ufd_dev,
     ]
-  result = run_program(cmd, check=False, encoding='utf-8', errors='ignore')
-  print_standard(result.stdout.strip())
+  proc = run_program(cmd, check=False)
+  std.print_standard(proc.stdout.strip())
   cmd = [
     'lsblk', '--noheadings', '--paths',
     '--output', 'NAME,SIZE,FSTYPE,LABEL,MOUNTPOINT',
     ufd_dev,
     ]
-  result = run_program(cmd, check=False, encoding='utf-8', errors='ignore')
-  for line in result.stdout.splitlines()[1:]:
-    print_standard(line)
+  proc = run_program(cmd, check=False)
+  for line in proc.stdout.splitlines()[1:]:
+    std.print_standard(line)
 
   # Notes
   if args['--update']:
-    print_warning('Updating kit in-place')
+    std.print_warning('Updating kit in-place')
   elif args['--use-mbr']:
-    print_warning('Formatting using legacy MBR')
-  print_standard(' ')
+    std.print_warning('Formatting using legacy MBR')
+  std.print_standard(' ')
 
 
 def update_boot_entries(boot_entries, boot_files, iso_label, ufd_label):
@@ -243,7 +261,7 @@ def update_boot_entries(boot_entries, boot_files, iso_label, ufd_label):
 
   # Find config files
   for c_path, c_ext in boot_files.items():
-    c_path = find_path('/mnt/UFD{}'.format(c_path))
+    c_path = io.case_insensitive_path('/mnt/UFD{c_path}')
     for item in os.scandir(c_path):
       if item.name.lower().endswith(c_ext.lower()):
         configs.append(item.path)
@@ -253,7 +271,7 @@ def update_boot_entries(boot_entries, boot_files, iso_label, ufd_label):
     'sed',
     '--in-place',
     '--regexp-extended',
-    's/{}/{}/'.format(iso_label, ufd_label),
+    f's/{iso_label}/{ufd_label}/',
     *configs,
     ]
   run_program(cmd)
@@ -261,7 +279,7 @@ def update_boot_entries(boot_entries, boot_files, iso_label, ufd_label):
   # Uncomment extra entries if present
   for b_path, b_comment in boot_entries.items():
     try:
-      find_path('/mnt/UFD{}'.format(b_path))
+      io.case_insensitive_path(f'/mnt/UFD{b_path}')
     except (FileNotFoundError, NotADirectoryError):
       # Entry not found, continue to next entry
       continue
@@ -270,7 +288,7 @@ def update_boot_entries(boot_entries, boot_files, iso_label, ufd_label):
     cmd = [
       'sed',
       '--in-place',
-      's/#{}#//'.format(b_comment),
+      f's/#{b_comment}#//',
       *configs,
       ]
     run_program(cmd, check=False)
@@ -284,13 +302,13 @@ def verify_sources(args, ufd_sources):
     s_path = args[data['Arg']]
     if s_path:
       try:
-        s_path_obj = find_path(s_path)
+        s_path_obj = io.case_insensitive_path(s_path)
       except FileNotFoundError:
-        print_error('ERROR: {} not found: {}'.format(label, s_path))
-        abort(False)
+        std.print_error(f'ERROR: {label} not found: {s_path}')
+        std.abort()
       if not is_valid_path(s_path_obj, data['Type']):
-        print_error('ERROR: Invalid {} source: {}'.format(label, s_path))
-        abort(False)
+        std.print_error(f'ERROR: Invalid {label} source: {s_path}')
+        std.abort()
       sources[label] = s_path_obj
 
   return sources
@@ -301,14 +319,14 @@ def verify_ufd(dev_path):
   ufd_dev = None
 
   try:
-    ufd_dev = find_path(dev_path)
+    ufd_dev = io.case_insensitive_path(dev_path)
   except FileNotFoundError:
-    print_error('ERROR: UFD device not found: {}'.format(dev_path))
-    abort(False)
+    std.print_error(f'ERROR: UFD device not found: {dev_path}')
+    std.abort()
 
   if not is_valid_path(ufd_dev, 'UFD'):
-    print_error('ERROR: Invalid UFD device: {}'.format(ufd_dev))
-    abort(False)
+    std.print_error(f'ERROR: Invalid UFD device: {ufd_dev}')
+    std.abort()
 
   return ufd_dev
 
