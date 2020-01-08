@@ -1,0 +1,11 @@
+#!/bin/bash
+#
+## Wizard Kit: HW Diagnostics Launcher
+
+source ./launch-in-tmux
+
+SESSION_NAME="hw-diags"
+WINDOW_NAME="Hardware Diagnostics"
+TMUX_CMD="./hw-diags.py"
+
+launch_in_tmux "$@"

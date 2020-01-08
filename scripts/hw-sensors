@@ -1,0 +1,46 @@
+#!/usr/bin/env python3
+"""Wizard Kit: Hardware Sensors"""
+# vim: sts=2 sw=2 ts=2
+
+import platform
+
+import wk
+
+
+def main():
+  """Show sensor data on screen."""
+  sensors = wk.hw.sensors.Sensors()
+  if platform.system() == 'Darwin':
+    wk.std.clear_screen()
+    while True:
+      print('\033[100A', end='')
+      sensors.update_sensor_data()
+      wk.std.print_report(sensors.generate_report('Current', 'Max'))
+      wk.std.sleep(1)
+  elif platform.system() == 'Linux':
+    proc = wk.exe.run_program(cmd=['mktemp'])
+    sensors.start_background_monitor(
+      out_path=proc.stdout.strip(),
+      exit_on_thermal_limit=False,
+      temp_labels=('Current', 'Max'),
+      )
+    watch_cmd = [
+      'watch',
+      '--color',
+      '--exec',
+      '--no-title',
+      '--interval', '1',
+      'cat',
+      proc.stdout.strip(),
+      ]
+    wk.exe.run_program(watch_cmd, check=False, pipe=False)
+
+if __name__ == '__main__':
+  try:
+    main()
+  except KeyboardInterrupt:
+    pass
+  except SystemExit:
+    raise
+  except: #pylint: disable=bare-except
+    wk.std.major_exception()

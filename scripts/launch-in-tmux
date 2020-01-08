@@ -1,0 +1,68 @@
+#!/bin/bash
+#
+## Wizard Kit: TMUX Launcher
+
+function ask() {
+    while :; do
+        read -p "$1 [Y/N] " -r answer
+        if echo "$answer" | grep -Eiq '^(y|yes|sure)$'; then
+            return 0
+        elif echo "$answer" | grep -Eiq '^(n|no|nope)$'; then
+            return 1
+        fi
+    done
+}
+
+function err () {
+    echo "$0:" "$@" >&2
+    return 1
+}
+
+function launch_in_tmux() {
+  # Check for required vars
+  [[ -n "${SESSION_NAME:-}" ]] || return $(err "Required variable missing (SESSION_NAME)")
+  [[ -n "${WINDOW_NAME:-}" ]] || return $(err "Required variable missing (WINDOW_NAME)")
+  [[ -n "${TMUX_CMD:-}" ]] || return $(err "Required variable missing (TMUX_CMD)")
+
+  # Check for running session
+  if tmux list-session | grep -q "$SESSION_NAME"; then
+      echo "WARNING: tmux session $SESSION_NAME already exists."
+      echo ""
+      if ask "Connect to current session?"; then
+          if [[ -n "${TMUX:-}" ]]; then
+              # Running inside TMUX, switch to session
+              tmux switch-client -t "$SESSION_NAME"
+              if ! jobs %% >/dev/null 2>&1; then
+                # No running jobs, try exiting abandoned tmux session
+                exit 0
+              fi
+          else
+              # Running outside TMUX, attach to session
+              tmux attach-session -t "$SESSION_NAME"
+          fi
+          return 0
+      elif ask "Kill current session and start new session?"; then
+          tmux kill-session -t "$SESSION_NAME" || \
+              die "Failed to kill session: $SESSION_NAME"
+      else
+          echo "Aborted."
+          return 1
+      fi
+  fi
+
+  # Start session
+  if [[ -n "${TMUX:-}" ]]; then
+      # Running inside TMUX, save current session/window names
+      ORIGINAL_SESSION_NAME="$(tmux display-message -p '#S')"
+      ORIGINAL_WINDOW_NAME="$(tmux display-message -p '#W')"
+      tmux rename-session "$SESSION_NAME"
+      tmux rename-window "$WINDOW_NAME"
+      "$TMUX_CMD" "$@"
+      # Restore previous session/window names
+      tmux rename-session "${ORIGINAL_SESSION_NAME}"
+      tmux rename-window "${ORIGINAL_WINDOW_NAME}"
+  else
+      # Running outside TMUX, start/attach to session
+      tmux new-session -s "$SESSION_NAME" -n "$WINDOW_NAME" "$TMUX_CMD" "$@"
+  fi
+}

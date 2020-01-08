@@ -1,0 +1,11 @@
+#!/bin/zsh
+#
+## watch-like utility
+
+WATCH_FILE="${1}"
+
+while :; do
+  echo -n "\e[100A"
+  cat "${WATCH_FILE}"
+  sleep 1s
+done
