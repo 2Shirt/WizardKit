@@ -733,8 +733,10 @@ def disk_attribute_check(state, test_objects):
       continue
 
     if test.dev.check_attributes():
+      test.passed = True
       test.set_status('Passed')
     else:
+      test.failed = True
       test.set_status('Failed')
 
   # Done
