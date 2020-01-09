@@ -370,6 +370,71 @@ class State():
     # Source / Dest
     self.update_top_panes()
 
+  def _load_settings(self, discard_unused_settings=False):
+    """Load settings from previous run, returns dict."""
+    settings = {}
+    settings_file = pathlib.Path(
+      f'{self.working_dir}/Clone_{self.source.details["model"]}.json',
+      )
+
+    # Try loading JSON data
+    if settings_file.exists():
+      with open(settings_file, 'r') as _f:
+        try:
+          settings = json.loads(_f.read())
+        except (OSError, json.JSONDecodeError):
+          LOG.error('Failed to load clone settings')
+          std.print_error('Invalid clone settings detected.')
+          raise std.GenericAbort()
+
+    # Check settings
+    if settings:
+      if settings['First Run'] and discard_unused_settings:
+        # Previous run aborted before starting recovery, discard settings
+        settings = {}
+      else:
+        bail = False
+        for key in ('model', 'serial'):
+          if settings['Source'][key] != self.source.details[key]:
+            std.print_error(f"Clone settings don't match source {key}")
+            bail = True
+          if settings['Destination'][key] != self.destination.details[key]:
+            std.print_error(f"Clone settings don't match destination {key}")
+            bail = True
+        if bail:
+          raise std.GenericAbort()
+
+    # Update settings
+    if not settings:
+      settings = CLONE_SETTINGS.copy()
+    if not settings['Source']:
+      settings['Source'] = {
+        'model': self.source.details['model'],
+        'serial': self.source.details['serial'],
+        }
+    if not settings['Destination']:
+      settings['Destination'] = {
+        'model': self.destination.details['model'],
+        'serial': self.destination.details['serial'],
+        }
+
+    # Done
+    return settings
+
+  def _save_settings(self, settings):
+    """Save settings for future runs."""
+    settings_file = pathlib.Path(
+      f'{self.working_dir}/Clone_{self.source.details["model"]}.json',
+      )
+
+    # Try saving JSON data
+    try:
+      with open(settings_file, 'w') as _f:
+        json.dump(settings, _f)
+    except OSError:
+      std.print_error('Failed to save clone settings')
+      raise std.GenericAbort()
+
   def add_clone_block_pairs(self):
     """Add device to device block pairs and set settings if necessary."""
     source_sep = get_partition_separator(self.source.path.name)
@@ -378,7 +443,7 @@ class State():
     source_parts = []
 
     # Clone settings
-    settings = self.load_settings(discard_unused_settings=True)
+    settings = self._load_settings(discard_unused_settings=True)
 
     # Add pairs
     if settings['Partition Mapping']:
@@ -429,7 +494,7 @@ class State():
           settings['Partition Mapping'].append([source_num, dest_num])
 
         # Save settings
-        self.save_settings(settings)
+        self._save_settings(settings)
 
     # Done
     return source_parts
@@ -477,7 +542,7 @@ class State():
       report.extend(
         build_block_pair_report(
           self.block_pairs,
-          self.load_settings() if self.mode == 'Clone' else {},
+          self._load_settings() if self.mode == 'Clone' else {},
           ),
         )
       report.append(' ')
@@ -660,57 +725,6 @@ class State():
       for pair in self.block_pairs:
         pair.safety_check()
 
-  def load_settings(self, discard_unused_settings=False):
-    """Load settings from previous run, returns dict."""
-    settings = {}
-    settings_file = pathlib.Path(
-      f'{self.working_dir}/Clone_{self.source.details["model"]}.json',
-      )
-
-    # Try loading JSON data
-    if settings_file.exists():
-      with open(settings_file, 'r') as _f:
-        try:
-          settings = json.loads(_f.read())
-        except (OSError, json.JSONDecodeError):
-          LOG.error('Failed to load clone settings')
-          std.print_error('Invalid clone settings detected.')
-          raise std.GenericAbort()
-
-    # Check settings
-    if settings:
-      if settings['First Run'] and discard_unused_settings:
-        # Previous run aborted before starting recovery, discard settings
-        settings = {}
-      else:
-        bail = False
-        for key in ('model', 'serial'):
-          if settings['Source'][key] != self.source.details[key]:
-            std.print_error(f"Clone settings don't match source {key}")
-            bail = True
-          if settings['Destination'][key] != self.destination.details[key]:
-            std.print_error(f"Clone settings don't match destination {key}")
-            bail = True
-        if bail:
-          raise std.GenericAbort()
-
-    # Update settings
-    if not settings:
-      settings = CLONE_SETTINGS.copy()
-    if not settings['Source']:
-      settings['Source'] = {
-        'model': self.source.details['model'],
-        'serial': self.source.details['serial'],
-        }
-    if not settings['Destination']:
-      settings['Destination'] = {
-        'model': self.destination.details['model'],
-        'serial': self.destination.details['serial'],
-        }
-
-    # Done
-    return settings
-
   def mark_started(self):
     """Edit clone settings, if applicable, to mark recovery as started."""
     # Skip if not cloning
@@ -723,10 +737,10 @@ class State():
       return
 
     # Update settings
-    settings = self.load_settings()
+    settings = self._load_settings()
     if settings.get('First Run', False):
       settings['First Run'] = False
-      self.save_settings(settings)
+      self._save_settings(settings)
 
   def pass_above_threshold(self, pass_name):
     """Check if all block_pairs meet the pass threshold, returns bool."""
@@ -750,7 +764,7 @@ class State():
     msr_type = 'E3C9E316-0B5C-4DB8-817D-F92DF00215AE'
     part_num = 0
     sfdisk_script = []
-    settings = self.load_settings()
+    settings = self._load_settings()
 
     # Bail early
     if not settings['Needs Format']:
@@ -837,7 +851,7 @@ class State():
 
     # Update settings
     settings['Needs Format'] = False
-    self.save_settings(settings)
+    self._save_settings(settings)
 
   def retry_all_passes(self):
     """Prep block_pairs for a retry recovery attempt."""
@@ -880,7 +894,7 @@ class State():
   def safety_check_size(self):
     """Run size safety check and abort if necessary."""
     required_size = sum([pair.size for pair in self.block_pairs])
-    settings = self.load_settings() if self.mode == 'Clone' else {}
+    settings = self._load_settings() if self.mode == 'Clone' else {}
 
     # Increase required_size if necessary
     if self.mode == 'Clone' and settings.get('Needs Format', False):
@@ -942,20 +956,6 @@ class State():
         _f.write('[Debug report]\n')
         _f.write('\n'.join(debug.generate_object_report(_bp)))
         _f.write('\n')
-
-  def save_settings(self, settings):
-    """Save settings for future runs."""
-    settings_file = pathlib.Path(
-      f'{self.working_dir}/Clone_{self.source.details["model"]}.json',
-      )
-
-    # Try saving JSON data
-    try:
-      with open(settings_file, 'w') as _f:
-        json.dump(settings, _f)
-    except OSError:
-      std.print_error('Failed to save clone settings')
-      raise std.GenericAbort()
 
   def skip_pass(self, pass_name):
     """Mark block_pairs as skipped if applicable."""
