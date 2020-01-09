@@ -148,6 +148,10 @@ class BlockPair():
     # Set initial status
     self.set_initial_status()
 
+  def get_error_size(self):
+    """Get error size in bytes, returns int."""
+    return self.size - self.get_rescued_size()
+
   def get_percent_recovered(self):
     """Get percent rescued from map_data, returns float."""
     return 100 * self.map_data.get('rescued', 0) / self.size
@@ -518,15 +522,58 @@ class State():
     if not std.ask(prompt):
       raise std.GenericAbort()
 
+  def generate_report(self):
+    """Generate report of overall and per block_pair results, returns list."""
+    report = []
+
+    # Header
+    report.append(f'{self.mode.title()} Results:')
+    report.append(' ')
+    report.append(f'Source: {self.source.path}')
+    report.append(f'Destination: {self.destination}')
+
+    # Overall
+    report.append(' ')
+    error_size = self.get_error_size()
+    error_size = std.bytes_to_string(error_size, decimals=2)
+    percent = self.get_percent_recovered()
+    percent = format_status_string(percent, width=0)
+    percent = std.strip_colors(percent)
+    report.append(f'Overall rescued: {percent}, error size: {error_size}')
+
+    # Block-Pairs
+    if len(self.block_pairs) > 1:
+      report.append(' ')
+      for pair in self.block_pairs:
+        error_size = pair.get_error_size()
+        error_size = std.bytes_to_string(error_size, decimals=2)
+        pair_size = std.bytes_to_string(pair.size, decimals=2)
+        percent = pair.get_percent_recovered()
+        percent = format_status_string(percent, width=0)
+        percent = std.strip_colors(percent)
+        report.append(
+          f'{pair.source.name} ({pair_size}) rescued: '
+          f'{percent}, error size: {error_size}'
+          )
+
+    # Done
+    return report
+
+  def get_error_size(self):
+    """Get total error size from block_pairs in bytes, returns int."""
+    return self.get_total_size() - self.get_rescued_size()
+
   def get_percent_recovered(self):
     """Get total percent rescued from block_pairs, returns float."""
-    total_rescued = self.get_rescued_size()
-    total_size = sum([pair.size for pair in self.block_pairs])
-    return 100 * total_rescued / total_size
+    return 100 * self.get_rescued_size() / self.get_total_size()
 
   def get_rescued_size(self):
     """Get total rescued size from all block pairs, returns int."""
     return sum([pair.get_rescued_size() for pair in self.block_pairs])
+
+  def get_total_size(self):
+    """Get total size of all block_pairs in bytes, returns int."""
+    return sum([pair.size for pair in self.block_pairs])
 
   def init_recovery(self, docopt_args):
     """Select source/dest and set env."""
@@ -1639,6 +1686,11 @@ def main():
       std.print_warning('Recovery is less than 100%')
       if std.ask('Are you sure you want to quit?'):
         break
+
+  # Save results to log
+  LOG.info(' ')
+  for line in state.generate_report():
+    LOG.info(line)
 
 
 def mount_raw_image(path):
