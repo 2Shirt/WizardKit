@@ -1,6 +1,7 @@
 #!/bin/bash
 #
 ## Wizard Kit: HW Diagnostics Launcher
+# TODO: Replace relative paths with absolute
 
 source ./launch-in-tmux
 
