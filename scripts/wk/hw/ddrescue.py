@@ -148,6 +148,10 @@ class BlockPair():
     # Set initial status
     self.set_initial_status()
 
+  def get_error_size(self):
+    """Get error size in bytes, returns int."""
+    return self.size - self.get_rescued_size()
+
   def get_percent_recovered(self):
     """Get percent rescued from map_data, returns float."""
     return 100 * self.map_data.get('rescued', 0) / self.size
@@ -366,6 +370,71 @@ class State():
     # Source / Dest
     self.update_top_panes()
 
+  def _load_settings(self, discard_unused_settings=False):
+    """Load settings from previous run, returns dict."""
+    settings = {}
+    settings_file = pathlib.Path(
+      f'{self.working_dir}/Clone_{self.source.details["model"]}.json',
+      )
+
+    # Try loading JSON data
+    if settings_file.exists():
+      with open(settings_file, 'r') as _f:
+        try:
+          settings = json.loads(_f.read())
+        except (OSError, json.JSONDecodeError):
+          LOG.error('Failed to load clone settings')
+          std.print_error('Invalid clone settings detected.')
+          raise std.GenericAbort()
+
+    # Check settings
+    if settings:
+      if settings['First Run'] and discard_unused_settings:
+        # Previous run aborted before starting recovery, discard settings
+        settings = {}
+      else:
+        bail = False
+        for key in ('model', 'serial'):
+          if settings['Source'][key] != self.source.details[key]:
+            std.print_error(f"Clone settings don't match source {key}")
+            bail = True
+          if settings['Destination'][key] != self.destination.details[key]:
+            std.print_error(f"Clone settings don't match destination {key}")
+            bail = True
+        if bail:
+          raise std.GenericAbort()
+
+    # Update settings
+    if not settings:
+      settings = CLONE_SETTINGS.copy()
+    if not settings['Source']:
+      settings['Source'] = {
+        'model': self.source.details['model'],
+        'serial': self.source.details['serial'],
+        }
+    if not settings['Destination']:
+      settings['Destination'] = {
+        'model': self.destination.details['model'],
+        'serial': self.destination.details['serial'],
+        }
+
+    # Done
+    return settings
+
+  def _save_settings(self, settings):
+    """Save settings for future runs."""
+    settings_file = pathlib.Path(
+      f'{self.working_dir}/Clone_{self.source.details["model"]}.json',
+      )
+
+    # Try saving JSON data
+    try:
+      with open(settings_file, 'w') as _f:
+        json.dump(settings, _f)
+    except OSError:
+      std.print_error('Failed to save clone settings')
+      raise std.GenericAbort()
+
   def add_clone_block_pairs(self):
     """Add device to device block pairs and set settings if necessary."""
     source_sep = get_partition_separator(self.source.path.name)
@@ -374,7 +443,7 @@ class State():
     source_parts = []
 
     # Clone settings
-    settings = self.load_settings(discard_unused_settings=True)
+    settings = self._load_settings(discard_unused_settings=True)
 
     # Add pairs
     if settings['Partition Mapping']:
@@ -425,7 +494,7 @@ class State():
           settings['Partition Mapping'].append([source_num, dest_num])
 
         # Save settings
-        self.save_settings(settings)
+        self._save_settings(settings)
 
     # Done
     return source_parts
@@ -473,7 +542,7 @@ class State():
       report.extend(
         build_block_pair_report(
           self.block_pairs,
-          self.load_settings() if self.mode == 'Clone' else {},
+          self._load_settings() if self.mode == 'Clone' else {},
           ),
         )
       report.append(' ')
@@ -518,15 +587,64 @@ class State():
     if not std.ask(prompt):
       raise std.GenericAbort()
 
+  def generate_report(self):
+    """Generate report of overall and per block_pair results, returns list."""
+    report = []
+
+    # Header
+    report.append(f'{self.mode.title()} Results:')
+    report.append(' ')
+    report.append(f'Source: {self.source.description}')
+    if self.mode == 'Clone':
+      report.append(f'Destination: {self.destination.description}')
+    else:
+      report.append(f'Destination: {self.destination}/')
+
+    # Overall
+    report.append(' ')
+    error_size = self.get_error_size()
+    error_size_str = std.bytes_to_string(error_size, decimals=2)
+    if error_size > 0:
+      error_size_str = std.color_string(error_size_str, 'YELLOW')
+    percent = self.get_percent_recovered()
+    percent = format_status_string(percent, width=0)
+    report.append(f'Overall rescued: {percent}, error size: {error_size_str}')
+
+    # Block-Pairs
+    if len(self.block_pairs) > 1:
+      report.append(' ')
+      for pair in self.block_pairs:
+        error_size = pair.get_error_size()
+        error_size_str = std.bytes_to_string(error_size, decimals=2)
+        if error_size > 0:
+          error_size_str = std.color_string(error_size_str, 'YELLOW')
+        pair_size = std.bytes_to_string(pair.size, decimals=2)
+        percent = pair.get_percent_recovered()
+        percent = format_status_string(percent, width=0)
+        report.append(
+          f'{pair.source.name} ({pair_size}) '
+          f'rescued: {percent}, '
+          f'error size: {error_size_str}'
+          )
+
+    # Done
+    return report
+
+  def get_error_size(self):
+    """Get total error size from block_pairs in bytes, returns int."""
+    return self.get_total_size() - self.get_rescued_size()
+
   def get_percent_recovered(self):
     """Get total percent rescued from block_pairs, returns float."""
-    total_rescued = self.get_rescued_size()
-    total_size = sum([pair.size for pair in self.block_pairs])
-    return 100 * total_rescued / total_size
+    return 100 * self.get_rescued_size() / self.get_total_size()
 
   def get_rescued_size(self):
     """Get total rescued size from all block pairs, returns int."""
     return sum([pair.get_rescued_size() for pair in self.block_pairs])
+
+  def get_total_size(self):
+    """Get total size of all block_pairs in bytes, returns int."""
+    return sum([pair.size for pair in self.block_pairs])
 
   def init_recovery(self, docopt_args):
     """Select source/dest and set env."""
@@ -613,57 +731,6 @@ class State():
       for pair in self.block_pairs:
         pair.safety_check()
 
-  def load_settings(self, discard_unused_settings=False):
-    """Load settings from previous run, returns dict."""
-    settings = {}
-    settings_file = pathlib.Path(
-      f'{self.working_dir}/Clone_{self.source.details["model"]}.json',
-      )
-
-    # Try loading JSON data
-    if settings_file.exists():
-      with open(settings_file, 'r') as _f:
-        try:
-          settings = json.loads(_f.read())
-        except (OSError, json.JSONDecodeError):
-          LOG.error('Failed to load clone settings')
-          std.print_error('Invalid clone settings detected.')
-          raise std.GenericAbort()
-
-    # Check settings
-    if settings:
-      if settings['First Run'] and discard_unused_settings:
-        # Previous run aborted before starting recovery, discard settings
-        settings = {}
-      else:
-        bail = False
-        for key in ('model', 'serial'):
-          if settings['Source'][key] != self.source.details[key]:
-            std.print_error(f"Clone settings don't match source {key}")
-            bail = True
-          if settings['Destination'][key] != self.destination.details[key]:
-            std.print_error(f"Clone settings don't match destination {key}")
-            bail = True
-        if bail:
-          raise std.GenericAbort()
-
-    # Update settings
-    if not settings:
-      settings = CLONE_SETTINGS.copy()
-    if not settings['Source']:
-      settings['Source'] = {
-        'model': self.source.details['model'],
-        'serial': self.source.details['serial'],
-        }
-    if not settings['Destination']:
-      settings['Destination'] = {
-        'model': self.destination.details['model'],
-        'serial': self.destination.details['serial'],
-        }
-
-    # Done
-    return settings
-
   def mark_started(self):
     """Edit clone settings, if applicable, to mark recovery as started."""
     # Skip if not cloning
@@ -676,10 +743,10 @@ class State():
       return
 
     # Update settings
-    settings = self.load_settings()
+    settings = self._load_settings()
     if settings.get('First Run', False):
       settings['First Run'] = False
-      self.save_settings(settings)
+      self._save_settings(settings)
 
   def pass_above_threshold(self, pass_name):
     """Check if all block_pairs meet the pass threshold, returns bool."""
@@ -703,7 +770,7 @@ class State():
     msr_type = 'E3C9E316-0B5C-4DB8-817D-F92DF00215AE'
     part_num = 0
     sfdisk_script = []
-    settings = self.load_settings()
+    settings = self._load_settings()
 
     # Bail early
     if not settings['Needs Format']:
@@ -790,7 +857,7 @@ class State():
 
     # Update settings
     settings['Needs Format'] = False
-    self.save_settings(settings)
+    self._save_settings(settings)
 
   def retry_all_passes(self):
     """Prep block_pairs for a retry recovery attempt."""
@@ -833,7 +900,7 @@ class State():
   def safety_check_size(self):
     """Run size safety check and abort if necessary."""
     required_size = sum([pair.size for pair in self.block_pairs])
-    settings = self.load_settings() if self.mode == 'Clone' else {}
+    settings = self._load_settings() if self.mode == 'Clone' else {}
 
     # Increase required_size if necessary
     if self.mode == 'Clone' and settings.get('Needs Format', False):
@@ -895,20 +962,6 @@ class State():
         _f.write('[Debug report]\n')
         _f.write('\n'.join(debug.generate_object_report(_bp)))
         _f.write('\n')
-
-  def save_settings(self, settings):
-    """Save settings for future runs."""
-    settings_file = pathlib.Path(
-      f'{self.working_dir}/Clone_{self.source.details["model"]}.json',
-      )
-
-    # Try saving JSON data
-    try:
-      with open(settings_file, 'w') as _f:
-        json.dump(settings, _f)
-    except OSError:
-      std.print_error('Failed to save clone settings')
-      raise std.GenericAbort()
 
   def skip_pass(self, pass_name):
     """Mark block_pairs as skipped if applicable."""
@@ -1639,6 +1692,10 @@ def main():
       std.print_warning('Recovery is less than 100%')
       if std.ask('Are you sure you want to quit?'):
         break
+
+  # Save results to log
+  std.print_standard(' ')
+  std.print_report(state.generate_report())
 
 
 def mount_raw_image(path):
