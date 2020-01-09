@@ -594,31 +594,37 @@ class State():
     # Header
     report.append(f'{self.mode.title()} Results:')
     report.append(' ')
-    report.append(f'Source: {self.source.path}')
-    report.append(f'Destination: {self.destination}')
+    report.append(f'Source: {self.source.description}')
+    if self.mode == 'Clone':
+      report.append(f'Destination: {self.destination.description}')
+    else:
+      report.append(f'Destination: {self.destination}/')
 
     # Overall
     report.append(' ')
     error_size = self.get_error_size()
-    error_size = std.bytes_to_string(error_size, decimals=2)
+    error_size_str = std.bytes_to_string(error_size, decimals=2)
+    if error_size > 0:
+      error_size_str = std.color_string(error_size_str, 'YELLOW')
     percent = self.get_percent_recovered()
     percent = format_status_string(percent, width=0)
-    percent = std.strip_colors(percent)
-    report.append(f'Overall rescued: {percent}, error size: {error_size}')
+    report.append(f'Overall rescued: {percent}, error size: {error_size_str}')
 
     # Block-Pairs
     if len(self.block_pairs) > 1:
       report.append(' ')
       for pair in self.block_pairs:
         error_size = pair.get_error_size()
-        error_size = std.bytes_to_string(error_size, decimals=2)
+        error_size_str = std.bytes_to_string(error_size, decimals=2)
+        if error_size > 0:
+          error_size_str = std.color_string(error_size_str, 'YELLOW')
         pair_size = std.bytes_to_string(pair.size, decimals=2)
         percent = pair.get_percent_recovered()
         percent = format_status_string(percent, width=0)
-        percent = std.strip_colors(percent)
         report.append(
-          f'{pair.source.name} ({pair_size}) rescued: '
-          f'{percent}, error size: {error_size}'
+          f'{pair.source.name} ({pair_size}) '
+          f'rescued: {percent}, '
+          f'error size: {error_size_str}'
           )
 
     # Done
@@ -1688,9 +1694,8 @@ def main():
         break
 
   # Save results to log
-  LOG.info(' ')
-  for line in state.generate_report():
-    LOG.info(line)
+  std.print_standard(' ')
+  std.print_report(state.generate_report())
 
 
 def mount_raw_image(path):
