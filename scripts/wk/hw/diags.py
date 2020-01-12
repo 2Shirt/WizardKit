@@ -895,6 +895,8 @@ def disk_self_test(state, test_objects):
       test_obj.failed = True
       result = 'TimedOut'
     except hw_obj.SMARTNotSupportedError:
+      # Pass test since it doesn't apply
+      test_obj.passed = True
       result = 'N/A'
 
     # Set status
