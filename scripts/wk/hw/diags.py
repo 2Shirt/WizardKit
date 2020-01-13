@@ -619,7 +619,7 @@ def check_self_test_results(test_obj, aborted=False):
     # known progress instead of just "was aborted buy host"
     test_details = test_obj.dev.get_smart_self_test_details()
     test_result = test_details.get('status', {}).get('string', 'Unknown')
-    test_obj.report.append(f'  {test_result}')
+    test_obj.report.append(f'  {test_result.capitalize()}')
     if aborted and not (test_obj.passed or test_obj.failed):
       test_obj.report.append(std.color_string('  Aborted', 'YELLOW'))
       test_obj.set_status('Aborted')
