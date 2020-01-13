@@ -40,7 +40,7 @@ function ask() {
         fi
     done
 }
-        
+
 function cleanup() {
     for d in "$TEMP_DIR" "$LIVE_DIR"; do
         if [[ -d "$d" ]]; then
@@ -116,7 +116,7 @@ function copy_live_env() {
     rmdir "$LIVE_DIR/airootfs/etc/udev" --ignore-fail-on-non-empty
     rm "$LIVE_DIR/isolinux"/*.cfg
     rm "$LIVE_DIR/syslinux"/*.cfg "$LIVE_DIR/syslinux"/*.png
-    
+
     # Add items
     rsync -aI "$ROOT_DIR/setup/linux/include/" "$LIVE_DIR/"
     if [[ "${1:-}" != "--minimal" ]]; then
@@ -160,7 +160,7 @@ function update_live_env() {
     sed -i -r "s/_+/$KIT_NAME_FULL/" "$LIVE_DIR/syslinux/wk_head.cfg"
     mkdir -p "$TEMP_DIR" 2>/dev/null
     curl -Lo "$TEMP_DIR/wimboot.zip" "http://git.ipxe.org/releases/wimboot/wimboot-latest.zip"
-    7z e "$TEMP_DIR/wimboot.zip" -o"$LIVE_DIR/arch/boot" 'wimboot*/LICENSE.txt' 'wimboot*/README.txt' 'wimboot*/wimboot'
+    7z e -aoa "$TEMP_DIR/wimboot.zip" -o"$LIVE_DIR/arch/boot" 'wimboot*/LICENSE.txt' 'wimboot*/README.txt' 'wimboot*/wimboot'
 
     # Boot config (UEFI)
     mkdir -p "$LIVE_DIR/EFI/boot"
@@ -177,9 +177,9 @@ function update_live_env() {
     mkdir -p "$LIVE_DIR/EFI/memtest86/Benchmark"
     mkdir -p "$TEMP_DIR/memtest86"
     curl -Lo "$TEMP_DIR/memtest86/memtest86-usb.zip" "https://www.memtest86.com/downloads/memtest86-usb.zip"
-    7z e "$TEMP_DIR/memtest86/memtest86-usb.zip" -o"$TEMP_DIR/memtest86" "memtest86-usb.img"
-    7z e "$TEMP_DIR/memtest86/memtest86-usb.img" -o"$TEMP_DIR/memtest86" "MemTest86.img"
-    7z x "$TEMP_DIR/memtest86/MemTest86.img" -o"$TEMP_DIR/memtest86"
+    7z e -aoa "$TEMP_DIR/memtest86/memtest86-usb.zip" -o"$TEMP_DIR/memtest86" "memtest86-usb.img"
+    7z e -aoa "$TEMP_DIR/memtest86/memtest86-usb.img" -o"$TEMP_DIR/memtest86" "MemTest86.img"
+    7z x -aoa "$TEMP_DIR/memtest86/MemTest86.img" -o"$TEMP_DIR/memtest86"
     rm "$TEMP_DIR/memtest86/EFI/BOOT/BOOTIA32.efi"
     mv "$TEMP_DIR/memtest86/EFI/BOOT/BOOTX64.efi" "$LIVE_DIR/EFI/memtest86/memtestx64.efi"
     mv "$TEMP_DIR/memtest86/EFI/BOOT"/* "$LIVE_DIR/EFI/memtest86"/
@@ -195,7 +195,7 @@ function update_live_env() {
     # Hostname
     echo "$hostname" > "$LIVE_DIR/airootfs/etc/hostname"
     echo "127.0.1.1  $hostname.localdomain  $hostname" >> "$LIVE_DIR/airootfs/etc/hosts"
-    
+
     # Live packages
     while read -r p; do
         sed -i "/$p/d" "$LIVE_DIR/packages.x86_64"
@@ -215,7 +215,7 @@ function update_live_env() {
     sed -i -r 's/^(.*mirrorlist.*)$/#NOPE#\1/' "$LIVE_DIR/airootfs/root/customize_airootfs.sh"
     echo "curl -o '/etc/pacman.d/mirrorlist' '$MIRRORLIST_SOURCE'" >> "$LIVE_DIR/airootfs/root/customize_airootfs.sh"
     echo "sed -i 's/#Server/Server/g' /etc/pacman.d/mirrorlist" >> "$LIVE_DIR/airootfs/root/customize_airootfs.sh"
-    
+
     # MOTD
     sed -i -r "s/_+/$KIT_NAME_FULL Linux Environment/" "$LIVE_DIR/airootfs/etc/motd"
 
@@ -223,7 +223,7 @@ function update_live_env() {
     git clone --depth=1 https://github.com/robbyrussell/oh-my-zsh.git "$SKEL_DIR/.oh-my-zsh"
     rm -Rf "$SKEL_DIR/.oh-my-zsh/.git"
     curl -o "$SKEL_DIR/.oh-my-zsh/themes/lean.zsh-theme" https://raw.githubusercontent.com/miekg/lean/master/prompt_lean_setup
-    
+
     if [[ "${1:-}" != "--minimal" ]]; then
       # Openbox theme
       git clone --depth=1 https://github.com/addy-dclxvi/Openbox-Theme-Collections.git "$TEMP_DIR/ob-themes"
@@ -238,7 +238,7 @@ function update_live_env() {
     # Shutdown stall fix
     echo "sed -i -r 's/^.*(DefaultTimeoutStartSec)=.*$/\1=15s/' /etc/systemd/system.conf" >> "$LIVE_DIR/airootfs/root/customize_airootfs.sh"
     echo "sed -i -r 's/^.*(DefaultTimeoutStopSec)=.*$/\1=15s/' /etc/systemd/system.conf" >> "$LIVE_DIR/airootfs/root/customize_airootfs.sh"
-    
+
     # SSH
     mkdir -p "$SKEL_DIR/.ssh"
     ssh-keygen -b 4096 -C "$username@$hostname" -N "" -f "$SKEL_DIR/.ssh/id_rsa"
@@ -247,7 +247,7 @@ function update_live_env() {
     sed -i -r '/.*PermitRootLogin.*/d' "$LIVE_DIR/airootfs/root/customize_airootfs.sh"
     echo "sed -i -r '/.*PermitRootLogin.*/d' /etc/ssh/sshd_config" >> "$LIVE_DIR/airootfs/root/customize_airootfs.sh"
     cp "$ROOT_DIR/setup/linux/authorized_keys" "$SKEL_DIR/.ssh/authorized_keys"
-    
+
     # Root user
     echo "echo 'root:$ROOT_PASSWORD' | chpasswd" >> "$LIVE_DIR/airootfs/root/customize_airootfs.sh"
 
@@ -333,13 +333,46 @@ function install_deps() {
     run_elevated pacman -Syu --needed --noconfirm $packages
 }
 
+function build_all() {
+    if [[ "$EUID" -ne 0 ]]; then
+        echo "This section is meant to be run as root."
+        echo "Aborted."
+        exit 1
+    fi
+
+    # Prep for build
+    cleanup
+    fix_kit_permissions
+    install_deps
+    load_settings --edit
+    update_repo
+
+    # Build (full)
+    copy_live_env
+    update_live_env
+    # Rerun script as root to start Archiso build process
+    run_elevated "$(realpath "$0")" --build-iso
+    # Cleanup
+    mv -nv "$LIVE_DIR" "${LIVE_DIR}.full"
+    perl-rename -v "s/(${KIT_NAME_SHORT}-Linux)-(${DATE}.*)/\1-Full-\2/" "$OUT_DIR"/*
+
+    # Build (minimal)
+    copy_live_env --minimal
+    update_live_env --minimal
+    # Rerun script as root to start Archiso build process
+    run_elevated "$(realpath "$0")" --build-iso
+    # Cleanup
+    mv -nv "$LIVE_DIR" "${LIVE_DIR}.minimal"
+    perl-rename -v "s/(${KIT_NAME_SHORT}-Linux)-(${DATE}.*)/\1-Minimal-\2/" "$OUT_DIR"/*
+}
+
 function build_iso() {
     if [[ "$EUID" -ne 0 ]]; then
         echo "This section is meant to be run as root."
         echo "Aborted."
         exit 1
     fi
-    
+
     # Set permissions
     echo "Setting permissions..."
     chown root:root "$LIVE_DIR" -R
@@ -354,7 +387,7 @@ function build_iso() {
             fi
         done
     done
-    
+
     # Build ISO
     prefix="${KIT_NAME_SHORT}-Linux"
     label="${KIT_NAME_SHORT}_LINUX"
@@ -375,7 +408,7 @@ function build_full() {
         echo "Aborted."
         exit 1
     fi
-    
+
     # Prep for build
     cleanup
     fix_kit_permissions
@@ -386,10 +419,38 @@ function build_full() {
     update_live_env
     # Rerun script as root to start Archiso build process
     run_elevated "$(realpath "$0")" --build-iso
+    # Cleanup
+    perl-rename -v "s/(${KIT_NAME_SHORT}-Linux)-(${DATE}.*)/\1-Full-\2/" "$OUT_DIR"/*
+}
+
+function build_minimal() {
+    if [[ "$EUID" -eq 0 ]]; then
+        echo "This section not meant to be run as root."
+        echo "Aborted."
+        exit 1
+    fi
+
+    # Prep for build
+    cleanup
+    fix_kit_permissions
+    install_deps
+    load_settings --edit
+    update_repo
+    copy_live_env --minimal
+    update_live_env --minimal
+    # Rerun script as root to start Archiso build process
+    run_elevated "$(realpath "$0")" --build-iso
+    # Cleanup
+    perl-rename -v "s/(${KIT_NAME_SHORT}-Linux)-(${DATE}.*)/\1-Minimal-\2/" "$OUT_DIR"/*
 }
 
 # Check input
 case ${1:-} in
+    -a|--build-all)
+        build_all
+        echo Done
+        ;;
+
     -b|--build-full)
         build_full
         echo Done
@@ -417,7 +478,7 @@ case ${1:-} in
         build_iso
         echo Done
         ;;
-    
+
     -p|--prep-live-env)
         load_settings --edit
         copy_live_env
@@ -434,13 +495,15 @@ case ${1:-} in
         echo "Usage: $(basename "$0") [OPTIONS]"
         echo ""
         echo "Options:"
-        echo "    -b --build-full       Perform all tasks and build iso"
+        echo "    -a --build-all        Perform all tasks to build all isos"
+        echo "    -b --build-full       Perform all tasks to build the full iso"
+        echo "    -m --build-minimal    Perform all tasks to build the minimal iso"
         echo "    -h --help             Show usage"
         echo ""
         echo "Advanced options:"
         echo "    -f --fix-perms        Fix folder permissions"
         echo "    -i --install-deps     Install build dependencies"
-        echo "    -m --prep-minimal-env Prep live & airootfs folders (minimal packages)"
+        echo "    -n --prep-minimal-env Prep live & airootfs folders (minimal packages)"
         echo "    -o --build-iso        Build ISO (using current setup)"
         echo "    -p --prep-live-env    Prep live & airootfs folders"
         echo "    -u --update-repo      Update custom pacman repo"
