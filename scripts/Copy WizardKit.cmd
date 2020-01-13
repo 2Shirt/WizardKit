@@ -14,12 +14,12 @@ call :SetTitle Tools Copier
 rem Set variables using settings\main.py file
 set "SETTINGS=%bin%\Scripts\settings\main.py"
 for %%v in (ARCHIVE_PASSWORD KIT_NAME_FULL) do (
-    set "var=%%v"
-    for /f "tokens=* usebackq" %%f in (`findstr "!var!=" "%SETTINGS%"`) do (
-        set "_v=%%f"
-        set "_v=!_v:*'=!"
-        set "%%v=!_v:~0,-1!"
-    )
+  set "var=%%v"
+  for /f "tokens=* usebackq" %%f in (`findstr "!var!=" "%SETTINGS%"`) do (
+    set "_v=%%f"
+    set "_v=!_v:*'=!"
+    set "%%v=!_v:~0,-1!"
+  )
 )
 rem Set ARCH to 32 as a gross assumption and check for x86_64 status
 set ARCH=32
@@ -28,9 +28,9 @@ set "SEVEN_ZIP=%bin%\7-Zip\7za.exe"
 set "CON=%bin%\ConEmu\ConEmu.exe"
 set "FASTCOPY=%bin%\FastCopy\FastCopy.exe"
 if %ARCH% equ 64 (
-    set "SEVEN_ZIP=%bin%\7-Zip\7za64.exe"
-    set "CON=%bin%\ConEmu\ConEmu64.exe"
-    set "FASTCOPY=%bin%\FastCopy\FastCopy64.exe"
+  set "SEVEN_ZIP=%bin%\7-Zip\7za64.exe"
+  set "CON=%bin%\ConEmu\ConEmu64.exe"
+  set "FASTCOPY=%bin%\FastCopy\FastCopy64.exe"
 )
 set "fastcopy_args=/cmd=diff /no_ui /auto_close"
 rem Set %client_dir%
@@ -42,14 +42,14 @@ set "dest=%client_dir%\Tools"
 
 :RelaunchInConEmu
 if not defined IN_CONEMU (
-    if not defined L_NCMD (
-        set "con_args=-new_console:n"
-        rem If in DEBUG state then force ConEmu to stay open
-        if defined DEBUG (set "con_args=!con_args! -new_console:c")
-        set IN_CONEMU=True
-        start "" "%CON%" -run ""%~0" %*" !con_args! || goto ErrorUnknown
-        exit /b 0
-    )
+  if not defined L_NCMD (
+    set "con_args=-new_console:n"
+    rem If in DEBUG state then force ConEmu to stay open
+    if defined DEBUG (set "con_args=!con_args! -new_console:c")
+    set IN_CONEMU=True
+    start "" "%CON%" -run ""%~0" %*" !con_args! || goto ErrorUnknown
+    exit /b 0
+  )
 )
 :CopyBin
 echo Copying .bin...
@@ -102,7 +102,7 @@ goto Exit
 rem Loops through all arguments to check for accepted flags
 set DEBUG=
 for %%f in (%*) do (
-    if /i "%%f" == "/DEBUG" (@echo on & set "DEBUG=/DEBUG")
+  if /i "%%f" == "/DEBUG" (@echo on & set "DEBUG=/DEBUG")
 )
 @exit /b 0
 

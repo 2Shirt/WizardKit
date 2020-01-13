@@ -36,9 +36,9 @@ rem Edited by:    https://stackoverflow.com/users/330315/a-horse-with-no-name
 rem Answer by:    https://stackoverflow.com/users/3198799/and31415
 fsutil dirty query %systemdrive% >nul
 if %errorlevel% neq 0 (
-   call :RequestElevation
-   rem reset errorlevel to 1 to abort the current non-elevated script
-   color 00
+  call :RequestElevation
+  rem reset errorlevel to 1 to abort the current non-elevated script
+  color 00
 )
 @exit /b %errorlevel%
 
@@ -46,7 +46,7 @@ if %errorlevel% neq 0 (
 rem Loops through all arguments to check for accepted flags
 set DEBUG=
 for %%f in (%*) do (
-    if /i "%%f" == "/DEBUG" (@echo on & set "DEBUG=/DEBUG")
+  if /i "%%f" == "/DEBUG" (@echo on & set "DEBUG=/DEBUG")
 )
 @exit /b 0
 
@@ -59,12 +59,12 @@ rem Check registry for WADK
 set "r_path=HKLM\Software\Wow6432Node\Microsoft\Windows Kits\Installed Roots"
 reg query "%r_path%" /v %r_vname% >nul 2>&1 && set "found=True"
 if not defined found (
-    rem 32-bit systems?
-    set "r_path=HKLM\Software\Microsoft\Windows Kits\Installed Roots"
-    reg query "!r_path!" /v %r_vname% >nul 2>&1 && set "found=True"
+  rem 32-bit systems?
+  set "r_path=HKLM\Software\Microsoft\Windows Kits\Installed Roots"
+  reg query "!r_path!" /v %r_vname% >nul 2>&1 && set "found=True"
 )
 for /f "skip=2 tokens=2*" %%i in ('reg query "%r_path%" /v %r_vname%') do (
-    set adk_root=%%j\Assessment and Deployment Kit
+  set adk_root=%%j\Assessment and Deployment Kit
 )
 rem Set errorlevel if necessary
 if not defined adk_root color 00
