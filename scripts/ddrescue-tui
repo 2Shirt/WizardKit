@@ -17,6 +17,6 @@ source ./launch-in-tmux
 
 SESSION_NAME="ddrescue-tui"
 WINDOW_NAME="ddrescue TUI"
-TMUX_CMD="./ddrescue-tui.py"
+TMUX_CMD="ddrescue-tui.py"
 
 launch_in_tmux "$@"
