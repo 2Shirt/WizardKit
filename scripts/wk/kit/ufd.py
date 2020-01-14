@@ -15,7 +15,6 @@ from wk import io, log, std
 from wk.cfg.main import KIT_NAME_FULL, KIT_NAME_SHORT
 from wk.cfg.ufd import BOOT_ENTRIES, BOOT_FILES, ITEMS, ITEMS_HIDDEN, SOURCES
 from wk.exe import run_program
-from wk.hw.obj import Disk
 from wk.os import linux
 
 
@@ -219,6 +218,22 @@ def find_first_partition(dev_path):
   return part_path
 
 
+def get_uuid(path):
+  """Get filesystem UUID via findmnt, returns str."""
+  cmd = [
+    'findmnt',
+    '--noheadings',
+    '--target', path,
+    '--output', 'uuid'
+    ]
+
+  # Run findmnt
+  proc = run_program(cmd, check=False)
+
+  # Done
+  return proc.stdout.strip()
+
+
 def hide_items(ufd_dev, items):
   """Set FAT32 hidden flag for items."""
   first_partition = find_first_partition(ufd_dev)
@@ -392,8 +407,7 @@ def show_selections(args, sources, ufd_dev, ufd_sources):
 def update_boot_entries():
   """Update boot files for UFD usage"""
   configs = []
-  ufd = Disk('/mnt/UFD')
-  uuid = ufd.details.get('uuid')
+  uuid = get_uuid('/mnt/UFD')
 
   # Find config files
   for c_path, c_ext in BOOT_FILES.items():
