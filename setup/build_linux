@@ -19,9 +19,9 @@ REPO_DIR="$BUILD_DIR/repo"
 SKEL_DIR="$LIVE_DIR/airootfs/etc/skel"
 TEMP_DIR="$BUILD_DIR/temp"
 MIRRORLIST_SOURCE='https://www.archlinux.org/mirrorlist/?country=US&protocol=http&protocol=https&ip_version=4&use_mirror_status=on'
-if which nano >/dev/null 2>&1; then
+if command -v nano >/dev/null 2>&1; then
   EDITOR=nano
-elif which vim >/dev/null 2>&1; then
+elif command -v vim >/dev/null 2>&1; then
   EDITOR=vim
 else
   EDITOR=vi
@@ -130,7 +130,7 @@ function copy_live_env() {
 function run_elevated() {
   prog="$1"
   shift
-  if which sudo >/dev/null 2>&1; then
+  if command -v sudo >/dev/null 2>&1; then
     if ! sudo "$prog" $*; then
       echo "ERROR: Failed to run '$prog'"
       if ask "Retry?"; then
