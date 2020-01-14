@@ -10,7 +10,7 @@ set -o pipefail
 # Prep
 DATE="$(date +%F)"
 DATETIME="$(date +%F_%H%M)"
-ROOT_DIR="$(realpath $(dirname "$0"))"
+ROOT_DIR="$(realpath $(dirname "$0")/..)"
 BUILD_DIR="$ROOT_DIR/setup/BUILD_LINUX"
 LIVE_DIR="$BUILD_DIR/live"
 LOG_DIR="$BUILD_DIR/logs"
