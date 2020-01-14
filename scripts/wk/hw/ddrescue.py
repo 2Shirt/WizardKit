@@ -1697,8 +1697,9 @@ def main():
         break
 
   # Save results to log
-  std.print_standard(' ')
-  std.print_report(state.generate_report())
+  LOG.info('')
+  for line in state.generate_report():
+    LOG.info('  %s', std.strip_colors(line))
 
 
 def mount_raw_image(path):
