@@ -21,12 +21,12 @@ call :DeQuote L_TYPE
 rem Set variables using settings\main.py file
 set "SETTINGS=%bin%\Scripts\settings\main.py"
 for %%v in (ARCHIVE_PASSWORD KIT_NAME_FULL OFFICE_SERVER_IP QUICKBOOKS_SERVER_IP) do (
-    set "var=%%v"
-    for /f "tokens=* usebackq" %%f in (`findstr "!var!=" "%SETTINGS%"`) do (
-        set "_v=%%f"
-        set "_v=!_v:*'=!"
-        set "%%v=!_v:~0,-1!"
-    )
+  set "var=%%v"
+  for /f "tokens=* usebackq" %%f in (`findstr "!var!=" "%SETTINGS%"`) do (
+    set "_v=%%f"
+    set "_v=!_v:*'=!"
+    set "%%v=!_v:~0,-1!"
+  )
 )
 rem Set ARCH to 32 as a gross assumption and check for x86_64 status
 set ARCH=32
@@ -37,21 +37,21 @@ set "FASTCOPY=%bin%\FastCopy\FastCopy.exe"
 set "POWERSHELL=%systemroot%\system32\WindowsPowerShell\v1.0\powershell.exe"
 set "PYTHON=%bin%\Python\x32\python.exe"
 if %ARCH% equ 64 (
-    set "SEVEN_ZIP=%bin%\7-Zip\7za64.exe"
-    set "CON=%bin%\ConEmu\ConEmu64.exe"
-    set "FASTCOPY=%bin%\FastCopy\FastCopy64.exe"
-    set "PYTHON=%bin%\Python\x64\python.exe"
+  set "SEVEN_ZIP=%bin%\7-Zip\7za64.exe"
+  set "CON=%bin%\ConEmu\ConEmu64.exe"
+  set "FASTCOPY=%bin%\FastCopy\FastCopy64.exe"
+  set "PYTHON=%bin%\Python\x64\python.exe"
 )
 
 :UpdateTitle
 rem Sets title using KIT_NAME_FULL from settings\main.py (unless %window_title% already set)
 if defined window_title (
-    title %window_title%
+  title %window_title%
 ) else (
-    set "window_title=%*"
-    if not defined window_title set "window_title=Launcher"
-    set "window_title=%KIT_NAME_FULL%: %window_title%"
-    title %window_title%
+  set "window_title=%*"
+  if not defined window_title set "window_title=Launcher"
+  set "window_title=%KIT_NAME_FULL%: %window_title%"
+  title %window_title%
 )
 
 :CheckUsage
@@ -66,28 +66,28 @@ if /i not "%L__CLI%" == "True" (set "L__CLI=")
 
 :RelaunchInConEmu
 set RELOAD_IN_CONEMU=True
-if defined ConEmuBuild          set "RELOAD_IN_CONEMU="
-if defined L_NCMD               set "RELOAD_IN_CONEMU="
-if "%L_TYPE%" == "Executable"   set "RELOAD_IN_CONEMU="
-if "%L_TYPE%" == "PSScript"     set "RELOAD_IN_CONEMU="
-if "%L_TYPE%" == "PyScript"     set "RELOAD_IN_CONEMU="
+if defined ConEmuBuild        set "RELOAD_IN_CONEMU="
+if defined L_NCMD             set "RELOAD_IN_CONEMU="
+if "%L_TYPE%" == "Executable" set "RELOAD_IN_CONEMU="
+if "%L_TYPE%" == "PSScript"   set "RELOAD_IN_CONEMU="
+if "%L_TYPE%" == "PyScript"   set "RELOAD_IN_CONEMU="
 
 if defined RELOAD_IN_CONEMU (
-    set "con_args=-new_console:n"
-    rem If in DEBUG state then force ConEmu to stay open
-    if defined DEBUG (set "con_args=!con_args! -new_console:c")
-    start "" "%CON%" -run ""%~0" %*" !con_args! || goto ErrorUnknown
-    exit /b 0
+  set "con_args=-new_console:n"
+  rem If in DEBUG state then force ConEmu to stay open
+  if defined DEBUG (set "con_args=!con_args! -new_console:c")
+  start "" "%CON%" -run ""%~0" %*" !con_args! || goto ErrorUnknown
+  exit /b 0
 )
 
 :CheckLaunchType
 rem Jump to the selected launch type or show usage
-if /i "%L_TYPE%" == "Executable"    (goto LaunchExecutable)
-if /i "%L_TYPE%" == "Folder"        (goto LaunchFolder)
-if /i "%L_TYPE%" == "Office"        (goto LaunchOffice)
-if /i "%L_TYPE%" == "PSScript"      (goto LaunchPSScript)
-if /i "%L_TYPE%" == "PyScript"      (goto LaunchPyScript)
-if /i "%L_TYPE%" == "QuickBooks"    (goto LaunchQuickBooksSetup)
+if /i "%L_TYPE%" == "Executable"  (goto LaunchExecutable)
+if /i "%L_TYPE%" == "Folder"      (goto LaunchFolder)
+if /i "%L_TYPE%" == "Office"      (goto LaunchOffice)
+if /i "%L_TYPE%" == "PSScript"    (goto LaunchPSScript)
+if /i "%L_TYPE%" == "PyScript"    (goto LaunchPyScript)
+if /i "%L_TYPE%" == "QuickBooks"  (goto LaunchQuickBooksSetup)
 goto Usage
 
 :LaunchExecutable
@@ -97,7 +97,7 @@ call :ExtractOrFindPath || goto ErrorProgramNotFound
 rem Check for 64-bit prog (if running on 64-bit system)
 set "prog=%_path%\%L_ITEM%"
 if %ARCH% equ 64 (
-    if exist "%_path%\%L_ITEM:.=64.%" set "prog=%_path%\%L_ITEM:.=64.%"
+  if exist "%_path%\%L_ITEM:.=64.%" set "prog=%_path%\%L_ITEM:.=64.%"
 )
 if not exist "%prog%" goto ErrorProgramNotFound
 
@@ -105,9 +105,9 @@ rem Run
 popd && pushd "%_path%"
 if defined L__CLI goto LaunchExecutableCLI
 if defined L_ELEV (
-    goto LaunchExecutableElev
+  goto LaunchExecutableElev
 ) else (
-    goto LaunchExecutableUser
+  goto LaunchExecutableUser
 )
 
 :LaunchExecutableCLI
@@ -153,9 +153,9 @@ set "_odt=False"
 if %L_PATH% equ 2016 (set "_odt=True")
 if %L_PATH% equ 2019 (set "_odt=True")
 if "%_odt%" == "True" (
-    goto LaunchOfficeODT
+  goto LaunchOfficeODT
 ) else (
-    goto LaunchOfficeSetup
+  goto LaunchOfficeSetup
 )
 
 :LaunchOfficeODT
@@ -202,14 +202,14 @@ start "" /wait "%FASTCOPY%" %fastcopy_args% "%source%" /to="%dest%\"
 
 rem Run
 if exist "%dest%\%product_name%\setup.exe" (
-    start "" "%dest%\%product_name%\setup.exe" || goto ErrorUnknown
+  start "" "%dest%\%product_name%\setup.exe" || goto ErrorUnknown
 ) else if "%product_name:~-3,3%" == "exe" (
-    start "" "%dest%\%product_name%" || goto ErrorUnknown
+  start "" "%dest%\%product_name%" || goto ErrorUnknown
 ) else if "%product_name:~-3,3%" == "msi" (
-    start "" "%dest%\%product_name%" || goto ErrorUnknown
+  start "" "%dest%\%product_name%" || goto ErrorUnknown
 ) else (
-    rem Office source not supported by this script
-    goto ErrorOfficeUnsupported
+  rem Office source not supported by this script
+  goto ErrorOfficeUnsupported
 )
 goto Exit
 
@@ -225,9 +225,9 @@ if not exist "%script%" goto ErrorScriptNotFound
 rem Run
 popd && pushd "%_path%"
 if defined L_ELEV (
-    goto LaunchPSScriptElev
+  goto LaunchPSScriptElev
 ) else (
-    goto LaunchPSScriptUser
+  goto LaunchPSScriptUser
 )
 
 :LaunchPSScriptElev
@@ -238,10 +238,10 @@ rem Create VB script
 mkdir "%bin%\tmp" 2>nul
 echo Set UAC = CreateObject^("Shell.Application"^) > "%bin%\tmp\Elevate.vbs"
 if defined L_NCMD (
-    rem use Powershell's window instead of %CON%
-    echo UAC.ShellExecute "%POWERSHELL%", "%ps_args% -File "%script%"", "", "runas", 3 >> "%bin%\tmp\Elevate.vbs"
+  rem use Powershell's window instead of %CON%
+  echo UAC.ShellExecute "%POWERSHELL%", "%ps_args% -File "%script%"", "", "runas", 3 >> "%bin%\tmp\Elevate.vbs"
 ) else (
-    echo UAC.ShellExecute "%CON%", "-run %POWERSHELL% %ps_args% -File "%script%" -new_console:n", "", "runas", 1 >> "%bin%\tmp\Elevate.vbs"
+  echo UAC.ShellExecute "%CON%", "-run %POWERSHELL% %ps_args% -File "%script%" -new_console:n", "", "runas", 1 >> "%bin%\tmp\Elevate.vbs"
 )
 
 rem Run
@@ -251,9 +251,9 @@ goto Exit
 :LaunchPSScriptUser
 rem Run
 if defined L_NCMD (
-    start "" "%POWERSHELL%" %ps_args% -File "%script%" || goto ErrorUnknown
+  start "" "%POWERSHELL%" %ps_args% -File "%script%" || goto ErrorUnknown
 ) else (
-    start "" "%CON%" -run "%POWERSHELL%" %ps_args% -File "%script%" -new_console:n || goto ErrorUnknown
+  start "" "%CON%" -run "%POWERSHELL%" %ps_args% -File "%script%" -new_console:n || goto ErrorUnknown
 )
 goto Exit
 
@@ -268,9 +268,9 @@ if not exist "%script%" goto ErrorScriptNotFound
 
 rem Run
 if defined L_ELEV (
-    goto LaunchPyScriptElev
+  goto LaunchPyScriptElev
 ) else (
-    goto LaunchPyScriptUser
+  goto LaunchPyScriptUser
 )
 
 :LaunchPyScriptElev
@@ -281,9 +281,9 @@ rem Create VB script
 mkdir "%bin%\tmp" 2>nul
 echo Set UAC = CreateObject^("Shell.Application"^) > "%bin%\tmp\Elevate.vbs"
 if defined L_NCMD (
-    echo UAC.ShellExecute "%PYTHON%", """%script%"" %L_ARGS%", "", "runas", 3 >> "%bin%\tmp\Elevate.vbs"
+  echo UAC.ShellExecute "%PYTHON%", """%script%"" %L_ARGS%", "", "runas", 3 >> "%bin%\tmp\Elevate.vbs"
 ) else (
-    echo UAC.ShellExecute "%CON%", "-run ""%PYTHON%"" ""%script%"" %L_ARGS% -new_console:n", "", "runas", 1 >> "%bin%\tmp\Elevate.vbs"
+  echo UAC.ShellExecute "%CON%", "-run ""%PYTHON%"" ""%script%"" %L_ARGS% -new_console:n", "", "runas", 1 >> "%bin%\tmp\Elevate.vbs"
 )
 
 rem Run
@@ -292,9 +292,9 @@ goto Exit
 
 :LaunchPyScriptUser
 if defined L_NCMD (
-    start "" "%PYTHON%" "%script%" %L_ARGS% || goto ErrorUnknown
+  start "" "%PYTHON%" "%script%" %L_ARGS% || goto ErrorUnknown
 ) else (
-    start "" "%CON%" -run "%PYTHON%" "%script%" %L_ARGS% -new_console:n || goto ErrorUnknown
+  start "" "%CON%" -run "%PYTHON%" "%script%" %L_ARGS% -new_console:n || goto ErrorUnknown
 )
 goto Exit
 
@@ -317,12 +317,12 @@ start "" /wait "%FASTCOPY%" %fastcopy_args% "%source%" /to="%dest%\"
 
 rem Run
 if exist "%dest%\%product_name%\Setup.exe" (
-    pushd "%dest%\%product_name%"
-    start "" "%dest%\%product_name%\Setup.exe" || goto ErrorUnknown
-    popd
+  pushd "%dest%\%product_name%"
+  start "" "%dest%\%product_name%\Setup.exe" || goto ErrorUnknown
+  popd
 ) else (
-    rem QuickBooks source not supported by this script
-    goto ErrorQuickBooksUnsupported
+  rem QuickBooks source not supported by this script
+  goto ErrorQuickBooksUnsupported
 )
 goto Exit
 
@@ -331,16 +331,16 @@ echo.
 echo.Usage (via defined variables):
 echo.   L_TYPE      L_PATH       L_ITEM   L_ARGS
 echo.   Executable  Working Dir  Program  Args   [L_7ZIP] [L_ELEV] [L__CLI]
-echo.   Folder      Folder       '.'             [L_7ZIP]
-echo.   Office      Year         Product         [L_7ZIP]
-echo.   PSScript    Scripts      Script          [L_7ZIP] [L_ELEV] [L_NCMD]
-echo.   PyScript    Scripts      Script   Args   [L_7ZIP] [L_ELEV] [L_NCMD]
-echo.   QuickBooks  Year         Product         [L_7ZIP]
+echo.   Folder    Folder     '.'                 [L_7ZIP]
+echo.   Office    Year       Product             [L_7ZIP]
+echo.   PSScript  Scripts    Script              [L_7ZIP] [L_ELEV] [L_NCMD]
+echo.   PyScript  Scripts    Script       Args   [L_7ZIP] [L_ELEV] [L_NCMD]
+echo.   QuickBooks  Year     Product             [L_7ZIP]
 echo.
-echo.L_7ZIP:    Extra arguments for 7-Zip (in the :ExtractCBin label)
-echo.L_ELEV:    Elevate to run as Admin
-echo.L_NCMD:    Do not run script inside ConEmu (i.e. use the native window)
-echo.L__CLI:    Run executable in ConEmu
+echo.L_7ZIP:  Extra arguments for 7-Zip (in the :ExtractCBin label)
+echo.L_ELEV:  Elevate to run as Admin
+echo.L_NCMD:  Do not run script inside ConEmu (i.e. use the native window)
+echo.L__CLI:  Run executable in ConEmu
 echo.
 goto Abort
 
@@ -392,15 +392,15 @@ set "%1=%_tmp%"
 
 :ExtractOrFindPath
 rem Test L_PATH in the following order:
-rem      1: %cbin%\L_PATH.7z (which will be extracted to %bin%\L_PATH)
-rem      2: %bin%\L_PATH
-rem      3. %L_PATH%         (i.e. treat L_PATH as an absolute path)
+rem    1: %cbin%\L_PATH.7z (which will be extracted to %bin%\L_PATH)
+rem    2: %bin%\L_PATH
+rem    3. %L_PATH%     (i.e. treat L_PATH as an absolute path)
 rem NOTE: This function should be called as 'call :ExtractOrFindPath || goto ErrorProgramNotFound' to catch invalid paths.
 set _path=
 if exist "%cbin%\%L_PATH%.7z" (
-    call :ExtractCBin
+  call :ExtractCBin
 ) else if exist "%cbin%\%L_PATH%\%L_ITEM:~0,-4%.7z" (
-    call :ExtractCBin
+  call :ExtractCBin
 )
 if exist "%bin%\%L_PATH%" (set "_path=%bin%\%L_PATH%")
 if not defined _path (set "_path=%L_PATH%")
@@ -476,9 +476,9 @@ goto Abort
 :Abort
 rem Handle color theme for both the native console and ConEmu
 if defined ConEmuBuild (
-    color c4
+  color c4
 ) else (
-    color 4e
+  color 4e
 )
 echo Aborted.
 echo.

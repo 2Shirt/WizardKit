@@ -163,6 +163,11 @@ class Disk(BaseObj):
     self.get_details()
     self.enable_smart()
     self.update_smart_details()
+    if self.details['bus'] == 'USB' and not self.attributes:
+      # Try using SAT
+      LOG.warning('Using SAT for smartctl for %s', self.path)
+      self.enable_smart(use_sat=True)
+      self.update_smart_details(use_sat=True)
     if not self.is_4k_aligned():
       self.add_note('One or more partitions are not 4K aligned', 'YELLOW')
 
@@ -218,11 +223,12 @@ class Disk(BaseObj):
         test.set_status('Denied')
       test.disabled = True
 
-  def enable_smart(self):
+  def enable_smart(self, use_sat=False):
     """Try enabling SMART for this disk."""
     cmd = [
       'sudo',
       'smartctl',
+      f'--device={"sat,auto" if use_sat else "auto"}',
       '--tolerance=permissive',
       '--smart=on',
       self.path,
@@ -500,12 +506,23 @@ class Disk(BaseObj):
     # Done
     return result
 
-  def update_smart_details(self):
+  def update_smart_details(self, use_sat=False):
     """Update SMART details via smartctl."""
     self.attributes = {}
+
+    # Check if SAT is needed
+    if not use_sat:
+      # use_sat not set, check previous run (if possible)
+      for arg in self.smartctl.get('smartctl', {}).get('argv', []):
+        if arg == '--device=sat,auto':
+          use_sat = True
+          break
+
+    # Get SMART data
     cmd = [
       'sudo',
       'smartctl',
+      f'--device={"sat,auto" if use_sat else "auto"}',
       '--tolerance=verypermissive',
       '--all',
       '--json',

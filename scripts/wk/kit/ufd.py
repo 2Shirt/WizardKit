@@ -15,6 +15,7 @@ from wk import io, log, std
 from wk.cfg.main import KIT_NAME_FULL, KIT_NAME_SHORT
 from wk.cfg.ufd import BOOT_ENTRIES, BOOT_FILES, ITEMS, ITEMS_HIDDEN, SOURCES
 from wk.exe import run_program
+from wk.hw.obj import Disk
 from wk.os import linux
 
 
@@ -391,6 +392,8 @@ def show_selections(args, sources, ufd_dev, ufd_sources):
 def update_boot_entries():
   """Update boot files for UFD usage"""
   configs = []
+  ufd = Disk('/mnt/UFD')
+  uuid = ufd.details.get('uuid')
 
   # Find config files
   for c_path, c_ext in BOOT_FILES.items():
@@ -399,12 +402,12 @@ def update_boot_entries():
       if item.name.lower().endswith(c_ext.lower()):
         configs.append(item.path)
 
-  # Update Linux labels
+  # Use UUID instead of label
   cmd = [
     'sed',
     '--in-place',
     '--regexp-extended',
-    f's/{ISO_LABEL}/{UFD_LABEL}/',
+    f's#archisolabel={ISO_LABEL}#archisodevice=/dev/disk/by-uuid/{uuid}#',
     *configs,
     ]
   run_program(cmd)

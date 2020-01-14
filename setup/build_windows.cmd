@@ -35,7 +35,7 @@ goto Exit
 rem Loops through all arguments to check for accepted flags
 set DEBUG=
 for %%f in (%*) do (
-    if /i "%%f" == "/DEBUG" (@echo on & set "DEBUG=/DEBUG")
+  if /i "%%f" == "/DEBUG" (@echo on & set "DEBUG=/DEBUG")
 )
 @exit /b 0
 

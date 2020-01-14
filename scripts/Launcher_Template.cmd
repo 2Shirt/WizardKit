@@ -46,7 +46,7 @@ goto Exit
 rem Loops through all arguments to check for accepted flags
 set DEBUG=
 for %%f in (%*) do (
-    if /i "%%f" == "/DEBUG" (@echo on & set "DEBUG=/DEBUG")
+  if /i "%%f" == "/DEBUG" (@echo on & set "DEBUG=/DEBUG")
 )
 @exit /b 0
 
@@ -70,9 +70,9 @@ popd
 rem Sets title using KIT_NAME_FULL from settings\main.py
 set "SETTINGS=%bin%\Scripts\settings\main.py"
 for /f "tokens=* usebackq" %%f in (`findstr KIT_NAME_FULL "%SETTINGS%"`) do (
-    set "_v=%%f"
-    set "_v=!_v:*'=!"
-    set "KIT_NAME_FULL=!_v:~0,-1!"
+  set "_v=%%f"
+  set "_v=!_v:*'=!"
+  set "KIT_NAME_FULL=!_v:~0,-1!"
 )
 set "window_title=%*"
 if not defined window_title set "window_title=Launcher"
