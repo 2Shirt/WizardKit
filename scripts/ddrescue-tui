@@ -12,7 +12,7 @@ if [[ "$os_name" != "Linux" ]]; then
   exit 1
 fi
 
-source ./launch-in-tmux
+source launch-in-tmux
 
 SESSION_NAME="ddrescue-tui"
 WINDOW_NAME="ddrescue TUI"

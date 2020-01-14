@@ -2,7 +2,7 @@
 #
 ## Wizard Kit: HW Diagnostics Launcher
 
-source ./launch-in-tmux
+source launch-in-tmux
 
 SESSION_NAME="hw-diags"
 WINDOW_NAME="Hardware Diagnostics"
