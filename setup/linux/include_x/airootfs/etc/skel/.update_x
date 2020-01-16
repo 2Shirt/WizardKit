@@ -91,6 +91,11 @@ xset -dpms
 xrdb -merge $HOME/.Xresources
 echo "Done"
 
+# Set wallpaper
+echo -n "Setting wallpaper... "
+feh --bg-fill "$HOME/.wallpaper"
+echo "Done"
+
 # Start desktop apps for i3
 if fgrep -q "i3" /proc/cmdline; then
   i3-msg exec $HOME/.start_desktop_apps

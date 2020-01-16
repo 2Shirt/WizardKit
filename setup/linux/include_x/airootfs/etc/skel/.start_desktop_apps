@@ -3,7 +3,6 @@
 ## Start desktop apps based on WM
 
 # Start common apps
-feh --bg-fill "$HOME/.wallpaper"
 compton --backend xrender --xrender-sync --xrender-sync-fence &
 sleep 1s
 x0vncserver -display :0 -passwordfile $HOME/.vnc/passwd -AlwaysShared &
