@@ -344,7 +344,7 @@
     </keybind>
     <keybind key="C-A-x">
       <action name="Execute">
-        <command>oblogout</command>
+        <command>wk-exit</command>
       </action>
     </keybind>
     <keybind key="W-d">
@@ -394,7 +394,7 @@
     </keybind>
     <keybind key="W-x">
       <action name="Execute">
-        <command>oblogout</command>
+        <command>wk-exit</command>
       </action>
     </keybind>
     <keybind key="XF86AudioRaiseVolume">
