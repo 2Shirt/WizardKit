@@ -305,6 +305,13 @@ class State():
         working_dir=self.working_dir,
         ))
 
+  def _get_clone_settings_path(self):
+    """get Clone settings file path, returns pathlib.Path obj."""
+    description = self.source.details['model']
+    if not description:
+      description = self.source.path.name
+    return pathlib.Path(f'{self.working_dir}/Clone_{description}.json')
+
   def _fix_tmux_layout(self, forced=True):
     """Fix tmux layout based on cfg.ddrescue.TMUX_LAYOUT."""
     layout = cfg.ddrescue.TMUX_LAYOUT
@@ -373,9 +380,7 @@ class State():
   def _load_settings(self, discard_unused_settings=False):
     """Load settings from previous run, returns dict."""
     settings = {}
-    settings_file = pathlib.Path(
-      f'{self.working_dir}/Clone_{self.source.details["model"]}.json',
-      )
+    settings_file = self._get_clone_settings_path()
 
     # Try loading JSON data
     if settings_file.exists():
@@ -423,9 +428,7 @@ class State():
 
   def _save_settings(self, settings):
     """Save settings for future runs."""
-    settings_file = pathlib.Path(
-      f'{self.working_dir}/Clone_{self.source.details["model"]}.json',
-      )
+    settings_file = self._get_clone_settings_path()
 
     # Try saving JSON data
     try:
@@ -1694,8 +1697,9 @@ def main():
         break
 
   # Save results to log
-  std.print_standard(' ')
-  std.print_report(state.generate_report())
+  LOG.info('')
+  for line in state.generate_report():
+    LOG.info('  %s', std.strip_colors(line))
 
 
 def mount_raw_image(path):

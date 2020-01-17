@@ -1,0 +1,90 @@
+#!/usr/bin/env python3
+# vim: sts=2 sw=2 ts=2
+"""Wizard Kit: Upload Logs"""
+
+import datetime
+import os
+import pathlib
+
+import pytz
+import requests
+
+import wk
+
+
+# STATIC VARIABLES
+LOG_DIR = pathlib.Path('~/Logs').expanduser().resolve()
+PLATFORM = wk.std.PLATFORM.replace('Darwin', 'macOS')
+TIMEZONE = pytz.timezone(wk.cfg.main.LINUX_TIME_ZONE)
+NOW = datetime.datetime.now(tz=TIMEZONE)
+
+
+# Safety check
+if PLATFORM not in ('macOS', 'Linux'):
+  raise OSError(f'This script is not supported under {PLATFORM}')
+
+
+# Functions
+def main():
+  """Upload logs for review."""
+  lines = []
+  try_and_print = wk.std.TryAndPrint()
+
+  # Set log
+  wk.log.update_log_path(dest_name='Upload-Logs', timestamp=True)
+
+  # Instructions
+  wk.std.print_success(f'{wk.cfg.main.KIT_NAME_FULL}: Upload Logs')
+  wk.std.print_standard('')
+  wk.std.print_standard('Please state the reason for the review.')
+  wk.std.print_info('  End note with an empty line.')
+  wk.std.print_standard('')
+
+  # Get reason note
+  while True:
+    text = wk.std.input_text('> ')
+    if not text:
+      lines.append('')
+      break
+    lines.append(text)
+  with open(f'{LOG_DIR}/__reason__.txt', 'a') as _f:
+    _f.write('\n'.join(lines))
+
+  # Compress and upload logs
+  result = try_and_print.run(
+    message='Uploading logs...',
+    function=upload_log_dir,
+    reason='Review',
+    )
+  if not result['Failed']:
+    raise SystemExit(1)
+
+
+def upload_log_dir(reason='Testing'):
+  """Upload compressed log_dir to the crash server."""
+  server = wk.cfg.net.CRASH_SERVER
+  dest = pathlib.Path(f'~/{reason}_{NOW.strftime("%Y-%m-%dT%H%M%S%z")}.txz')
+  dest = dest.expanduser().resolve()
+  data = None
+
+  # Compress LOG_DIR (relative to parent dir)
+  os.chdir(LOG_DIR.parent)
+  cmd = ['tar', 'caf', dest.name, LOG_DIR.name]
+  proc = wk.exe.run_program(cmd, check=False)
+
+  # Upload compressed data
+  url = f'{server["Url"]}/{dest.name}'
+  result = requests.put(
+    url,
+    data=dest.read_bytes(),
+    headers=server['Headers'],
+    auth=(server['User'], server['Pass']),
+    )
+
+  # Check result
+  if not result.ok:
+    raise wk.std.GenericError('Failed to upload logs')
+
+
+if __name__ == '__main__':
+  main()

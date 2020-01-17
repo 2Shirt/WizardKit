@@ -3,8 +3,7 @@
 ## Start desktop apps based on WM
 
 # Start common apps
-feh --bg-fill "$HOME/.wallpaper"
-compton --backend xrender --xrender-sync --xrender-sync-fence &
+picom --backend xrender --xrender-sync --xrender-sync-fence &
 sleep 1s
 x0vncserver -display :0 -passwordfile $HOME/.vnc/passwd -AlwaysShared &
 conky &
@@ -12,7 +11,7 @@ nm-applet &
 volumeicon &
 
 # Start WM specific apps
-if fgrep -q "i3" /proc/cmdline; then
+if ! [[ "${I3SOCK:-}" == "" ]]; then
   # i3
   i3-msg restart
 else

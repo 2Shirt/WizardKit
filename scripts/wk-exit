@@ -1,0 +1,31 @@
+#!/bin/bash
+#
+## WizardKit: GUI exit script
+# Inspired by: https://github.com/cramermarius/rofi-menus/blob/master/scripts/powermenu.sh
+
+actions="Restart\nPoweroff\nLogout"
+temp_file="$(mktemp --suffix=.png)"
+
+# Show blurred background
+import -window root "${temp_file}"
+convert "${temp_file}" -blur 0x4 "${temp_file}"
+feh -F "${temp_file}" &
+feh_pid="$!"
+
+# Show menu
+selection="$(echo -e "$actions" | rofi -i -lines 3 -dmenu -p "Power Menu")"
+
+# Done
+kill "${feh_pid}"
+case $selection in
+  Logout)
+    wk-power-command logout
+    ;;
+  Poweroff)
+    wk-power-command poweroff
+    ;;
+  Restart)
+    wk-power-command reboot
+    ;;
+esac
+

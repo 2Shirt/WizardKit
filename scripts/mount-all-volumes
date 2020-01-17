@@ -2,6 +2,8 @@
 """Wizard Kit: Mount all volumes"""
 # vim: sts=2 sw=2 ts=2
 
+import sys
+
 import wk
 
 
@@ -18,6 +20,11 @@ def main():
   # Show results
   wk.std.print_info('Results')
   wk.std.print_report(report, indent=2)
+
+  # GUI mode
+  if 'gui' in sys.argv:
+    wk.std.pause('Press Enter to exit...')
+    wk.exe.popen_program(['nohup', 'thunar', '/media'])
 
 
 if __name__ == '__main__':

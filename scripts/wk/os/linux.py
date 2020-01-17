@@ -138,9 +138,9 @@ def mount_volumes(device_path=None, read_write=False, scan_corestorage=False):
 
     # Attempt to mount volume
     if not already_mounted:
-      mount(vol.path, read_write=read_write)
-      proc = run_program(cmd, check=False)
-      if proc.returncode:
+      try:
+        mount(vol.path, read_write=read_write)
+      except RuntimeError:
         result += 'Failed to mount'
         report.append(std.color_string(result, 'RED'))
         continue
