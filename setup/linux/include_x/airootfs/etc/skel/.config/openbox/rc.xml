@@ -334,7 +334,7 @@
     </keybind>
     <keybind key="C-A-v">
       <action name="Execute">
-        <command>urxvt -title "Hardware Sensors" -e watch -c -n1 -t hw-sensors</command>
+        <command>urxvt -title "Hardware Sensors" -e hw-sensors</command>
       </action>
     </keybind>
     <keybind key="C-A-w">
@@ -384,7 +384,7 @@
     </keybind>
     <keybind key="W-v">
       <action name="Execute">
-        <command>urxvt -title "Hardware Sensors" -e watch -c -n1 -t hw-sensors</command>
+        <command>urxvt -title "Hardware Sensors" -e hw-sensors</command>
       </action>
     </keybind>
     <keybind key="W-w">
