@@ -1,7 +1,6 @@
 #!/bin/bash
 #
 ## Wizard Kit: ddrescue TUI Launcher
-# TODO: Replace relative paths with absolute
 
 # Check if running under Linux
 os_name="$(uname -s)"
