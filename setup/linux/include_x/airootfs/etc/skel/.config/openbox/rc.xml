@@ -297,6 +297,56 @@
         <menu>root-menu</menu>
       </action>
     </keybind>
+    <keybind key="C-A-d">
+      <action name="Execute">
+        <command>urxvt -title "Hardware Diagnostics" -e hw-diags</command>
+      </action>
+    </keybind>
+    <keybind key="C-A-f">
+      <action name="Execute">
+        <command>thunar</command>
+      </action>
+    </keybind>
+    <keybind key="C-A-i">
+      <action name="Execute">
+        <command>hardinfo</command>
+      </action>
+    </keybind>
+    <keybind key="C-A-m">
+      <action name="Execute">
+        <command>urxvt -title "Mount all Volumes" -e mount-all-volumes gui</command>
+      </action>
+    </keybind>
+    <keybind key="C-A-r">
+      <action name="Execute">
+        <command>rofi -combi-modi window,drun,run -show combi -modi combi</command>
+      </action>
+    </keybind>
+    <keybind key="C-A-s">
+      <action name="Execute">
+        <command>urxvt -title "Hardware Diagnostics" -e hw-diags --quick</command>
+      </action>
+    </keybind>
+    <keybind key="C-A-t">
+      <action name="Execute">
+        <command>urxvt</command>
+      </action>
+    </keybind>
+    <keybind key="C-A-v">
+      <action name="Execute">
+        <command>urxvt -title "Hardware Sensors" -e watch -c -n1 -t hw-sensors</command>
+      </action>
+    </keybind>
+    <keybind key="C-A-w">
+      <action name="Execute">
+        <command>firefox</command>
+      </action>
+    </keybind>
+    <keybind key="C-A-x">
+      <action name="Execute">
+        <command>oblogout</command>
+      </action>
+    </keybind>
     <keybind key="W-d">
       <action name="Execute">
         <command>urxvt -title "Hardware Diagnostics" -e hw-diags</command>

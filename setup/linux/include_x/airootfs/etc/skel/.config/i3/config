@@ -9,6 +9,8 @@
 #
 # Please see http://i3wm.org/docs/userguide.html for a complete reference!
 
+set $alt Mod1
+set $ctrl Control
 set $mod Mod4
 
 # Configure border style <normal|1pixel|pixel xx|none|pixel>
@@ -24,8 +26,8 @@ bindsym XF86AudioLowerVolume exec --no-startup-id amixer set Master 5%- #decreas
 bindsym XF86AudioMute exec --no-startup-id amixer set Master toggle # mute sound
 
 # alt+tab navi
-bindsym Mod1+Tab workspace next
-bindsym Mod1+Shift+Tab workspace prev
+bindsym $alt+Tab workspace next
+bindsym $alt+Shift+Tab workspace prev
 
 # change borders
 bindsym $mod+u border none
@@ -57,7 +59,7 @@ bindsym $mod+Return exec i3-sensible-terminal
 # kill focused window
 bindsym $mod+Shift+q kill
 bindsym $mod+q kill
-bindsym Mod1+F4 kill
+bindsym $alt+F4 kill
 
 # start dmenu (a program launcher)
 #bindsym $mod+Shift+d exec dmenu_run
@@ -66,8 +68,17 @@ bindsym Mod1+F4 kill
 # installed.
 #bindsym $mod+Shift+d exec --no-startup-id i3-dmenu-desktop
 bindsym $mod+r exec "rofi -combi-modi window,drun,run -show combi -modi combi"
+bindsym $ctrl+$alt+r exec "rofi -combi-modi window,drun,run -show combi -modi combi"
 
 # misc app shortcuts
+bindsym $ctrl+$alt+d exec "urxvt -title 'Hardware Diagnostics' -e hw-diags"
+bindsym $ctrl+$alt+f exec "thunar ~"
+bindsym $ctrl+$alt+i exec "hardinfo"
+bindsym $ctrl+$alt+m exec "urxvt -title 'Mount All Volumes' -e mount-all-volumes gui"
+bindsym $ctrl+$alt+s exec "urxvt -title 'Hardware Diagnostics' -e hw-diags --quick"
+bindsym $ctrl+$alt+t exec "urxvt"
+bindsym $ctrl+$alt+v exec "urxvt -title 'Hardware Sensors' -e watch -c -n1 -t hw-sensors"
+bindsym $ctrl+$alt+w exec "firefox"
 bindsym $mod+d exec "urxvt -title 'Hardware Diagnostics' -e hw-diags"
 bindsym $mod+f exec "thunar ~"
 bindsym $mod+i exec "hardinfo"
@@ -239,6 +250,7 @@ mode "resize" {
 bindsym $mod+Shift+r mode "resize"
 
 # "System" menu
+bindsym $ctrl+$alt+x mode "$mode_system"
 bindsym $mod+x mode "$mode_system"
 set $mode_system (l)ock, (e)xit, (r)eboot, (s)hutdown, (c)onfig, (i)3
 mode "$mode_system" {
