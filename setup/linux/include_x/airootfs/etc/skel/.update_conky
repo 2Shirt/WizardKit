@@ -26,7 +26,7 @@ sed -i -r "s/#Network//" "${CONFIG_NEW}"
 
 # Fix under i3
 if ! [[ "${I3SOCK:-}" == "" ]]; then
-  sed -i -r 's/(own_window_type)(.*)(desktop)/\1\2override/' "${CONKY_NEW}"
+  sed -i -r 's/(own_window_type)(.*)(desktop)/\1\2override/' "${CONFIG_NEW}"
 fi
 
 # Replace config if there were changes
