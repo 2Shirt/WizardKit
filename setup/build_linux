@@ -333,37 +333,32 @@ function install_deps() {
   run_elevated pacman -Syu --needed --noconfirm $packages
 }
 
-function build_all() {
-  if [[ "$EUID" -ne 0 ]]; then
-    echo "This section is meant to be run as root."
-    echo "Aborted."
-    exit 1
-  fi
-
-  # Prep for build
+function build_linux() {
   cleanup
   fix_kit_permissions
   install_deps
   load_settings --edit
-  update_repo
 
-  # Build (full)
-  copy_live_env
-  update_live_env
-  # Rerun script as root to start Archiso build process
-  run_elevated "$(realpath "$0")" --build-iso
-  # Cleanup
-  mv -nv "$LIVE_DIR" "${LIVE_DIR}.full"
-  perl-rename -v "s/(${KIT_NAME_SHORT}-Linux)-(${DATE}.*)/\1-Full-\2/" "$OUT_DIR"/*
+  # Update repo if necessary
+  if ! [[ -e "${REPO_DIR}/custom.db.tar.gz" ]]; then
+    update_repo
+  fi
 
-  # Build (minimal)
-  copy_live_env --minimal
-  update_live_env --minimal
-  # Rerun script as root to start Archiso build process
-  run_elevated "$(realpath "$0")" --build-iso
-  # Cleanup
-  mv -nv "$LIVE_DIR" "${LIVE_DIR}.minimal"
-  perl-rename -v "s/(${KIT_NAME_SHORT}-Linux)-(${DATE}.*)/\1-Minimal-\2/" "$OUT_DIR"/*
+  # Build requested version(s)
+  for version in "$@"; do
+    if [[ "$version" == "Full" ]]; then
+      copy_live_env
+      update_live_env
+    elif [[ "$version" == "Minimal" ]]; then
+      copy_live_env --minimal
+      update_live_env --minimal
+    fi
+    # Rerun script as root to start Archiso build process
+    run_elevated "$(realpath "$0")" --build-iso
+    # Cleanup
+    mv -nv "$LIVE_DIR" "${LIVE_DIR}.${version}"
+    perl-rename -v "s/(${KIT_NAME_SHORT}-Linux)-(${DATE}.*)/\1-${version}-\2/" "$OUT_DIR"/*
+  done
 }
 
 function build_iso() {
@@ -402,57 +397,15 @@ function build_iso() {
   chown $REAL_USER:$REAL_USER "$OUT_DIR" -R
 }
 
-function build_full() {
-  if [[ "$EUID" -eq 0 ]]; then
-    echo "This section not meant to be run as root."
-    echo "Aborted."
-    exit 1
-  fi
-
-  # Prep for build
-  cleanup
-  fix_kit_permissions
-  install_deps
-  load_settings --edit
-  update_repo
-  copy_live_env
-  update_live_env
-  # Rerun script as root to start Archiso build process
-  run_elevated "$(realpath "$0")" --build-iso
-  # Cleanup
-  perl-rename -v "s/(${KIT_NAME_SHORT}-Linux)-(${DATE}.*)/\1-Full-\2/" "$OUT_DIR"/*
-}
-
-function build_minimal() {
-  if [[ "$EUID" -eq 0 ]]; then
-    echo "This section not meant to be run as root."
-    echo "Aborted."
-    exit 1
-  fi
-
-  # Prep for build
-  cleanup
-  fix_kit_permissions
-  install_deps
-  load_settings --edit
-  update_repo
-  copy_live_env --minimal
-  update_live_env --minimal
-  # Rerun script as root to start Archiso build process
-  run_elevated "$(realpath "$0")" --build-iso
-  # Cleanup
-  perl-rename -v "s/(${KIT_NAME_SHORT}-Linux)-(${DATE}.*)/\1-Minimal-\2/" "$OUT_DIR"/*
-}
-
 # Check input
 case ${1:-} in
   -a|--build-all)
-    build_all
+    build_linux Full Minimal
     echo Done
     ;;
 
   -b|--build-full)
-    build_full
+    build_linux Full
     echo Done
     ;;
 
@@ -466,7 +419,12 @@ case ${1:-} in
     echo Done
     ;;
 
-  -m|--prep-minimal-env)
+  -m|--build-minimal)
+    build_linux Minimal
+    echo Done
+    ;;
+
+  -n|--prep-minimal-env)
     load_settings --edit
     copy_live_env --minimal
     update_live_env --minimal
