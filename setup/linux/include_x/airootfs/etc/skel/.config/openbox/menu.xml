@@ -16,7 +16,7 @@
             <execute>gparted</execute>
         </action> </item>
         <item label="GSmartControl"> <action name="Execute">
-            <execute>gsmartcontrol</execute>
+            <execute>gsmartcontrol_polkit</execute>
         </action> </item>
         <item label="Network Diagnostics"> <action name="Execute">
             <execute>urxvt -title "Network Diagnostics" -hold -e hw-diags-network</execute>
