@@ -1285,7 +1285,7 @@ def screensaver(name):
 
   # Switch pane to fullscreen and start screensaver
   tmux.zoom_pane()
-  exe.run_program(cmd, check=False, pipe=False)
+  exe.run_program(cmd, check=False, pipe=False, stderr=subprocess.PIPE)
   tmux.zoom_pane()
 
 
