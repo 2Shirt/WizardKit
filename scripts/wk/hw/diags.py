@@ -195,6 +195,11 @@ class State():
             disk.tests['Disk Self-Test'].report.append(
               std.color_string('Please manually review SMART data', 'YELLOW'),
               )
+      else:
+        # No blocking errors encountered, check for minor attribute failures
+        if not disk.check_attributes(only_blocking=False):
+          disk.tests['Disk Attributes'].failed = True
+          disk.tests['Disk Attributes'].set_status('Failed')
 
       # Disable tests if necessary
       if disable_tests:
