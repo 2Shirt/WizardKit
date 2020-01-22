@@ -829,7 +829,7 @@ def disk_io_benchmark(state, test_objects, skip_usb=True):
     f'Disk I/O Benchmark{"s" if len(test_objects) > 1 else ""}',
     )
   state.panes['I/O Benchmark'] = tmux.split_window(
-    percent=75,
+    percent=50,
     vertical=True,
     text=' ',
     )
