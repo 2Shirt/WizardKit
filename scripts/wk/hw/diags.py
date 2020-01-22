@@ -252,7 +252,8 @@ class State():
       keep_history=False,
       timestamp=False,
       )
-    std.print_info('Starting Hardware Diagnostics')
+    std.clear_screen()
+    std.print_info('Initializing...')
 
     # Progress Pane
     self.update_progress_pane()
