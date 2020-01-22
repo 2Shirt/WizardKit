@@ -195,6 +195,11 @@ class State():
             disk.tests['Disk Self-Test'].report.append(
               std.color_string('Please manually review SMART data', 'YELLOW'),
               )
+      else:
+        # No blocking errors encountered, check for minor attribute failures
+        if not disk.check_attributes(only_blocking=False):
+          disk.tests['Disk Attributes'].failed = True
+          disk.tests['Disk Attributes'].set_status('Failed')
 
       # Disable tests if necessary
       if disable_tests:
@@ -824,7 +829,7 @@ def disk_io_benchmark(state, test_objects, skip_usb=True):
     f'Disk I/O Benchmark{"s" if len(test_objects) > 1 else ""}',
     )
   state.panes['I/O Benchmark'] = tmux.split_window(
-    percent=75,
+    percent=50,
     vertical=True,
     text=' ',
     )
@@ -928,7 +933,7 @@ def disk_self_test(state, test_objects):
     # Show progress
     if threads[-1].is_alive():
       state.panes['SMART'].append(
-        tmux.split_window(lines=3, vertical=True, watch_file=test_log),
+        tmux.split_window(lines=4, vertical=True, watch_file=test_log),
         )
 
   # Wait for all tests to complete

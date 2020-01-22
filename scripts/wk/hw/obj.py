@@ -452,6 +452,12 @@ class Disk(BaseObj):
     status_str = 'Starting self-test...'
     test_details = self.get_smart_self_test_details()
     test_minutes = 15
+    size_str = bytes_to_string(self.details["size"], use_binary=False)
+    header_str = color_string(
+      ['[', self.path.name, ' ', size_str, ']'],
+      [None, 'BLUE', None, 'CYAN', None],
+      sep='',
+      )
 
     # Check if disk supports self-tests
     if not test_details:
@@ -463,6 +469,8 @@ class Disk(BaseObj):
     test_minutes = int(test_minutes) + 10
 
     # Start test
+    with open(log_path, 'w') as _f:
+      _f.write(f'{header_str}\nInitializing...')
     cmd = [
       'sudo',
       'smartctl',
@@ -487,7 +495,7 @@ class Disk(BaseObj):
 
         # Update log
         with open(log_path, 'w') as _f:
-          _f.write(f'SMART self-test status for {self.path}:\n  {status_str}')
+          _f.write(f'{header_str}\nSMART self-test status:\n  {status_str}')
 
         # Check if finished
         if 'remaining_percent' not in test_details['status']:
@@ -539,7 +547,7 @@ class Disk(BaseObj):
             'raw': int(value),
             'raw_str': str(value),
             }
-        except ValueError:
+        except (TypeError, ValueError):
           # Ignoring invalid attribute
           LOG.error('Invalid NVMe attribute: %s %s', name, value)
     elif KEY_SMART in self.smartctl:
