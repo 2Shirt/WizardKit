@@ -539,7 +539,7 @@ class Disk(BaseObj):
             'raw': int(value),
             'raw_str': str(value),
             }
-        except ValueError:
+        except (TypeError, ValueError):
           # Ignoring invalid attribute
           LOG.error('Invalid NVMe attribute: %s %s', name, value)
     elif KEY_SMART in self.smartctl:
