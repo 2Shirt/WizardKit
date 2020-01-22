@@ -933,7 +933,7 @@ def disk_self_test(state, test_objects):
     # Show progress
     if threads[-1].is_alive():
       state.panes['SMART'].append(
-        tmux.split_window(lines=3, vertical=True, watch_file=test_log),
+        tmux.split_window(lines=4, vertical=True, watch_file=test_log),
         )
 
   # Wait for all tests to complete
