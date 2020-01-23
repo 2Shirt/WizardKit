@@ -159,7 +159,7 @@ function update_live_env() {
   # build.sh
   if ! grep -iq 'wizardkit additions' "$LIVE_DIR/build.sh"; then
     sed -i -r 's/^(run_once make_iso)$/# wizardkit additions\n\1/' "$LIVE_DIR/build.sh"
-    sed -i '/# wizardkit additions/r $ROOT_DIR/setup/linux/build_additions.txt' "$LIVE_DIR/build.sh"
+    sed -i "/# wizardkit additions/r $ROOT_DIR/setup/linux/build_additions.txt" "$LIVE_DIR/build.sh"
   fi
 
   # Hostname
