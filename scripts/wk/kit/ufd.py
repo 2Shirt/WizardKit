@@ -81,7 +81,7 @@ def build_ufd():
   try_print.run(
     message='Mounting UFD...',
     function=linux.mount,
-    mount_source=find_first_partition(ufd_dev),
+    source=find_first_partition(ufd_dev),
     mount_point='/mnt/UFD',
     read_write=True,
     )
@@ -124,7 +124,7 @@ def build_ufd():
   try_print.run(
     message='Unmounting UFD...',
     function=linux.unmount,
-    mount_point='/mnt/UFD',
+    source_or_mountpoint='/mnt/UFD',
     )
 
   # Install syslinux (to device)
@@ -300,59 +300,54 @@ def prep_device(dev_path, label, use_mbr=False):
   try_print = std.TryAndPrint()
   try_print.indent = 2
 
-  # Zero-out first 64MB
-  cmd = [
-    'dd',
-    'bs=4M',
-    'count=16',
-    'if=/dev/zero',
-    f'of={dev_path}',
-    ]
-  try_print.run(
-    message='Zeroing first 64MiB...',
-    function=run_program,
-    cmd=cmd,
-    )
+  def _create_table():
+    """Create GPT or DOS partition table."""
+    cmd = [
+      'parted', dev_path,
+      '--script',
+      '--',
+      'mklabel', 'msdos' if use_mbr else 'gpt',
+      'mkpart', 'primary', 'fat32', '4MiB',
+      '-1s' if use_mbr else '-4MiB',
+      ]
+    run_program(cmd)
 
-  # Create partition table
-  cmd = [
-    'parted', dev_path,
-    '--script',
-    '--',
-    'mklabel', 'msdos' if use_mbr else 'gpt',
-    '-1s' if use_mbr else '-4MiB',
-    ]
-  try_print.run(
-    message='Creating partition table...',
-    function=run_program,
-    cmd=cmd,
-    )
+  def _format_partition():
+    """Format first partition on device FAT32."""
+    cmd = [
+      'mkfs.vfat',
+      '-F', '32',
+      '-n', label,
+      find_first_partition(dev_path),
+      ]
+    run_program(cmd)
 
-  # Set boot flag
-  cmd = [
-    'parted', dev_path,
-    'set', '1',
-    'boot' if use_mbr else 'legacy_boot',
-    'on',
-    ]
-  try_print.run(
-    message='Setting boot flag...',
-    function=run_program,
-    cmd=cmd,
-    )
+  def _set_boot_flag():
+    """Set modern or legacy boot flag."""
+    cmd = [
+      'parted', dev_path,
+      'set', '1',
+      'boot' if use_mbr else 'legacy_boot',
+      'on',
+      ]
+    run_program(cmd)
 
-  # Format partition
-  cmd = [
-    'mkfs.vfat',
-    '-F', '32',
-    '-n', label,
-    find_first_partition(dev_path),
-    ]
-  try_print.run(
-    message='Formatting partition...',
-    function=run_program,
-    cmd=cmd,
-    )
+  def _zero_device():
+    """Zero-out first 64MB of device."""
+    cmd = [
+      'dd',
+      'bs=4M',
+      'count=16',
+      'if=/dev/zero',
+      f'of={dev_path}',
+      ]
+    run_program(cmd)
+
+  # Run steps
+  try_print.run('Zeroing first 64MiB...', function=_zero_device)
+  try_print.run('Creating partition table...', function=_create_table)
+  try_print.run('Setting boot flag...', function=_set_boot_flag)
+  try_print.run('Formatting partition...', function=_format_partition)
 
 
 def remove_arch():
@@ -370,7 +365,7 @@ def show_selections(args, sources, ufd_dev, ufd_sources):
   std.print_info('Sources')
   for label in ufd_sources.keys():
     if label in sources:
-      std.print_standard(f'  {label+":":<18} {sources["label"]}')
+      std.print_standard(f'  {label+":":<18} {sources[label]}')
     else:
       std.print_colored(
         [f'  {label+":":<18}', 'Not Specified'],
@@ -411,7 +406,11 @@ def update_boot_entries():
 
   # Find config files
   for c_path, c_ext in BOOT_FILES.items():
-    c_path = io.case_insensitive_path('/mnt/UFD{c_path}')
+    try:
+      c_path = io.case_insensitive_path(f'/mnt/UFD{c_path}')
+    except FileNotFoundError:
+      # Ignore and continue to next file
+      continue
     for item in os.scandir(c_path):
       if item.name.lower().endswith(c_ext.lower()):
         configs.append(item.path)
