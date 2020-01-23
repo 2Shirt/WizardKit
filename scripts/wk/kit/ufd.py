@@ -53,6 +53,7 @@ def build_ufd():
   args = docopt(DOCSTRING)
   log.update_log_path(dest_name='build-ufd', timestamp=True)
   try_print = std.TryAndPrint()
+  try_print.catch_all = False
   try_print.indent = 2
 
   # Check if running with root permissions
@@ -75,7 +76,29 @@ def build_ufd():
   # Prep UFD
   if not args['--update']:
     std.print_info('Prep UFD')
-    prep_device(ufd_dev, UFD_LABEL, use_mbr=args['--use-mbr'])
+    try_print.run(
+      message='Zeroing first 64MiB...',
+      function=zero_device,
+      dev_path=ufd_dev,
+      )
+    try_print.run(
+      message='Creating partition table...',
+      function=create_table,
+      dev_path=ufd_dev,
+      use_mbr=args['--use-mbr'],
+      )
+    try_print.run(
+      message='Setting boot flag...',
+      function=set_boot_flag,
+      dev_path=ufd_dev,
+      use_mbr=args['--use-mbr'],
+      )
+    try_print.run(
+      message='Formatting partition...',
+      function=format_partition,
+      dev_path=ufd_dev,
+      label=UFD_LABEL,
+      )
 
   # Mount UFD
   try_print.run(
@@ -195,6 +218,19 @@ def copy_source(source, items, overwrite=False):
     linux.unmount('/mnt/Source')
 
 
+def create_table(dev_path, use_mbr=False):
+  """Create GPT or DOS partition table."""
+  cmd = [
+    'parted', dev_path,
+    '--script',
+    '--',
+    'mklabel', 'msdos' if use_mbr else 'gpt',
+    'mkpart', 'primary', 'fat32', '4MiB',
+    '-1s' if use_mbr else '-4MiB',
+    ]
+  run_program(cmd)
+
+
 def find_first_partition(dev_path):
   """Find path to first partition of dev, returns str.
 
@@ -216,6 +252,17 @@ def find_first_partition(dev_path):
 
   # Done
   return part_path
+
+
+def format_partition(dev_path, label):
+  """Format first partition on device FAT32."""
+  cmd = [
+    'mkfs.vfat',
+    '-F', '32',
+    '-n', label,
+    find_first_partition(dev_path),
+    ]
+  run_program(cmd)
 
 
 def get_uuid(path):
@@ -288,66 +335,15 @@ def is_valid_path(path_obj, path_type):
   return valid_path
 
 
-def prep_device(dev_path, label, use_mbr=False):
-  """Format device in preparation for applying the WizardKit components
-
-  This is done is four steps:
-  1. Zero-out first 64MB (this deletes the partition table and/or bootloader)
-  2. Create a new partition table (GPT by default, optionally MBR)
-  3. Set boot flag
-  4. Format partition (FAT32, 4K aligned)
-  """
-  try_print = std.TryAndPrint()
-  try_print.indent = 2
-
-  def _create_table():
-    """Create GPT or DOS partition table."""
-    cmd = [
-      'parted', dev_path,
-      '--script',
-      '--',
-      'mklabel', 'msdos' if use_mbr else 'gpt',
-      'mkpart', 'primary', 'fat32', '4MiB',
-      '-1s' if use_mbr else '-4MiB',
-      ]
-    run_program(cmd)
-
-  def _format_partition():
-    """Format first partition on device FAT32."""
-    cmd = [
-      'mkfs.vfat',
-      '-F', '32',
-      '-n', label,
-      find_first_partition(dev_path),
-      ]
-    run_program(cmd)
-
-  def _set_boot_flag():
-    """Set modern or legacy boot flag."""
-    cmd = [
-      'parted', dev_path,
-      'set', '1',
-      'boot' if use_mbr else 'legacy_boot',
-      'on',
-      ]
-    run_program(cmd)
-
-  def _zero_device():
-    """Zero-out first 64MB of device."""
-    cmd = [
-      'dd',
-      'bs=4M',
-      'count=16',
-      'if=/dev/zero',
-      f'of={dev_path}',
-      ]
-    run_program(cmd)
-
-  # Run steps
-  try_print.run('Zeroing first 64MiB...', function=_zero_device)
-  try_print.run('Creating partition table...', function=_create_table)
-  try_print.run('Setting boot flag...', function=_set_boot_flag)
-  try_print.run('Formatting partition...', function=_format_partition)
+def set_boot_flag(dev_path, use_mbr=False):
+  """Set modern or legacy boot flag."""
+  cmd = [
+    'parted', dev_path,
+    'set', '1',
+    'boot' if use_mbr else 'legacy_boot',
+    'on',
+    ]
+  run_program(cmd)
 
 
 def remove_arch():
@@ -478,6 +474,18 @@ def verify_ufd(dev_path):
     std.abort()
 
   return ufd_dev
+
+
+def zero_device(dev_path):
+  """Zero-out first 64MB of device."""
+  cmd = [
+    'dd',
+    'bs=4M',
+    'count=16',
+    'if=/dev/zero',
+    f'of={dev_path}',
+    ]
+  run_program(cmd)
 
 
 if __name__ == '__main__':
