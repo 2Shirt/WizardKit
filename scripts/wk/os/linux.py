@@ -75,6 +75,8 @@ def mount(source, mount_point=None, read_write=False):
   if not running_as_root():
     cmd.insert(0, 'udevil')
   if mount_point:
+    mount_point = pathlib.Path(mount_point).resolve()
+    mount_point.mkdir(parents=True, exist_ok=True)
     cmd.append(mount_point)
 
   # Run mount command

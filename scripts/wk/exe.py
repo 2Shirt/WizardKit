@@ -194,9 +194,11 @@ def run_program(cmd, check=True, pipe=True, shell=False, **kwargs):
     pipe=pipe,
     shell=shell,
     **kwargs)
+  proc = subprocess.run(**cmd_kwargs)
+  LOG.debug('proc: %s', proc)
 
-  # Ready to run program
-  return subprocess.run(**cmd_kwargs)
+  # Done
+  return proc
 
 
 def start_thread(function, args=None, daemon=True):
