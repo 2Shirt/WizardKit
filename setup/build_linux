@@ -63,42 +63,13 @@ function fix_kit_permissions() {
 }
 
 function load_settings() {
-  # Check if settings already loaded
-  ## Code based on StackOverflow Q&A
-  ## Question:    https://stackoverflow.com/q/3601515
-  ## Asked by:    https://stackoverflow.com/users/260127/prosseek
-  ## Edited by:   https://stackoverflow.com/users/3924118/nbro
-  ## Answer:      https://stackoverflow.com/a/13864829
-  ## Answer by:   https://stackoverflow.com/users/1633643/lionel
-  ## Answer edit: https://stackoverflow.com/users/-1/community
-  _main_path="$BUILD_DIR/main.py"
-  if [ ! -z ${KIT_NAME_FULL+x} ]; then
-    # KIT_NAME_FULL is set
-    return 0 # Skip loading settings from main.py
-  fi
-
-  if [[ "${1:-}" == "--edit" ]]; then
-    # Copy settings
-    if [[ ! -e "$BUILD_DIR/main.py" ]] || ask "Overwrite main.py?"; then
-      cp -bv "$ROOT_DIR/scripts/wk/cfg/main.py" "$BUILD_DIR/main.py"
-      dos2unix "$BUILD_DIR/main.py"
-    fi
-
-    # Edit settings
-    read -p "Press Enter to open settings... " -r
-    "$EDITOR" "$BUILD_DIR/main.py"
-  else
-    # Load settings from $LIVE_DIR
-    _main_path="$LIVE_DIR/airootfs/usr/local/bin/wk/cfg/main.py"
-  fi
-
-  # Load settings
+  dos2unix "$ROOT_DIR/scripts/wk/cfg/main.py"
   while read line; do
     if echo "$line" | egrep -q "^\w+='"; then
       line="$(echo "$line" | sed -r 's/[\r\n]+//')"
       eval "$line"
     fi
-  done < "$_main_path"
+  done < "$ROOT_DIR/scripts/wk/cfg/main.py"
 }
 
 function copy_live_env() {
@@ -124,7 +95,6 @@ function copy_live_env() {
   fi
   mkdir -p "$LIVE_DIR/airootfs/usr/local/bin"
   rsync -aI "$ROOT_DIR/scripts/" "$LIVE_DIR/airootfs/usr/local/bin/"
-  cp -a "$BUILD_DIR/main.py" "$LIVE_DIR/airootfs/usr/local/bin/wk/cfg/"
 }
 
 function run_elevated() {
@@ -189,7 +159,7 @@ function update_live_env() {
   # build.sh
   if ! grep -iq 'wizardkit additions' "$LIVE_DIR/build.sh"; then
     sed -i -r 's/^(run_once make_iso)$/# wizardkit additions\n\1/' "$LIVE_DIR/build.sh"
-    sed -i '/# wizardkit additions/r .linux_items/build_additions.txt' "$LIVE_DIR/build.sh"
+    sed -i '/# wizardkit additions/r $ROOT_DIR/setup/linux/build_additions.txt' "$LIVE_DIR/build.sh"
   fi
 
   # Hostname
