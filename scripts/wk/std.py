@@ -392,6 +392,7 @@ class TryAndPrint():
   based on exception names.
   """
   def __init__(self, msg_bad='FAILED', msg_good='SUCCESS'):
+    self.catch_all = True
     self.indent = INDENT
     self.msg_bad = msg_bad
     self.msg_good = msg_good
@@ -522,13 +523,13 @@ class TryAndPrint():
 
   def run(
       self, message, function, *args,
-      catch_all=True, msg_good=None, verbose=False, **kwargs):
+      catch_all=None, msg_good=None, verbose=False, **kwargs):
     # pylint: disable=catching-non-exception
     """Run a function and print the results, returns results as dict.
 
     If catch_all is True then (nearly) all exceptions will be caught.
     Otherwise if an exception occurs that wasn't specified it will be
-    re-raised.
+    re-raised. If passed it will override self.catch_all for this call.
 
     If the function returns data it will be used instead of msg_good,
     msg_bad, or exception text.
@@ -553,6 +554,8 @@ class TryAndPrint():
     f_exception = None
     output = None
     result_msg = 'UNKNOWN'
+    if catch_all is None:
+      catch_all = self.catch_all
 
     # Build exception tuples
     e_exceptions = tuple(self._get_exception(e) for e in self.list_errors)
