@@ -10,6 +10,7 @@ import subprocess
 from wk import std
 from wk.exe import popen_program, run_program
 from wk.hw.obj import Disk
+from wk.log import format_log_path
 
 
 # STATIC VARIABLES
@@ -56,9 +57,12 @@ def get_user_name():
   return user
 
 
-def make_temp_file():
+def make_temp_file(suffix=None):
   """Make temporary file, returns pathlib.Path() obj."""
-  proc = run_program(['mktemp'], check=False)
+  cmd = ['mktemp']
+  if suffix:
+    cmd.append(f'--suffix={suffix}')
+  proc = run_program(cmd)
   return pathlib.Path(proc.stdout.strip())
 
 
@@ -178,7 +182,7 @@ def scan_corestorage_container(container, timeout=300):
   # TODO: Test Scanning CoreStorage containers
   detected_volumes = {}
   inner_volumes = []
-  log_path = make_temp_file()
+  log_path = format_log_path(log_name=f'{container.path.name}_testdisk')
 
   # Run scan via TestDisk
   cmd = [
@@ -188,12 +192,12 @@ def scan_corestorage_container(container, timeout=300):
     '/log',
     '/cmd', container.path, 'partition_none,analyze',
     ]
-  proc = popen_program(cmd)
+  proc = popen_program(cmd, pipe=True)
   try:
     proc.wait(timeout=timeout)
   except subprocess.TimeoutExpired:
     # Failed to find any volumes, stop scan
-    run_program(['sudo', 'kill', proc.pid], check=False)
+    run_program(['sudo', 'kill', str(proc.pid)], check=False)
 
   # Check results
   if proc.returncode == 0 and log_path.exists():
