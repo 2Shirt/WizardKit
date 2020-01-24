@@ -56,9 +56,12 @@ def get_user_name():
   return user
 
 
-def make_temp_file():
+def make_temp_file(suffix=None):
   """Make temporary file, returns pathlib.Path() obj."""
-  proc = run_program(['mktemp'], check=False)
+  cmd = ['mktemp']
+  if suffix:
+    cmd.append(f'--suffix={suffix}')
+  proc = run_program(cmd)
   return pathlib.Path(proc.stdout.strip())
 
 
