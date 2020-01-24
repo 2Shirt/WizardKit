@@ -56,9 +56,9 @@ PARTITION_TYPES = {
     'EXFAT':  'EBD0A0A2-B9E5-4433-87C0-68B6B72699C7', # Basic Data Partition
     },
   'MBR': {
-    'EXFAT':  7,  # 0x7
-    'NTFS':   7,  # 0x7
-    'VFAT':   11, # 0xb
+    'EXFAT':  '7',
+    'NTFS':   '7',
+    'VFAT':   'b',
     },
   }
 
