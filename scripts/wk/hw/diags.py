@@ -762,7 +762,7 @@ def disk_io_benchmark(state, test_objects, skip_usb=True):
     if PLATFORM == 'Darwin':
       # Use "RAW" disks under macOS
       dev_path = dev_path.with_name(f'r{dev_path.name}')
-      LOG.info(f'Using {dev_path} for better performance')
+      LOG.info('Using %s for better performance', dev_path)
     offset = 0
     read_rates = []
     test_obj.report.append(std.color_string('I/O Benchmark', 'BLUE'))
@@ -984,7 +984,7 @@ def disk_surface_scan(state, test_objects):
     if PLATFORM == 'Darwin':
       # Use "RAW" disks under macOS
       dev_path = dev_path.with_name(f'r{dev_path.name}')
-      LOG.info(f'Using {dev_path} for better performance')
+      LOG.info('Using %s for better performance', dev_path)
     test_obj.report.append(std.color_string('badblocks', 'BLUE'))
     test_obj.set_status('Working')
 
