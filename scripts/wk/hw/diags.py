@@ -431,10 +431,10 @@ def build_menu(cli_mode=False, quick_mode=False):
 
   # Compatibility checks
   if PLATFORM != 'Linux':
-    for name in ('Audio Test', 'Keyboard Test', 'Network Test'):
+    for name in ('Audio Test', 'Keyboard Test'):
       menu.actions[name]['Disabled'] = True
   if PLATFORM not in ('Darwin', 'Linux'):
-    for name in ('Matrix', 'Tubes'):
+    for name in ('Matrix', 'Network Test', 'Tubes'):
       menu.actions[name]['Disabled'] = True
 
   # Done
