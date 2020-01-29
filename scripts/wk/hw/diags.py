@@ -383,7 +383,6 @@ def audio_test():
   """Run an OS-specific audio test."""
   if PLATFORM == 'Linux':
     audio_test_linux()
-  # TODO: Add tests for other OS
 
 
 def audio_test_linux():

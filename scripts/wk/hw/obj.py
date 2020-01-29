@@ -385,7 +385,6 @@ class Disk(BaseObj):
       aligned = is_4k_aligned_macos(self.details)
     elif PLATFORM == 'Linux':
       aligned = is_4k_aligned_linux(self.path, self.details['phy-sec'])
-    #TODO: Add checks for other OS
 
     return aligned
 

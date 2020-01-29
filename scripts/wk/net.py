@@ -181,7 +181,6 @@ def share_is_mounted(details):
       if row['source'] == f'//{details["Address"]}/{details["Share"]}':
         mounted = True
         break
-  #TODO: Check mount status under Windows
   #elif PLATFORM == 'Windows':
 
   # Done

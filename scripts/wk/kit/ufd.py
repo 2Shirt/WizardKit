@@ -1,8 +1,5 @@
 """WizardKit: UFD Functions"""
 # vim: sts=2 sw=2 ts=2
-# TODO: Replace some lsblk usage with hw_obj?
-# TODO: Reduce imports if possible
-# TODO: Needs testing
 
 import logging
 import os

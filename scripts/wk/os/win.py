@@ -15,7 +15,7 @@ from wk.std import GenericError, GenericWarning, sleep
 
 # STATIC VARIABLES
 LOG = logging.getLogger(__name__)
-OS_VERSION = float(platform.win32_ver()[0]) # TODO: Check if Win8.1 returns '8'
+OS_VERSION = float(platform.win32_ver()[0])
 REG_MSISERVER = r'HKLM\SYSTEM\CurrentControlSet\Control\SafeBoot\Network\MSIServer'
 SLMGR = pathlib.Path(f'{os.environ.get("SYSTEMROOT")}/System32/slmgr.vbs')
 
