@@ -368,8 +368,12 @@ class Disk(BaseObj):
     try:
       details = self.smartctl['ata_smart_data']['self_test']
     except (KeyError, TypeError):
-      # Assuming disk lacks SMART support, ignore and return empty dict.
+      # Assuming disk lacks SMART support, ignore and return nearly empty dict.
       pass
+
+    # Ensure status is present even if empty
+    if 'status' not in details:
+      details['status'] = {}
 
     # Done
     return details
@@ -723,7 +727,13 @@ def get_disks_macos():
   disks = []
 
   # Get info from diskutil
-  proc = run_program(cmd, encoding=None, errors=None)
+  proc = run_program(cmd, encoding=None, errors=None, check=False)
+  if proc.returncode != 0:
+    # Assuming we're running on an older macOS version
+    cmd.pop(-1)
+    proc = run_program(cmd, encoding=None, errors=None, check=False)
+
+  # Parse plist data
   try:
     plist_data = plistlib.loads(proc.stdout)
   except (TypeError, ValueError):
@@ -734,6 +744,11 @@ def get_disks_macos():
   # Add valid disks
   for disk in plist_data['WholeDisks']:
     disks.append(Disk(f'/dev/{disk}'))
+
+  # Remove virtual disks
+  disks = [
+    d for d in disks if d.details.get('VirtualOrPhysical') == 'Physical'
+    ]
 
   # Done
   return disks
