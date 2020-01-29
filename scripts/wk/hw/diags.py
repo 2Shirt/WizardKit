@@ -14,6 +14,7 @@ from collections import OrderedDict
 from docopt import docopt
 
 from wk import cfg, debug, exe, graph, log, net, std, tmux
+from wk import os as wk_os
 from wk.hw import obj as hw_obj
 from wk.hw import sensors as hw_sensors
 
@@ -1304,12 +1305,17 @@ def set_apple_fan_speed(speed):
     raise RuntimeError(f'Invalid speed {speed}')
 
   # Set cmd
-  if PLATFORM == 'Linux':
+  if PLATFORM == 'Darwin':
+    try:
+      wk_os.mac.set_fans(speed)
+    except (RuntimeError, ValueError, subprocess.CalledProcessError) as err:
+      LOG.error('Failed to set fans to %s', speed)
+      LOG.error('Error: %s', err)
+      std.print_error(f'Failed to set fans to {speed}')
+      for line in str(err).splitlines():
+        std.print_warning(f'  {line.strip()}')
+  elif PLATFORM == 'Linux':
     cmd = ['apple-fans', speed]
-  #TODO: Add method for use under macOS
-
-  # Run cmd
-  if cmd:
     exe.run_program(cmd, check=False)
 
 
