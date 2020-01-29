@@ -368,8 +368,12 @@ class Disk(BaseObj):
     try:
       details = self.smartctl['ata_smart_data']['self_test']
     except (KeyError, TypeError):
-      # Assuming disk lacks SMART support, ignore and return empty dict.
+      # Assuming disk lacks SMART support, ignore and return nearly empty dict.
       pass
+
+    # Ensure status is present even if empty
+    if 'status' not in details:
+      details['status'] = {}
 
     # Done
     return details
