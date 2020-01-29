@@ -762,6 +762,7 @@ def disk_io_benchmark(state, test_objects, skip_usb=True):
     if PLATFORM == 'Darwin':
       # Use "RAW" disks under macOS
       dev_path = dev_path.with_name(f'r{dev_path.name}')
+      LOG.info(f'Using {dev_path} for better performance')
     offset = 0
     read_rates = []
     test_obj.report.append(std.color_string('I/O Benchmark', 'BLUE'))
@@ -979,6 +980,11 @@ def disk_surface_scan(state, test_objects):
     """Run surface scan and handle exceptions."""
     block_size = '1024'
     dev = test_obj.dev
+    dev_path = test_obj.dev.path
+    if PLATFORM == 'Darwin':
+      # Use "RAW" disks under macOS
+      dev_path = dev_path.with_name(f'r{dev_path.name}')
+      LOG.info(f'Using {dev_path} for better performance')
     test_obj.report.append(std.color_string('badblocks', 'BLUE'))
     test_obj.set_status('Working')
 
@@ -988,7 +994,7 @@ def disk_surface_scan(state, test_objects):
       block_size = '4096'
 
     # Start scan
-    cmd = ['sudo', 'badblocks', '-sv', '-b', block_size, '-e', '1', dev.path]
+    cmd = ['sudo', 'badblocks', '-sv', '-b', block_size, '-e', '1', dev_path]
     with open(log_path, 'a') as _f:
       size_str = std.bytes_to_string(dev.details["size"], use_binary=False)
       _f.write(
