@@ -727,6 +727,8 @@ class State():
     self.update_progress_pane('Idle')
     self.confirm_selections('Start recovery?')
 
+    # TODO: Unmount source and/or destination under macOS
+
     # Prep destination
     if self.mode == 'Clone':
       self.prep_destination(source_parts, dry_run=docopt_args['--dry-run'])
@@ -1196,7 +1198,6 @@ def build_directory_report(path):
         line = f'{path:<{width}}{line}'
       report.append(line)
   else:
-    # TODO Get dir details under macOS
     report.append(std.color_string('PATH', 'BLUE'))
     report.append(str(path))
 
@@ -1449,8 +1450,11 @@ def fstype_is_ok(path, map_dir=False):
 
   # Get fstype
   if PLATFORM == 'Darwin':
-    # TODO: Determine fstype under macOS
-    pass
+    try:
+      fstype = get_fstype_macos(path)
+    except (IndexError, TypeError, ValueError):
+      # Ignore for now
+      pass
   elif PLATFORM == 'Linux':
     cmd = [
       'findmnt',
@@ -1515,6 +1519,24 @@ def get_etoc():
 
   # Done
   return etoc
+
+
+def get_fstype_macos(path):
+  """Get fstype for path under macOS, returns str.
+
+  NOTE: This method is not very effecient.
+  """
+  cmd = ['df', path]
+
+  # Get device based on the path
+  proc = exe.run_program(cmd, check=False)
+  dev = proc.stdout.splitlines()[1].split()[0]
+
+  # Get device details
+  dev = hw_obj.Disk(dev)
+
+  # Done
+  return dev.details['fstype']
 
 
 def get_object(path):

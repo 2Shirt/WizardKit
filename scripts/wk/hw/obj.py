@@ -321,6 +321,7 @@ class Disk(BaseObj):
     self.details['bus'] = str(self.details.get('bus', '???')).upper()
     self.details['bus'] = self.details['bus'].replace('IMAGE', 'Image')
     self.details['bus'] = self.details['bus'].replace('NVME', 'NVMe')
+    self.details['fstype'] = self.details.get('fstype', 'Unknown')
     self.details['log-sec'] = self.details.get('log-sec', 512)
     self.details['model'] = self.details.get('model', 'Unknown Model')
     self.details['name'] = self.details.get('name', self.path)
