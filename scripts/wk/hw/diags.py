@@ -198,7 +198,7 @@ class State():
               )
       else:
         # No blocking errors encountered, check for minor attribute failures
-        if ('Disk Attributes' in disk.tests:
+        if ('Disk Attributes' in disk.tests
             and not disk.tests['Disk Attributes'].failed
             and not disk.check_attributes(only_blocking=False)):
           # Mid-diag failure detected
