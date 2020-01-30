@@ -198,7 +198,11 @@ class State():
               )
       else:
         # No blocking errors encountered, check for minor attribute failures
-        if not disk.check_attributes(only_blocking=False):
+        if ('Disk Attributes' in disk.tests:
+            and not disk.tests['Disk Attributes'].failed
+            and not disk.check_attributes(only_blocking=False)):
+          # Mid-diag failure detected
+          LOG.warning('Disk attributes failure detected during diagnostics')
           disk.tests['Disk Attributes'].failed = True
           disk.tests['Disk Attributes'].set_status('Failed')
 
