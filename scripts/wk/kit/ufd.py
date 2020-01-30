@@ -53,11 +53,6 @@ def build_ufd():
   try_print.catch_all = False
   try_print.indent = 2
 
-  # Check if running with root permissions
-  if not linux.running_as_root():
-    std.print_error('This script is meant to be run as root')
-    std.abort()
-
   # Show header
   std.print_success(KIT_NAME_FULL)
   std.print_warning('UFD Build Tool')
@@ -218,6 +213,7 @@ def copy_source(source, items, overwrite=False):
 def create_table(dev_path, use_mbr=False):
   """Create GPT or DOS partition table."""
   cmd = [
+    'sudo',
     'parted', dev_path,
     '--script',
     '--',
@@ -254,6 +250,7 @@ def find_first_partition(dev_path):
 def format_partition(dev_path, label):
   """Format first partition on device FAT32."""
   cmd = [
+    'sudo',
     'mkfs.vfat',
     '-F', '32',
     '-n', label,
@@ -287,13 +284,14 @@ def hide_items(ufd_dev, items):
 
   # Hide items
   for item in items:
-    cmd = [f'yes | mattrib +h "U:/{item}"']
-    run_program(cmd, check=False, shell=True)
+    cmd = [f'yes | sudo mattrib +h "U:/{item}"']
+    run_program(cmd, shell=True)
 
 
 def install_syslinux_to_dev(ufd_dev, use_mbr):
   """Install Syslinux to UFD (dev)."""
   cmd = [
+    'sudo',
     'dd',
     'bs=440',
     'count=1',
@@ -306,6 +304,7 @@ def install_syslinux_to_dev(ufd_dev, use_mbr):
 def install_syslinux_to_partition(partition):
   """Install Syslinux to UFD (partition)."""
   cmd = [
+    'sudo',
     'syslinux',
     '--install',
     '--directory',
@@ -335,6 +334,7 @@ def is_valid_path(path_obj, path_type):
 def set_boot_flag(dev_path, use_mbr=False):
   """Set modern or legacy boot flag."""
   cmd = [
+    'sudo',
     'parted', dev_path,
     'set', '1',
     'boot' if use_mbr else 'legacy_boot',
@@ -410,6 +410,7 @@ def update_boot_entries():
 
   # Use UUID instead of label
   cmd = [
+    'sudo',
     'sed',
     '--in-place',
     '--regexp-extended',
@@ -428,6 +429,7 @@ def update_boot_entries():
 
     # Entry found, update config files
     cmd = [
+      'sudo',
       'sed',
       '--in-place',
       f's/#{b_comment}#//',
@@ -476,6 +478,7 @@ def verify_ufd(dev_path):
 def zero_device(dev_path):
   """Zero-out first 64MB of device."""
   cmd = [
+    'sudo',
     'dd',
     'bs=4M',
     'count=16',
