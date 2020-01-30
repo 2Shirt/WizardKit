@@ -656,12 +656,15 @@ def get_disk_details_macos(path):
     dev['label'] = dev.pop('VolumeName', '')
     dev['model'] = dev.pop('MediaName', 'Unknown')
     dev['mountpoint'] = dev.pop('MountPoint', '')
+    dev['name'] = dev.get('name', str(dev['path']))
     dev['phy-sec'] = dev.pop('DeviceBlockSize', 512)
     dev['serial'] = get_disk_serial_macos(dev['path'])
     dev['size'] = dev.pop('Size', -1)
     dev['ssd'] = dev.pop('SolidState', False)
     dev['vendor'] = ''
-    if not dev.get('WholeDisk', True):
+    if dev.get('WholeDisk', True):
+      dev['parent'] = None
+    else:
       dev['parent'] = dev.pop('ParentWholeDisk', None)
 
   # Done
