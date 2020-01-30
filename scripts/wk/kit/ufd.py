@@ -50,7 +50,9 @@ def build_ufd():
   args = docopt(DOCSTRING)
   log.update_log_path(dest_name='build-ufd', timestamp=True)
   try_print = std.TryAndPrint()
+  try_print.add_error(FileNotFoundError)
   try_print.catch_all = False
+  try_print.verbose = True
   try_print.indent = 2
 
   # Show header
@@ -190,6 +192,7 @@ def confirm_selections(update=False):
 def copy_source(source, items, overwrite=False):
   """Copy source items to /mnt/UFD."""
   is_image = source.is_file()
+  items_not_found = False
 
   # Mount source if necessary
   if is_image:
@@ -202,12 +205,14 @@ def copy_source(source, items, overwrite=False):
     try:
       io.recursive_copy(i_source, i_dest, overwrite=overwrite)
     except FileNotFoundError:
-      # Going to assume (hope) that this is fine
-      pass
+      items_not_found = True
 
   # Unmount source if necessary
   if is_image:
     linux.unmount('/mnt/Source')
+
+  # Raise exception if item(s) were not found
+  raise FileNotFoundError('One or more items not found')
 
 
 def create_table(dev_path, use_mbr=False):
