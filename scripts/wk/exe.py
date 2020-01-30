@@ -3,6 +3,7 @@
 
 import json
 import logging
+import os
 import re
 import subprocess
 
@@ -76,6 +77,10 @@ def build_cmd_kwargs(cmd, minimized=False, pipe=True, shell=False, **kwargs):
     'args': cmd,
     'shell': shell,
     }
+
+  # Strip sudo if appropriate
+  if cmd[0] == 'sudo' and os.name == 'posix' and os.geteuid() == 0:
+    cmd.pop(0)
 
   # Add additional kwargs if applicable
   for key in 'check cwd encoding errors stderr stdin stdout'.split():
