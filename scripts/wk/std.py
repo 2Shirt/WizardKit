@@ -728,7 +728,11 @@ def choice(choices, prompt='答えろ！'):
 def clear_screen():
   """Simple wrapper for clear/cls."""
   cmd = 'cls' if os.name == 'nt' else 'clear'
-  subprocess.run(cmd, check=False, shell=True, stderr=subprocess.PIPE)
+  proc = subprocess.run(cmd, check=False, shell=True, stderr=subprocess.PIPE)
+
+  # Workaround for live macOS env
+  if proc.returncode != 0:
+    print('\033c')
 
 
 def color_string(strings, colors, sep=' '):
