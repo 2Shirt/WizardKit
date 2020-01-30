@@ -497,11 +497,11 @@ class Disk(BaseObj):
           _f.write(f'{header_str}\nSMART self-test status:\n  {status_str}')
 
         # Check if finished
-        if 'remaining_percent' not in test_details['status']:
+        if 'remaining_percent' not in test_details.get('status', {}):
           finished = True
           break
 
-      elif 'remaining_percent' in test_details['status']:
+      elif 'remaining_percent' in test_details.get('status', {}):
         started = True
 
     # Check result
