@@ -198,7 +198,11 @@ class State():
               )
       else:
         # No blocking errors encountered, check for minor attribute failures
-        if not disk.check_attributes(only_blocking=False):
+        if ('Disk Attributes' in disk.tests
+            and not disk.tests['Disk Attributes'].failed
+            and not disk.check_attributes(only_blocking=False)):
+          # Mid-diag failure detected
+          LOG.warning('Disk attributes failure detected during diagnostics')
           disk.tests['Disk Attributes'].failed = True
           disk.tests['Disk Attributes'].set_status('Failed')
 
@@ -383,7 +387,6 @@ def audio_test():
   """Run an OS-specific audio test."""
   if PLATFORM == 'Linux':
     audio_test_linux()
-  # TODO: Add tests for other OS
 
 
 def audio_test_linux():
@@ -431,10 +434,10 @@ def build_menu(cli_mode=False, quick_mode=False):
 
   # Compatibility checks
   if PLATFORM != 'Linux':
-    for name in ('Audio Test', 'Keyboard Test', 'Network Test'):
+    for name in ('Audio Test', 'Keyboard Test'):
       menu.actions[name]['Disabled'] = True
   if PLATFORM not in ('Darwin', 'Linux'):
-    for name in ('Matrix', 'Tubes'):
+    for name in ('Matrix', 'Network Test', 'Tubes'):
       menu.actions[name]['Disabled'] = True
 
   # Done

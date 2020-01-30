@@ -368,12 +368,8 @@ class Disk(BaseObj):
     try:
       details = self.smartctl['ata_smart_data']['self_test']
     except (KeyError, TypeError):
-      # Assuming disk lacks SMART support, ignore and return nearly empty dict.
+      # Assuming disk lacks SMART support, ignore and return empty dict.
       pass
-
-    # Ensure status is present even if empty
-    if 'status' not in details:
-      details['status'] = {}
 
     # Done
     return details
@@ -385,7 +381,6 @@ class Disk(BaseObj):
       aligned = is_4k_aligned_macos(self.details)
     elif PLATFORM == 'Linux':
       aligned = is_4k_aligned_linux(self.path, self.details['phy-sec'])
-    #TODO: Add checks for other OS
 
     return aligned
 
@@ -502,11 +497,11 @@ class Disk(BaseObj):
           _f.write(f'{header_str}\nSMART self-test status:\n  {status_str}')
 
         # Check if finished
-        if 'remaining_percent' not in test_details['status']:
+        if 'remaining_percent' not in test_details.get('status', {}):
           finished = True
           break
 
-      elif 'remaining_percent' in test_details['status']:
+      elif 'remaining_percent' in test_details.get('status', {}):
         started = True
 
     # Check result

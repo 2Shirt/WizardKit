@@ -179,7 +179,6 @@ def running_as_root():
 
 def scan_corestorage_container(container, timeout=300):
   """Scan CoreStorage container for inner volumes, returns list."""
-  # TODO: Test Scanning CoreStorage containers
   detected_volumes = {}
   inner_volumes = []
   log_path = format_log_path(log_name=f'{container.path.name}_testdisk')
