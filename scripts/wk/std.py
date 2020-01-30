@@ -134,6 +134,8 @@ class Menu():
     checkmark = '*'
     if 'DISPLAY' in os.environ or PLATFORM == 'Darwin':
       checkmark = '✓'
+    if os.path.exists('/.wk-live-macos'):
+      checkmark = '*'
     display_name = f'{index if index else name[:1].upper()}: '
     if not (index and index >= 10):
       display_name = f' {display_name}'
