@@ -82,7 +82,9 @@ PANE_RATIOS = (
   )
 PLATFORM = std.PLATFORM
 RECOMMENDED_FSTYPES = re.compile(r'^(ext[234]|ntfs|xfs)$')
-RECOMMENDED_MAP_FSTYPES = re.compile(r'^(cifs|ext[234]|ntfs|vfat|xfs)$')
+RECOMMENDED_MAP_FSTYPES = re.compile(
+  r'^(apfs|cifs|ext[234]|hfs.?|ntfs|vfat|xfs)$'
+  )
 SETTING_PRESETS = (
   'Default',
   'Fast',
