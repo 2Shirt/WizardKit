@@ -35,6 +35,7 @@ NVME_WARNING_KEYS = (
   'reliability_degraded',
   'volatile_memory_backup_failed',
   )
+SMART_SELF_TEST_START_TIMEOUT_IN_SECONDS = 120
 WK_LABEL_REGEX = re.compile(
   fr'{KIT_NAME_SHORT}_(LINUX|UFD)',
   re.IGNORECASE,
@@ -504,6 +505,9 @@ class Disk(BaseObj):
 
       elif 'remaining_percent' in test_details.get('status', {}):
         started = True
+      elif _i * 5 >= SMART_SELF_TEST_START_TIMEOUT_IN_SECONDS:
+        # Test didn't start within limit, stop waiting
+        break
 
     # Check result
     if finished:
