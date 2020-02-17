@@ -150,7 +150,7 @@ class Sensors():
 
     # Get temps
     for i in range(seconds):
-      self.update_sensor_data()
+      self.update_sensor_data(exit_on_thermal_limit=False)
       sleep(1)
 
     # Calculate averages
