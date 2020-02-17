@@ -158,7 +158,15 @@ class Sensors():
       for sources in adapters.values():
         for source_data in sources.values():
           temps = source_data['Temps']
-          source_data[temp_label] = sum(temps) / len(temps)
+          try:
+            source_data[temp_label] = sum(temps) / len(temps)
+          except ZeroDivisionError:
+            # Going to use unrealistic 0°C instead
+            LOG.error(
+              'No temps saved for %s',
+              source_data.get('label', 'UNKNOWN'),
+              )
+            source_data[temp_label] = 0
 
   def start_background_monitor(
       self, out_path,
