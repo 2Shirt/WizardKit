@@ -6,6 +6,7 @@ import logging
 import os
 import re
 import subprocess
+import time
 
 from threading import Thread
 from queue import Queue, Empty
@@ -212,6 +213,29 @@ def start_thread(function, args=None, daemon=True):
   thread = Thread(target=function, args=args, daemon=daemon)
   thread.start()
   return thread
+
+
+def stop_process(proc, graceful=True):
+  """Stop process.
+
+  NOTES:  proc should be a subprocess.Popen obj.
+          If graceful is True then a SIGTERM is sent before SIGKILL.
+  """
+  running_as_root = os.geteuid() == 0
+
+  # Graceful exit
+  if graceful:
+    if running_as_root:
+      proc.terminate()
+    else:
+      run_program(['sudo', 'kill', str(proc.pid)], check=False)
+    time.sleep(2)
+
+  # Force exit
+  if running_as_root:
+    proc.kill()
+  else:
+    run_program(['sudo', 'kill', '-9', str(proc.pid)], check=False)
 
 
 def wait_for_procs(name, exact=True, timeout=None):

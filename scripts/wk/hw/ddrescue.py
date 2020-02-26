@@ -1883,7 +1883,7 @@ def run_ddrescue(state, block_pair, pass_name, settings, dry_run=True):
       warning_message = check_destination_health(state.destination)
       if warning_message:
         # Error detected on destination, stop recovery
-        stop_ddrescue(proc)
+        exe.stop_process(proc)
         break
     if _i % 60 == 0:
       # Clear ddrescue pane
@@ -1903,7 +1903,7 @@ def run_ddrescue(state, block_pair, pass_name, settings, dry_run=True):
       LOG.warning('ddrescue stopped by user')
       warning_message = 'Aborted'
       std.sleep(2)
-      stop_ddrescue(proc, graceful=False)
+      exe.stop_process(proc, graceful=False)
       break
     except subprocess.TimeoutExpired:
       # Continue to next loop to update panes
@@ -2178,25 +2178,6 @@ def set_mode(docopt_args):
 
   # Done
   return mode
-
-
-def stop_ddrescue(proc, graceful=True):
-  """Stop ddrescue."""
-  running_as_root = os.geteuid() == 0
-
-  # Graceful exit
-  if graceful:
-    if running_as_root:
-      proc.terminate()
-    else:
-      exe.run_program(['sudo', 'kill', str(proc.pid)], check=False)
-    std.sleep(2)
-
-  # Force exit
-  if running_as_root:
-    proc.kill()
-  else:
-    exe.run_program(['sudo', 'kill', '-9', str(proc.pid)], check=False)
 
 
 def unmount_loopback_device(path):
