@@ -1390,6 +1390,29 @@ def build_sfdisk_partition_line(table_type, dev_path, size, details):
   return line
 
 
+def check_destination_health(destination):
+  """Check destination health, returns str."""
+  result = ''
+
+  # Bail early
+  if not isinstance(destination, hw_obj.Disk):
+    # Return empty string
+    return result
+
+  # Run safety checks
+  try:
+    destination.safety_checks()
+  except hw_obj.CriticalHardwareError:
+    result = 'Critical hardware error detected on destination'
+  except hw_obj.SMARTSelfTestInProgressError:
+    result = 'SMART self-test in progress on destination'
+  except hw_obj.SMARTNotSupportedError:
+    pass
+
+  # Done
+  return result
+
+
 def check_for_missing_items(state):
   """Check if source or destination dissapeared."""
   items = {
@@ -1820,6 +1843,7 @@ def mount_raw_image_macos(path):
 
 
 def run_ddrescue(state, block_pair, pass_name, settings, dry_run=True):
+  # pylint: disable=too-many-statements
   """Run ddrescue using passed settings."""
   cmd = build_ddrescue_cmd(block_pair, pass_name, settings)
   state.update_progress_pane('Active')
@@ -1854,6 +1878,13 @@ def run_ddrescue(state, block_pair, pass_name, settings, dry_run=True):
     if _i % 30 == 0:
       # Update SMART pane
       _update_smart_pane()
+
+      # Check destination
+      warning_message = check_destination_health(state.destination)
+      if warning_message:
+        # Error detected on destination, stop recovery
+        stop_ddrescue(proc)
+        break
     if _i % 60 == 0:
       # Clear ddrescue pane
       tmux.clear_pane()
@@ -1872,7 +1903,7 @@ def run_ddrescue(state, block_pair, pass_name, settings, dry_run=True):
       LOG.warning('ddrescue stopped by user')
       warning_message = 'Aborted'
       std.sleep(2)
-      exe.run_program(['sudo', 'kill', str(proc.pid)], check=False)
+      stop_ddrescue(proc, graceful=False)
       break
     except subprocess.TimeoutExpired:
       # Continue to next loop to update panes
@@ -2147,6 +2178,25 @@ def set_mode(docopt_args):
 
   # Done
   return mode
+
+
+def stop_ddrescue(proc, graceful=True):
+  """Stop ddrescue."""
+  running_as_root = os.geteuid() == 0
+
+  # Graceful exit
+  if graceful:
+    if running_as_root:
+      proc.terminate()
+    else:
+      exe.run_program(['sudo', 'kill', str(proc.pid)], check=False)
+    std.sleep(2)
+
+  # Force exit
+  if running_as_root:
+    proc.kill()
+  else:
+    exe.run_program(['sudo', 'kill', '-9', str(proc.pid)], check=False)
 
 
 def unmount_loopback_device(path):
