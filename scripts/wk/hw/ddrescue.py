@@ -1390,6 +1390,25 @@ def build_sfdisk_partition_line(table_type, dev_path, size, details):
   return line
 
 
+def check_for_missing_items(state):
+  """Check if source or destination dissapeared."""
+  items = {
+    'Source': state.source,
+    'Destination': state.destination,
+    }
+  for name, item in items.items():
+    if not item:
+      continue
+    if hasattr(item, 'path'):
+      if not item.path.exists():
+        std.print_error(f'{name} disappeared')
+    elif hasattr(item, 'exists'):
+      if not item.exists():
+        std.print_error(f'{name} disappeared')
+    else:
+      LOG.error('Unknown %s type: %s', name, item)
+
+
 def clean_working_dir(working_dir):
   """Clean working directory to ensure a fresh recovery session.
 
@@ -1686,7 +1705,8 @@ def main():
   state = State()
   try:
     state.init_recovery(args)
-  except std.GenericAbort:
+  except (FileNotFoundError, std.GenericAbort):
+    check_for_missing_items(state)
     std.abort()
 
   # Show menu
@@ -1926,7 +1946,8 @@ def run_recovery(state, main_menu, settings_menu, dry_run=True):
         state.mark_started()
         try:
           run_ddrescue(state, pair, pass_name, settings, dry_run=dry_run)
-        except (KeyboardInterrupt, std.GenericAbort):
+        except (FileNotFoundError, KeyboardInterrupt, std.GenericAbort):
+          check_for_missing_items(state)
           abort = True
           break
 
