@@ -349,6 +349,8 @@ def reg_write_settings(settings):
         ('Sample Value #1', 'Sample Data', 'SZ'),
         ('Sample Value #2', 14, 'DWORD'),
         ),
+      # An empty key will be created if no values are specified
+      r'Software\\2Shirt\\WizardKit\\Empty': (),
       r'Software\\2Shirt\\WizardKit\\Test': (
         ('Sample Value #3', 14000000000000, 'QWORD'),
         ),
@@ -365,6 +367,9 @@ def reg_write_settings(settings):
   for hive, keys in settings.items():
     hive = reg_get_hive(hive)
     for key, values in keys.items():
+      if not values:
+        # Create an empty key
+        winreg.CreateKey(hive, key)
       for value in values:
         reg_set_value(hive, key, *value)
 
