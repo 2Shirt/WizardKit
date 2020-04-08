@@ -8,6 +8,7 @@ import platform
 import winreg
 
 from contextlib import suppress
+
 from wk.borrowed import acpi
 from wk.exe import run_program
 from wk.io import non_clobber_path
@@ -17,6 +18,19 @@ from wk.std import GenericError, GenericWarning, sleep
 
 # STATIC VARIABLES
 LOG = logging.getLogger(__name__)
+KNOWN_DATA_TYPES = {
+  'BINARY': winreg.REG_BINARY,
+  'DWORD': winreg.REG_DWORD,
+  'DWORD_LITTLE_ENDIAN': winreg.REG_DWORD_LITTLE_ENDIAN,
+  'DWORD_BIG_ENDIAN': winreg.REG_DWORD_BIG_ENDIAN,
+  'EXPAND_SZ': winreg.REG_EXPAND_SZ,
+  'LINK': winreg.REG_LINK,
+  'MULTI_SZ': winreg.REG_MULTI_SZ,
+  'NONE': winreg.REG_NONE,
+  'QWORD': winreg.REG_QWORD,
+  'QWORD_LITTLE_ENDIAN': winreg.REG_QWORD_LITTLE_ENDIAN,
+  'SZ': winreg.REG_SZ,
+  }
 KNOWN_HIVES = {
   'HKCR': winreg.HKEY_CLASSES_ROOT,
   'HKCU': winreg.HKEY_CURRENT_USER,
@@ -36,19 +50,6 @@ KNOWN_HIVE_NAMES = {
   winreg.HKEY_CURRENT_USER: 'HKEY_CURRENT_USER',
   winreg.HKEY_LOCAL_MACHINE: 'HKEY_LOCAL_MACHINE',
   winreg.HKEY_USERS: 'HKEY_USERS',
-  }
-KNOWN_VALUE_TYPES = {
-  'BINARY': winreg.REG_BINARY,
-  'DWORD': winreg.REG_DWORD,
-  'DWORD_LITTLE_ENDIAN': winreg.REG_DWORD_LITTLE_ENDIAN,
-  'DWORD_BIG_ENDIAN': winreg.REG_DWORD_BIG_ENDIAN,
-  'EXPAND_SZ': winreg.REG_EXPAND_SZ,
-  'LINK': winreg.REG_LINK,
-  'MULTI_SZ': winreg.REG_MULTI_SZ,
-  'NONE': winreg.REG_NONE,
-  'QWORD': winreg.REG_QWORD,
-  'QWORD_LITTLE_ENDIAN': winreg.REG_QWORD_LITTLE_ENDIAN,
-  'SZ': winreg.REG_SZ,
   }
 OS_VERSION = float(platform.win32_ver()[0])
 REG_MSISERVER = r'HKLM\SYSTEM\CurrentControlSet\Control\SafeBoot\Network\MSIServer'
@@ -282,16 +283,16 @@ def reg_get_hive(hive):
   return hive
 
 
-def reg_get_value_type(value_type):
-  """Get registry value type from string, returns winreg constant."""
-  if isinstance(value_type, int):
+def reg_get_data_type(data_type):
+  """Get registry data type from string, returns winreg constant."""
+  if isinstance(data_type, int):
     # Assuming we're already a winreg value type constant
     pass
   else:
-    value_type = KNOWN_VALUE_TYPES[value_type.upper()]
+    data_type = KNOWN_DATA_TYPES[data_type.upper()]
 
   # Done
-  return value_type
+  return data_type
 
 
 def reg_key_exists(hive, key):
@@ -333,31 +334,71 @@ def reg_read_value(hive, key, value, force_32=False, force_64=False):
   return data
 
 
-def reg_write_settings(settings_dict):
-  """TODO"""
+def reg_write_settings(settings):
+  """Set registry values in bulk from a custom data structure.
+
+  Data structure should be as follows:
+  EXAMPLE_SETTINGS = {
+    # See KNOWN_HIVES for valid hives
+    'HKLM': {
+      r'Software\\2Shirt\\WizardKit': (
+        # Value tuples should be in the form:
+        # (name, data, data-type, option),
+        # See KNOWN_DATA_TYPES for valid types
+        # The option item is optional
+        ('Sample Value #1', 'Sample Data', 'SZ'),
+        ('Sample Value #2', 14, 'DWORD'),
+        ),
+      r'Software\\2Shirt\\WizardKit\\Test': (
+        ('Sample Value #3', 14000000000000, 'QWORD'),
+        ),
+      },
+    'HKCU': {
+      r'Software\\2Shirt\\WizardKit': (
+        # The 4th item forces using the 32-bit registry
+        # See reg_set_value() for valid options
+        ('Sample Value #4', 'Sample Data', 'SZ', '32'),
+        ),
+      },
+    }
+  """
+  for hive, keys in settings.items():
+    hive = reg_get_hive(hive)
+    for key, values in keys.items():
+      for value in values:
+        reg_set_value(hive, key, *value)
 
 
-def reg_set_value(
-    hive, key, name, value, value_type, force_32=False, force_64=False):
+def reg_set_value(hive, key, name, data, data_type, option=None):
   # pylint: disable=too-many-arguments
   """Set value for hive/key."""
   access = winreg.KEY_WRITE
-  value_type = reg_get_value_type(value_type)
+  data_type = reg_get_data_type(data_type)
   hive = reg_get_hive(hive)
+  option = str(option)
+
+  # Safety check
+  if not name and option in ('32', '64'):
+    raise NotImplementedError(
+      'Unable to set default values using alternate registry views',
+      )
 
   # Set access
-  if force_32:
+  if option == '32':
     access = access | winreg.KEY_WOW64_32KEY
-  elif force_64:
+  elif option == '64':
     access = access | winreg.KEY_WOW64_64KEY
 
   # Create key
   winreg.CreateKeyEx(hive, key, access=access)
 
   # Set value
-  with winreg.OpenKey(hive, key, access=access) as open_key:
-    # Returning first part of tuple and ignoreing type
-    winreg.SetValueEx(open_key, name, 0, value_type, value)
+  if name:
+    with winreg.OpenKey(hive, key, access=access) as open_key:
+      winreg.SetValueEx(open_key, name, 0, data_type, data)
+  else:
+    # Set default value instead
+    winreg.SetValue(hive, key, data_type, data)
 
 
 if __name__ == '__main__':
