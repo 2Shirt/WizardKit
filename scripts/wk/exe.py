@@ -80,8 +80,9 @@ def build_cmd_kwargs(cmd, minimized=False, pipe=True, shell=False, **kwargs):
     }
 
   # Strip sudo if appropriate
-  if cmd[0] == 'sudo' and os.name == 'posix' and os.geteuid() == 0:
-    cmd.pop(0)
+  if cmd[0] == 'sudo':
+    if os.name == 'posix' and os.geteuid() == 0: # pylint: disable=no-member
+      cmd.pop(0)
 
   # Add additional kwargs if applicable
   for key in 'check cwd encoding errors stderr stdin stdout'.split():
@@ -221,21 +222,20 @@ def stop_process(proc, graceful=True):
   NOTES:  proc should be a subprocess.Popen obj.
           If graceful is True then a SIGTERM is sent before SIGKILL.
   """
-  running_as_root = os.geteuid() == 0
 
   # Graceful exit
   if graceful:
-    if running_as_root:
-      proc.terminate()
-    else:
+    if os.name == 'posix' and os.geteuid() != 0: # pylint: disable=no-member
       run_program(['sudo', 'kill', str(proc.pid)], check=False)
+    else:
+      proc.terminate()
     time.sleep(2)
 
   # Force exit
-  if running_as_root:
-    proc.kill()
-  else:
+  if os.name == 'posix' and os.geteuid() != 0: # pylint: disable=no-member
     run_program(['sudo', 'kill', '-9', str(proc.pid)], check=False)
+  else:
+    proc.kill()
 
 
 def wait_for_procs(name, exact=True, timeout=None):

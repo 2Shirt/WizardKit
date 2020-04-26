@@ -122,8 +122,8 @@ def mount_network_share(details, mount_point=None, read_write=False):
       '-t', 'cifs',
       '-o', (
         f'{"rw" if read_write else "ro"}'
-        f',uid={os.getuid()}'
-        f',gid={os.getgid()}'
+        f',uid={os.getuid()}' # pylint: disable=no-member
+        f',gid={os.getgid()}' # pylint: disable=no-member
         f',username={username}'
         f',{"password=" if password else "guest"}{password}'
         ),
