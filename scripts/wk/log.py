@@ -79,14 +79,20 @@ def get_root_logger_path():
   return log_path
 
 
-def remove_empty_log():
-  """Remove log if empty."""
+def remove_empty_log(log_path=None):
+  """Remove log if empty.
+
+  NOTE: Under Windows an empty log is 2 bytes long.
+  """
   is_empty = False
 
+  # Get log path
+  if not log_path:
+    log_path = get_root_logger_path()
+
   # Check if log is empty
-  log_path = get_root_logger_path()
   try:
-    is_empty = log_path and log_path.exists() and log_path.stat().st_size == 0
+    is_empty = log_path and log_path.exists() and log_path.stat().st_size <= 2
   except (FileNotFoundError, AttributeError):
     # File doesn't exist or couldn't verify it's empty
     pass
@@ -122,34 +128,35 @@ def update_log_path(
     dest_dir=None, dest_name=None, keep_history=True, timestamp=True):
   """Moves current log file to new path and updates the root logger."""
   root_logger = logging.getLogger()
-  cur_handler = None
-  cur_path = get_root_logger_path()
   new_path = format_log_path(dest_dir, dest_name, timestamp=timestamp)
+  old_handler = None
+  old_path = get_root_logger_path()
   os.makedirs(new_path.parent, exist_ok=True)
 
   # Get current logging file handler
   for handler in root_logger.handlers:
     if isinstance(handler, logging.FileHandler):
-      cur_handler = handler
+      old_handler = handler
       break
-  if not cur_handler:
+  if not old_handler:
     raise RuntimeError('Logging FileHandler not found')
 
   # Copy original log to new location
   if keep_history:
     if new_path.exists():
       raise FileExistsError(f'Refusing to clobber: {new_path}')
-    shutil.move(cur_path, new_path)
+    shutil.copy(old_path, new_path)
 
-  # Remove old log if empty
-  remove_empty_log()
-
-  # Create new cur_handler (preserving formatter settings)
+  # Create new handler (preserving formatter settings)
   new_handler = logging.FileHandler(new_path, mode='a')
-  new_handler.setFormatter(cur_handler.formatter)
+  new_handler.setFormatter(old_handler.formatter)
 
-  # Replace current handler
-  root_logger.removeHandler(cur_handler)
+  # Remove old_handler and log if empty
+  root_logger.removeHandler(old_handler)
+  old_handler.close()
+  remove_empty_log(old_path)
+
+  # Add new handler
   root_logger.addHandler(new_handler)
 
 
