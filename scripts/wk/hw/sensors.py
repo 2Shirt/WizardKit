@@ -261,7 +261,7 @@ def fix_sensor_name(name):
   name = name.replace('Smc', 'SMC')
   name = re.sub(r'(\D+)(\d+)', r'\1 \2', name, re.IGNORECASE)
   name = re.sub(r'^K (\d+)Temp', r'AMD K\1 Temps', name, re.IGNORECASE)
-  name = re.sub(r'T(ctl|die)', r'CPU (T\1)', name, re.IGNORECASE)
+  name = re.sub(r'T(ccd\s+\d+|ctl|die)', r'CPU (T\1)', name, re.IGNORECASE)
   name = re.sub(r'\s+', ' ', name)
   return name
 
@@ -294,7 +294,7 @@ def get_sensor_data_linux():
     ## current temp is labeled xxxx_input
     for source, labels in sources.items():
       for label, temp in labels.items():
-        if label.startswith('fan') or label.startswith('in'):
+        if label.startswith('fan') or label.startswith('in') or label.startswith('curr'):
           # Skip fan RPMs and voltages
           continue
         if 'input' in label:
