@@ -250,7 +250,7 @@ WINDOWS_BUILDS = {
   '19035': ('10',     None,     '20H1',         None,   'preview build'),
   '19037': ('10',     None,     '20H1',         None,   'preview build'),
   '19041': ('10',   'v2004',    '20H1',         'May 2020 Update', None),
-  '19042': ('10',     None,     '20H1',         None,   'preview build'),
+  '19042': ('10',   'v20H2',    '20H2',         'October 2020 Update', None),
 }
 
 
