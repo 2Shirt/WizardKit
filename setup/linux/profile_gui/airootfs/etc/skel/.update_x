@@ -3,7 +3,6 @@
 ## Calculate DPI, update settings if necessary, then start desktop apps
 
 REGEX_XRANDR='^.* ([0-9]+)x([0-9]+)\+[0-9]+\+[0-9]+.* ([0-9]+)mm x ([0-9]+)mm.*$'
-REGEX_URXVT='(URxvt.geometry:\s+).*'
 
 echo -n "Getting display details... "
 
@@ -29,11 +28,7 @@ dpi="${dpi:-0}"
 # Save data
 echo "width_px=$width_px" > "$HOME/.screen_data"
 echo "height_px=$height_px" >> "$HOME/.screen_data"
-
-# Calculate URxvt default window size
-width_urxvt="$(echo "${width_px} * 112/1280" | bc)"
-height_urxvt="$(echo "${height_px} * 33/720" | bc)"
-offset_urxvt="24"
+echo "dpi=$dpi" >> "$HOME/.screen_data"
 
 echo "Done"
 
@@ -42,10 +37,11 @@ if [[ "${dpi}" -ge 192 ]]; then
   echo -n "Updating settings for HiDPI... "
 
   # Conky
-  sed -i 's/minimum_size 180 0/minimum_size 360 0/' "${HOME}/.conkyrc_base"
-  sed -i 's/maximum_width 180/maximum_width 360/' "${HOME}/.conkyrc_base"
-  sed -i 's/gap_x 20/gap_x 40/' "${HOME}/.conkyrc_base"
-  sed -i 's/gap_y 24/gap_y 48/' "${HOME}/.conkyrc_base"
+  sed -i 's/default_graph_height = 24/default_graph_height = 48/' "${HOME}/.config/conky/base.conf"
+  sed -i 's/gap_x = 20/gap_x = 40/' "${HOME}/.config/conky/base.conf"
+  sed -i 's/gap_y = 24/gap_y = 48/' "${HOME}/.config/conky/base.conf"
+  sed -i 's/maximum_width = 180/maximum_width = 360/' "${HOME}/.config/conky/base.conf"
+  sed -i 's/minimum_width = 180/minimum_width = 360/' "${HOME}/.config/conky/base.conf"
 
   # Fonts
   sed -i 's/!Xft.dpi: 192/Xft.dpi: 192/' "${HOME}/.Xresources"
@@ -67,18 +63,9 @@ if [[ "${dpi}" -ge 192 ]]; then
   sed -i 's/systray_icon_size = 24/systray_icon_size = 48/' \
     "${HOME}/.config/tint2/tint2rc"
 
-  # URxvt
-  width_urxvt="$(echo "${width_urxvt} / 2" | bc)"
-  height_urxvt="$(echo "${height_urxvt} / 2" | bc)"
-  offset_urxvt="$(echo "${offset_urxvt} * 2" | bc)"
-
   # Done
   echo "Done"
 fi
-
-# Update URxvt (Always)
-urxvt_geometry="${width_urxvt}x${height_urxvt}+${offset_urxvt}+${offset_urxvt}"
-sed -i -r "s/${REGEX_URXVT}/\1${urxvt_geometry}/" "${HOME}/.Xresources"
 
 # Update conky
 echo -n "Updating conky... "

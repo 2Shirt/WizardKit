@@ -192,6 +192,9 @@ function update_live_env() {
   # SSH
   mkdir -p "$SKEL_DIR/.ssh"
   ssh-keygen -b 4096 -C "$username@$hostname" -N "" -f "$SKEL_DIR/.ssh/id_rsa"
+  if ! grep -qv "^#" "$ROOT_DIR/setup/linux/authorized_keys"; then
+    echo "WARNING: No authorized SSH keys found." 1>&2
+  fi
   cp "$ROOT_DIR/setup/linux/authorized_keys" "$SKEL_DIR/.ssh/authorized_keys"
 
   # Root user

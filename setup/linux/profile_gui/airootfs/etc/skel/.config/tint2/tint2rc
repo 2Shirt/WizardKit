@@ -107,7 +107,7 @@ border_color_pressed = #d64937 100
 
 #-------------------------------------
 # Panel
-panel_items = TESC
+panel_items = TSC
 panel_size = 100% 30
 panel_margin = 0 0
 panel_padding = 0 0 0
@@ -247,10 +247,3 @@ tooltip_padding = 2 2
 tooltip_background_id = 7
 tooltip_font_color = #d8d8d8 100
 tooltip_font = Hack 12
-
-#-------------------------------------
-# Sensors
-execp = new
-execp_command = tint2-sensors
-execp_interval = 1
-execp_font_color = #ffffff

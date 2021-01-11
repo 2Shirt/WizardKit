@@ -38,8 +38,9 @@ def get_data():
 
   return data
 
-def parse_data(data):
+def get_max_temp(data):
   cpu_temps = []
+  max_cpu_temp = '??° C'
   for adapter, sources in data.items():
     if not CPU_REGEX.search(adapter):
       continue
@@ -47,15 +48,18 @@ def parse_data(data):
 
     for labels in sources.values():
       for label, temp in sorted(labels.items()):
-        if NON_TEMP_REGEX.search(label):
+        if 'input' not in label or NON_TEMP_REGEX.search(label):
           continue
         cpu_temps.append(temp)
 
-  cpu_temps = [f'{int(temp)}°' for temp in cpu_temps]
-  if not cpu_temps:
-    cpu_temps.append('??°')
-  return ' | '.join(cpu_temps)
+  # Format data
+  if cpu_temps:
+    max_cpu_temp = int(max(cpu_temps))
+    max_cpu_temp = f'{max_cpu_temp:02d}° C'
+
+  # Done
+  return max_cpu_temp
 
 if __name__ == '__main__':
   sensor_data = get_data()
-  print(f' {parse_data(sensor_data)}')
+  print(get_max_temp(sensor_data))

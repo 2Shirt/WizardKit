@@ -59,7 +59,7 @@
     <keepBorder>yes</keepBorder>
     <animateIconify>yes</animateIconify>
     <font place="ActiveWindow">
-      <name>sans</name>
+      <name>Hack</name>
       <size>8</size>
       <!-- font size in points -->
       <weight>bold</weight>
@@ -68,7 +68,7 @@
       <!-- 'italic' or 'normal' -->
     </font>
     <font place="InactiveWindow">
-      <name>sans</name>
+      <name>Hack</name>
       <size>8</size>
       <!-- font size in points -->
       <weight>bold</weight>
@@ -77,7 +77,7 @@
       <!-- 'italic' or 'normal' -->
     </font>
     <font place="MenuHeader">
-      <name>sans</name>
+      <name>Hack</name>
       <size>9</size>
       <!-- font size in points -->
       <weight>normal</weight>
@@ -86,7 +86,7 @@
       <!-- 'italic' or 'normal' -->
     </font>
     <font place="MenuItem">
-      <name>sans</name>
+      <name>Hack</name>
       <size>9</size>
       <!-- font size in points -->
       <weight>normal</weight>
@@ -95,7 +95,7 @@
       <!-- 'italic' or 'normal' -->
     </font>
     <font place="ActiveOnScreenDisplay">
-      <name>sans</name>
+      <name>Hack</name>
       <size>9</size>
       <!-- font size in points -->
       <weight>bold</weight>
@@ -104,7 +104,7 @@
       <!-- 'italic' or 'normal' -->
     </font>
     <font place="InactiveOnScreenDisplay">
-      <name>sans</name>
+      <name>Hack</name>
       <size>9</size>
       <!-- font size in points -->
       <weight>bold</weight>
@@ -319,7 +319,7 @@
     </keybind>
     <keybind key="C-A-r">
       <action name="Execute">
-        <command>rofi -combi-modi window,drun,run -show combi -modi combi</command>
+        <command>launcher_slate</command>
       </action>
     </keybind>
     <keybind key="C-A-s">
@@ -344,7 +344,7 @@
     </keybind>
     <keybind key="C-A-x">
       <action name="Execute">
-        <command>wk-exit</command>
+        <command>menu_powermenu</command>
       </action>
     </keybind>
     <keybind key="W-d">
@@ -369,7 +369,7 @@
     </keybind>
     <keybind key="W-r">
       <action name="Execute">
-        <command>rofi -combi-modi window,drun,run -show combi -modi combi</command>
+        <command>launcher_slate</command>
       </action>
     </keybind>
     <keybind key="W-s">
@@ -394,7 +394,7 @@
     </keybind>
     <keybind key="W-x">
       <action name="Execute">
-        <command>wk-exit</command>
+        <command>menu_powermenu</command>
       </action>
     </keybind>
     <keybind key="XF86AudioRaiseVolume">

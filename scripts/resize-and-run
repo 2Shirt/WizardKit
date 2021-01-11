@@ -6,10 +6,28 @@
 ## Height: | 24 | 10 (titlebar) | term_y | 24 | 30 (Tint2) |
 ## X Offset: 20 - 5 (shadow?)
 ## Y Offset: 24 - 5 (shadow?)
+conky_width=180
+gap_x=20
+gap_y=24
+picom_shadow=5
+tint2_height=30
+titlebar_height=10
 
 source ~/.screen_data
 
-term_width="$(echo "$width_px - 240" | bc)"
-term_height="$(echo "$height_px - 88" | bc)"
+if [[ "${dpi}" -ge 192 ]]; then
+  conky_width=360
+  gap_x=40
+  gap_y=48
+  picom_shadow=5
+  tint2_height=60
+  titlebar_height=20
+fi
 
-wmctrl -r :ACTIVE: -e "0,15,19,$term_width,$term_height" && "$@"
+offset_x=$(echo "$gap_x - $picom_shadow" | bc)
+offset_y=$(echo "$gap_y - $picom_shadow" | bc)
+term_width="$(echo "$width_px - ($gap_x * 3) - $conky_width" | bc)"
+term_height="$(echo "$height_px - ($gap_y * 2) - $titlebar_height - $tint2_height" | bc)"
+
+sleep 0.1s
+wmctrl -r :ACTIVE: -e "0,$offset_x,$offset_y,$term_width,$term_height" && "$@"

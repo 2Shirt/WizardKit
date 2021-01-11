@@ -10,6 +10,9 @@ sudo sed -i -r "s/^(Server = )/#\1/" /etc/pacman.conf
 # Disable signature checks
 sudo sed -i -r "s/^SigLevel.*/SigLevel = Never/" /etc/pacman.conf
 
+# Init Pacman keyring
+sudo systemctl start pacman-init.service
+
 # Refresh package databases
 sudo pacman -Sy
 
