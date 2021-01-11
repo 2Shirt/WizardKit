@@ -1390,6 +1390,48 @@ def build_sfdisk_partition_line(table_type, dev_path, size, details):
   return line
 
 
+def check_destination_health(destination):
+  """Check destination health, returns str."""
+  result = ''
+
+  # Bail early
+  if not isinstance(destination, hw_obj.Disk):
+    # Return empty string
+    return result
+
+  # Run safety checks
+  try:
+    destination.safety_checks()
+  except hw_obj.CriticalHardwareError:
+    result = 'Critical hardware error detected on destination'
+  except hw_obj.SMARTSelfTestInProgressError:
+    result = 'SMART self-test in progress on destination'
+  except hw_obj.SMARTNotSupportedError:
+    pass
+
+  # Done
+  return result
+
+
+def check_for_missing_items(state):
+  """Check if source or destination dissapeared."""
+  items = {
+    'Source': state.source,
+    'Destination': state.destination,
+    }
+  for name, item in items.items():
+    if not item:
+      continue
+    if hasattr(item, 'path'):
+      if not item.path.exists():
+        std.print_error(f'{name} disappeared')
+    elif hasattr(item, 'exists'):
+      if not item.exists():
+        std.print_error(f'{name} disappeared')
+    else:
+      LOG.error('Unknown %s type: %s', name, item)
+
+
 def clean_working_dir(working_dir):
   """Clean working directory to ensure a fresh recovery session.
 
@@ -1686,7 +1728,8 @@ def main():
   state = State()
   try:
     state.init_recovery(args)
-  except std.GenericAbort:
+  except (FileNotFoundError, std.GenericAbort):
+    check_for_missing_items(state)
     std.abort()
 
   # Show menu
@@ -1800,6 +1843,7 @@ def mount_raw_image_macos(path):
 
 
 def run_ddrescue(state, block_pair, pass_name, settings, dry_run=True):
+  # pylint: disable=too-many-statements
   """Run ddrescue using passed settings."""
   cmd = build_ddrescue_cmd(block_pair, pass_name, settings)
   state.update_progress_pane('Active')
@@ -1834,6 +1878,13 @@ def run_ddrescue(state, block_pair, pass_name, settings, dry_run=True):
     if _i % 30 == 0:
       # Update SMART pane
       _update_smart_pane()
+
+      # Check destination
+      warning_message = check_destination_health(state.destination)
+      if warning_message:
+        # Error detected on destination, stop recovery
+        exe.stop_process(proc)
+        break
     if _i % 60 == 0:
       # Clear ddrescue pane
       tmux.clear_pane()
@@ -1852,7 +1903,7 @@ def run_ddrescue(state, block_pair, pass_name, settings, dry_run=True):
       LOG.warning('ddrescue stopped by user')
       warning_message = 'Aborted'
       std.sleep(2)
-      exe.run_program(['sudo', 'kill', str(proc.pid)], check=False)
+      exe.stop_process(proc, graceful=False)
       break
     except subprocess.TimeoutExpired:
       # Continue to next loop to update panes
@@ -1926,7 +1977,8 @@ def run_recovery(state, main_menu, settings_menu, dry_run=True):
         state.mark_started()
         try:
           run_ddrescue(state, pair, pass_name, settings, dry_run=dry_run)
-        except (KeyboardInterrupt, std.GenericAbort):
+        except (FileNotFoundError, KeyboardInterrupt, std.GenericAbort):
+          check_for_missing_items(state)
           abort = True
           break
 

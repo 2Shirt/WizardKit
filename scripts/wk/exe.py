@@ -6,6 +6,7 @@ import logging
 import os
 import re
 import subprocess
+import time
 
 from threading import Thread
 from queue import Queue, Empty
@@ -79,8 +80,9 @@ def build_cmd_kwargs(cmd, minimized=False, pipe=True, shell=False, **kwargs):
     }
 
   # Strip sudo if appropriate
-  if cmd[0] == 'sudo' and os.name == 'posix' and os.geteuid() == 0:
-    cmd.pop(0)
+  if cmd[0] == 'sudo':
+    if os.name == 'posix' and os.geteuid() == 0: # pylint: disable=no-member
+      cmd.pop(0)
 
   # Add additional kwargs if applicable
   for key in 'check cwd encoding errors stderr stdin stdout'.split():
@@ -212,6 +214,28 @@ def start_thread(function, args=None, daemon=True):
   thread = Thread(target=function, args=args, daemon=daemon)
   thread.start()
   return thread
+
+
+def stop_process(proc, graceful=True):
+  """Stop process.
+
+  NOTES:  proc should be a subprocess.Popen obj.
+          If graceful is True then a SIGTERM is sent before SIGKILL.
+  """
+
+  # Graceful exit
+  if graceful:
+    if os.name == 'posix' and os.geteuid() != 0: # pylint: disable=no-member
+      run_program(['sudo', 'kill', str(proc.pid)], check=False)
+    else:
+      proc.terminate()
+    time.sleep(2)
+
+  # Force exit
+  if os.name == 'posix' and os.geteuid() != 0: # pylint: disable=no-member
+    run_program(['sudo', 'kill', '-9', str(proc.pid)], check=False)
+  else:
+    proc.kill()
 
 
 def wait_for_procs(name, exact=True, timeout=None):
