@@ -212,7 +212,8 @@ def copy_source(source, items, overwrite=False):
     linux.unmount('/mnt/Source')
 
   # Raise exception if item(s) were not found
-  raise FileNotFoundError('One or more items not found')
+  if items_not_found:
+    raise FileNotFoundError('One or more items not found')
 
 
 def create_table(dev_path, use_mbr=False):
