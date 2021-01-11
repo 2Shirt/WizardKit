@@ -3,21 +3,15 @@
 ## Start desktop apps based on WM
 
 # Start common apps
-picom --backend xrender --xrender-sync --xrender-sync-fence &
+#picom --backend xrender --xrender-sync --xrender-sync-fence &
+picom --daemon || picom --daemon --no-vsync
 sleep 1s
 x0vncserver -display :0 -passwordfile $HOME/.vnc/passwd -AlwaysShared &
 conky &
-nm-applet &
 volumeicon &
 
 # Start WM specific apps
-if ! [[ "${I3SOCK:-}" == "" ]]; then
-  # i3
-  i3-msg restart
-else
-  # openbox
-  openbox --restart
-  tint2 &
-  cbatticon --hide-notification &
-fi
+openbox --restart
+tint2 &
+cbatticon --hide-notification &
 

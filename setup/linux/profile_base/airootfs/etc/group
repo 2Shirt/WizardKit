@@ -1,0 +1,8 @@
+root:x:0:root
+adm:x:4:tech
+wheel:x:10:tech
+uucp:x:14:tech
+power:x:98:tech
+autologin:x:975:tech
+storage:x:988:tech
+tech:x:1000:

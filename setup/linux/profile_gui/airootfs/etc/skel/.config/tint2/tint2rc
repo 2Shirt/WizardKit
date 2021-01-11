@@ -107,7 +107,7 @@ border_color_pressed = #d64937 100
 
 #-------------------------------------
 # Panel
-panel_items = TSC
+panel_items = TESC
 panel_size = 100% 30
 panel_margin = 0 0
 panel_padding = 0 0 0
@@ -145,7 +145,7 @@ taskbar_always_show_all_desktop_tasks = 1
 taskbar_name_padding = 5 2
 taskbar_name_background_id = 1
 taskbar_name_active_background_id = 9
-taskbar_name_font = Inconsolata 10
+taskbar_name_font = Hack 10
 taskbar_name_font_color = #a9a9a9 100
 taskbar_name_active_font_color = #ffffff 100
 taskbar_distribute_size = 1
@@ -160,7 +160,7 @@ task_centered = 1
 urgent_nb_of_blink = 20
 task_maximum_size = 200 30
 task_padding = 2 2 2
-task_font = Inconsolata 10
+task_font = Hack 10
 task_tooltip = 1
 task_font_color = #a8adb5 100
 task_active_font_color = #ffffff 100
@@ -206,7 +206,7 @@ launcher_tooltip = 1
 #time1_format = %a, %d %B @ %H:%M
 time1_format = %F %H:%M
 time2_format = 
-time1_font = Inconsolata 10
+time1_font = Hack 10
 time1_timezone = 
 time2_timezone = 
 clock_font_color = #ffffff 100
@@ -225,8 +225,8 @@ clock_dwheel_command =
 battery_tooltip = 1
 battery_low_status = 20
 battery_low_cmd = notify-send "battery low"
-bat1_font = Inconsolata 12
-bat2_font = Inconsolata 12
+bat1_font = Hack 12
+bat2_font = Hack 12
 battery_font_color = #b5b5b5 100
 battery_padding = 2 0
 battery_background_id = 0
@@ -246,5 +246,11 @@ tooltip_hide_timeout = 0
 tooltip_padding = 2 2
 tooltip_background_id = 7
 tooltip_font_color = #d8d8d8 100
-tooltip_font = Inconsolata 12
+tooltip_font = Hack 12
 
+#-------------------------------------
+# Sensors
+execp = new
+execp_command = tint2-sensors
+execp_interval = 1
+execp_font_color = #ffffff

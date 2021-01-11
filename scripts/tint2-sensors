@@ -1,0 +1,61 @@
+#!/bin/env python3
+#
+
+import json
+import re
+import subprocess
+
+CPU_REGEX = re.compile(r'(core|k\d+)temp', re.IGNORECASE)
+NON_TEMP_REGEX = re.compile(r'^(fan|in|curr)', re.IGNORECASE)
+
+def get_data():
+  cmd = ('sensors', '-j')
+  data = {}
+  raw_data = []
+
+  try:
+    proc = subprocess.run(
+      args=cmd,
+      stdout=subprocess.PIPE,
+      stderr=subprocess.PIPE,
+      encoding='utf-8',
+      check=True,
+      )
+  except subprocess.CalledProcessError:
+    return data
+
+  for line in proc.stdout.splitlines():
+    if line.strip() == ',':
+      # Assuming malformatted line caused by missing data
+      continue
+    raw_data.append(line)
+
+  try:
+    data = json.loads('\n'.join(raw_data))
+  except json.JSONDecodeError:
+    # Still broken, just return the empty dict
+    pass
+
+  return data
+
+def parse_data(data):
+  cpu_temps = []
+  for adapter, sources in data.items():
+    if not CPU_REGEX.search(adapter):
+      continue
+    sources.pop('Adapter', None)
+
+    for labels in sources.values():
+      for label, temp in sorted(labels.items()):
+        if NON_TEMP_REGEX.search(label):
+          continue
+        cpu_temps.append(temp)
+
+  cpu_temps = [f'{int(temp)}°' for temp in cpu_temps]
+  if not cpu_temps:
+    cpu_temps.append('??°')
+  return ' | '.join(cpu_temps)
+
+if __name__ == '__main__':
+  sensor_data = get_data()
+  print(f' {parse_data(sensor_data)}')

@@ -234,7 +234,7 @@
         </menu>
         <separator/>
         <item label="Exit"> <action name="Execute">
-            <execute>wk-exit</execute>
+            <execute>oblogout</execute>
         </action> </item>
     </menu>
 </openbox_menu>

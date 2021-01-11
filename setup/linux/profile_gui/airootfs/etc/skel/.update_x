@@ -26,6 +26,10 @@ diag_in="$(echo "sqrt(${width_in}^2 + ${height_in}^2)" | bc)"
 dpi="$(echo "${diag_px} / ${diag_in}" | bc 2>/dev/null || True)"
 dpi="${dpi:-0}"
 
+# Save data
+echo "width_px=$width_px" > "$HOME/.screen_data"
+echo "height_px=$height_px" >> "$HOME/.screen_data"
+
 # Calculate URxvt default window size
 width_urxvt="$(echo "${width_px} * 112/1280" | bc)"
 height_urxvt="$(echo "${height_px} * 33/720" | bc)"
@@ -50,18 +54,15 @@ if [[ "${dpi}" -ge 192 ]]; then
   export GDK_SCALE=2
   export GDK_DPI_SCALE=0.5
 
-  # i3
-  sed -i -r 's/(height\s+) 26/\1 52/' "${HOME}/.config/i3/config"
-
   # Rofi
   sed -i -r 's/Noto Sans 12/Noto Sans 24/' "${HOME}/.config/rofi/config"
 
   # Tint2
   sed -i 's/panel_size = 100% 30/panel_size = 100% 60/' \
     "${HOME}/.config/tint2/tint2rc"
-  sed -i 's/Inconsolata 10/Inconsolata 20/g' \
+  sed -i 's/Hack 10/Hack 20/g' \
     "${HOME}/.config/tint2/tint2rc"
-  sed -i 's/Inconsolata 12/Inconsolata 24/g' \
+  sed -i 's/Hack 12/Hack 24/g' \
     "${HOME}/.config/tint2/tint2rc"
   sed -i 's/systray_icon_size = 24/systray_icon_size = 48/' \
     "${HOME}/.config/tint2/tint2rc"
@@ -95,9 +96,4 @@ echo "Done"
 echo -n "Setting wallpaper... "
 feh --bg-fill "$HOME/.wallpaper"
 echo "Done"
-
-# Start desktop apps for i3
-if fgrep -q "i3" /proc/cmdline; then
-  i3-msg exec $HOME/.start_desktop_apps
-fi
 

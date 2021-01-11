@@ -5,8 +5,10 @@ curl
 dos2unix
 git
 gtk-doc
+gtk3
 hwloc
 imlib2
+iwd
 json-glib
 lhasa
 libbsd
@@ -28,3 +30,4 @@ rsync
 startup-notification
 subversion
 syslinux
+tigervnc

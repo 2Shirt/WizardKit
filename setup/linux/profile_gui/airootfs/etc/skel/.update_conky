@@ -24,11 +24,6 @@ for i in "${IF_LIST[@]}"; do
 done
 sed -i -r "s/#Network//" "${CONFIG_NEW}"
 
-# Fix under i3
-if ! [[ "${I3SOCK:-}" == "" ]]; then
-  sed -i -r 's/(own_window_type)(.*)(desktop)/\1\2override/' "${CONFIG_NEW}"
-fi
-
 # Replace config if there were changes
 if ! diff -q "${CONFIG_NEW}" "${CONFIG_REAL}" >/dev/null 2>&1; then
   rm "${CONFIG_REAL}"

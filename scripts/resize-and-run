@@ -1,0 +1,15 @@
+#!/bin/bash
+#
+
+# Magic numbers:
+## Width:  | 20 | term_x | 20 | 180 (conky) | 20 |
+## Height: | 24 | 10 (titlebar) | term_y | 24 | 30 (Tint2) |
+## X Offset: 20 - 5 (shadow?)
+## Y Offset: 24 - 5 (shadow?)
+
+source ~/.screen_data
+
+term_width="$(echo "$width_px - 240" | bc)"
+term_height="$(echo "$height_px - 88" | bc)"
+
+wmctrl -r :ACTIVE: -e "0,15,19,$term_width,$term_height" && "$@"
