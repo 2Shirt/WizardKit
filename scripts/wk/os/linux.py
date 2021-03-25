@@ -150,17 +150,23 @@ def mount_volumes(device_path=None, read_write=False, scan_corestorage=False):
         result += 'Failed to mount'
         report.append(std.color_string(result, 'RED'))
         continue
+    result += f'{"Mounted on "+vol.details.get("mountpoint", "?"):<40}'
 
     # Add size to result
     vol.get_details()
     vol.details['fsused'] = vol.details.get('fsused', -1)
     vol.details['fsavail'] = vol.details.get('fsavail', -1)
-    result += f'{"Mounted on "+vol.details.get("mountpoint", "?"):<40}'
-    result = (
-      f'{result} ({vol.details.get("fstype", "Unknown FS")+",":<5} '
-      f'{std.bytes_to_string(vol.details["fsused"], decimals=1):>9} used, '
-      f'{std.bytes_to_string(vol.details["fsavail"], decimals=1):>9} free)'
-      )
+    if vol.details['fsused'] is None:
+      result = (
+        f'{result} ({vol.details.get("fstype", "Unknown FS")+",":<5})'
+        f'{std.bytes_to_string(vol.details["size"], decimals=1):>9})'
+        )
+    else:
+      result = (
+        f'{result} ({vol.details.get("fstype", "Unknown FS")+",":<5} '
+        f'{std.bytes_to_string(vol.details["fsused"], decimals=1):>9} used, '
+        f'{std.bytes_to_string(vol.details["fsavail"], decimals=1):>9} free)'
+        )
     report.append(
       std.color_string(
         result,
