@@ -26,7 +26,7 @@ logout=""
 # Variable passed to rofi
 options="$shutdown\n$reboot\n$logout"
 
-chosen="$(echo -e "$options" | $rofi_command -p "  $uptime  |     $cpu  |  ﬙  $memory " -dmenu -selected-row 2)"
+chosen="$(echo -e "$options" | $rofi_command -p "  $uptime  |     $cpu  |  ﬙  $memory " -dmenu)"
 case $chosen in
     $shutdown)
         wk-power-command poweroff

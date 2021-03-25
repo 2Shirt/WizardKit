@@ -4,7 +4,7 @@
         <item label="Arch Menu"></item>
         <separator/>
         <item label="Hardware Diagnostics"> <action name="Execute">
-            <execute>urxvt -t "Hardware Diagnostics" -e hw-diags</execute>
+            <execute>termite --title "Hardware Diagnostics" -e hw-diags</execute>
         </action> </item>
         <item label="Hardware Information"> <action name="Execute">
             <execute>hardinfo</execute>
@@ -19,7 +19,7 @@
             <execute>gsmartcontrol_polkit</execute>
         </action> </item>
         <item label="Network Diagnostics"> <action name="Execute">
-            <execute>urxvt -title "Network Diagnostics" -hold -e hw-diags-network</execute>
+            <execute>termite --title "Network Diagnostics" -hold -e hw-diags-network</execute>
         </action> </item>
         <item label="Web Browser"> <action name="Execute">
             <execute>firefox</execute>
@@ -31,32 +31,32 @@
                     <execute>idle</execute>
                 </action> </item>
                 <item label="Python"> <action name="Execute">
-                    <execute>urxvt -e python</execute>
+                    <execute>termite -e python</execute>
                 </action> </item>
                 <item label="Python (v2.7)"> <action name="Execute">
-                    <execute>urxvt -e python2.7</execute>
+                    <execute>termite -e python2.7</execute>
                 </action> </item>
                 <item label="Tclsh8.6"> <action name="Execute">
-                    <execute>urxvt -e tclsh8.6</execute>
+                    <execute>termite -e tclsh8.6</execute>
                 </action> </item>
             </menu>
             <menu id="2" label="Editors">
                 <item label="hexedit"> <action name="Execute">
-                    <execute>urxvt -e hexedit</execute>
+                    <execute>termite -e hexedit</execute>
                 </action> </item>
                 <item label="Nano"> <action name="Execute">
-                    <execute>urxvt -e nano</execute>
+                    <execute>termite -e nano</execute>
                 </action> </item>
                 <item label="Vi"> <action name="Execute">
-                    <execute>urxvt -e vi</execute>
+                    <execute>termite -e vi</execute>
                 </action> </item>
                 <item label="Vim"> <action name="Execute">
-                    <execute>urxvt -e vim</execute>
+                    <execute>termite -e vim</execute>
                 </action> </item>
             </menu>
             <menu id="7" label="Multimedia">
                 <item label="ALSA mixer"> <action name="Execute">
-                    <execute>urxvt -e alsamixer</execute>
+                    <execute>termite -e alsamixer</execute>
                 </action> </item>
                 <item label="mpv Media Player"> <action name="Execute">
                     <execute>mpv</execute>
@@ -76,34 +76,34 @@
                     <execute>bvnc</execute>
                 </action> </item>
                 <item label="ELinks"> <action name="Execute">
-                    <execute>urxvt -e elinks</execute>
+                    <execute>termite -e elinks</execute>
                 </action> </item>
                 <item label="FireFox"> <action name="Execute">
                     <execute>firefox</execute>
                 </action> </item>
                 <item label="FTP"> <action name="Execute">
-                    <execute>urxvt -e ftp</execute>
+                    <execute>termite -e ftp</execute>
                 </action> </item>
                 <item label="Irssi"> <action name="Execute">
-                    <execute>urxvt -e irssi</execute>
+                    <execute>termite -e irssi</execute>
                 </action> </item>
                 <item label="LFTP"> <action name="Execute">
-                    <execute>urxvt -e lftp</execute>
+                    <execute>termite -e lftp</execute>
                 </action> </item>
                 <item label="Mail"> <action name="Execute">
-                    <execute>urxvt -e mail</execute>
+                    <execute>termite -e mail</execute>
                 </action> </item>
                 <item label="Mail Reader"> <action name="Execute">
                     <execute>exo-open --launch MailReader</execute>
                 </action> </item>
                 <item label="Talk"> <action name="Execute">
-                    <execute>urxvt -e talk</execute>
+                    <execute>termite -e talk</execute>
                 </action> </item>
                 <item label="Telnet"> <action name="Execute">
-                    <execute>urxvt -e telnet</execute>
+                    <execute>termite -e telnet</execute>
                 </action> </item>
                 <item label="TkVNC"> <action name="Execute">
-                    <execute>urxvt -e tkvnc</execute>
+                    <execute>termite -e tkvnc</execute>
                 </action> </item>
                 <item label="Web Browser"> <action name="Execute">
                     <execute>exo-open --launch WebBrowser</execute>
@@ -117,15 +117,15 @@
             </menu>
             <menu id="4" label="Science">
                 <item label="bc"> <action name="Execute">
-                    <execute>urxvt -e bc</execute>
+                    <execute>termite -e bc</execute>
                 </action> </item>
                 <item label="dc"> <action name="Execute">
-                    <execute>urxvt -e dc</execute>
+                    <execute>termite -e dc</execute>
                 </action> </item>
             </menu>
             <menu id="19" label="Shells">
                 <item label="MC"> <action name="Execute">
-                    <execute>urxvt -e mc</execute>
+                    <execute>termite -e mc</execute>
                 </action> </item>
                 <item label="Thunar File Manager"> <action name="Execute">
                     <execute>thunar</execute>
@@ -167,7 +167,7 @@
                     <execute>/usr/lib/Thunar/ThunarBulkRename</execute>
                 </action> </item>
                 <item label="Conky"> <action name="Execute">
-                    <execute>urxvt -e conky</execute>
+                    <execute>termite -e conky</execute>
                 </action> </item>
                 <item label="GParted"> <action name="Execute">
                     <execute>gparted</execute>
@@ -176,19 +176,19 @@
                     <execute>gsmartcontrol_polkit</execute>
                 </action> </item>
                 <item label="Htop"> <action name="Execute">
-                    <execute>urxvt -e htop</execute>
+                    <execute>termite -e htop</execute>
                 </action> </item>
                 <item label="Openbox Menu Editor"> <action name="Execute">
                     <execute>obmenu</execute>
                 </action> </item>
                 <item label="pstree"> <action name="Execute">
-                    <execute>urxvt -e pstree</execute>
+                    <execute>termite -e pstree</execute>
                 </action> </item>
                 <item label="pstree"> <action name="Execute">
-                    <execute>urxvt -e /usr/bin/pstree.x11</execute>
+                    <execute>termite -e /usr/bin/pstree.x11</execute>
                 </action> </item>
                 <item label="Pstree"> <action name="Execute">
-                    <execute>urxvt -e pstree.x11</execute>
+                    <execute>termite -e pstree.x11</execute>
                 </action> </item>
                 <item label="System Profiler and Benchmark"> <action name="Execute">
                     <execute>hardinfo</execute>
@@ -197,7 +197,7 @@
                     <execute>tint2</execute>
                 </action> </item>
                 <item label="Top"> <action name="Execute">
-                    <execute>urxvt -e top</execute>
+                    <execute>termite -e top</execute>
                 </action> </item>
                 <item label="VeraCrypt"> <action name="Execute">
                     <execute>veracrypt</execute>
@@ -211,19 +211,19 @@
                     <execute>compton --xrender-sync-fence</execute>
                 </action> </item>
                 <item label="Console Matrix (Text)"> <action name="Execute">
-                    <execute>urxvt -e cmatrix</execute>
+                    <execute>termite -e cmatrix</execute>
                 </action> </item>
                 <item label="File Manager"> <action name="Execute">
                     <execute>exo-open --launch FileManager</execute>
                 </action> </item>
                 <item label="Info"> <action name="Execute">
-                    <execute>urxvt -e info</execute>
+                    <execute>termite -e info</execute>
                 </action> </item>
                 <item label="Terminal Emulator"> <action name="Execute">
                     <execute>exo-open --launch TerminalEmulator</execute>
                 </action> </item>
                 <item label="Xev"> <action name="Execute">
-                    <execute>urxvt -e xev</execute>
+                    <execute>termite -e xev</execute>
                 </action> </item>
             </menu>
             <separator/>
