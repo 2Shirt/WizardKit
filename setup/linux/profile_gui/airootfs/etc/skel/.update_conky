@@ -1,0 +1,31 @@
+#!/bin/bash
+# vim: sts=2 sw=2 ts=2
+
+CONFIG_BASE="${HOME}/.config/conky/base.conf"
+CONFIG_NEW="${HOME}/.config/conky/new.conf"
+CONFIG_REAL="${HOME}/.config/conky/conky.conf"
+
+IF_LIST=($(ip l \
+  | egrep '^[0-9]+:\s+(eth|en|wl)' \
+  | sed -r 's/^[0-9]+:\s+(\w+):.*/\1/' \
+  | sort))
+
+# Build new config from the default
+rm "${CONFIG_NEW}"
+cp "${CONFIG_BASE}" "${CONFIG_NEW}"
+
+# Add interfaces to conkyrc_new
+for i in "${IF_LIST[@]}"; do
+  if [[ "${i:0:1}" == "e" ]]; then
+    sed -i -r "s/#Network/Wired:\${alignr}\${addr $i}\n#Network/" "${CONFIG_NEW}"
+  else
+    sed -i -r "s/#Network/Wireless:\${alignr}\${addr $i}\n#Network/" "${CONFIG_NEW}"
+  fi
+done
+sed -i -r "s/#Network//" "${CONFIG_NEW}"
+
+# Replace config if there were changes
+if ! diff -q "${CONFIG_NEW}" "${CONFIG_REAL}" >/dev/null 2>&1; then
+  rm "${CONFIG_REAL}"
+  cp "${CONFIG_NEW}" "${CONFIG_REAL}"
+fi

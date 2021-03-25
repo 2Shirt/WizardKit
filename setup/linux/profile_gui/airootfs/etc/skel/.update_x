@@ -1,0 +1,86 @@
+#!/bin/env bash
+#
+## Calculate DPI, update settings if necessary, then start desktop apps
+
+REGEX_XRANDR='^.* ([0-9]+)x([0-9]+)\+[0-9]+\+[0-9]+.* ([0-9]+)mm x ([0-9]+)mm.*$'
+
+echo -n "Getting display details... "
+
+# Get screen data
+xrandr_str="$(xrandr | grep mm | head -1)"
+width_px="$(echo "${xrandr_str}" | sed -r "s/${REGEX_XRANDR}/\1/")"
+height_px="$(echo "${xrandr_str}" | sed -r "s/${REGEX_XRANDR}/\2/")"
+width_mm="$(echo "${xrandr_str}" | sed -r "s/${REGEX_XRANDR}/\3/")"
+height_mm="$(echo "${xrandr_str}" | sed -r "s/${REGEX_XRANDR}/\4/")"
+
+# Convert to in
+width_in="$(echo "${width_mm} * 0.03937" | bc)"
+height_in="$(echo "${height_mm} * 0.03937" | bc)"
+
+# Calculate diagonals
+diag_px="$(echo "sqrt(${width_px}^2 + ${height_px}^2)" | bc)"
+diag_in="$(echo "sqrt(${width_in}^2 + ${height_in}^2)" | bc)"
+
+# Calculate DPI
+dpi="$(echo "${diag_px} / ${diag_in}" | bc 2>/dev/null || True)"
+dpi="${dpi:-0}"
+
+# Save data
+echo "width_px=$width_px" > "$HOME/.screen_data"
+echo "height_px=$height_px" >> "$HOME/.screen_data"
+echo "dpi=$dpi" >> "$HOME/.screen_data"
+
+echo "Done"
+
+# Update settings if necessary
+if [[ "${dpi}" -ge 192 ]]; then
+  echo -n "Updating settings for HiDPI... "
+
+  # Conky
+  sed -i 's/default_graph_height = 24/default_graph_height = 48/' "${HOME}/.config/conky/base.conf"
+  sed -i 's/gap_x = 20/gap_x = 40/' "${HOME}/.config/conky/base.conf"
+  sed -i 's/gap_y = 24/gap_y = 48/' "${HOME}/.config/conky/base.conf"
+  sed -i 's/maximum_width = 180/maximum_width = 360/' "${HOME}/.config/conky/base.conf"
+  sed -i 's/minimum_width = 180/minimum_width = 360/' "${HOME}/.config/conky/base.conf"
+
+  # Fonts
+  sed -i 's/!Xft.dpi: 192/Xft.dpi: 192/' "${HOME}/.Xresources"
+
+  # GDK
+  export GDK_SCALE=2
+  export GDK_DPI_SCALE=0.5
+
+  # Rofi
+  sed -i -r 's/Noto Sans 12/Noto Sans 24/' "${HOME}/.config/rofi/config"
+
+  # Tint2
+  sed -i 's/panel_size = 100% 30/panel_size = 100% 60/' \
+    "${HOME}/.config/tint2/tint2rc"
+  sed -i 's/Hack 10/Hack 20/g' \
+    "${HOME}/.config/tint2/tint2rc"
+  sed -i 's/Hack 12/Hack 24/g' \
+    "${HOME}/.config/tint2/tint2rc"
+  sed -i 's/systray_icon_size = 24/systray_icon_size = 48/' \
+    "${HOME}/.config/tint2/tint2rc"
+
+  # Done
+  echo "Done"
+fi
+
+# Update conky
+echo -n "Updating conky... "
+$HOME/.update_conky
+echo "Done"
+
+# Update X
+echo -n "Updating X... "
+xset s off
+xset -dpms
+xrdb -merge $HOME/.Xresources
+echo "Done"
+
+# Set wallpaper
+echo -n "Setting wallpaper... "
+feh --bg-fill "$HOME/.wallpaper"
+echo "Done"
+

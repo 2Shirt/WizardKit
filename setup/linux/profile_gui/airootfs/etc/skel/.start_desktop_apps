@@ -1,0 +1,17 @@
+#!/bin/env bash
+#
+## Start desktop apps based on WM
+
+# Start common apps
+#picom --backend xrender --xrender-sync --xrender-sync-fence &
+picom --daemon || picom --daemon --no-vsync
+sleep 1s
+x0vncserver -display :0 -passwordfile $HOME/.vnc/passwd -AlwaysShared &
+conky &
+volumeicon &
+
+# Start WM specific apps
+openbox --restart
+tint2 &
+cbatticon --hide-notification &
+

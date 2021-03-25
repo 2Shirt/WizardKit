@@ -1,11 +1,10 @@
 aic94xx-firmware
-bash-pipes
 hfsprogs
-i3lock-fancy-git
+iwgtk
 ldmtool
-macbook12-spi-driver-dkms
 mprime
 openbox-patched
+pipes.sh
 smartmontools-svn
 testdisk-wip
 ttf-font-awesome-4

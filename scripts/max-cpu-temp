@@ -1,0 +1,65 @@
+#!/bin/env python3
+#
+
+import json
+import re
+import subprocess
+
+CPU_REGEX = re.compile(r'(core|k\d+)temp', re.IGNORECASE)
+NON_TEMP_REGEX = re.compile(r'^(fan|in|curr)', re.IGNORECASE)
+
+def get_data():
+  cmd = ('sensors', '-j')
+  data = {}
+  raw_data = []
+
+  try:
+    proc = subprocess.run(
+      args=cmd,
+      stdout=subprocess.PIPE,
+      stderr=subprocess.PIPE,
+      encoding='utf-8',
+      check=True,
+      )
+  except subprocess.CalledProcessError:
+    return data
+
+  for line in proc.stdout.splitlines():
+    if line.strip() == ',':
+      # Assuming malformatted line caused by missing data
+      continue
+    raw_data.append(line)
+
+  try:
+    data = json.loads('\n'.join(raw_data))
+  except json.JSONDecodeError:
+    # Still broken, just return the empty dict
+    pass
+
+  return data
+
+def get_max_temp(data):
+  cpu_temps = []
+  max_cpu_temp = '??° C'
+  for adapter, sources in data.items():
+    if not CPU_REGEX.search(adapter):
+      continue
+    sources.pop('Adapter', None)
+
+    for labels in sources.values():
+      for label, temp in sorted(labels.items()):
+        if 'input' not in label or NON_TEMP_REGEX.search(label):
+          continue
+        cpu_temps.append(temp)
+
+  # Format data
+  if cpu_temps:
+    max_cpu_temp = int(max(cpu_temps))
+    max_cpu_temp = f'{max_cpu_temp:02d}° C'
+
+  # Done
+  return max_cpu_temp
+
+if __name__ == '__main__':
+  sensor_data = get_data()
+  print(get_max_temp(sensor_data))
