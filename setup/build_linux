@@ -187,6 +187,16 @@ function update_live_env() {
     git clone --depth=1 https://github.com/addy-dclxvi/Openbox-Theme-Collections.git "$TEMP_DIR/ob-themes"
     mkdir -p "$PROFILE_DIR/airootfs/usr/share/themes"
     cp -a "$TEMP_DIR/ob-themes/Triste-Orange" "$PROFILE_DIR/airootfs/usr/share/themes/"
+
+    # Rofi
+    ## Probably don't need the exact commit but it'll be fine
+    mkdir -p "$PROFILE_DIR/airootfs/usr/share/fonts/"
+    curl -Lo \
+      "$PROFILE_DIR/airootfs/usr/share/fonts/Fantasque-Sans-Mono-Nerd-Font.ttf" \
+      "https://github.com/adi1090x/rofi/raw/9c4093c665326bb08d6affc7e16d18d8f25c4452/fonts/Fantasque-Sans-Mono-Nerd-Font.ttf"
+    curl -Lo \
+      "$PROFILE_DIR/airootfs/usr/share/fonts/Feather.ttf" \
+      "https://github.com/adi1090x/rofi/raw/9c4093c665326bb08d6affc7e16d18d8f25c4452/fonts/Feather.ttf"
   fi
 
   # SSH
