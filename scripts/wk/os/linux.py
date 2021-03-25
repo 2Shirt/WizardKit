@@ -158,7 +158,7 @@ def mount_volumes(device_path=None, read_write=False, scan_corestorage=False):
     vol.details['fsavail'] = vol.details.get('fsavail', -1)
     if vol.details['fsused'] is None:
       result = (
-        f'{result} ({vol.details.get("fstype", "Unknown FS")+",":<5})'
+        f'{result} ({vol.details.get("fstype", "Unknown FS")+",":<5}'
         f'{std.bytes_to_string(vol.details["size"], decimals=1):>9})'
         )
     else:
