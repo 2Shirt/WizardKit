@@ -2,11 +2,13 @@
 # pylint: disable=too-many-lines
 # vim: sts=2 sw=2 ts=2
 
+import inspect
 import itertools
 import logging
 import lzma
 import os
 import pathlib
+import pickle
 import platform
 import re
 import socket
@@ -26,6 +28,7 @@ from wk.cfg.main import (
   WIDTH,
   )
 from wk.cfg.net import CRASH_SERVER
+from wk.log import get_root_logger_path
 
 
 # STATIC VARIABLES
@@ -863,23 +866,26 @@ def major_exception():
   LOG.critical('Major exception encountered', exc_info=True)
   print_error('Major exception', log=False)
   print_warning(SUPPORT_MESSAGE)
+  if ENABLED_UPLOAD_DATA:
+    print_warning('Also, please run upload-logs to help debugging!')
   print(traceback.format_exc())
 
-  # Build report
-  report = generate_debug_report()
+  # TODO: Decide to remove or reinstate following section
+  ## Build report
+  #report = generate_debug_report()
 
-  # Upload details
-  prompt = f'Upload details to {CRASH_SERVER.get("Name", "?")}?'
-  if ENABLED_UPLOAD_DATA and ask(prompt):
-    print('Uploading... ', end='', flush=True)
-    try:
-      upload_debug_report(report, reason='CRASH')
-    except Exception: #pylint: disable=broad-except
-      print_error('FAILED', log=False)
-      LOG.error('Upload failed', exc_info=True)
-    else:
-      print_success('SUCCESS', log=False)
-      LOG.info('Upload successful')
+  ## Upload details
+  #prompt = f'Upload details to {CRASH_SERVER.get("Name", "?")}?'
+  #if ENABLED_UPLOAD_DATA and ask(prompt):
+  #  print('Uploading... ', end='', flush=True)
+  #  try:
+  #    upload_debug_report(report, reason='CRASH')
+  #  except Exception: #pylint: disable=broad-except
+  #    print_error('FAILED', log=False)
+  #    LOG.error('Upload failed', exc_info=True)
+  #  else:
+  #    print_success('SUCCESS', log=False)
+  #    LOG.info('Upload successful')
 
   # Done
   pause('Press Enter to exit... ')
@@ -958,6 +964,25 @@ def print_warning(msg, log=True, **kwargs):
   print_colored(msg, 'YELLOW', **kwargs)
   if log:
     LOG.warning(msg)
+
+
+def save_pickles(obj_dict, out_path=None):
+  """Save dict of objects using pickle."""
+  LOG.info('Saving pickles')
+
+  # Set path
+  if not out_path:
+    out_path = pathlib.Path(f'{get_root_logger_path().parent}/debug')
+
+  # Save pickles
+  try:
+    for name, obj in obj_dict.copy().items():
+      if name.startswith('__') or inspect.ismodule(obj):
+        continue
+      with open(f'{out_path}/{name}.pickle', 'wb') as _f:
+        pickle.dump(obj, _f, protocol=pickle.HIGHEST_PROTOCOL)
+  except Exception: # pylint: disable=broad-except
+    LOG.error('Failed to save all the pickles', exc_info=True)
 
 
 def set_title(title):

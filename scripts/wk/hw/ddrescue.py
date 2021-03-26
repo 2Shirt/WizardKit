@@ -958,6 +958,7 @@ class State():
       debug_dir.mkdir()
 
     # State (self)
+    std.save_pickles({'state': self}, debug_dir)
     with open(f'{debug_dir}/state.report', 'a') as _f:
       _f.write('[Debug report]\n')
       _f.write('\n'.join(debug.generate_object_report(self)))
