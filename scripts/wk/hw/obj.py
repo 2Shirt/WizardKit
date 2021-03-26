@@ -749,8 +749,9 @@ def get_disks_macos():
     disks.append(Disk(f'/dev/{disk}'))
 
   # Remove virtual disks
+  # TODO: Test more to figure out why some drives are being marked 'Unknown'
   disks = [
-    d for d in disks if d.details.get('VirtualOrPhysical') == 'Physical'
+    d for d in disks if d.details.get('VirtualOrPhysical') != 'Virtual'
     ]
 
   # Done
