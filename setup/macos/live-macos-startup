@@ -7,6 +7,7 @@ LC_ALL=en_US.UTF-8; export LC_ALL
 LANG=en_US.UTF-8; export LANG
 
 # Set PATH
+echo "Updating PATH..."
 for p in /usr{/local/opt/{e2fsprogs,ruby,util-linux},/local,}/{bin,sbin}; do
   PATH="${p}:${PATH}"
 done
@@ -14,12 +15,21 @@ export PATH
 
 # Create and mount RAMDisk
 if ! [ -d /Volumes/RAM_Disk ]; then
+  echo "Creating RAM Disk..."
   diskutil erasevolume HFS+ RAM_Disk $(hdiutil attach -nomount ram://524288)
 fi
 cd /Volumes/RAM_Disk
 
 # Stay awake
+echo "Getting caffeinated..."
 caffeinate -id &
+
+# Set time
+echo "Updating clock..."
+if ! sntp -Ss us.pool.ntp.org 2>/dev/null; then
+  # Assuming we're running under an older version of macOS
+  sntp -s us.pool.ntp.org 2>/dev/null
+fi
 
 # Run cmd
 "$1"
