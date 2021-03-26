@@ -150,12 +150,6 @@ function update_live_env() {
   mv "$TEMP_DIR/memtest86/help"/* "$PROFILE_DIR/EFI/memtest86"/
   mv "$TEMP_DIR/memtest86/license.rtf" "$PROFILE_DIR/EFI/memtest86"/
 
-  # build.sh
-  #if ! grep -iq 'wizardkit additions' "$PROFILE_DIR/build.sh"; then
-  #  sed -i -r 's/^(run_once make_iso)$/# wizardkit additions\n\1/' "$PROFILE_DIR/build.sh"
-  #  sed -i "/# wizardkit additions/r $ROOT_DIR/setup/linux/build_additions.txt" "$PROFILE_DIR/build.sh"
-  #fi
-
   # Hostname
   echo "$hostname" > "$PROFILE_DIR/airootfs/etc/hostname"
   echo "127.0.1.1  $hostname.localdomain  $hostname" >> "$PROFILE_DIR/airootfs/etc/hosts"
