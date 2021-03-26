@@ -45,6 +45,10 @@ KNOWN_DISK_MODELS = {
   r'CT(250|500|1000|2000)MX500SSD(1|4)': {
     197: {'Warning': 1, 'Error': 2, 'Note': '(MX500 thresholds)',},
     },
+  r'MZ(7|N)LN(128|256|512|1T0)HA(HQ|JQ|LR)-000H(1|7)': {
+    # Source: https://www.smartmontools.org/ticket/920
+    201: {'Error': 99, 'PercentageLife': True, 'Note': '(PM871b thresholds)'},
+    },
   }
 KNOWN_RAM_VENDOR_IDS = {
   # https://github.com/hewigovens/hewigovens.github.com/wiki/Memory-vendor-code

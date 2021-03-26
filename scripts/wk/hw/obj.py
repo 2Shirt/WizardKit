@@ -210,7 +210,10 @@ class Disk(BaseObj):
         continue
 
       # Check attribute
-      if err_thresh <= value['raw'] < max_thresh:
+      if known_attributes[attr].get('PercentageLife', False):
+        if 0 <= value['raw'] <= err_thresh:
+          attributes_ok = False
+      elif err_thresh <= value['raw'] < max_thresh:
         attributes_ok = False
 
     # Done
@@ -259,14 +262,23 @@ class Disk(BaseObj):
       label = f'  {label.replace("_", " "):38}'
 
       # Value color
-      for threshold, color in ATTRIBUTE_COLORS:
-        threshold_val = known_attributes[attr].get(threshold, None)
-        if threshold_val and value['raw'] >= threshold_val:
-          value_color = color
-          if threshold == 'Error':
-            note = '(failed)'
-          elif threshold == 'Maximum':
-            note = '(invalid?)'
+      if known_attributes[attr].get('PercentageLife', False):
+        # PercentageLife values
+        if 0 <= value['raw'] <= known_attributes[attr]['Error']:
+          value_color = 'RED'
+          note = '(failed, % life remaining)'
+        elif value['raw'] < 0 or value['raw'] > 100:
+          value_color = 'PURPLE'
+          note = '(invalid?)'
+      else:
+        for threshold, color in ATTRIBUTE_COLORS:
+          threshold_val = known_attributes[attr].get(threshold, None)
+          if threshold_val and value['raw'] >= threshold_val:
+            value_color = color
+            if threshold == 'Error':
+              note = '(failed)'
+            elif threshold == 'Maximum':
+              note = '(invalid?)'
 
       # 199/C7 warning
       if str(attr) == '199' and value['raw'] > 0:
