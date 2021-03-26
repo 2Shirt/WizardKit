@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>Buttons</key>
+	<array>
+		<dict>
+			<key>BundlePath</key>
+			<string>/Applications/iTerm.app</string>
+			<key>DescriptionKey</key>
+			<string>Hardware Diagnostics</string>
+			<key>Path</key>
+			<string>/Applications/iTerm.app/Contents/MacOS/iTerm2</string>
+			<key>TitleKey</key>
+			<string>WizardKit: Hardware Diagnostics</string>
+		</dict>
+		<dict>
+			<key>BundlePath</key>
+			<string>/Applications/Utilities/Disk Utility.app</string>
+			<key>DescriptionKey</key>
+			<string>Repair or erase a volume.</string>
+			<key>Path</key>
+			<string>/Applications/Utilities/Disk Utility.app/Contents/MacOS/Disk Utility</string>
+			<key>TitleKey</key>
+			<string>Disk Utility</string>
+		</dict>
+	</array>
+	<key>Menu</key>
+	<array>
+		<dict>
+			<key>BundlePath</key>
+			<string>/Applications/Utilities/Firmware Password Utility.app</string>
+			<key>Path</key>
+			<string>/Applications/Utilities/Firmware Password Utility.app/Contents/MacOS/Firmware Password Utility</string>
+			<key>TitleKey</key>
+			<string>Firmware Password Utility</string>
+		</dict>
+		<dict>
+			<key>BundlePath</key>
+			<string>/System/Library/CoreServices/Applications/Network Utility.app</string>
+			<key>Path</key>
+			<string>/System/Library/CoreServices/Applications/Network Utility.app/Contents/MacOS/Network Utility</string>
+			<key>TitleKey</key>
+			<string>Network Utility</string>
+		</dict>
+		<dict>
+			<key>BundlePath</key>
+			<string>/System/Library/CoreServices/Applications/RAID Utility.app</string>
+			<key>Path</key>
+			<string>/System/Library/CoreServices/Applications/RAID Utility.app/Contents/MacOS/RAID Utility</string>
+			<key>Show If</key>
+			<dict>
+				<key>Selector</key>
+				<string>shouldShowRAIDUtility</string>
+			</dict>
+			<key>TitleKey</key>
+			<string>RAID Utility</string>
+		</dict>
+		<dict>
+			<key>BundlePath</key>
+			<string>/Applications/Utilities/Terminal.app</string>
+			<key>Path</key>
+			<string>/Applications/Utilities/Terminal.app/Contents/MacOS/Terminal</string>
+			<key>TitleKey</key>
+			<string>Terminal</string>
+		</dict>
+	</array>
+</dict>
+</plist>

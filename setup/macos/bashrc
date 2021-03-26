@@ -1,0 +1,14 @@
+export HOME=/Volumes/RAM_Disk
+
+# Set Locale
+LC_ALL=en_US.UTF-8; export LC_ALL
+LANG=en_US.UTF-8; export LANG
+
+# Set PATH
+for p in /usr{/local/opt/{e2fsprogs,ruby,util-linux},/local,}/{bin,sbin}; do
+  PATH="${p}:${PATH}"
+done
+export PATH
+
+# Aliases
+source /.aliases

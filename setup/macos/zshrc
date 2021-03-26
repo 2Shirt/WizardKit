@@ -1,0 +1,25 @@
+export HOME=/Volumes/RAM_Disk
+export LC_ALL=en_US.UTF-8
+export LANG=en_US.UTF-8
+export EDITOR='vim'
+export VISUAL='vim'
+export PAGER='less'
+
+export XDG_CACHE_HOME="$HOME/.cache"
+export XDG_CONFIG_DIRS="/etc/xdg"
+export XDG_CONFIG_HOME="/"
+export XDG_DATA_DIRS="/usr/local/share:/usr/share"
+export XDG_DATA_HOME="$HOME/.local/share"
+
+# Ensure path arrays do not contain duplicates.
+typeset -gU cdpath fpath mailpath path
+
+path=(
+  /usr/local/opt/{e2fsprogs,ruby,util-linux}/{bin,sbin}
+  /usr/local/{bin,sbin}
+  $path
+)
+
+## Load aliases
+. "/.aliases"
+
