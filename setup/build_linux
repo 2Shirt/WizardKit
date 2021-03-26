@@ -227,9 +227,23 @@ function update_live_env() {
   fi
 
   # WiFi
-  # TODO
-  #cp "$ROOT_DIR/setup/linux/known_networks" "$PROFILE_DIR/airootfs/root/known_networks"
-  #echo "add-known-networks --user=$username" >> "$PROFILE_DIR/airootfs/root/customize_airootfs.sh"
+  IFS_BAK="${IFS}"
+  IFS=$'\n'
+  mkdir -p "$PROFILE_DIR/airootfs/var/lib/iwd"
+  for line in $(<"$ROOT_DIR/setup/linux/known_networks"); do
+    if [[ "${line:0:1}" == "#" ]]; then
+      # Skip comments
+      continue
+    fi
+    w_name="${line%%:::*}"
+    w_pass="${line##*:::}"
+    w_pass="$(wpa_passphrase "${w_name}" "${w_pass}" \
+      | grep -E 'psk=[0-9a-z]+' \
+      | sed -r 's/\s+psk=//')"
+    echo "[Security]" > "$PROFILE_DIR/airootfs/var/lib/iwd/${w_name}.psk"
+    echo "PreSharedKey=${w_pass}" >> "$PROFILE_DIR/airootfs/var/lib/iwd/${w_name}.psk"
+  done
+  IFS="${IFS_BAK}"
 }
 
 function update_repo() {

@@ -1,2 +1,3 @@
-#Put WiFi network info here
-#'WiFi SSID': 'WiFi Password'
+# Put known WiFi networks in the form:
+#SSID-5G:::Password
+#SSID-2G:::hunter2
