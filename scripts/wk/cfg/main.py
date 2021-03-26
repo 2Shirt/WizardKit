@@ -2,7 +2,6 @@
 
 NOTE: Non-standard formating is used for BASH/BATCH/PYTHON compatibility
 """
-# pylint: disable=bad-whitespace
 # vim: sts=2 sw=2 ts=2
 
 

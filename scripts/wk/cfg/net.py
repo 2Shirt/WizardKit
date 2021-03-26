@@ -1,5 +1,4 @@
 """WizardKit: Config - Net"""
-# pylint: disable=bad-whitespace
 # vim: sts=2 sw=2 ts=2
 
 

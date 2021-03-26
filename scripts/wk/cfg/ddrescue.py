@@ -1,5 +1,5 @@
 """WizardKit: Config - ddrescue"""
-# pylint: disable=bad-whitespace,line-too-long
+# pylint: disable=line-too-long
 # vim: sts=2 sw=2 ts=2
 
 from collections import OrderedDict

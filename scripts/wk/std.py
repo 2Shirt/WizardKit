@@ -880,7 +880,7 @@ def major_exception():
   #  print('Uploading... ', end='', flush=True)
   #  try:
   #    upload_debug_report(report, reason='CRASH')
-  #  except Exception: #pylint: disable=broad-except
+  #  except Exception: # pylint: disable=broad-except
   #    print_error('FAILED', log=False)
   #    LOG.error('Upload failed', exc_info=True)
   #  else:
