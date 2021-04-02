@@ -10,18 +10,21 @@ set -o pipefail
 # Prep
 echo "Initializing..."
 BASE_IMAGE="$1"
-IMAGE_DEV="$(hdiutil attach "${BASE_IMAGE}" | grep -Eo '(/dev/disk[0-9]+)\b')"
-OS_VERSION="$(ls /Volumes/*Base\ System | grep -E 'OS X|macOS' | sed -E 's/Install (OS X|macOS) (.*)\.app/\2/')"
-OUT_NAME="${HOME}/Desktop/WK ${OS_VERSION} ($(date +"%Y-%m-%d"))"
-WK_PATH="/Volumes/WK_UFD"
+IMAGE_DEV="$(hdiutil attach -mountpoint /Volumes/BaseSystem "${BASE_IMAGE}" -nobrowse | grep -Eo '(/dev/disk[0-9]+)\b')"
+OS_NAME="$(ls /Volumes/BaseSystem | grep -E 'OS X|macOS' | sed -E 's/Install (OS X|macOS) (.*)\.app/\2/')"
+OS_VERSION="$(defaults read /Volumes/BaseSystem/System/Library/CoreServices/SystemVersion ProductVersion)"
+OUT_NAME="${HOME}/Desktop/WK ${OS_NAME} ($(date +"%Y-%m-%d"))"
+WK_PATH="/Volumes/1201_UFD"
 
 # Convert to a 4 GB R/W image
-echo "Creating read-write copy of the ${OS_VERSION} Base System image..."
+echo "Creating read-write copy of the ${OS_NAME} Base System image..."
 hdiutil create -srcdevice "${IMAGE_DEV}s1" -format UDSB "${OUT_NAME}.sparsebundle"
 hdiutil detach "${IMAGE_DEV}"
 hdiutil resize -size 4g "${OUT_NAME}.sparsebundle"
-hdiutil attach "${OUT_NAME}.sparsebundle"
-diskutil rename "OS X Base System" "WK_UFD"
+WK_IMAGE_DEV="$(hdiutil attach "${OUT_NAME}.sparsebundle" -nobrowse | grep -Eo '(/dev/disk[0-9]+)\b')"
+if ! diskutil rename "OS X Base System" "1201_UFD"; then
+  diskutil rename "macOS Base System" "1201_UFD"
+fi
 
 # Remove Install app
 echo "Removing Install app..."
@@ -29,10 +32,12 @@ rm -R "${WK_PATH}"/Install*.app
 
 # Update Utilities menu
 echo "Updating Utilities menu..."
-if [[ "${OS_VERSION}" == "El Capitan" ]]; then
+if [[ "${OS_VERSION:0:5}" == "10.11" ]]; then
   cp -a "El Capitan/Utilities.plist" "${WK_PATH}/System/Installation/CDIS/OS X Utilities.app/Contents/Resources/Utilities.plist"
-else
-  cp -a Utilities.plist "${WK_PATH}/System/Installation/CDIS/macOS Utilities.app/Contents/Resources/Utilities.plist"
+elif [[ "${OS_VERSION:0:5}" == "10.13" ]]; then
+  cp -a "High Sierra/Utilities.plist" "${WK_PATH}/System/Installation/CDIS/macOS Utilities.app/Contents/Resources/Utilities.plist"
+elif [[ "${OS_VERSION:0:5}" == "10.15" ]]; then
+  cp -a "Catalina/Utilities.plist" "${WK_PATH}/System/Installation/CDIS/macOS Utilities.app/Contents/Resources/Utilities.plist"
 fi
 
 # Homebrew
@@ -40,61 +45,58 @@ echo "Installing Hombrew..."
 mkdir -p "${WK_PATH}/usr/local/bin"
 ln -s python3 "${WK_PATH}/usr/local/bin/python"
 rsync -aS /opt/ "${WK_PATH}/opt"/
-rsync -aS --exclude='.git*' /usr/local/{Cellar,Frameworks,Homebrew,bin,etc,include,lib,libexec,opt,sbin,share,var} "${WK_PATH}/usr/local"/
+rsync -aS --exclude='.git*' /usr/local/{Cellar,Frameworks,Homebrew,bin,etc,include,lib,opt,sbin,share,var} "${WK_PATH}/usr/local"/
+if [[ "${OS_VERSION:3:2}" -lt "15" ]]; then
+  rsync -aS --exclude='*.git' /usr/local/libexec "${WK_PATH}/usr/local"/
+fi
 
 # Fonts
 echo "Installing Fonts..."
 cp -a /Library/Fonts/Inconsolata*ttf "${WK_PATH}/System/Library/Fonts"/
 
-# iTerm2
-echo "Installing iTerm2..."
-if [[ "${OS_VERSION}" == "El Capitan" ]]; then
-  rsync -aS /Applications/iTerm.app "${WK_PATH}/Applications"/
-  rsync -aS "El Capitan/com.googlecode.iterm2.plist" "${WK_PATH}/var/root/Library/Preferences"/
-else
-  rsync -aS /Applications/iTerm-2.app "${WK_PATH}/Applications"/
-  rsync -aS com.googlecode.iterm2.plist "${WK_PATH}/var/root/Library/Preferences"/
-  rsync -aS /usr/lib/lib{apr,expat,ffi}* /Volumes/WK_UFD/usr/lib/
-  rsync -aS /System/Library/Frameworks/{MetalKit,Quartz*}.framework "${WK_PATH}/System/Library/Frameworks"/
-fi
-cp -a ../linux/include/airootfs/etc/skel/.tmux.conf "${WK_PATH}/etc/tmux.conf"
-rsync -aS /System/Library/Colors/System.clr "${WK_PATH}/System/Library/Colors"/
-rsync -aS /System/Library/Frameworks/{Scripting,ScriptingBridge,LocalAuthentication}.framework "${WK_PATH}/System/Library/Frameworks"/
-rsync -aS /usr/bin/locale "${WK_PATH}/usr/bin"/
-rsync -aLS /usr/share/locale/en_US.UTF-8 "${WK_PATH}/usr/share/locale"/
-
 # pipes-sh
 echo "Installing pipes.sh..."
 cp -a /usr/bin/tput "${WK_PATH}/usr/bin"/
 
+# Terminal
+echo "Installing Terminal Preferences..."
+rsync -aS com.apple.Terminal.plist "${WK_PATH}/var/root/Library/Preferences"/
+
 # Timezones
-if [[ ! -d "/var/db/timezone" ]]; then
+if [[ ! -d "${WK_PATH}/var/db/timezone" ]]; then
   echo "Installing timezones..."
   rsync -aS /var/db/timezone "${WK_PATH}/var/db"/
 fi
+ln -sf /var/db/timezone/zoneinfo/US/Pacific "${WK_PATH}/etc/localtime"
 
 # zsh
 echo "Installing zsh..."
 cp -a /bin/zsh "${WK_PATH}/bin"/
+cp -a zshenv "${WK_PATH}/etc"/
 rsync -aS /usr/lib/zsh "${WK_PATH}/usr/lib"/
 rsync -aS /usr/share/zsh "${WK_PATH}/usr/share"/
 rsync -aS /usr/local/share/zsh "${WK_PATH}/usr/local/share"/
+sed -Ei '' 's!^(root.*)/bin/sh!\1/bin/zsh!' "${WK_PATH}/etc/passwd"
 
 # Misc
+cp -a /bin/rsync "${WK_PATH}/bin"/
 cp -a aliases "${WK_PATH}/.aliases"
 cp -a bashrc "${WK_PATH}/etc/profile"
 cp -a vimrc "${WK_PATH}/.vimrc"
-cp -a zshrc "${WK_PATH}/etc/zshenv"
 
 # WizardKit
 echo "Installing WizardKit env..."
 touch "${WK_PATH}/.wk-live-macos"
 ln -s /Volumes/RAM_Disk/Logs "${WK_PATH}/var/root/Logs"
+cp -a ../linux/profile_base/airootfs/etc/skel/.tmux.conf "${WK_PATH}/etc/tmux.conf"
 cp -a ../../images/macOS.png "${WK_PATH}/usr/local/wallpaper.png"
 rsync -aS /usr/bin/{env,killall} "${WK_PATH}/usr/bin"/
 rsync -aS live-macos-startup ../../scripts/ "${WK_PATH}/usr/local/bin"/
 
+# Unmount sparsebundle
+hdiutil detach "${WK_IMAGE_DEV}"
+
 # Convert to compressed read-only image
+# TODO
 #echo "Converting to read-only image..."
 #hdiutil convert -format UDZO -o "${OUT_NAME}.sparsebundle" "${OUT_NAME}.dmg"
-# TODO

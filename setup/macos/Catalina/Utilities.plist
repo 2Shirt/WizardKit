@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>Buttons</key>
+	<array>
+		<dict>
+			<key>BundlePath</key>
+			<string>/System/Applications/Utilities/Terminal.app</string>
+			<key>DescriptionKey</key>
+			<string>Hardware Diagnostics</string>
+			<key>Path</key>
+			<string>/System/Applications/Utilities/Terminal.app/Contents/MacOS/Terminal</string>
+			<key>TitleKey</key>
+			<string>WizardKit: Hardware Diagnostics</string>
+		</dict>
+		<dict>
+			<key>BundlePath</key>
+			<string>/System/Applications/Utilities/Disk Utility.app</string>
+			<key>DescriptionKey</key>
+			<string>Repair or erase a volume.</string>
+			<key>Path</key>
+			<string>/System/Applications/Utilities/Disk Utility.app/Contents/MacOS/Disk Utility</string>
+			<key>TitleKey</key>
+			<string>Disk Utility</string>
+		</dict>
+	</array>
+	<key>Menu</key>
+	<array>
+		<dict>
+			<key>BundlePath</key>
+			<string>/System/Applications/Utilities/Startup Security Utility.app</string>
+			<key>Path</key>
+			<string>/System/Applications/Utilities/Startup Security Utility.app/Contents/MacOS/Startup Security Utility</string>
+			<key>TitleKey</key>
+			<string>Startup Security Utility</string>
+		</dict>
+		<dict>
+			<key>BundlePath</key>
+			<string>/System/Library/CoreServices/Applications/Network Utility.app</string>
+			<key>Path</key>
+			<string>/System/Library/CoreServices/Applications/Network Utility.app/Contents/MacOS/Network Utility</string>
+			<key>TitleKey</key>
+			<string>Network Utility</string>
+		</dict>
+		<dict>
+			<key>BundlePath</key>
+			<string>/System/Applications/Utilities/Terminal.app</string>
+			<key>Path</key>
+			<string>/System/Applications/Utilities/Terminal.app/Contents/MacOS/Terminal</string>
+			<key>TitleKey</key>
+			<string>Terminal</string>
+		</dict>
+	</array>
+</dict>
+</plist>
