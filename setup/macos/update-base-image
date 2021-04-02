@@ -99,9 +99,13 @@ echo "Installing WizardKit env..."
 touch "${WK_PATH}/.wk-live-macos"
 ln -s /Volumes/RAM_Disk/Logs "${WK_PATH}/var/root/Logs"
 cp -a ../linux/profile_base/airootfs/etc/skel/.tmux.conf "${WK_PATH}/etc/tmux.conf"
-cp -a ../../images/macOS.png "${WK_PATH}/usr/local/wallpaper.png"
 rsync -aS /usr/bin/{env,killall} "${WK_PATH}/usr/bin"/
 rsync -aS live-macos-startup ../../scripts/ "${WK_PATH}/usr/local/bin"/
+if [[ -f "../../images/macOS-${OS_VERSION:0:5}.png" ]]; then
+  cp -a "../../images/macOS-${OS_VERSION:0:5}.png" "${WK_PATH}/usr/local/wallpaper.png"
+else
+  cp -a ../../images/macOS.png "${WK_PATH}/usr/local/wallpaper.png"
+fi
 
 # Unmount sparsebundle
 hdiutil detach "${WK_IMAGE_DEV}"
