@@ -34,6 +34,17 @@ if ! [[ -e /Volumes/RAM_Disk/.wifi ]]; then
   fi
 fi
 
+# Dropbear (SSH)
+if ! [[ -d /Volumes/RAM_Disk/.ssh ]]; then
+  echo "Starting SSH server..."
+  mkdir /Volumes/RAM_Disk/.ssh
+  cp /.authorized_keys /Volumes/RAM_Disk/.ssh/authorized_keys
+  chown -R 0:0 /Volumes/RAM_Disk/.ssh
+  chmod 700 /Volumes/RAM_Disk/.ssh
+  chmod 600 /Volumes/RAM_Disk/.ssh/authorized_keys
+  dropbear -s
+fi
+
 # Stay awake
 echo "Getting caffeinated..."
 caffeinate -id &

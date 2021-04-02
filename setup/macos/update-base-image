@@ -58,6 +58,15 @@ cp -a /Library/Fonts/Inconsolata*ttf "${WK_PATH}/System/Library/Fonts"/
 echo "Installing pipes.sh..."
 cp -a /usr/bin/tput "${WK_PATH}/usr/bin"/
 
+# Dropbear (SSH)
+echo "Installing Dropbear..."
+mkdir -p "${WK_PATH}/etc/dropbear"
+for t in rsa dss ecdsa ed21559; do
+  dropbearkey -t "${t}" -f "${WK_PATH}/etc/dropbear_${t}_host_key"
+done
+ln -s /Volumes/RAM_Disk/.ssh "${WK_PATH}/var/root"/
+cp -a ../linux/authorized_keys "${WK_PATH}/.authorized_keys"
+
 # Terminal
 echo "Installing Terminal Preferences..."
 rsync -aS com.apple.Terminal.plist "${WK_PATH}/var/root/Library/Preferences"/
