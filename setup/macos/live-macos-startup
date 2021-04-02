@@ -18,6 +18,22 @@ if ! [[ -d /Volumes/RAM_Disk ]]; then
 fi
 cd /Volumes/RAM_Disk
 
+# Connect to WiFi?
+if ! [[ -e /Volumes/RAM_Disk/.wifi ]]; then
+  WIFI_NET="$(fgrep ':::' /.known_networks | head -1)"
+  if ! ifconfig | grep -Eq '(((10|172)\.\d+|192.168)\.\d+\.\d+)' 2>/dev/null; then
+    echo "Connecting to WiFi..."
+    NET_DEV="$(/usr/sbin/networksetup \
+      -listallhardwareports \
+      | tr -d '\n' \
+      | grep -Eo 'Wi-Fi.*?Device.*?(en\d+)' \
+      | grep -Eo 'en(\d+)')"
+    networksetup -setairportnetwork "${NET_DEV}" "${WIFI_NET%%:::*}" "${WIFI_NET##*:::}"
+    touch /Volumes/RAM_Disk/.wifi
+    sleep 1s
+  fi
+fi
+
 # Stay awake
 echo "Getting caffeinated..."
 caffeinate -id &

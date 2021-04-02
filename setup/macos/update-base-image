@@ -79,6 +79,7 @@ rsync -aS /usr/local/share/zsh "${WK_PATH}/usr/local/share"/
 sed -Ei '' 's!^(root.*)/bin/sh!\1/bin/zsh!' "${WK_PATH}/etc/passwd"
 
 # Misc
+cp -a ../linux/known_networks "${WK_PATH}/.known_networks"
 cp -a /bin/rsync "${WK_PATH}/bin"/
 cp -a aliases "${WK_PATH}/.aliases"
 cp -a bashrc "${WK_PATH}/etc/profile"
