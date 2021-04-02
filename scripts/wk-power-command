@@ -2,20 +2,51 @@
 #
 ## Wizard Kit: Wrapper for logout, reboot, & poweroff
 
-# Unmount filesystems
-find /media -maxdepth 1 -mindepth 1 -type d \
-  -exec udevil umount "{}" \;
+set -o errexit
+set -o errtrace
+set -o nounset
+set -o pipefail
 
-# Flush write cache
-sudo sync
+# Functions
+function linux_power_cmd() {
+  case "${1:-x}" in
+    poweroff)
+      sudo systemctl poweroff;;
+    reboot)
+      sudo systemctl reboot;;
+    *)
+      openbox --exit;;
+  esac
+}
 
-# Perform requested action
-case "${1:-x}" in
-  poweroff)
-    sudo systemctl poweroff;;
-  reboot)
-    sudo systemctl reboot;;
-  *)
-    openbox --exit;;
-esac
+function macos_power_cmd() {
+  case "${1:-x}" in
+    poweroff)
+      shutdown -h now;;
+    reboot)
+      shutdown -r now;;
+    *)
+      exit;;
+  esac
+}
+
+# "Main"
+if [[ -e "/.wk-live-macos" ]]; then
+  # Flush write cache
+  sync
+
+  # Perform requested action
+  macos_power_cmd "${1:-x}"
+else
+  # Unmount filesystems
+  find /media -maxdepth 1 -mindepth 1 -type d \
+    -exec udevil umount "{}" \;
+
+  # Flush write cache
+  sudo sync
+
+  # Perform requested action
+ linux_power_cmd "${1:-x}"
+fi
+
 exit 0
