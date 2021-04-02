@@ -1,0 +1,95 @@
+#!/bin/bash
+#
+
+set -o errexit
+set -o errtrace
+set -o nounset
+set -o pipefail
+
+# Prep
+OS_VERSION="$(defaults read /Volumes/BaseSystem/System/Library/CoreServices/SystemVersion ProductVersion)"
+cd "$(mktemp -d)"
+
+# Inconsolata
+echo "Installing Inconsolata..."
+curl -Lo inconsolata.zip https://fonts.google.com/download?family=Inconsolata
+unzip -d /Library/Fonts -j inconsolata.zip static/Inconsolata-Bold.ttf static/Inconsolata-Regular.ttf
+
+# XQuartz
+echo "Installing XQuartz..."
+curl -Lo XQuartz.dmg https://github.com/XQuartz/XQuartz/releases/download/XQuartz-2.8.0/XQuartz-2.8.0.dmg
+XQUARTZ_DEV="$(hdiutil attach -mountpoint /Volumes/XQuartz XQuartz.dmg -nobrowse | grep -Eo '(/dev/disk[0-9]+)\b')"
+sudo installer -pkg /Volumes/XQuartz/Xquartz.pkg -target /
+hdiutil detach "${XQUARTZ_DEV}"
+
+# Gnuplot
+echo "Installing Gnuplot..."
+curl -Lo gnuplot.pkg https://ariadne.ms.northwestern.edu/Download/Gnuplot/gnuplot-5.4.1.pkg
+sudo installer -pkg gnuplot.pkg -target /
+
+# mprime
+echo "Installing mprime..."
+curl -Lo prime95.tar.gz http://www.mersenne.org/ftp_root/gimps/p95v298b7.MacOSX.noGUI.tar.gz
+tar -x -C /usr/local/bin -f prime95.tar.gz mprime
+
+# smc
+echo "Installing smc..."
+curl -Lo smcfancontrol.zip https://www.eidac.de/smcfancontrol/smcfancontrol_2_6.zip
+unzip -d /usr/local/bin -j smcfancontrol.zip smcFanControl.app/Contents/Resources/smc
+
+# Homebrew
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+if [[ "${OS_VERSION:0:5}" == "10.11" ]]; then
+  # TODO: Maybe?
+  true
+elif [[ "${OS_VERSION:0:5}" == "10.13" ]]; then
+  # TODO: Add colordiff
+  brew install --build-from-source \
+    automake \
+    lua \
+    openssl@1.1 \
+    gdbm \
+    mpdecimal \
+    utf8proc \
+    berkeley-db \
+    readline \
+    perl \
+    sqlite \
+    tcl-tk \
+    ruby
+  brew install --build-from-source \
+    bash \
+    e2fsprogs \
+    htop \
+    pipes-sh \
+    python \
+    smartmontools \
+    util-linux \
+    vim \
+    watch
+  brew install \
+    cmatrix \
+    ddrescue \
+    speedtest-cli \
+    tmux
+elif [[ "${OS_VERSION:0:5}" == "10.15" ]]; then
+  brew install \
+    cmatrix \
+    colordiff \
+    ddrescue \
+    dropbear \
+    speedtest-cli \
+    tmux \
+    bash \
+    e2fsprogs \
+    htop \
+    pipes-sh \
+    python \
+    smartmontools \
+    util-linux \
+    vim \
+    watch
+fi
+
+# Python3 Packages
+pip3 docopt mysql-connector NumPy psutil pylint pytz requests
