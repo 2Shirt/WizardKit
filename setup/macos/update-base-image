@@ -40,6 +40,15 @@ elif [[ "${OS_VERSION:0:5}" == "10.15" ]]; then
   cp -a "Catalina/Utilities.plist" "${WK_PATH}/System/Installation/CDIS/macOS Utilities.app/Contents/Resources/Utilities.plist"
 fi
 
+# Dropbear (SSH)
+echo "Installing Dropbear..."
+mkdir -p "${WK_PATH}/etc/dropbear"
+for t in rsa dss ecdsa ed25519; do
+  dropbearkey -t "${t}" -f "${WK_PATH}/etc/dropbear/dropbear_${t}_host_key"
+done
+ln -s /Volumes/RAM_Disk/.ssh "${WK_PATH}/var/root"/
+cp -a ../linux/authorized_keys "${WK_PATH}/.authorized_keys"
+
 # Homebrew
 echo "Installing Hombrew..."
 mkdir -p "${WK_PATH}/usr/local/bin"
@@ -57,15 +66,6 @@ cp -a /Library/Fonts/Inconsolata*ttf "${WK_PATH}/System/Library/Fonts"/
 # pipes-sh
 echo "Installing pipes.sh..."
 cp -a /usr/bin/tput "${WK_PATH}/usr/bin"/
-
-# Dropbear (SSH)
-echo "Installing Dropbear..."
-mkdir -p "${WK_PATH}/etc/dropbear"
-for t in rsa dss ecdsa ed21559; do
-  dropbearkey -t "${t}" -f "${WK_PATH}/etc/dropbear_${t}_host_key"
-done
-ln -s /Volumes/RAM_Disk/.ssh "${WK_PATH}/var/root"/
-cp -a ../linux/authorized_keys "${WK_PATH}/.authorized_keys"
 
 # Terminal
 echo "Installing Terminal Preferences..."
@@ -89,7 +89,7 @@ sed -Ei '' 's!^(root.*)/bin/sh!\1/bin/zsh!' "${WK_PATH}/etc/passwd"
 
 # Misc
 cp -a ../linux/known_networks "${WK_PATH}/.known_networks"
-cp -a /bin/rsync "${WK_PATH}/bin"/
+cp -a /usr/bin/rsync "${WK_PATH}/usr/bin"/
 cp -a aliases "${WK_PATH}/.aliases"
 cp -a bashrc "${WK_PATH}/etc/profile"
 cp -a vimrc "${WK_PATH}/.vimrc"
@@ -111,6 +111,5 @@ fi
 hdiutil detach "${WK_IMAGE_DEV}"
 
 # Convert to compressed read-only image
-# TODO
-#echo "Converting to read-only image..."
-#hdiutil convert -format UDZO -o "${OUT_NAME}.sparsebundle" "${OUT_NAME}.dmg"
+echo "Converting to read-only image..."
+hdiutil convert -format UDZO -o "${OUT_NAME}.dmg" "${OUT_NAME}.sparsebundle"

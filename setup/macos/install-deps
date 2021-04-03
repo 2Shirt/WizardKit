@@ -7,7 +7,7 @@ set -o nounset
 set -o pipefail
 
 # Prep
-OS_VERSION="$(defaults read /Volumes/BaseSystem/System/Library/CoreServices/SystemVersion ProductVersion)"
+OS_VERSION="$(defaults read /System/Library/CoreServices/SystemVersion ProductVersion)"
 cd "$(mktemp -d)"
 
 # Inconsolata
@@ -30,12 +30,12 @@ sudo installer -pkg gnuplot.pkg -target /
 # mprime
 echo "Installing mprime..."
 curl -Lo prime95.tar.gz http://www.mersenne.org/ftp_root/gimps/p95v298b7.MacOSX.noGUI.tar.gz
-tar -x -C /usr/local/bin -f prime95.tar.gz mprime
+sudo tar -x -C /usr/local/bin -f prime95.tar.gz mprime
 
 # smc
 echo "Installing smc..."
 curl -Lo smcfancontrol.zip https://www.eidac.de/smcfancontrol/smcfancontrol_2_6.zip
-unzip -d /usr/local/bin -j smcfancontrol.zip smcFanControl.app/Contents/Resources/smc
+sudo unzip -d /usr/local/bin -j smcfancontrol.zip smcFanControl.app/Contents/Resources/smc
 
 # Homebrew
 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
@@ -92,4 +92,4 @@ elif [[ "${OS_VERSION:0:5}" == "10.15" ]]; then
 fi
 
 # Python3 Packages
-pip3 docopt mysql-connector NumPy psutil pylint pytz requests
+pip3 install docopt mysql-connector NumPy psutil pylint pytz requests
