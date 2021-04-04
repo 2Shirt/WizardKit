@@ -73,14 +73,15 @@ rsync -aS com.apple.Terminal.plist "${WK_PATH}/var/root/Library/Preferences"/
 
 # Timezones
 echo "Installing timezones..."
+eval "$(fgrep LINUX_TIME ../../scripts/wk/cfg/main.py)"
 if [[ "${OS_VERSION:3:2}" == "11" ]]; then
   rsync -aS /usr/share/zoneinfo/ "${WK_PATH}/usr/share/zoneinfo"/
-  ln -sf /usr/share/zoneinfo/America/Los_Angeles "${WK_PATH}/etc/localtime"
+  ln -sf "/usr/share/zoneinfo/${LINUX_TIME}" "${WK_PATH}/etc/localtime"
 elif [[ "${OS_VERSION:3:2}" -gt "11" ]]; then
   if [[ ! -d "${WK_PATH}/var/db/timezone" ]]; then
     rsync -aS /var/db/timezone "${WK_PATH}/var/db"/
   fi
-  ln -sf /var/db/timezone/zoneinfo/US/Pacific "${WK_PATH}/etc/localtime"
+  ln -sf "/var/db/timezone/zoneinfo/${LINUX_TIME}" "${WK_PATH}/etc/localtime"
 fi
 
 # zsh
