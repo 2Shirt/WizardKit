@@ -43,7 +43,6 @@ if [[ "${OS_VERSION:0:5}" == "10.11" ]]; then
   # TODO: Maybe?
   true
 elif [[ "${OS_VERSION:0:5}" == "10.13" ]]; then
-  # TODO: Add colordiff
   brew install --build-from-source \
     automake \
     lua \
@@ -69,7 +68,9 @@ elif [[ "${OS_VERSION:0:5}" == "10.13" ]]; then
     watch
   brew install \
     cmatrix \
+    colordiff \
     ddrescue \
+    dropbear \
     speedtest-cli \
     tmux
 elif [[ "${OS_VERSION:0:5}" == "10.15" ]]; then
@@ -93,3 +94,8 @@ fi
 
 # Python3 Packages
 pip3 install docopt mysql-connector NumPy psutil pylint pytz requests
+
+git clone https://github.com/yuyichao/gnuplot-py gnuplot-py
+cd gnuplot-py
+git checkout 2c2218dc67
+python3 setup.py install

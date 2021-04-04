@@ -103,6 +103,8 @@ if [[ "${OS_VERSION:3:2}" == "11" ]]; then
   cp -a /usr/bin/fgrep "${WK_PATH}/usr/bin"/
   cp -a /usr/bin/locale "${WK_PATH}/usr/bin"/
   rsync -aS /usr/share/locale/ "${WK_PATH}/usr/share/locale"/
+elif [[ "${OS_VERSION:3:2}" == "13" ]]; then
+  cp -a /usr/lib/libexpat* "${WK_PATH}/usr/lib"/
 fi
 
 # WizardKit
