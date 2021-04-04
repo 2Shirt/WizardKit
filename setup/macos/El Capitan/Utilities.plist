@@ -6,11 +6,11 @@
 	<array>
 		<dict>
 			<key>BundlePath</key>
-			<string>/Applications/iTerm.app</string>
+			<string>/Applications/Utilities/Terminal.app</string>
 			<key>DescriptionKey</key>
 			<string>Hardware Diagnostics</string>
 			<key>Path</key>
-			<string>/Applications/iTerm.app/Contents/MacOS/iTerm2</string>
+			<string>/Applications/Utilities/Terminal.app/Contents/MacOS/Terminal</string>
 			<key>TitleKey</key>
 			<string>WizardKit: Hardware Diagnostics</string>
 		</dict>

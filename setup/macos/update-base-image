@@ -72,11 +72,16 @@ echo "Installing Terminal Preferences..."
 rsync -aS com.apple.Terminal.plist "${WK_PATH}/var/root/Library/Preferences"/
 
 # Timezones
-if [[ ! -d "${WK_PATH}/var/db/timezone" ]]; then
-  echo "Installing timezones..."
-  rsync -aS /var/db/timezone "${WK_PATH}/var/db"/
+echo "Installing timezones..."
+if [[ "${OS_VERSION:3:2}" == "11" ]]; then
+  rsync -aS /usr/share/zoneinfo/ "${WK_PATH}/usr/share/zoneinfo"/
+  ln -sf /usr/share/zoneinfo/America/Los_Angeles "${WK_PATH}/etc/localtime"
+elif [[ "${OS_VERSION:3:2}" -gt "11" ]]; then
+  if [[ ! -d "${WK_PATH}/var/db/timezone" ]]; then
+    rsync -aS /var/db/timezone "${WK_PATH}/var/db"/
+  fi
+  ln -sf /var/db/timezone/zoneinfo/US/Pacific "${WK_PATH}/etc/localtime"
 fi
-ln -sf /var/db/timezone/zoneinfo/US/Pacific "${WK_PATH}/etc/localtime"
 
 # zsh
 echo "Installing zsh..."
@@ -94,6 +99,11 @@ cp -a /usr/sbin/networksetup "${WK_PATH}/usr/sbin"/
 cp -a aliases "${WK_PATH}/.aliases"
 cp -a bashrc "${WK_PATH}/etc/profile"
 cp -a vimrc "${WK_PATH}/.vimrc"
+if [[ "${OS_VERSION:3:2}" == "11" ]]; then
+  cp -a /usr/bin/fgrep "${WK_PATH}/usr/bin"/
+  cp -a /usr/bin/locale "${WK_PATH}/usr/bin"/
+  rsync -aS /usr/share/locale/ "${WK_PATH}/usr/share/locale"/
+fi
 
 # WizardKit
 echo "Installing WizardKit env..."

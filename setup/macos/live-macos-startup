@@ -12,7 +12,7 @@ if ! [[ -d /Volumes/RAM_Disk ]]; then
   echo "Creating RAM Disk..."
   RAM_DEV="$(hdiutil attach -nomount ram://524288)"
   diskutil quiet erasevolume HFS+ RAM_Disk ${RAM_DEV}
-  diskutil unmount ${RAM_DEV}
+  diskutil quiet unmount ${RAM_DEV}
   mkdir /Volumes/RAM_Disk
   mount -t hfs -o owners ${RAM_DEV} /Volumes/RAM_Disk
 fi
@@ -30,7 +30,7 @@ if ! [[ -e /Volumes/RAM_Disk/.wifi ]]; then
       | grep -Eo 'en(\d+)')"
     networksetup -setairportnetwork "${NET_DEV}" "${WIFI_NET%%:::*}" "${WIFI_NET##*:::}"
     touch /Volumes/RAM_Disk/.wifi
-    sleep 1s
+    sleep 5s
   fi
 fi
 

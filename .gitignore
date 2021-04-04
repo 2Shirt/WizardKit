@@ -1,5 +1,6 @@
 **/__pycache__
 **/*.7z
+**/*.DS_Store
 **/*.bak
 **/*.exe
 **/*.swp
