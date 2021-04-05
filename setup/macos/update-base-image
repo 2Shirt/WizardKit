@@ -14,6 +14,7 @@ IMAGE_DEV="$(hdiutil attach -mountpoint /Volumes/BaseSystem "${BASE_IMAGE}" -nob
 OS_NAME="$(ls /Volumes/BaseSystem | grep -E 'OS X|macOS' | sed -E 's/Install (OS X|macOS) (.*)\.app/\2/')"
 OS_VERSION="$(defaults read /Volumes/BaseSystem/System/Library/CoreServices/SystemVersion ProductVersion)"
 OUT_NAME="${HOME}/Desktop/WK ${OS_NAME} ($(date +"%Y-%m-%d"))"
+TIMEZONE="$(fgrep LINUX_TIME_ZONE ../../scripts/wk/cfg/main.py | cut -d '=' -f 2 | sed "s/'//g")"
 WK_PATH="/Volumes/1201_UFD"
 
 # Convert to a 4 GB R/W image
@@ -73,15 +74,13 @@ rsync -aS com.apple.Terminal.plist "${WK_PATH}/var/root/Library/Preferences"/
 
 # Timezones
 echo "Installing timezones..."
-eval "$(fgrep LINUX_TIME ../../scripts/wk/cfg/main.py)"
 if [[ "${OS_VERSION:3:2}" == "11" ]]; then
   rsync -aS /usr/share/zoneinfo/ "${WK_PATH}/usr/share/zoneinfo"/
-  ln -sf "/usr/share/zoneinfo/${LINUX_TIME}" "${WK_PATH}/etc/localtime"
+  ln -sf "/usr/share/zoneinfo/${TIMEZONE}" "${WK_PATH}/etc/localtime"
 elif [[ "${OS_VERSION:3:2}" -gt "11" ]]; then
-  if [[ ! -d "${WK_PATH}/var/db/timezone" ]]; then
-    rsync -aS /var/db/timezone "${WK_PATH}/var/db"/
-  fi
-  ln -sf "/var/db/timezone/zoneinfo/${LINUX_TIME}" "${WK_PATH}/etc/localtime"
+  sudo mkdir -p "${WK_PATH}/var/db/timezone/zoneinfo"
+  sudo rsync -aS /var/db/timezone/zoneinfo/ "${WK_PATH}/var/db/timezone/zoneinfo"/
+  ln -sf "/var/db/timezone/zoneinfo/${TIMEZONE}" "${WK_PATH}/etc/localtime"
 fi
 
 # zsh

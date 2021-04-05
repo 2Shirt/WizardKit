@@ -29,7 +29,11 @@ sudo installer -pkg gnuplot.pkg -target /
 
 # mprime
 echo "Installing mprime..."
-curl -Lo prime95.tar.gz http://www.mersenne.org/ftp_root/gimps/p95v298b7.MacOSX.noGUI.tar.gz
+if [[ "${OS_VERSION:3:2}" -ge "15" ]]; then
+  curl -Lo prime95.tar.gz http://www.mersenne.org/ftp_root/gimps/p95v298b7.MacOSX.noGUI.tar.gz
+else
+  curl -Lo prime95.tar.gz http://www.mersenne.org/ftp_root/gimps/p95v287.MacOSX.noGUI.tar.gz
+fi
 sudo tar -x -C /usr/local/bin -f prime95.tar.gz mprime
 
 # smc

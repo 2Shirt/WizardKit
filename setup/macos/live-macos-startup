@@ -7,7 +7,7 @@ for p in /usr/local/{,opt/{e2fsprogs,ruby,util-linux}/}{bin,sbin}; do
   PATH="${p}:${PATH}"
 done
 
-# Create and mount RAMDisk
+# Create and mount RAM_Disk
 if ! [[ -d /Volumes/RAM_Disk ]]; then
   echo "Creating RAM Disk..."
   RAM_DEV="$(hdiutil attach -nomount ram://524288)"
@@ -30,7 +30,7 @@ if ! [[ -e /Volumes/RAM_Disk/.wifi ]]; then
       | grep -Eo 'en(\d+)')"
     networksetup -setairportnetwork "${NET_DEV}" "${WIFI_NET%%:::*}" "${WIFI_NET##*:::}"
     touch /Volumes/RAM_Disk/.wifi
-    sleep 5s
+    sleep 8s
   fi
 fi
 
