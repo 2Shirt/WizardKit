@@ -15,7 +15,7 @@ from wk.io import non_clobber_path
 # STATIC VARIABLES
 if os.path.exists('/.wk-live-macos'):
   # Workaround for live macOS env
-  DEFAULT_LOG_DIR = '/var/log/WizardKit'
+  DEFAULT_LOG_DIR = '/Volumes/RAM_Disk/Logs'
 elif os.name == 'nt':
   # Example: "C:\WK\1955-11-05\WizardKit"
   DEFAULT_LOG_DIR = (
