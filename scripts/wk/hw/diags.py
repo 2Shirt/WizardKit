@@ -48,6 +48,7 @@ MENU_ACTIONS = (
   'Audio Test',
   'Keyboard Test',
   'Network Test',
+  'Clock Sync',
   'Start',
   'Quit')
 MENU_ACTIONS_SECRET = (
@@ -367,6 +368,17 @@ class State():
       with open(f'{debug_dir}/smc.data', 'a') as _f:
         _f.write('\n'.join(data))
 
+  def update_clock(self):
+    """Update 'Started' pane following clock sync."""
+    tmux.respawn_pane(
+      pane_id=self.panes['Started'],
+      text=std.color_string(
+        ['Started', time.strftime("%Y-%m-%d %H:%M %Z")],
+        ['BLUE', None],
+        sep='\n',
+        ),
+      )
+
   def update_progress_pane(self):
     """Update progress pane."""
     report = []
@@ -421,6 +433,7 @@ def audio_test_linux():
 
 
 def build_menu(cli_mode=False, quick_mode=False):
+  # pylint: disable=too-many-branches
   """Build main menu, returns wk.std.Menu."""
   menu = std.Menu(title=None)
 
@@ -455,6 +468,13 @@ def build_menu(cli_mode=False, quick_mode=False):
   if PLATFORM not in ('Darwin', 'Linux'):
     for name in ('Matrix', 'Network Test', 'Tubes'):
       menu.actions[name]['Disabled'] = True
+
+  # Live macOS actions
+  if os.path.exists('.wk-live-macos'):
+    menu.actions['Clock Sync']['Separator'] = True
+  else:
+    menu.actions['Clock Sync']['Disabled'] = True
+    menu.actions['Clock Sync']['Hidden'] = True
 
   # Done
   return menu
@@ -1149,6 +1169,8 @@ def main():
       action = keyboard_test
     elif 'Network Test' in selection:
       action = network_test
+    elif 'Clock Sync' in selection:
+      action = sync_clock
 
     # Run simple test
     if action:
@@ -1159,6 +1181,8 @@ def main():
         std.print_warning('Aborted.')
         std.print_standard('')
         std.pause('Press Enter to return to main menu...')
+      if 'Clock Sync' in selection:
+        state.update_clock()
 
     # Secrets
     if 'Matrix' in selection:
@@ -1404,6 +1428,16 @@ def stop_mprime(proc_mprime):
   except subprocess.TimeoutExpired:
     proc_mprime.kill()
   set_apple_fan_speed('auto')
+
+
+def sync_clock():
+  """Sync clock under macOS using sntp."""
+  cmd = ['sudo', 'sntp', '-Ss', 'us.pool.ntp.org']
+  proc = exe.run_program(cmd, check=False)
+  if proc.returncode:
+    # Assuming we're running under an older version of macOS
+    cmd[2] = '-s'
+    exe.run_program(cmd, check=False)
 
 
 if __name__ == '__main__':
