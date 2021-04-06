@@ -352,6 +352,21 @@ class State():
           _f.write(f'\n{name}:\n')
           _f.write('\n'.join(debug.generate_object_report(test, indent=1)))
 
+    # SMC
+    if os.path.exists('/.wk-live-macos'):
+      data = []
+      try:
+        proc = exe.run_program(['smc', '-f'])
+        data.extend(proc.stdout.splitlines())
+        data.append('----')
+        proc = exe.run_program(['smc', '-l'])
+        data.extend(proc.stdout.splitlines())
+      except Exception: # pylint: disable=broad-except
+        LOG.ERROR('Error(s) encountered while exporting SMC data')
+      data = [line.strip() for line in data]
+      with open(f'{debug_dir}/smc.data', 'a') as _f:
+        _f.write('\n'.join(data))
+
   def update_progress_pane(self):
     """Update progress pane."""
     report = []
