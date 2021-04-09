@@ -290,6 +290,7 @@ class BlockPair():
 
 
 class State():
+  # pylint: disable=too-many-public-methods
   """Object for tracking hardware diagnostic data."""
   def __init__(self):
     self.block_pairs = []
@@ -1043,6 +1044,8 @@ class State():
 
   def update_top_panes(self):
     """(Re)create top source/destination panes."""
+    source_exists = True
+    dest_exists = True
     width = tmux.get_pane_size()[0]
     width = int(width / 2) - 1
 
@@ -1072,6 +1075,15 @@ class State():
       # Done
       return string
 
+    # Check source/dest existance
+    if self.source:
+      source_exists = self.source.path.exists()
+    if self.destination:
+      if isinstance(self.destination, hw_obj.Disk):
+        dest_exists = self.destination.path.exists()
+      else:
+        dest_exists = self.destination.exists()
+
     # Kill destination pane
     if 'Destination' in self.panes:
       tmux.kill_pane(self.panes.pop('Destination'))
@@ -1083,9 +1095,9 @@ class State():
     tmux.respawn_pane(
       self.panes['Source'],
       text=std.color_string(
-        ['Source', source_str],
-        ['BLUE', None],
-        sep='\n',
+        ['Source', '' if source_exists else ' (Missing)', '\n', source_str],
+        ['BLUE', 'RED', None, None],
+        sep='',
         ),
       )
 
@@ -1098,9 +1110,9 @@ class State():
       vertical=False,
       target_id=self.panes['Source'],
       text=std.color_string(
-        ['Destination', dest_str],
-        ['BLUE', None],
-        sep='\n',
+        ['Destination', '' if dest_exists else ' (Missing)', '\n', dest_str],
+        ['BLUE', 'RED', None, None],
+        sep='',
         ),
       )
 
@@ -1421,25 +1433,6 @@ def check_destination_health(destination):
   return result
 
 
-def check_for_missing_items(state):
-  """Check if source or destination dissapeared."""
-  items = {
-    'Source': state.source,
-    'Destination': state.destination,
-    }
-  for name, item in items.items():
-    if not item:
-      continue
-    if hasattr(item, 'path'):
-      if not item.path.exists():
-        std.print_error(f'{name} disappeared')
-    elif hasattr(item, 'exists'):
-      if not item.exists():
-        std.print_error(f'{name} disappeared')
-    else:
-      LOG.error('Unknown %s type: %s', name, item)
-
-
 def clean_working_dir(working_dir):
   """Clean working directory to ensure a fresh recovery session.
 
@@ -1719,6 +1712,30 @@ def get_working_dir(mode, destination, force_local=False):
   return working_dir
 
 
+def is_missing_source_or_destination(state):
+  """Check if source or destination dissapeared, returns bool."""
+  missing = False
+  items = {
+    'Source': state.source,
+    'Destination': state.destination,
+    }
+  for name, item in items.items():
+    if not item:
+      continue
+    if hasattr(item, 'path'):
+      if not item.path.exists():
+        missing = True
+        std.print_error(f'{name} disappeared')
+    elif hasattr(item, 'exists'):
+      if not item.exists():
+        missing = True
+        std.print_error(f'{name} disappeared')
+    else:
+      LOG.error('Unknown %s type: %s', name, item)
+
+  return missing
+
+
 def main():
   # pylint: disable=too-many-branches
   """Main function for ddrescue TUI."""
@@ -1738,11 +1755,12 @@ def main():
   try:
     state.init_recovery(args)
   except (FileNotFoundError, std.GenericAbort):
-    check_for_missing_items(state)
+    is_missing_source_or_destination(state)
     std.abort()
 
   # Show menu
   while True:
+    state.update_top_panes()
     selection = main_menu.advanced_select()
 
     # Change settings
@@ -1973,6 +1991,7 @@ def run_ddrescue(state, block_pair, pass_name, settings, dry_run=True):
     # True if return code is non-zero (poll() returns None if still running)
     poweroff_thread = exe.start_thread(_poweroff_source_drive)
     warning_message = 'Error(s) encountered, see message above'
+    state.update_top_panes()
   if warning_message:
     print(' ')
     print(' ')
@@ -1995,10 +2014,18 @@ def run_ddrescue(state, block_pair, pass_name, settings, dry_run=True):
 
 
 def run_recovery(state, main_menu, settings_menu, dry_run=True):
+  # pylint: disable=too-many-branches
   """Run recovery passes."""
   atexit.register(state.save_debug_reports)
   attempted_recovery = False
   auto_continue = False
+
+  # Bail early
+  if is_missing_source_or_destination(state):
+    state.update_top_panes()
+    std.print_standard('')
+    std.pause('Press Enter to return to main menu...')
+    return
 
   # Get settings
   for name, details in main_menu.toggles.items():
@@ -2036,7 +2063,7 @@ def run_recovery(state, main_menu, settings_menu, dry_run=True):
         try:
           run_ddrescue(state, pair, pass_name, settings, dry_run=dry_run)
         except (FileNotFoundError, KeyboardInterrupt, std.GenericAbort):
-          check_for_missing_items(state)
+          is_missing_source_or_destination(state)
           abort = True
           break
 
