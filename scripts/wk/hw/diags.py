@@ -176,6 +176,13 @@ class State():
         if 'Disk Attributes' in disk.tests:
           disk.tests['Disk Attributes'].failed = True
           disk.tests['Disk Attributes'].set_status('Failed')
+        if not prep:
+          # Mid-diag failure detected
+          LOG.warning('Critical hardware error detected during diagnostics')
+          disk.add_note(
+            'Critical hardware error detected during diagnostics',
+            'YELLOW',
+            )
       except hw_obj.SMARTSelfTestInProgressError as err:
         if prep:
           std.print_warning(f'SMART self-test(s) in progress for {disk.path}')
@@ -198,12 +205,18 @@ class State():
               std.color_string('Please manually review SMART data', 'YELLOW'),
               )
       else:
-        # No blocking errors encountered, check for minor attribute failures
-        if ('Disk Attributes' in disk.tests
+        if (
+            'Disk Attributes' in disk.tests
             and not disk.tests['Disk Attributes'].failed
             and not disk.check_attributes(only_blocking=False)):
-          # Mid-diag failure detected
-          LOG.warning('Disk attributes failure detected during diagnostics')
+          # No blocking errors encountered, but found minor attribute failures
+          if not prep:
+            # Mid-diag failure detected
+            LOG.warning('Attribute(s) failure detected during diagnostics')
+            disk.add_note(
+              'Attribute(s) failure detected during diagnostics',
+              'YELLOW',
+              )
           disk.tests['Disk Attributes'].failed = True
           disk.tests['Disk Attributes'].set_status('Failed')
 
