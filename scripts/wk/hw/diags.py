@@ -1021,7 +1021,7 @@ def disk_self_test(state, test_objects):
 
 
 def disk_surface_scan(state, test_objects):
-  # pylint: disable=too-many-statements
+  # pylint: disable=too-many-branches,too-many-statements
   """Read-only disk surface scan using badblocks."""
   LOG.info('Disk Surface Scan (badblocks)')
   aborted = False
@@ -1087,13 +1087,29 @@ def disk_surface_scan(state, test_objects):
     if not (test_obj.passed or test_obj.failed):
       test_obj.set_status('Unknown')
 
-  # Run surface scans
+  # Update panes
   state.update_top_pane(
     f'Disk Surface Scan{"s" if len(test_objects) > 1 else ""}',
     )
   std.print_info(
     f'Starting disk surface scan{"s" if len(test_objects) > 1 else ""}',
     )
+  for disk in state.disks:
+    failed_attributes = [
+      line for line in disk.generate_attribute_report() if 'failed' in line
+      ]
+    if failed_attributes:
+      size_str = std.bytes_to_string(disk.details["size"], use_binary=False)
+      std.print_colored(
+        ['[', disk.path.name, ' ', size_str, ']'],
+        [None, 'BLUE', None, 'CYAN', None],
+        sep='',
+        )
+      #std.print_colored([disk.path.name, disk.description], [None, 'BLUE'])
+      std.print_report(failed_attributes)
+      std.print_standard('')
+
+  # Run surface scans
   for test in reversed(test_objects):
     if test.disabled:
       # Skip
