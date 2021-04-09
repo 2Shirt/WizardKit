@@ -1918,7 +1918,7 @@ def run_ddrescue(state, block_pair, pass_name, settings, dry_run=True):
   std.clear_screen()
   warning_message = ''
 
-  def _poweroff_source_drive(idle_minutes=120):
+  def _poweroff_source_drive(idle_minutes):
     """Power off source drive after a while."""
     source_dev = state.source.path.name
 
@@ -2022,7 +2022,10 @@ def run_ddrescue(state, block_pair, pass_name, settings, dry_run=True):
   # Check result
   if proc.poll():
     # True if return code is non-zero (poll() returns None if still running)
-    poweroff_thread = exe.start_thread(_poweroff_source_drive)
+    poweroff_thread = exe.start_thread(
+      _poweroff_source_drive,
+      cfg.ddrescue.DRIVE_POWEROFF_TIMEOUT,
+      )
     warning_message = 'Error(s) encountered, see message above'
     state.update_top_panes()
   if warning_message:

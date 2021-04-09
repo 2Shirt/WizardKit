@@ -49,6 +49,7 @@ DDRESCUE_SETTINGS = {
     '--timeout':          {'Selected': False, 'Value': '30m',               },
     },
   }
+DRIVE_POWEROFF_TIMEOUT = 90
 PARTITION_TYPES = {
   'GPT': {
     'NTFS':   'EBD0A0A2-B9E5-4433-87C0-68B6B72699C7', # Basic Data Partition
