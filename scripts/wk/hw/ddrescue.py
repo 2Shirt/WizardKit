@@ -389,10 +389,10 @@ class State():
       with open(settings_file, 'r') as _f:
         try:
           settings = json.loads(_f.read())
-        except (OSError, json.JSONDecodeError):
+        except (OSError, json.JSONDecodeError) as err:
           LOG.error('Failed to load clone settings')
           std.print_error('Invalid clone settings detected.')
-          raise std.GenericAbort()
+          raise std.GenericAbort() from err
 
     # Check settings
     if settings:
@@ -436,9 +436,9 @@ class State():
     try:
       with open(settings_file, 'w') as _f:
         json.dump(settings, _f)
-    except OSError:
+    except OSError as err:
       std.print_error('Failed to save clone settings')
-      raise std.GenericAbort()
+      raise std.GenericAbort() from err
 
   def add_clone_block_pairs(self):
     """Add device to device block pairs and set settings if necessary."""
@@ -645,11 +645,11 @@ class State():
 
   def get_rescued_size(self):
     """Get total rescued size from all block pairs, returns int."""
-    return sum([pair.get_rescued_size() for pair in self.block_pairs])
+    return sum(pair.get_rescued_size() for pair in self.block_pairs)
 
   def get_total_size(self):
     """Get total size of all block_pairs in bytes, returns int."""
-    return sum([pair.size for pair in self.block_pairs])
+    return sum(pair.size for pair in self.block_pairs)
 
   def init_recovery(self, docopt_args):
     """Select source/dest and set env."""
@@ -759,12 +759,12 @@ class State():
     """Check if all block_pairs meet the pass threshold, returns bool."""
     threshold = cfg.ddrescue.AUTO_PASS_THRESHOLDS[pass_name]
     return all(
-      [p.get_percent_recovered() >= threshold for p in self.block_pairs],
+      p.get_percent_recovered() >= threshold for p in self.block_pairs
       )
 
   def pass_complete(self, pass_name):
     """Check if all block_pairs completed pass_name, returns bool."""
-    return all([p.pass_complete(pass_name) for p in self.block_pairs])
+    return all(p.pass_complete(pass_name) for p in self.block_pairs)
 
   def prep_destination(self, source_parts, dry_run=True):
     """Prep destination as necessary."""
@@ -898,15 +898,15 @@ class State():
     """Run safety checks for destination and abort if necessary."""
     try:
       self.destination.safety_checks()
-    except hw_obj.CriticalHardwareError:
+    except hw_obj.CriticalHardwareError as err:
       std.print_error(
         f'Critical error(s) detected for: {self.destination.path}',
         )
-      raise std.GenericAbort()
+      raise std.GenericAbort() from err
 
   def safety_check_size(self):
     """Run size safety check and abort if necessary."""
-    required_size = sum([pair.size for pair in self.block_pairs])
+    required_size = sum(pair.size for pair in self.block_pairs)
     settings = self._load_settings() if self.mode == 'Clone' else {}
 
     # Increase required_size if necessary
@@ -1136,7 +1136,7 @@ def build_block_pair_report(block_pairs, settings):
           ['BLUE', None],
           ),
         )
-  if any([pair.get_rescued_size() > 0 for pair in block_pairs]):
+  if any(pair.get_rescued_size() > 0 for pair in block_pairs):
     notes.append(
       std.color_string(
         ['NOTE:', 'Resume data loaded from map file(s).'],
@@ -1544,7 +1544,7 @@ def get_etoc():
   output = tmux.capture_pane()
 
   # Search for EToC delta
-  matches = re.findall(f'remaining time:.*$', output, re.MULTILINE)
+  matches = re.findall(r'remaining time:.*$', output, re.MULTILINE)
   if matches:
     match = REGEX_REMAINING_TIME.search(matches[-1])
     if match.group('na'):
@@ -1679,9 +1679,9 @@ def get_working_dir(mode, destination, force_local=False):
   if mode == 'Image':
     try:
       path = pathlib.Path(destination).resolve()
-    except TypeError:
+    except TypeError as err:
       std.print_error(f'Invalid destination: {destination}')
-      raise std.GenericAbort()
+      raise std.GenericAbort() from err
     if path.exists() and fstype_is_ok(path, map_dir=False):
       working_dir = path
   elif mode == 'Clone' and not force_local:
@@ -1713,6 +1713,7 @@ def get_working_dir(mode, destination, force_local=False):
 
 
 def main():
+  # pylint: disable=too-many-branches
   """Main function for ddrescue TUI."""
   args = docopt(DOCSTRING)
   log.update_log_path(dest_name='ddrescue-TUI', timestamp=True)
@@ -1735,7 +1736,6 @@ def main():
 
   # Show menu
   while True:
-    action = None
     selection = main_menu.advanced_select()
 
     # Change settings
@@ -2092,7 +2092,7 @@ def select_disk(prompt, skip_disk=None):
 
 def select_disk_parts(prompt, disk):
   """Select disk parts from list, returns list of Disk()."""
-  title = std.color_string(f'ddrescue TUI: Partition Selection', 'GREEN')
+  title = std.color_string('ddrescue TUI: Partition Selection', 'GREEN')
   title += f'\n\nDisk: {disk.path} {disk.description}'
   menu = std.Menu(title)
   menu.separator = ' '
@@ -2115,7 +2115,7 @@ def select_disk_parts(prompt, disk):
         for option in menu.options.values():
           option['Selected'] = False
       elif 'Proceed' in selection:
-        if any([option['Selected'] for option in menu.options.values()]):
+        if any(option['Selected'] for option in menu.options.values()):
           # At least one partition/device selected/device selected
           break
       elif 'Quit' in selection:
@@ -2174,7 +2174,7 @@ def select_path(prompt):
     )
   menu.separator = ' '
   menu.add_action('Quit')
-  menu.add_option(f'Current directory')
+  menu.add_option('Current directory')
   menu.add_option('Enter manually')
   path = None
 
