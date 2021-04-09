@@ -215,6 +215,7 @@ def run_sfc_scan():
 
 # Registry Functions
 def reg_delete_key(hive, key, recurse=False):
+  # pylint: disable=raise-missing-from
   """Delete a key from the registry.
 
   NOTE: If recurse is False then it will only work on empty keys.

@@ -61,11 +61,11 @@ class BaseObj():
 
   def all_tests_passed(self):
     """Check if all tests passed, returns bool."""
-    return all([results.passed for results in self.tests.values()])
+    return all(results.passed for results in self.tests.values())
 
   def any_test_failed(self):
     """Check if any test failed, returns bool."""
-    return any([results.failed for results in self.tests.values()])
+    return any(results.failed for results in self.tests.values())
 
 
 class CpuRam(BaseObj):
@@ -707,7 +707,7 @@ def get_disks(skip_kits=False):
     disks = [
       disk_obj for disk_obj in disks
       if not any(
-        [WK_LABEL_REGEX.search(label) for label in disk_obj.get_labels()]
+        WK_LABEL_REGEX.search(label) for label in disk_obj.get_labels()
         )
       ]
 

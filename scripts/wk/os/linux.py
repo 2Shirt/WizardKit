@@ -90,6 +90,7 @@ def mount(source, mount_point=None, read_write=False):
 
 
 def mount_volumes(device_path=None, read_write=False, scan_corestorage=False):
+  # pylint: disable=too-many-branches
   """Mount all detected volumes, returns list.
 
   NOTE: If device_path is specified then only volumes

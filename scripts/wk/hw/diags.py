@@ -165,7 +165,7 @@ class State():
       disable_tests = False
 
       # Skip already disabled devices
-      if all([test.disabled for test in disk.tests.values()]):
+      if all(test.disabled for test in disk.tests.values()):
         continue
 
       try:
@@ -176,7 +176,7 @@ class State():
         if 'Disk Attributes' in disk.tests:
           disk.tests['Disk Attributes'].failed = True
           disk.tests['Disk Attributes'].set_status('Failed')
-      except hw_obj.SMARTSelfTestInProgressError:
+      except hw_obj.SMARTSelfTestInProgressError as err:
         if prep:
           std.print_warning(f'SMART self-test(s) in progress for {disk.path}')
           if std.ask('Continue with all tests disabled for this device?'):
@@ -185,7 +185,7 @@ class State():
             std.print_standard('Diagnostics aborted.')
             std.print_standard(' ')
             std.pause('Press Enter to exit...')
-            raise SystemExit(1)
+            raise SystemExit(1) from err
         elif wait_for_self_tests:
           self_tests_in_progress = True
         else:
@@ -843,10 +843,10 @@ def disk_io_benchmark(state, test_objects, skip_usb=True):
           stdout=subprocess.PIPE,
           stderr=subprocess.STDOUT,
           )
-      except PermissionError:
+      except PermissionError as err:
         # Since we're using sudo we can't kill dd
         # Assuming this happened during a CTRL+c
-        raise KeyboardInterrupt
+        raise KeyboardInterrupt from err
       match = IO_RATE_REGEX.search(proc.stdout)
       if match:
         read_rates.append(
@@ -982,7 +982,7 @@ def disk_self_test(state, test_objects):
   state.update_progress_pane()
   try:
     while True:
-      if any([t.is_alive() for t in threads]):
+      if any(t.is_alive() for t in threads):
         std.sleep(1)
       else:
         break
@@ -1061,7 +1061,7 @@ def disk_surface_scan(state, test_objects):
           continue
         match = BADBLOCKS_REGEX.search(line)
         if match:
-          if all([s == '0' for s in match.groups()]):
+          if all(s == '0' for s in match.groups()):
             test_obj.passed = True
             test_obj.report.append(f'  {line}')
             test_obj.set_status('Passed')
@@ -1104,7 +1104,7 @@ def disk_surface_scan(state, test_objects):
   # Wait for all tests to complete
   try:
     while True:
-      if any([t.is_alive() for t in threads]):
+      if any(t.is_alive() for t in threads):
         state.update_progress_pane()
         std.sleep(5)
       else:
@@ -1275,7 +1275,7 @@ def run_diags(state, menu, quick_mode=False):
   state.init_diags(menu)
 
   # Just return if no tests were selected
-  if not any([details['Enabled'] for details in state.tests.values()]):
+  if not any(details['Enabled'] for details in state.tests.values()):
     std.print_warning('No tests selected?')
     std.pause()
     return

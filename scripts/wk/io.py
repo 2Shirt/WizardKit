@@ -28,9 +28,9 @@ def case_insensitive_path(path):
   for part in parts:
     try:
       real_path = case_insensitive_search(real_path, part)
-    except NotADirectoryError:
+    except NotADirectoryError as err:
       # Reclassify error
-      raise FileNotFoundError(given_path)
+      raise FileNotFoundError(given_path) from err
   real_path = pathlib.Path(real_path)
 
   # Done
