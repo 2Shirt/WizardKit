@@ -220,6 +220,9 @@ function update_live_env() {
     cp "$ROOT_DIR/images/Linux.png" "$PROFILE_DIR/airootfs/usr/share/wallpaper/burned.in"
   fi
 
+  # udevil
+  mkdir -p "$PROFILE_DIR/airootfs/media"
+
   # WiFi
   IFS_BAK="${IFS}"
   IFS=$'\n'
