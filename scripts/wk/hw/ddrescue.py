@@ -1719,6 +1719,8 @@ def is_missing_source_or_destination(state):
     'Source': state.source,
     'Destination': state.destination,
     }
+
+  # Check items
   for name, item in items.items():
     if not item:
       continue
@@ -1733,7 +1735,36 @@ def is_missing_source_or_destination(state):
     else:
       LOG.error('Unknown %s type: %s', name, item)
 
+  # Update top panes
+  state.update_top_panes()
+
+  # Done
   return missing
+
+
+def source_or_destination_changed(state):
+  """Verify the source and destination objects are still valid."""
+  changed = False
+
+  # Compare objects
+  for obj in (state.source, state.destination):
+    if not obj:
+      changed = True
+    elif hasattr(obj, 'exists'):
+      # Assuming dest path
+      changed = changed or not obj.exists()
+    elif isinstance(obj, hw_obj.Disk):
+      compare_dev = hw_obj.Disk(obj.path)
+      for key in ('model', 'serial'):
+        changed = changed or obj.details[key] != compare_dev.details[key]
+
+  # Update top panes
+  state.update_top_panes()
+
+  # Done
+  if changed:
+    std.print_error('Source and/or Destination changed')
+  return changed
 
 
 def main():
@@ -1760,7 +1791,6 @@ def main():
 
   # Show menu
   while True:
-    state.update_top_panes()
     selection = main_menu.advanced_select()
 
     # Change settings
@@ -1781,6 +1811,8 @@ def main():
         std.print_standard('Forcing controllers to rescan for devices...')
         cmd = 'echo "- - -" | sudo tee /sys/class/scsi_host/host*/scan'
         exe.run_program(cmd, check=False, shell=True)
+        if source_or_destination_changed(state):
+          std.abort()
 
     # Start recovery
     if 'Start' in selection:
@@ -2022,10 +2054,12 @@ def run_recovery(state, main_menu, settings_menu, dry_run=True):
 
   # Bail early
   if is_missing_source_or_destination(state):
-    state.update_top_panes()
     std.print_standard('')
     std.pause('Press Enter to return to main menu...')
     return
+  if source_or_destination_changed(state):
+    std.print_standard('')
+    std.abort()
 
   # Get settings
   for name, details in main_menu.toggles.items():
