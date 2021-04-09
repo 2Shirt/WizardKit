@@ -39,6 +39,12 @@ Options:
   --force-local-map   Skip mounting shares and save map to local drive
   --start-fresh       Ignore previous runs and start new recovery
 '''
+DETECT_DRIVES_NOTICE = '''
+This option will force the drive controllers to rescan for devices.
+The method used is not 100% reliable and may cause issues. If you see
+any script errors or crashes after running this option then please
+restart the computer and try again.
+'''
 CLONE_SETTINGS = {
   'Source': None,
   'Destination': None,
@@ -70,6 +76,7 @@ LOG = logging.getLogger(__name__)
 MENU_ACTIONS = (
   'Start',
   f'Change settings {std.color_string("(experts only)", "YELLOW")}',
+  f'Detect drives {std.color_string("(experts only)", "YELLOW")}',
   'Quit')
 MENU_TOGGLES = {
   'Auto continue (if recovery % over threshold)': True,
@@ -1747,6 +1754,15 @@ def main():
           settings_menu = build_settings_menu(silent=False)
         else:
           break
+
+    # Detect drives
+    if 'Detect drives' in selection[0]:
+      std.clear_screen()
+      std.print_warning(DETECT_DRIVES_NOTICE)
+      if std.ask('Are you sure you proceed?'):
+        std.print_standard('Forcing controllers to rescan for devices...')
+        cmd = 'echo "- - -" | sudo tee /sys/class/scsi_host/host*/scan'
+        exe.run_program(cmd, check=False, shell=True)
 
     # Start recovery
     if 'Start' in selection:
