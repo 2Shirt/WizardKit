@@ -1847,9 +1847,42 @@ def run_ddrescue(state, block_pair, pass_name, settings, dry_run=True):
   # pylint: disable=too-many-statements
   """Run ddrescue using passed settings."""
   cmd = build_ddrescue_cmd(block_pair, pass_name, settings)
+  poweroff_source_after_idle = True
   state.update_progress_pane('Active')
   std.clear_screen()
   warning_message = ''
+
+  def _poweroff_source_drive(idle_minutes=120):
+    """Power off source drive after a while."""
+    source_dev = state.source.path.name
+
+    # Sleep
+    i = 0
+    while i < idle_minutes*60:
+      if not poweroff_source_after_idle:
+        # Countdown canceled, exit without powering-down drives
+        return
+      if i % 600 == 0 and i > 0:
+        if i == 600:
+          std.print_standard(' ', flush=True)
+        std.print_warning(
+          f'Powering off source in {int((idle_minutes*60-i)/60)} minutes...',
+          )
+      std.sleep(5)
+      i += 5
+
+    # Power off drive
+    cmd = f'echo 1 | sudo tee /sys/block/{source_dev}/device/delete'
+    proc = exe.run_program(cmd, check=False, shell=True)
+    if proc.returncode:
+      LOG.error('Failed to poweroff source %s', state.source.path)
+      std.print_error(f'Failed to poweroff source {state.source.path}')
+    else:
+      LOG.info('Powered off source %s', state.source.path)
+      std.print_error(f'Powered off source {state.source.path}')
+    std.print_standard(
+      'Press Enter to return to main menu...', end='', flush=True,
+      )
 
   def _update_smart_pane():
     """Update SMART pane every 30 seconds."""
@@ -1922,6 +1955,7 @@ def run_ddrescue(state, block_pair, pass_name, settings, dry_run=True):
   # Check result
   if proc.poll():
     # True if return code is non-zero (poll() returns None if still running)
+    poweroff_thread = exe.start_thread(_poweroff_source_drive)
     warning_message = 'Error(s) encountered, see message above'
   if warning_message:
     print(' ')
@@ -1934,6 +1968,13 @@ def run_ddrescue(state, block_pair, pass_name, settings, dry_run=True):
   if str(proc.poll()) != '0':
     state.update_progress_pane('NEEDS ATTENTION')
     std.pause('Press Enter to return to main menu...')
+
+    # Stop source poweroff countdown
+    std.print_standard('Stopping device poweroff countdown...', flush=True)
+    poweroff_source_after_idle = False
+    poweroff_thread.join()
+
+    # Done
     raise std.GenericAbort()
 
 
