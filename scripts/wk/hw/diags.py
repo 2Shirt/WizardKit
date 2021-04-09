@@ -158,7 +158,7 @@ class State():
         self.panes.pop(key)
 
   def disk_safety_checks(self, prep=False, wait_for_self_tests=True):
-    # pylint: disable=too-many-branches
+    # pylint: disable=too-many-branches,too-many-statements
     """Run disk safety checks."""
     self_tests_in_progress = False
     for disk in self.disks:
@@ -208,7 +208,8 @@ class State():
         if (
             'Disk Attributes' in disk.tests
             and not disk.tests['Disk Attributes'].failed
-            and not disk.check_attributes(only_blocking=False)):
+            and not disk.check_attributes(only_blocking=False)
+            ):
           # No blocking errors encountered, but found minor attribute failures
           if not prep:
             # Mid-diag failure detected
@@ -219,6 +220,16 @@ class State():
               )
           disk.tests['Disk Attributes'].failed = True
           disk.tests['Disk Attributes'].set_status('Failed')
+
+      # Check Surface Scan
+      if (
+          'Disk Surface Scan' in disk.tests
+          and disk.tests['Disk Surface Scan'].failed
+          and 'Disk I/O Benchmark' in disk.tests
+          ):
+        # Disable I/O Benchmark test
+        disk.tests['Disk I/O Benchmark'].set_status('Skipped')
+        disk.tests['Disk I/O Benchmark'].disabled = True
 
       # Disable tests if necessary
       if disable_tests:
