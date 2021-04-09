@@ -1984,6 +1984,7 @@ def run_ddrescue(state, block_pair, pass_name, settings, dry_run=True):
       if warning_message:
         # Error detected on destination, stop recovery
         exe.stop_process(proc)
+        std.print_error(warning_message)
         break
     if _i % 60 == 0:
       # Clear ddrescue pane
