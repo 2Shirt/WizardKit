@@ -4,8 +4,17 @@
 
 import wk
 
+from docopt import docopt
+
 
 if __name__ == '__main__':
+  try:
+    docopt(wk.hw.diags.DOCSTRING)
+  except SystemExit:
+    print('')
+    wk.std.pause('Press Enter to exit...')
+    raise
+
   try:
     wk.hw.diags.main()
   except SystemExit:
