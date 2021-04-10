@@ -870,23 +870,6 @@ def major_exception():
     print_warning('Also, please run upload-logs to help debugging!')
   print(traceback.format_exc())
 
-  # TODO: Decide to remove or reinstate following section
-  ## Build report
-  #report = generate_debug_report()
-
-  ## Upload details
-  #prompt = f'Upload details to {CRASH_SERVER.get("Name", "?")}?'
-  #if ENABLED_UPLOAD_DATA and ask(prompt):
-  #  print('Uploading... ', end='', flush=True)
-  #  try:
-  #    upload_debug_report(report, reason='CRASH')
-  #  except Exception: # pylint: disable=broad-except
-  #    print_error('FAILED', log=False)
-  #    LOG.error('Upload failed', exc_info=True)
-  #  else:
-  #    print_success('SUCCESS', log=False)
-  #    LOG.info('Upload successful')
-
   # Done
   pause('Press Enter to exit... ')
   raise SystemExit(1)
