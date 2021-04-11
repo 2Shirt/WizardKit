@@ -494,7 +494,7 @@ def build_menu(cli_mode=False, quick_mode=False):
       menu.actions[name]['Disabled'] = True
 
   # Live macOS actions
-  if os.path.exists('.wk-live-macos'):
+  if os.path.exists('/.wk-live-macos'):
     menu.actions['Clock Sync']['Separator'] = True
   else:
     menu.actions['Clock Sync']['Disabled'] = True
