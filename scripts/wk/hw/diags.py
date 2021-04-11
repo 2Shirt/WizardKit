@@ -1370,7 +1370,7 @@ def screensaver(name):
     cmd = ['cmatrix', '-abs']
   elif name == 'pipes':
     cmd = [
-      'pipes' if PLATFORM == 'Linux' else 'pipes.sh',
+      'pipes.sh',
       '-t', '0',
       '-t', '1',
       '-t', '2',
