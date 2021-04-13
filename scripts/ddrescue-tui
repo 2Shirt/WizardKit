@@ -8,8 +8,10 @@ if [[ "$os_name" == "Darwin" ]]; then
   os_name="macOS"
 fi
 if [[ "$os_name" != "Linux" ]]; then
-  echo "This script is not supported under $os_name." 1>&2
-  exit 1
+  echo "This script is not fully supported under $os_name." 1>&2
+  echo ""
+  echo "Press Enter to continue..."
+  read -r _dontcare
 fi
 
 source launch-in-tmux

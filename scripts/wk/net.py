@@ -62,11 +62,17 @@ def mount_backup_shares(read_write=False):
 
     # Prep mount point
     if PLATFORM in ('Darwin', 'Linux'):
-      mount_point = pathlib.Path(f'/Backups/{name}')
+      mount_point = pathlib.Path(
+        f'/{"Volumes" if PLATFORM == "Darwin" else "Backups"}/{name}',
+        )
       try:
         if not mount_point.exists():
           # Script should be run as user so sudo is required
           run_program(['sudo', 'mkdir', '-p', mount_point])
+          if PLATFORM == 'Darwin':
+            run_program(
+              ['sudo', 'chown', f'{os.getuid()}:{os.getgid()}', mount_point],
+              )
       except OSError:
         # Assuming permission denied under macOS
         pass
@@ -108,7 +114,6 @@ def mount_network_share(details, mount_point=None, read_write=False):
   # Build OS-specific command
   if PLATFORM == 'Darwin':
     cmd = [
-      'sudo',
       'mount',
       '-t', 'smbfs',
       '-o', f'{"rw" if read_write else "ro"}',

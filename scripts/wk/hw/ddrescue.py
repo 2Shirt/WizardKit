@@ -22,6 +22,7 @@ import psutil
 import pytz
 
 from wk import cfg, debug, exe, io, log, net, std, tmux
+from wk.cfg.ddrescue import DDRESCUE_SETTINGS
 from wk.hw import obj as hw_obj
 
 
@@ -56,6 +57,9 @@ CLONE_SETTINGS = {
     # (5, 1) ## Clone source partition #5 to destination partition #1
     ],
   }
+if std.PLATFORM == 'Darwin':
+  DDRESCUE_SETTINGS['Default']['--idirect'] = {'Selected': False, 'Hidden': True}
+  DDRESCUE_SETTINGS['Default']['--odirect'] = {'Selected': False, 'Hidden': True}
 DDRESCUE_LOG_REGEX = re.compile(
   r'^\s*(?P<key>\S+):\s+'
   r'(?P<size>\d+)\s+'
@@ -89,8 +93,10 @@ PANE_RATIOS = (
   )
 PLATFORM = std.PLATFORM
 RECOMMENDED_FSTYPES = re.compile(r'^(ext[234]|ntfs|xfs)$')
+if PLATFORM == 'Darwin':
+  RECOMMENDED_FSTYPES = re.compile(r'^(apfs|hfs.?)$')
 RECOMMENDED_MAP_FSTYPES = re.compile(
-  r'^(apfs|cifs|ext[234]|hfs.?|ntfs|vfat|xfs)$'
+  r'^(apfs|cifs|ext[234]|hfs.?|ntfs|smbfs|vfat|xfs)$'
   )
 SETTING_PRESETS = (
   'Default',
@@ -186,6 +192,7 @@ class BlockPair():
       'ddrescuelog',
       '--binary-prefixes',
       '--show-status',
+      f'--size={self.size}',
       self.map_path,
       ]
     proc = exe.run_program(cmd, check=False)
@@ -209,6 +216,7 @@ class BlockPair():
       cmd = [
         'ddrescuelog',
         '--done-status',
+        f'--size={self.size}',
         self.map_path,
         ]
       proc = exe.run_program(cmd, check=False)
@@ -660,6 +668,7 @@ class State():
     return sum(pair.size for pair in self.block_pairs)
 
   def init_recovery(self, docopt_args):
+    # pylint: disable=too-many-branches
     """Select source/dest and set env."""
     std.clear_screen()
     source_parts = []
@@ -735,7 +744,15 @@ class State():
     self.update_progress_pane('Idle')
     self.confirm_selections('Start recovery?')
 
-    # TODO: Unmount source and/or destination under macOS
+    # Unmount source and/or destination under macOS
+    if PLATFORM == 'Darwin':
+      for disk in (self.source, self.destination):
+        cmd = ['diskutil', 'unmountDisk', disk.path]
+        try:
+          exe.run_program(cmd)
+        except subprocess.CalledProcessError:
+          std.print_error('Failed to unmount source and/or destination')
+          std.abort()
 
     # Prep destination
     if self.mode == 'Clone':
@@ -1187,8 +1204,18 @@ def build_ddrescue_cmd(block_pair, pass_name, settings):
     # Allow trimming and scraping
     pass
   cmd.extend(settings)
-  cmd.append(block_pair.source)
-  cmd.append(block_pair.destination)
+  cmd.append(f'--size={block_pair.size}')
+  if PLATFORM == 'Darwin':
+    # Use Raw disks if possible
+    for dev in (block_pair.source, block_pair.destination):
+      raw_dev = pathlib.Path(dev.with_name(f'r{dev.name}'))
+      if raw_dev.exists():
+        cmd.append(raw_dev)
+      else:
+        cmd.append(dev)
+  else:
+    cmd.append(block_pair.source)
+    cmd.append(block_pair.destination)
   cmd.append(block_pair.map_path)
 
   # Done
@@ -1306,7 +1333,8 @@ def build_main_menu():
 
   # Add actions, options, etc
   for action in MENU_ACTIONS:
-    menu.add_action(action)
+    if not (PLATFORM == 'Darwin' and 'Detect drives' in action):
+      menu.add_action(action)
   for toggle, selected in MENU_TOGGLES.items():
     menu.add_toggle(toggle, {'Selected': selected})
 
@@ -1357,12 +1385,12 @@ def build_settings_menu(silent=True):
   # Add default settings
   menu.add_action('Load Preset')
   menu.add_action('Main Menu')
-  for name, details in cfg.ddrescue.DDRESCUE_SETTINGS['Default'].items():
+  for name, details in DDRESCUE_SETTINGS['Default'].items():
     menu.add_option(name, details.copy())
 
   # Update settings using preset
   if preset != 'Default':
-    for name, details in cfg.ddrescue.DDRESCUE_SETTINGS[preset].items():
+    for name, details in DDRESCUE_SETTINGS[preset].items():
       menu.options[name].update(details.copy())
 
   # Done
@@ -1493,11 +1521,14 @@ def fstype_is_ok(path, map_dir=False):
 
   # Get fstype
   if PLATFORM == 'Darwin':
-    try:
-      fstype = get_fstype_macos(path)
-    except (IndexError, TypeError, ValueError):
-      # Ignore for now
-      pass
+    # Check all parent dirs until a mountpoint is found
+    test_path = pathlib.Path(path)
+    while test_path:
+      fstype = get_fstype_macos(test_path)
+      if fstype != 'UNKNOWN':
+        break
+      fstype = None
+      test_path = test_path.parent
   elif PLATFORM == 'Linux':
     cmd = [
       'findmnt',
@@ -1565,21 +1596,21 @@ def get_etoc():
 
 
 def get_fstype_macos(path):
-  """Get fstype for path under macOS, returns str.
+  """Get fstype for path under macOS, returns str."""
+  fstype = 'UNKNOWN'
+  proc = exe.run_program(['mount'], check=False)
 
-  NOTE: This method is not very effecient.
-  """
-  cmd = ['df', path]
+  # Bail early
+  if proc.returncode:
+    return fstype
 
-  # Get device based on the path
-  proc = exe.run_program(cmd, check=False)
-  dev = proc.stdout.splitlines()[1].split()[0]
-
-  # Get device details
-  dev = hw_obj.Disk(dev)
+  # Parse output
+  match = re.search(rf'{path} \((\w+)', proc.stdout)
+  if match:
+    fstype = match.group(1)
 
   # Done
-  return dev.details['fstype']
+  return fstype
 
 
 def get_object(path):
@@ -1688,7 +1719,9 @@ def get_working_dir(mode, destination, force_local=False):
     std.print_info('Mounting backup shares...')
     net.mount_backup_shares(read_write=True)
     for server in cfg.net.BACKUP_SERVERS:
-      path = pathlib.Path(f'/Backups/{server}')
+      path = pathlib.Path(
+        f'/{"Volumes" if PLATFORM == "Darwin" else "Backups"}/{server}',
+        )
       if path.exists() and fstype_is_ok(path, map_dir=True):
         # Acceptable path found
         working_dir = path
@@ -1922,6 +1955,10 @@ def run_ddrescue(state, block_pair, pass_name, settings, dry_run=True):
     """Power off source drive after a while."""
     source_dev = state.source.path.name
 
+    # Bail early
+    if PLATFORM == 'Darwin':
+      return
+
     # Sleep
     i = 0
     while i < idle_minutes*60:
@@ -2024,7 +2061,7 @@ def run_ddrescue(state, block_pair, pass_name, settings, dry_run=True):
     # True if return code is non-zero (poll() returns None if still running)
     poweroff_thread = exe.start_thread(
       _poweroff_source_drive,
-      cfg.ddrescue.DRIVE_POWEROFF_TIMEOUT,
+      [cfg.ddrescue.DRIVE_POWEROFF_TIMEOUT],
       )
     warning_message = 'Error(s) encountered, see message above'
     state.update_top_panes()
@@ -2079,9 +2116,10 @@ def run_recovery(state, main_menu, settings_menu, dry_run=True):
     behind=True, lines=12, vertical=True,
     watch_file=f'{state.log_dir}/smart.out',
     )
-  state.panes['Journal'] = tmux.split_window(
-    lines=4, vertical=True, cmd='journalctl --dmesg --follow',
-    )
+  if PLATFORM != 'Darwin':
+    state.panes['Journal'] = tmux.split_window(
+      lines=4, vertical=True, cmd='journalctl --dmesg --follow',
+      )
 
   # Run pass(es)
   for pass_name in ('read', 'trim', 'scrape'):
@@ -2201,6 +2239,10 @@ def select_disk_parts(prompt, disk):
           break
       elif 'Quit' in selection:
         raise std.GenericAbort()
+
+  # Bail early if running under macOS
+  if PLATFORM == 'Darwin':
+    return [disk]
 
   # Bail early if child device selected
   if disk.details.get('parent', False):
