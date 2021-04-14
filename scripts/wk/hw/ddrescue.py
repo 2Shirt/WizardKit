@@ -689,6 +689,13 @@ class State():
     # Set mode
     self.mode = set_mode(docopt_args)
 
+    # Image mode is broken..
+    # TODO: Fix image mode
+    #       Definitely for Linux, maybe for macOS
+    if self.mode == 'Image':
+      std.print_error("I'm sorry but image mode is currently broken...")
+      std.abort()
+
     # Select source
     self.source = get_object(docopt_args['<source>'])
     if not self.source:
