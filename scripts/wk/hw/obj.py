@@ -683,6 +683,13 @@ def get_disk_details_macos(path):
     else:
       dev['parent'] = dev.pop('ParentWholeDisk', None)
 
+  # Fix details if main dev is a child
+  for child in details['children']:
+    if path == child['path']:
+      for key in ('fstype', 'label', 'name', 'size'):
+        details[key] = child[key]
+      break
+
   # Done
   return details
 
