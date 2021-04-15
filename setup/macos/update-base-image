@@ -125,4 +125,5 @@ hdiutil detach "${WK_IMAGE_DEV}"
 
 # Convert to compressed read-only image
 echo "Converting to read-only image..."
+hdiutil resize -sectors min "${OUT_NAME}.sparsebundle"
 hdiutil convert -format UDZO -o "${OUT_NAME}.dmg" "${OUT_NAME}.sparsebundle"
