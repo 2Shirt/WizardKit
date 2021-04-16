@@ -15,7 +15,7 @@ except ImportError as err:
     raise err
 
 from wk.borrowed import acpi
-from wk.exe import run_program
+from wk.exe import get_procs, run_program
 from wk.io import non_clobber_path
 from wk.log import format_log_path
 from wk.std import GenericError, GenericWarning, sleep
@@ -23,6 +23,7 @@ from wk.std import GenericError, GenericWarning, sleep
 
 # STATIC VARIABLES
 LOG = logging.getLogger(__name__)
+CONEMU = 'ConEmuPID' in os.environ
 KNOWN_DATA_TYPES = {
   'BINARY': winreg.REG_BINARY,
   'DWORD': winreg.REG_DWORD,
@@ -316,8 +317,8 @@ def reg_set_value(hive, key, name, data, data_type, option=None):
 # Repair Functions
 def run_chkdsk_offline():
   """Set filesystem 'dirty bit' to force a CHKDSK during startup."""
-  cmd = f'fsutil dirty set {os.environ.get("SYSTEMDRIVE")}'
-  proc = run_program(cmd.split(), check=False)
+  cmd = ['fsutil', 'dirty', 'set', os.environ.get('SYSTEMDRIVE', 'C:')]
+  proc = run_program(cmd, check=False)
 
   # Check result
   if proc.returncode > 0:
@@ -325,36 +326,33 @@ def run_chkdsk_offline():
 
 
 def run_chkdsk_online():
-  """Run CHKDSK in a split window.
+  """Run CHKDSK.
 
   NOTE: If run on Windows 8+ online repairs are attempted.
   """
   cmd = ['CHKDSK', os.environ.get('SYSTEMDRIVE', 'C:')]
   if OS_VERSION >= 8:
     cmd.extend(['/scan', '/perf'])
-  log_path = format_log_path(log_name='CHKDSK', tool=True)
-  err_path = log_path.with_suffix('.err')
+  if CONEMU:
+    cmd.extend(['-new_console:n', '-new_console:s33V'])
   retried = False
 
   # Run scan
-  proc = run_program(cmd, check=False)
-  if proc.returncode > 1:
+  run_program(cmd, check=False)
+  proc = get_procs('chkdsk.exe')[0]
+  return_code = proc.wait()
+  if return_code > 1:
     # Try again
     retried = True
-    proc = run_program(cmd, check=False)
+    run_program(cmd, check=False)
+    proc = get_procs('chkdsk.exe')[0]
+    return_code = proc.wait()
 
   # Check result
-  if (proc.returncode == 0 and retried) or proc.returncode == 1:
+  if (return_code == 0 and retried) or return_code == 1:
     raise GenericWarning('Repaired (or manually aborted)')
-  if proc.returncode > 1:
+  if return_code > 1:
     raise GenericError('Issue(s) detected')
-
-  # Save output
-  os.makedirs(log_path.parent, exist_ok=True)
-  with open(log_path, 'a') as _f:
-    _f.write(proc.stdout)
-  with open(err_path, 'a') as _f:
-    _f.write(proc.stderr)
 
 
 def run_sfc_scan():
