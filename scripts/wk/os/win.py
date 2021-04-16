@@ -15,7 +15,7 @@ except ImportError as err:
     raise err
 
 from wk.borrowed import acpi
-from wk.exe import get_procs, run_program
+from wk.exe import get_procs, run_program, wait_for_procs
 from wk.io import non_clobber_path
 from wk.log import format_log_path
 from wk.std import GenericError, GenericWarning, sleep
@@ -352,6 +352,41 @@ def run_chkdsk_online():
   if (return_code == 0 and retried) or return_code == 1:
     raise GenericWarning('Repaired (or manually aborted)')
   if return_code > 1:
+    raise GenericError('Issue(s) detected')
+
+
+def run_dism(repair=True):
+  """Run DISM to either scan or repair component store health."""
+  conemu_args = ['-new_console:n', '-new_console:s33V'] if CONEMU else []
+
+  # Bail early
+  if OS_VERSION < 8:
+    raise GenericWarning('Unsupported OS')
+
+  # Run (repair) scan
+  log_path = format_log_path(
+    log_name=f'DISM_{"Restore" if repair else "Scan"}Health', tool=True,
+    )
+  cmd = [
+    'DISM', '/Online', '/Cleanup-Image',
+    '/RestoreHealth' if repair else '/ScanHealth',
+    f'/LogPath:{log_path}',
+    *conemu_args,
+    ]
+  run_program(cmd, check=False, pipe=False)
+  wait_for_procs('dism.exe')
+
+  # Run check health
+  log_path = format_log_path(log_name='DISM_CheckHealth.log', tool=True)
+  cmd = [
+    'DISM', '/Online', '/Cleanup-Image',
+    '/CheckHealth',
+    f'/LogPath:{log_path}',
+    ]
+  proc = run_program(cmd, check=False)
+
+  # Check for errors
+  if 'no component store corruption detected' not in proc.stdout.lower():
     raise GenericError('Issue(s) detected')
 
 

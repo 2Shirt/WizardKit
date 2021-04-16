@@ -247,10 +247,10 @@ def wait_for_procs(name, exact=True, timeout=None):
   """Wait for all process matching name."""
   LOG.debug('name: %s, exact: %s, timeout: %s', name, exact, timeout)
   target_procs = get_procs(name, exact=exact)
-  results = psutil.wait_procs(target_procs, timeout=timeout)
+  procs = psutil.wait_procs(target_procs, timeout=timeout)
 
   # Raise exception if necessary
-  if results[1]: # Alive processes
+  if procs[1]: # Alive processes
     raise psutil.TimeoutExpired(name=name, seconds=timeout)
 
 
