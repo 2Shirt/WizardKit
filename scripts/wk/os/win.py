@@ -16,7 +16,6 @@ except ImportError as err:
 
 from wk.borrowed import acpi
 from wk.exe import get_procs, run_program, wait_for_procs
-from wk.io import non_clobber_path
 from wk.log import format_log_path
 from wk.std import GenericError, GenericWarning, sleep
 
@@ -397,17 +396,13 @@ def run_sfc_scan():
   err_path = log_path.with_suffix('.err')
 
   # Run SFC
-  proc = run_program(cmd, check=False, encoding='utf-16')
-
-  # Fix paths
-  log_path = non_clobber_path(log_path)
-  err_path = non_clobber_path(err_path)
+  proc = run_program(cmd, check=False, encoding='utf-16le')
 
   # Save output
   os.makedirs(log_path.parent, exist_ok=True)
-  with open(log_path, 'w') as _f:
+  with open(log_path, 'a') as _f:
     _f.write(proc.stdout)
-  with open(err_path, 'w') as _f:
+  with open(err_path, 'a') as _f:
     _f.write(proc.stderr)
 
   # Check result
