@@ -5,9 +5,14 @@ import logging
 import os
 import pathlib
 import platform
-import winreg
 
 from contextlib import suppress
+
+try:
+  import winreg
+except ImportError as err:
+  if platform.system() == 'Windows':
+    raise err
 
 from wk.borrowed import acpi
 from wk.exe import run_program
@@ -126,7 +131,7 @@ def reg_delete_key(hive, key, recurse=False):
 
   # Delete subkeys first
   if recurse:
-    with suppress(WindowsError), winreg.OpenKey(hive, key) as open_key:
+    with suppress(OSError), winreg.OpenKey(hive, key) as open_key:
       while True:
         subkey = fr'{key}\{winreg.EnumKey(open_key, 0)}'
         reg_delete_key(hive, subkey, recurse=recurse)
