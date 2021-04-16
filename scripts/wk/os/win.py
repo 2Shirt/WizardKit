@@ -334,21 +334,26 @@ def run_chkdsk_online():
     cmd.extend(['/scan', '/perf'])
   log_path = format_log_path(log_name='CHKDSK', tool=True)
   err_path = log_path.with_suffix('.err')
+  retried = False
 
   # Run scan
   proc = run_program(cmd, check=False)
+  if proc.returncode > 1:
+    # Try again
+    retried = True
+    proc = run_program(cmd, check=False)
 
   # Check result
-  if proc.returncode == 1:
+  if (proc.returncode == 0 and retried) or proc.returncode == 1:
     raise GenericWarning('Repaired (or manually aborted)')
   if proc.returncode > 1:
     raise GenericError('Issue(s) detected')
 
   # Save output
   os.makedirs(log_path.parent, exist_ok=True)
-  with open(log_path, 'w') as _f:
+  with open(log_path, 'a') as _f:
     _f.write(proc.stdout)
-  with open(err_path, 'w') as _f:
+  with open(err_path, 'a') as _f:
     _f.write(proc.stderr)
 
 
