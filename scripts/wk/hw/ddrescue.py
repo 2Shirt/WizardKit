@@ -1960,7 +1960,7 @@ def run_ddrescue(state, block_pair, pass_name, settings, dry_run=True):
 
   def _poweroff_source_drive(idle_minutes):
     """Power off source drive after a while."""
-    source_dev = state.source.path.name
+    source_dev = state.source.path
 
     # Bail early
     if PLATFORM == 'Darwin':
@@ -1982,14 +1982,12 @@ def run_ddrescue(state, block_pair, pass_name, settings, dry_run=True):
       i += 5
 
     # Power off drive
-    cmd = f'echo 1 | sudo tee /sys/block/{source_dev}/device/delete'
-    proc = exe.run_program(cmd, check=False, shell=True)
+    cmd = ['sudo', 'hdparm', '-Y', source_dev]
+    proc = exe.run_program(cmd, check=False)
     if proc.returncode:
-      LOG.error('Failed to poweroff source %s', state.source.path)
-      std.print_error(f'Failed to poweroff source {state.source.path}')
+      std.print_error(f'Failed to poweroff source {source_dev}')
     else:
-      LOG.info('Powered off source %s', state.source.path)
-      std.print_error(f'Powered off source {state.source.path}')
+      std.print_warning(f'Powered off source {source_dev}')
     std.print_standard(
       'Press Enter to return to main menu...', end='', flush=True,
       )
