@@ -13,6 +13,7 @@ from wk import kit
 from wk import log
 from wk import net
 from wk import os
+from wk import repairs
 from wk import std
 from wk import sw
 from wk import tmux

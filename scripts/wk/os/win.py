@@ -16,8 +16,7 @@ except ImportError as err:
     raise err
 
 from wk.borrowed import acpi
-from wk.exe import get_procs, run_program, wait_for_procs
-from wk.log import format_log_path
+from wk.exe import run_program
 from wk.std import GenericError, GenericWarning, sleep
 
 
@@ -312,119 +311,6 @@ def reg_set_value(hive, key, name, data, data_type, option=None):
   else:
     # Set default value instead
     winreg.SetValue(hive, key, data_type, data)
-
-
-# Repair Functions
-def run_chkdsk_offline():
-  """Set filesystem 'dirty bit' to force a CHKDSK during startup."""
-  cmd = ['fsutil', 'dirty', 'set', os.environ.get('SYSTEMDRIVE', 'C:')]
-  proc = run_program(cmd, check=False)
-
-  # Check result
-  if proc.returncode > 0:
-    raise GenericError('Failed to set dirty bit.')
-
-
-def run_chkdsk_online():
-  """Run CHKDSK.
-
-  NOTE: If run on Windows 8+ online repairs are attempted.
-  """
-  cmd = ['CHKDSK', os.environ.get('SYSTEMDRIVE', 'C:')]
-  if OS_VERSION >= 8:
-    cmd.extend(['/scan', '/perf'])
-  if CONEMU:
-    cmd.extend(['-new_console:n', '-new_console:s33V'])
-  retried = False
-
-  # Run scan
-  run_program(cmd, check=False)
-  try:
-    proc = get_procs('chkdsk.exe')[0]
-    return_code = proc.wait()
-  except IndexError:
-    # Failed to get CHKDSK process, set return_code to force a retry
-    return_code = 255
-  if return_code > 1:
-    # Try again
-    retried = True
-    run_program(cmd, check=False)
-    try:
-      proc = get_procs('chkdsk.exe')[0]
-      return_code = proc.wait()
-    except IndexError:
-      # Failed to get CHKDSK process
-      return_code = -1
-
-  # Check result
-  if return_code == -1:
-    raise GenericError('Failed to find CHKDSK process.')
-  if (return_code == 0 and retried) or return_code == 1:
-    raise GenericWarning('Repaired (or manually aborted)')
-  if return_code > 1:
-    raise GenericError('Issue(s) detected')
-
-
-def run_dism(repair=True):
-  """Run DISM to either scan or repair component store health."""
-  conemu_args = ['-new_console:n', '-new_console:s33V'] if CONEMU else []
-
-  # Bail early
-  if OS_VERSION < 8:
-    raise GenericWarning('Unsupported OS')
-
-  # Run (repair) scan
-  log_path = format_log_path(
-    log_name=f'DISM_{"Restore" if repair else "Scan"}Health', tool=True,
-    )
-  cmd = [
-    'DISM', '/Online', '/Cleanup-Image',
-    '/RestoreHealth' if repair else '/ScanHealth',
-    f'/LogPath:{log_path}',
-    *conemu_args,
-    ]
-  run_program(cmd, check=False, pipe=False)
-  wait_for_procs('dism.exe')
-
-  # Run check health
-  log_path = format_log_path(log_name='DISM_CheckHealth.log', tool=True)
-  cmd = [
-    'DISM', '/Online', '/Cleanup-Image',
-    '/CheckHealth',
-    f'/LogPath:{log_path}',
-    ]
-  proc = run_program(cmd, check=False)
-
-  # Check for errors
-  if 'no component store corruption detected' not in proc.stdout.lower():
-    raise GenericError('Issue(s) detected')
-
-
-def run_sfc_scan():
-  """Run SFC and save results."""
-  cmd = ['sfc', '/scannow']
-  log_path = format_log_path(log_name='SFC', tool=True)
-  err_path = log_path.with_suffix('.err')
-
-  # Run SFC
-  proc = run_program(cmd, check=False, encoding='utf-16le')
-
-  # Save output
-  os.makedirs(log_path.parent, exist_ok=True)
-  with open(log_path, 'a') as _f:
-    _f.write(proc.stdout)
-  with open(err_path, 'a') as _f:
-    _f.write(proc.stderr)
-
-  # Check result
-  if 'did not find any integrity violations' in proc.stdout:
-    pass
-  elif 'successfully repaired' in proc.stdout:
-    raise GenericWarning('Repaired')
-  elif 'found corrupt files' in proc.stdout:
-    raise GenericError('Corruption detected')
-  else:
-    raise OSError
 
 
 # Safe Mode Functions
