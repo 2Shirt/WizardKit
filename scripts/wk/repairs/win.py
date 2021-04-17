@@ -7,16 +7,21 @@ import os
 import platform
 import sys
 
-from wk.cfg.main import KIT_NAME_FULL
-from wk.exe import get_procs, run_program, popen_program, wait_for_procs
-from wk.log import format_log_path, update_log_path
-from wk.os.win import * # pylint: disable=wildcard-import
-from wk.std import (
-  GenericError, GenericWarning, TryAndPrint,
+from wk.cfg.main  import KIT_NAME_FULL
+from wk.exe       import get_procs, run_program, popen_program, wait_for_procs
+from wk.kit.tools import run_tool
+from wk.log       import format_log_path, update_log_path
+from wk.os.win    import reg_delete_value, reg_read_value, reg_set_value
+from wk.std       import (
+  GenericError,
+  GenericWarning,
+  TryAndPrint,
   abort,
-  clear_screen, print_info,
-  pause, sleep,
+  clear_screen,
+  pause,
+  print_info,
   set_title,
+  sleep,
   )
 
 
@@ -43,7 +48,7 @@ def end_session():
   run_program(cmd)
 
   # Disable Autologon
-  # TODO: Run Autologon
+  run_tool('Sysinternals', 'Autologon')
   reg_set_value(
     'HKLM', r'Software\Microsoft\Windows NT\CurrentVersion\Winlogon',
     'AutoAdminLogon', '0', 'SZ',
@@ -111,7 +116,7 @@ def init_session():
   # One-time tasks
   # TODO: Backup Registry
   # TODO: Enable and create restore point
-  # TODO: Run Autologon
+  run_tool('Sysinternals', 'Autologon')
   # TODO: Disable Windows updates
   # TODO: Reset Windows updates
   reboot()
