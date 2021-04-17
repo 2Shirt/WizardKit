@@ -7,6 +7,7 @@ import pathlib
 import platform
 
 from contextlib import suppress
+import psutil
 
 try:
   import winreg
@@ -455,6 +456,76 @@ def enable_safemode_msi():
     '/d', 'Service', '/f',
     ]
   run_program(cmd)
+
+
+# Service Functions
+def disable_service(service_name):
+  """Set service startup to disabled."""
+  cmd = ['sc', 'config', service_name, 'start=', 'disabled']
+  run_program(cmd, check=False)
+
+  # Verify service was disabled
+  if get_service_start_type(service_name) != 'disabled':
+    raise GenericError(f'Failed to disable service {service_name}')
+
+
+def enable_service(service_name, start_type='auto'):
+  """Enable service by setting start type."""
+  cmd = ['sc', 'config', service_name, 'start=', start_type]
+  psutil_type = 'automatic'
+  if start_type == 'demand':
+    psutil_type = 'manual'
+
+  # Enable service
+  run_program(cmd, check=False)
+
+  # Verify service was enabled
+  if get_service_start_type(service_name) != psutil_type:
+    raise GenericError(f'Failed to enable service {service_name}')
+
+
+def get_service_status(service_name):
+  """Get service status using psutil, returns str."""
+  status = 'unknown'
+  try:
+    service = psutil.win_service_get(service_name)
+    status = service.status()
+  except psutil.NoSuchProcess:
+    status = 'missing?'
+
+  return status
+
+
+def get_service_start_type(service_name):
+  """Get service startup type using psutil, returns str."""
+  start_type = 'unknown'
+  try:
+    service = psutil.win_service_get(service_name)
+    start_type = service.start_type()
+  except psutil.NoSuchProcess:
+    start_type = 'missing?'
+
+  return start_type
+
+
+def start_service(service_name):
+  """Stop service."""
+  cmd = ['net', 'start', service_name]
+  run_program(cmd, check=False)
+
+  # Verify service was started
+  if not get_service_status(service_name) in ('running', 'start_pending'):
+    raise GenericError(f'Failed to start service {service_name}')
+
+
+def stop_service(service_name):
+  """Stop service."""
+  cmd = ['net', 'stop', service_name]
+  run_program(cmd, check=False)
+
+  # Verify service was stopped
+  if not get_service_status(service_name) == 'stopped':
+    raise GenericError(f'Failed to stop service {service_name}')
 
 
 if __name__ == '__main__':
