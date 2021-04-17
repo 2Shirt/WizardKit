@@ -338,16 +338,26 @@ def run_chkdsk_online():
 
   # Run scan
   run_program(cmd, check=False)
-  proc = get_procs('chkdsk.exe')[0]
-  return_code = proc.wait()
+  try:
+    proc = get_procs('chkdsk.exe')[0]
+    return_code = proc.wait()
+  except IndexError:
+    # Failed to get CHKDSK process, set return_code to force a retry
+    return_code = 255
   if return_code > 1:
     # Try again
     retried = True
     run_program(cmd, check=False)
-    proc = get_procs('chkdsk.exe')[0]
-    return_code = proc.wait()
+    try:
+      proc = get_procs('chkdsk.exe')[0]
+      return_code = proc.wait()
+    except IndexError:
+      # Failed to get CHKDSK process
+      return_code = -1
 
   # Check result
+  if return_code == -1:
+    raise GenericError('Failed to find CHKDSK process.')
   if (return_code == 0 and retried) or return_code == 1:
     raise GenericWarning('Repaired (or manually aborted)')
   if return_code > 1:
