@@ -7,6 +7,8 @@ import os
 import platform
 import sys
 
+from subprocess import CalledProcessError
+
 from wk.cfg.main  import KIT_NAME_FULL
 from wk.exe       import get_procs, run_program, popen_program, wait_for_procs
 from wk.kit.tools import run_tool
@@ -15,9 +17,11 @@ from wk.os.win    import reg_delete_value, reg_read_value, reg_set_value
 from wk.std       import (
   GenericError,
   GenericWarning,
+  Menu,
   TryAndPrint,
-  abort,
+  ask,
   clear_screen,
+  color_string,
   pause,
   print_info,
   set_title,
@@ -28,122 +32,265 @@ from wk.std       import (
 # STATIC VARIABLES
 LOG = logging.getLogger(__name__)
 AUTO_REPAIR_DELAY_IN_SECONDS = 30
-AUTO_REPAIR_KEY = fr'Software\{KIT_NAME_FULL}\AutoRepair'
+AUTO_REPAIR_KEY = fr'Software\{KIT_NAME_FULL}\Auto Repairs'
 CONEMU = 'ConEmuPID' in os.environ
+MENUS = {
+  'Options': {
+    'Backup Settings': (
+      ('Enable System Restore', None),
+      ('Create System Restore', None),
+      ('Backup Browsers', None),
+      ('Backup Power Plans', None),
+      ),
+    'Windows Repairs': (
+      ('Disable Windows Updates', None),
+      ('Reset Windows Updates', None),
+      ('-Reboot-', None),
+      ('CHKDSK', None),
+      ('DISM RestoreHealth', None),
+      ('SFC Scan', None),
+      ('Fix File Associations', None),
+      ('Clear Proxy Settings', None),
+      ('Disable Pending Renames', None),
+      ('Registry Repairs', None),
+      ('Repair Safe Mode', None),
+      ('Reset Windows Policies', None),
+      ),
+    'Malware Cleanup': (
+      ('BleachBit', None),
+      ('HitmanPro', None),
+      ('KVRT', None),
+      ('Windows Defender', None),
+      ('-Reboot-', None),
+      ),
+    'Manual Steps': (
+      ('AdwCleaner', None),
+      ('IO Bit Uninstaller', None),
+      ('Enable Windows Updates', None),
+      ),
+    },
+  'Toggles': (
+    'Kill Explorer',
+    'Run RKill at startup',
+    'Use Autologon',
+    ),
+  'Actions': (
+    'Options',
+    'Start',
+    'Quit',
+    ),
+  }
 OS_VERSION = float(platform.win32_ver()[0])
 TRY_PRINT = TryAndPrint()
 
 
-# AutoRepair Functions
+# Auto Repairs Functions
+def build_menus(title):
+  """Build menus, returns dict."""
+  menus = {}
+  menus['Main'] = Menu(title=f'{title}\n{color_string("Main Menu", "GREEN")}')
+
+  # Run groups
+  for group, items in MENUS['Options'].items():
+    menus[group] = Menu(title=f'{title}\n{color_string(group, "GREEN")}')
+    menus[group].disabled_str = color_string('Forced', 'ORANGE')
+    for item in items:
+      menus[group].add_option(item[0], {'Display Name': item[0], 'Selected': True})
+    if '-Reboot-' in menus[group].options:
+      menus[group].options['-Reboot-']['Disabled'] = True
+    menus[group].add_action('Main Menu')
+  for option in MENUS['Options']:
+    menus['Main'].add_option(option, {'Display Name': option, 'Selected': True})
+
+  # Actions
+  for action in MENUS['Actions']:
+    menus['Main'].add_action(action, {'Display Name': action, 'Selected': True})
+  menus['Main'].actions['Start']['Separator'] = True
+
+  # Options
+  menus['Options'] = Menu(title=f'{title}\n{color_string("Options", "GREEN")}')
+  for toggle in MENUS['Toggles']:
+    menus['Options'].add_toggle(toggle, {'Display Name': toggle, 'Selected': True})
+  menus['Options'].add_action('Main Menu')
+
+  # Initialize main menu display names
+  menus['Main'].update()
+
+  # Done
+  return menus
+
+
 def end_session():
-  """End AutoRepair session."""
+  """End Auto Repairs session."""
   print_info('Ending repair session')
-  reg_delete_value('HKCU', AUTO_REPAIR_KEY, 'SessionStarted')
+  auto_admin_logon = '0'
+
+  # Delete Auto Repairs session key
+  try:
+    reg_delete_value('HKCU', AUTO_REPAIR_KEY, 'SessionStarted')
+  except FileNotFoundError:
+    LOG.error('Ending repair session but session not started.')
 
   # Remove logon task
   cmd = [
     'schtasks', '/delete', '/f',
-    '/tn', f'{KIT_NAME_FULL}-AutoRepair',
+    '/tn', f'{KIT_NAME_FULL}-AutoRepairs',
     ]
-  run_program(cmd)
+  try:
+    run_program(cmd)
+  except CalledProcessError:
+    LOG.error("Failed to remove scheduled task or it doesn't exist.")
 
   # Disable Autologon
-  run_tool('Sysinternals', 'Autologon')
-  reg_set_value(
-    'HKLM', r'Software\Microsoft\Windows NT\CurrentVersion\Winlogon',
-    'AutoAdminLogon', '0', 'SZ',
-    )
-  reg_delete_value(
-    'HKLM', r'Software\Microsoft\Windows NT\CurrentVersion\Winlogon',
-    'DefaultUserName',
-    )
-  reg_delete_value(
-    'HKLM', r'Software\Microsoft\Windows NT\CurrentVersion\Winlogon',
-    'DefaultDomainName',
-    )
+  try:
+    auto_admin_logon = reg_read_value(
+      'HKLM', r'Software\Microsoft\Windows NT\CurrentVersion\Winlogon',
+      'AutoAdminLogon',
+      )
+  except FileNotFoundError:
+    # Ignore and assume it's disabled
+    return
+  if auto_admin_logon != '0':
+    run_tool('Sysinternals', 'Autologon')
+    reg_set_value(
+      'HKLM', r'Software\Microsoft\Windows NT\CurrentVersion\Winlogon',
+      'AutoAdminLogon', '0', 'SZ',
+      )
+    reg_delete_value(
+      'HKLM', r'Software\Microsoft\Windows NT\CurrentVersion\Winlogon',
+      'DefaultUserName',
+      )
+    reg_delete_value(
+      'HKLM', r'Software\Microsoft\Windows NT\CurrentVersion\Winlogon',
+      'DefaultDomainName',
+      )
 
 
 def init():
-  """Initialize AutoRepair."""
-  session_started = False
-  try:
-    session_started = reg_read_value('HKCU', AUTO_REPAIR_KEY, 'SessionStarted')
-  except FileNotFoundError:
-    pass
+  """Initialize Auto Repairs."""
+  session_started = is_session_started()
 
   # Start or resume a repair session
-  if not session_started:
-    init_run()
-    init_session()
-  else:
+  if session_started:
     print_info('Resuming session, press CTRL+c to cancel')
-    try:
-      for _x in range(AUTO_REPAIR_DELAY_IN_SECONDS, 0, -1):
-        print(f'  {_x} second{"" if _x==1 else "s"} remaining...  \r', end='')
-        sleep(1)
-    except KeyboardInterrupt:
-      abort()
+    for _x in range(AUTO_REPAIR_DELAY_IN_SECONDS, 0, -1):
+      print(f'  {_x} second{"" if _x==1 else "s"} remaining...  \r', end='')
+      sleep(1)
     print('')
-    init_run()
 
   # Done
   return session_started
 
 
-def init_run():
-  """Initialize AutoRepair Run."""
-  atexit.register(start_explorer)
+def init_run(options):
+  """Initialize Auto Repairs Run."""
+  if options['Kill Explorer']['Selected']:
+    atexit.register(start_explorer)
+    kill_explorer()
   # TODO: Sync Clock
-  kill_explorer()
   # TODO: RKill
 
 
-def init_session():
-  """Initialize AutoRepair session."""
+def init_session(options):
+  """Initialize Auto Repairs session."""
   print_info('Starting repair session')
   reg_set_value('HKCU', AUTO_REPAIR_KEY, 'SessionStarted', 1, 'DWORD')
 
-  # Create logon task for AutoRepair
+  # Create logon task for Auto Repairs
   cmd = [
     'schtasks', '/create', '/f',
     '/sc', 'ONLOGON',
-    '/tn', f'{KIT_NAME_FULL}-AutoRepair',
+    '/tn', f'{KIT_NAME_FULL}-AutoRepairs',
     '/rl', 'HIGHEST',
     '/tr', fr'C:\Windows\System32\cmd.exe "/C {sys.executable} {sys.argv[0]}"',
     ]
   run_program(cmd)
 
   # One-time tasks
-  # TODO: Backup Registry
-  # TODO: Enable and create restore point
-  run_tool('Sysinternals', 'Autologon')
-  # TODO: Disable Windows updates
-  # TODO: Reset Windows updates
+  if options['Use Autologon']['Selected']:
+    run_tool('Sysinternals', 'Autologon')
   reboot()
 
 
-def run_auto_repair():
-  """Run AutoRepair."""
-  update_log_path(dest_name='Auto-Repair Tool', timestamp=True)
-  title = f'{KIT_NAME_FULL}: Auto-Repair Tool'
+def is_session_started():
+  """Check if session was started, returns bool."""
+  session_started = False
+  try:
+    session_started = reg_read_value('HKCU', AUTO_REPAIR_KEY, 'SessionStarted')
+  except FileNotFoundError:
+    pass
+
+  # Done
+  return session_started
+
+
+def run_auto_repairs():
+  """Run Auto Repairs."""
+  update_log_path(dest_name='Auto Repairs', timestamp=True)
+  title = f'{KIT_NAME_FULL}: Auto Repairs'
   clear_screen()
   set_title(title)
   print_info(title)
   print('')
 
-  # Show Menu on first run
-  session_started = init()
-  if not session_started:
-    # TODO: Show Menu
-    pass
+  # Generate menus
+  menus = build_menus(title)
+
+  # Init
+  try:
+    session_started = init()
+  except KeyboardInterrupt:
+    # Assuming session was started and resume countdown was interrupted
+    session_started = None
+
+  # Show Menu
+  if session_started is None or not session_started:
+    while True:
+      update_main_menu(menus)
+      selection = menus['Main'].simple_select(update=False)
+      if selection[0] in MENUS['Options'] or selection[0] == 'Options':
+        menus[selection[0]].advanced_select()
+      elif 'Start' in selection:
+        # TODO: Run repairs
+        pass
+      elif 'Quit' in selection:
+        if ask('End session?'):
+          end_session()
+        raise SystemExit
+
+    # Re-check if a repair session was started
+    if session_started is None:
+      session_started = is_session_started()
 
   # Run repairs
   # TODO: Run repairs
+  init_run(menus['Options'])
+  if not session_started:
+    init_session(menus['Options'])
+  atexit.unregister(start_explorer)
   end_session()
 
   # Done
   print_info('Done')
   pause('Press Enter to exit...')
+
+
+def update_main_menu(menus):
+  """Update main menu based on current selections."""
+  index = 1
+  skip = '-Reboot-'
+  for name in menus['Main'].options:
+    checkmark = ' '
+    selected = [
+      _v['Selected'] for _k, _v in menus[name].options.items() if _k != skip
+      ]
+    if all(selected):
+      checkmark = '✓'
+    elif any(selected):
+      checkmark = '-'
+    display_name = f' {index}: [{checkmark}] {name}'
+    index += 1
+    menus['Main'].options[name]['Display Name'] = display_name
 
 
 # OS Built-in Functions

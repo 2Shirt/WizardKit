@@ -228,44 +228,6 @@ class Menu():
     # Done
     return resolved_selection
 
-  def _update(self, single_selection=True, settings_mode=False):
-    """Update menu items in preparation for printing to screen."""
-    index = 0
-
-    # Fix selection status for sets
-    for set_details in self.sets.values():
-      set_selected = True
-      set_targets = set_details['Targets']
-      for option, option_details in self.options.items():
-        if option in set_targets and not option_details['Selected']:
-          set_selected = False
-        elif option not in set_targets and option_details['Selected']:
-          set_selected = False
-      set_details['Selected'] = set_selected
-
-    # Numbered sections
-    for section in (self.sets, self.toggles, self.options):
-      for name, details in section.items():
-        if details.get('Hidden', False):
-          # Skip hidden lines and don't increment index
-          continue
-        index += 1
-        details['Display Name'] = self._get_display_name(
-          name,
-          details,
-          index=index,
-          no_checkboxes=single_selection,
-          setting_item=settings_mode,
-          )
-
-    # Actions
-    for name, details in self.actions.items():
-      details['Display Name'] = self._get_display_name(
-        name,
-        details,
-        no_checkboxes=True,
-        )
-
   def _update_entry_selection_status(self, entry, toggle=True, status=None):
     """Update entry selection status either directly or by toggling."""
     if entry in self.sets:
@@ -340,7 +302,7 @@ class Menu():
     NOTE: Menu is displayed until an action entry is selected.
     """
     while True:
-      self._update(single_selection=False)
+      self.update(single_selection=False)
       user_selection = self._user_select(prompt)
       selected_entry = self._resolve_selection(user_selection)
       if user_selection.isnumeric():
@@ -364,7 +326,7 @@ class Menu():
       }
 
     while True:
-      self._update(single_selection=True, settings_mode=True)
+      self.update(single_selection=True, settings_mode=True)
       user_selection = self._user_select(prompt)
       selected_entry = self._resolve_selection(user_selection)
       if user_selection.isnumeric():
@@ -381,11 +343,50 @@ class Menu():
     # Done
     return selected_entry
 
-  def simple_select(self, prompt='Please make a selection: '):
+  def simple_select(self, prompt='Please make a selection: ', update=True):
     """Display menu and make a single selection, returns tuple."""
-    self._update()
+    if update:
+      self.update()
     user_selection = self._user_select(prompt)
     return self._resolve_selection(user_selection)
+
+  def update(self, single_selection=True, settings_mode=False):
+    """Update menu items in preparation for printing to screen."""
+    index = 0
+
+    # Fix selection status for sets
+    for set_details in self.sets.values():
+      set_selected = True
+      set_targets = set_details['Targets']
+      for option, option_details in self.options.items():
+        if option in set_targets and not option_details['Selected']:
+          set_selected = False
+        elif option not in set_targets and option_details['Selected']:
+          set_selected = False
+      set_details['Selected'] = set_selected
+
+    # Numbered sections
+    for section in (self.sets, self.toggles, self.options):
+      for name, details in section.items():
+        if details.get('Hidden', False):
+          # Skip hidden lines and don't increment index
+          continue
+        index += 1
+        details['Display Name'] = self._get_display_name(
+          name,
+          details,
+          index=index,
+          no_checkboxes=single_selection,
+          setting_item=settings_mode,
+          )
+
+    # Actions
+    for name, details in self.actions.items():
+      details['Display Name'] = self._get_display_name(
+        name,
+        details,
+        no_checkboxes=True,
+        )
 
 
 class TryAndPrint():

@@ -11,7 +11,7 @@ import wk
 
 if __name__ == '__main__':
   try:
-    wk.repairs.win.run_auto_repair()
+    wk.repairs.win.run_auto_repairs()
   except SystemExit:
     raise
   except: #pylint: disable=bare-except
