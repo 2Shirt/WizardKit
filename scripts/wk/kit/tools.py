@@ -27,6 +27,8 @@ CACHED_DIRS = {}
 def download_file(out_path, source_url, as_new=False, overwrite=False):
   """Download a file using requests, returns pathlib.Path."""
   out_path = pathlib.Path(out_path).resolve()
+  cursor_left = '\u001B[14D'
+  print(f'Downloading...{cursor_left}', end='', flush=True)
 
   # Avoid clobbering
   if out_path.exists() and not overwrite:
@@ -55,6 +57,7 @@ def download_file(out_path, source_url, as_new=False, overwrite=False):
       _f.write(chunk)
 
   # Done
+  print(f'              {cursor_left}', end='', flush=True)
   return out_path
 
 

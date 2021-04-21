@@ -455,7 +455,7 @@ class TryAndPrint():
     # Done
     return message
 
-  def _format_function_output(self, output):
+  def _format_function_output(self, output, msg_good):
     """Format function output for use in try_and_print(), returns str."""
     LOG.debug('Formatting output: %s', output)
 
@@ -468,6 +468,10 @@ class TryAndPrint():
       if not isinstance(stdout, str):
         stdout = stdout.decode('utf8')
       output = stdout.strip().splitlines()
+      if not output:
+        # Going to treat these as successes (for now)
+        LOG.warning('Program output was empty, assuming good result.')
+        return color_string(msg_good, 'GREEN')
     else:
       try:
         output = list(output)
@@ -560,6 +564,7 @@ class TryAndPrint():
       verbose,
       )
     f_exception = None
+    msg_good = msg_good if msg_good else self.msg_good
     output = None
     result_msg = 'UNKNOWN'
     if catch_all is None:
@@ -600,10 +605,10 @@ class TryAndPrint():
     else:
       # Success
       if output:
-        result_msg = self._format_function_output(output)
+        result_msg = self._format_function_output(output, msg_good)
         print(result_msg)
       else:
-        result_msg = msg_good if msg_good else self.msg_good
+        result_msg = msg_good
         print_success(result_msg, log=False)
 
     # Done
