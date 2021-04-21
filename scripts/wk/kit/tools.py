@@ -24,19 +24,30 @@ CACHED_DIRS = {}
 
 
 # Functions
-def download_file(out_path, source_url):
-  """Download a file using requests."""
+def download_file(out_path, source_url, as_new=False, overwrite=False):
+  """Download a file using requests, returns pathlib.Path."""
   out_path = pathlib.Path(out_path).resolve()
+
+  # Avoid clobbering
+  if out_path.exists() and not overwrite:
+    raise FileExistsError(f'Refusing to clobber {out_path}')
+
+  # Create destination directory
   out_path.parent.mkdir(parents=True, exist_ok=True)
+  if as_new:
+    out_path = out_path.with_suffix(f'{out_path.suffix}.new')
 
   # Request download
   response = requests.get(source_url, stream=True)
   if not response.ok:
+    name = out_path.name
+    if as_new:
+      name = name[:-4]
     LOG.error(
       'Failed to download file (status %s): %s',
-      response.status_code, out_path.name,
+      response.status_code, name,
       )
-    raise GenericError(f'Failed to download file: {out_path.name}')
+    raise GenericError(f'Failed to download file: {name}')
 
   # Write to file
   with open(out_path, 'wb') as _f:
@@ -113,6 +124,18 @@ def run_tool(
   proc will be either subprocess.CompletedProcess or subprocess.Popen."""
   proc = None
 
+  def _is_outdated(file_path):
+    """Check if the ctime is older than the threshold, returns bool."""
+    outdated = False
+    try:
+      ctime = datetime.fromtimestamp(file_path.stat().st_ctime)
+      outdated = datetime.now() - ctime > timedelta(days=DOWNLOAD_FREQUENCY)
+    except FileNotFoundError:
+      LOG.error("This shouldn't happen right?")
+
+    # Done
+    return outdated
+
   # Extract from .cbin
   if cbin:
     extract_archive(
@@ -124,17 +147,16 @@ def run_tool(
   # Download tool
   if download:
     out_path = find_kit_dir('.bin').joinpath(f'{folder}/{name}.exe')
-    outdated = False
-    try:
-      mod_time = datetime.fromtimestamp(out_path.stat().st_ctime)
-      outdated = datetime.now() - mod_time > timedelta(days=DOWNLOAD_FREQUENCY)
-    except FileNotFoundError:
-      # Ignore and download
-      pass
-    if not out_path.exists() or outdated:
+    if not out_path.exists() or _is_outdated(out_path):
       LOG.info('Downloading tool: %s', name)
       source_url = SOURCES[name]
-      download_file(out_path, source_url)
+      try:
+        new_file = download_file(out_path, source_url, as_new=True)
+        new_file.replace(out_path)
+      except GenericError:
+        # Ignore as long as there's still a version present
+        if not out_path.exists():
+          raise
     else:
       LOG.info('Skip downloading tool: %s', name)
 
