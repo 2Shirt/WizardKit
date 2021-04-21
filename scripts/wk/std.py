@@ -650,7 +650,6 @@ def ask(prompt='Kotaero!'):
 
 def beep(repeat=1):
   """Play system bell with optional repeat."""
-  # TODO: Verify Windows functionality
   while repeat >= 1:
     # Print bell char without a newline
     print('\a', end='', flush=True)
