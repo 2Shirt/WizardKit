@@ -619,6 +619,7 @@ class TryAndPrint():
     return {
       'Exception': f_exception,
       'Failed': bool(f_exception),
+      'Message': result_msg,
       'Output': output,
       }
 

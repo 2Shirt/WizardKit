@@ -13,7 +13,14 @@ from wk.cfg.main  import KIT_NAME_FULL
 from wk.exe       import get_procs, run_program, popen_program, wait_for_procs
 from wk.kit.tools import run_tool
 from wk.log       import format_log_path, update_log_path
-from wk.os.win    import reg_delete_value, reg_read_value, reg_set_value
+from wk.os.win    import (
+  reg_delete_value,
+  reg_read_value,
+  reg_set_value,
+  disable_service,
+  enable_service,
+  stop_service,
+  )
 from wk.std       import (
   GenericError,
   GenericWarning,
@@ -24,8 +31,11 @@ from wk.std       import (
   color_string,
   pause,
   print_info,
+  print_standard,
+  print_warning,
   set_title,
   sleep,
+  strip_colors,
   )
 
 
@@ -34,84 +44,38 @@ LOG = logging.getLogger(__name__)
 AUTO_REPAIR_DELAY_IN_SECONDS = 30
 AUTO_REPAIR_KEY = fr'Software\{KIT_NAME_FULL}\Auto Repairs'
 CONEMU = 'ConEmuPID' in os.environ
-MENUS = {
-  'Options': {
-    'Backup Settings': (
-      ('Enable System Restore', None),
-      ('Create System Restore', None),
-      ('Backup Browsers', None),
-      ('Backup Power Plans', None),
-      ),
-    'Windows Repairs': (
-      ('Disable Windows Updates', None),
-      ('Reset Windows Updates', None),
-      ('-Reboot-', None),
-      ('CHKDSK', None),
-      ('DISM RestoreHealth', None),
-      ('SFC Scan', None),
-      ('Fix File Associations', None),
-      ('Clear Proxy Settings', None),
-      ('Disable Pending Renames', None),
-      ('Registry Repairs', None),
-      ('Repair Safe Mode', None),
-      ('Reset Windows Policies', None),
-      ),
-    'Malware Cleanup': (
-      ('BleachBit', None),
-      ('HitmanPro', None),
-      ('KVRT', None),
-      ('Windows Defender', None),
-      ('-Reboot-', None),
-      ),
-    'Manual Steps': (
-      ('AdwCleaner', None),
-      ('IO Bit Uninstaller', None),
-      ('Enable Windows Updates', None),
-      ),
-    },
-  'Toggles': (
-    'Kill Explorer',
-    'Run RKill at startup',
-    'Use Autologon',
-    ),
-  'Actions': (
-    'Options',
-    'Start',
-    'Quit',
-    ),
-  }
 OS_VERSION = float(platform.win32_ver()[0])
 TRY_PRINT = TryAndPrint()
+TRY_PRINT.verbose = True
+#for error in ('subprocess.CalledProcessError', 'FileNotFoundError'):
+#  TRY_PRINT.add_error(error)
 
 
-# Auto Repairs Functions
-def build_menus(title):
+# Auto Repairs
+def build_menus(base_menus, title):
   """Build menus, returns dict."""
   menus = {}
   menus['Main'] = Menu(title=f'{title}\n{color_string("Main Menu", "GREEN")}')
 
-  # Run groups
-  for group, items in MENUS['Options'].items():
-    menus[group] = Menu(title=f'{title}\n{color_string(group, "GREEN")}')
-    menus[group].disabled_str = color_string('Forced', 'ORANGE')
-    for item in items:
-      menus[group].add_option(item[0], {'Display Name': item[0], 'Selected': True})
-    if '-Reboot-' in menus[group].options:
-      menus[group].options['-Reboot-']['Disabled'] = True
-    menus[group].add_action('Main Menu')
-  for option in MENUS['Options']:
-    menus['Main'].add_option(option, {'Display Name': option, 'Selected': True})
-
-  # Actions
-  for action in MENUS['Actions']:
-    menus['Main'].add_action(action, {'Display Name': action, 'Selected': True})
-  menus['Main'].actions['Start']['Separator'] = True
+  # Main Menu
+  for entry in base_menus['Actions']:
+    menus['Main'].add_action(entry.name, entry.details)
+  for group in base_menus['Options']:
+    menus['Main'].add_option(group, {'Selected': True})
 
   # Options
   menus['Options'] = Menu(title=f'{title}\n{color_string("Options", "GREEN")}')
-  for toggle in MENUS['Toggles']:
-    menus['Options'].add_toggle(toggle, {'Display Name': toggle, 'Selected': True})
+  for entry in base_menus['Toggles']:
+    menus['Options'].add_toggle(entry.name, entry.details)
   menus['Options'].add_action('Main Menu')
+
+  # Run groups
+  for group, entries in base_menus['Options'].items():
+    menus[group] = Menu(title=f'{title}\n{color_string(group, "GREEN")}')
+    menus[group].disabled_str = 'Done'
+    for entry in entries:
+      menus[group].add_option(entry.name, entry.details)
+    menus[group].add_action('Main Menu')
 
   # Initialize main menu display names
   menus['Main'].update()
@@ -166,12 +130,28 @@ def end_session():
       )
 
 
-def init():
+def get_entry_settings(group, name):
+  """Get menu entry settings from the registry, returns dict."""
+  key_path = fr'{AUTO_REPAIR_KEY}\{group}\{strip_colors(name)}'
+  settings = {}
+  for value in ('Done', 'Failed', 'Result'):
+    try:
+      settings[value] = reg_read_value('HKCU', key_path, value)
+    except FileNotFoundError:
+      # Ignore and use current settings
+      pass
+
+  # Done
+  return settings
+
+
+def init(menus):
   """Initialize Auto Repairs."""
   session_started = is_session_started()
 
   # Start or resume a repair session
   if session_started:
+    load_settings(menus)
     print_info('Resuming session, press CTRL+c to cancel')
     for _x in range(AUTO_REPAIR_DELAY_IN_SECONDS, 0, -1):
       print(f'  {_x} second{"" if _x==1 else "s"} remaining...  \r', end='')
@@ -184,7 +164,7 @@ def init():
 
 def init_run(options):
   """Initialize Auto Repairs Run."""
-  if options['Kill Explorer']['Selected']:
+  if options.toggles['Kill Explorer']['Selected']:
     atexit.register(start_explorer)
     kill_explorer()
   # TODO: Sync Clock
@@ -207,9 +187,9 @@ def init_session(options):
   run_program(cmd)
 
   # One-time tasks
-  if options['Use Autologon']['Selected']:
+  if options.toggles['Use Autologon']['Selected']:
     run_tool('Sysinternals', 'Autologon')
-  reboot()
+  # TODO: Re-enable reboot()
 
 
 def is_session_started():
@@ -224,7 +204,19 @@ def is_session_started():
   return session_started
 
 
-def run_auto_repairs():
+def load_settings(menus):
+  """Load session settings from the registry."""
+  for group, menu in menus.items():
+    if group == 'Main':
+      continue
+    for name in menu.options:
+      menu.options[name].update(get_entry_settings(group, name))
+      if menu.options[name].get('Done', '0') == '1':
+        menu.options[name]['Selected'] = False
+        menu.options[name]['Disabled'] = True
+
+
+def run_auto_repairs(base_menus):
   """Run Auto Repairs."""
   update_log_path(dest_name='Auto Repairs', timestamp=True)
   title = f'{KIT_NAME_FULL}: Auto Repairs'
@@ -234,11 +226,12 @@ def run_auto_repairs():
   print('')
 
   # Generate menus
-  menus = build_menus(title)
+  print_standard('Initializing...')
+  menus = build_menus(base_menus, title)
 
   # Init
   try:
-    session_started = init()
+    session_started = init(menus)
   except KeyboardInterrupt:
     # Assuming session was started and resume countdown was interrupted
     session_started = None
@@ -248,11 +241,10 @@ def run_auto_repairs():
     while True:
       update_main_menu(menus)
       selection = menus['Main'].simple_select(update=False)
-      if selection[0] in MENUS['Options'] or selection[0] == 'Options':
+      if selection[0] in base_menus['Options'] or selection[0] == 'Options':
         menus[selection[0]].advanced_select()
       elif 'Start' in selection:
-        # TODO: Run repairs
-        pass
+        break
       elif 'Quit' in selection:
         if ask('End session?'):
           end_session()
@@ -262,23 +254,39 @@ def run_auto_repairs():
     if session_started is None:
       session_started = is_session_started()
 
-  # Run repairs
-  # TODO: Run repairs
+  # Start or resume repairs
   init_run(menus['Options'])
   if not session_started:
     init_session(menus['Options'])
-  atexit.unregister(start_explorer)
-  end_session()
+
+  # Run repairs
+  clear_screen()
+  for group, menu in menus.items():
+    if group in ('Main', 'Options'):
+      continue
+    for name, details in menu.options.items():
+      if details.get('Done', None) == '1':
+        continue
+      details['Function'](group, name)
 
   # Done
+  end_session()
   print_info('Done')
   pause('Press Enter to exit...')
+
+
+def save_settings(group, name, done=False, failed=False, result='Unknown'):
+  """Load session settings from the registry."""
+  key_path = fr'{AUTO_REPAIR_KEY}\{group}\{strip_colors(name)}'
+  reg_set_value('HKCU', key_path, 'Done', '1' if done else '0', 'SZ')
+  reg_set_value('HKCU', key_path, 'Failed', '1' if failed else '0', 'SZ')
+  reg_set_value('HKCU', key_path, 'Result', result, 'SZ')
 
 
 def update_main_menu(menus):
   """Update main menu based on current selections."""
   index = 1
-  skip = '-Reboot-'
+  skip = 'Reboot'
   for name in menus['Main'].options:
     checkmark = ' '
     selected = [
@@ -293,16 +301,54 @@ def update_main_menu(menus):
     menus['Main'].options[name]['Display Name'] = display_name
 
 
+# Auto Repairs: Wrapper Functions
+def auto_dism(group, name):
+  """Auto DISM repairs, returns bool."""
+  needs_reboot = False
+  result = TRY_PRINT.run('DISM (RestoreHealth)...', run_dism)
+
+  # Try again if necessary
+  if result['Failed']:
+    TRY_PRINT.run('Enabling Windows Updates...', enable_windows_updates)
+    result = TRY_PRINT.run('DISM (RestoreHealth)...', run_dism)
+    TRY_PRINT.run('Disabling Windows Updates...', disable_windows_updates)
+    needs_reboot = True
+
+  # Save settings
+  save_settings(
+    group, name, done=True,
+    failed=result['Failed'],
+    result=result['Message'],
+    )
+
+  # Done
+  if needs_reboot:
+    reboot()
+
+
 # OS Built-in Functions
+def disable_windows_updates():
+  """Disable and stop Windows Updates."""
+  stop_service('wuauserv')
+  disable_service('wuauserv')
+
+
+def enable_windows_updates():
+  """Enable Windows Updates."""
+  enable_service('wuauserv', 'demand')
+
+
 def kill_explorer():
   """Kill all Explorer processes."""
   cmd = ['taskkill', '/im', 'explorer.exe', '/f']
   run_program(cmd, check=False)
 
 
-def reboot():
+def reboot(timeout=10):
   """Reboot the system."""
   atexit.unregister(start_explorer)
+  print_warning(f'Rebooting the system in {timeout} seconds...')
+  sleep(timeout)
   cmd = ['shutdown', '-r', '-t', '0']
   run_program(cmd, check=False)
   raise SystemExit
@@ -327,7 +373,7 @@ def run_chkdsk_online():
   if OS_VERSION >= 8:
     cmd.extend(['/scan', '/perf'])
   if CONEMU:
-    cmd.extend(['-new_console:n', '-new_console:s33V'])
+    cmd.extend(['-new_console:nb', '-new_console:s33V'])
   retried = False
 
   # Run scan
@@ -360,7 +406,7 @@ def run_chkdsk_online():
 
 def run_dism(repair=True):
   """Run DISM to either scan or repair component store health."""
-  conemu_args = ['-new_console:n', '-new_console:s33V'] if CONEMU else []
+  conemu_args = ['-new_console:nb', '-new_console:s33V'] if CONEMU else []
 
   # Bail early
   if OS_VERSION < 8:
@@ -370,6 +416,7 @@ def run_dism(repair=True):
   log_path = format_log_path(
     log_name=f'DISM_{"Restore" if repair else "Scan"}Health', tool=True,
     )
+  log_path.parent.mkdir(parents=True, exist_ok=True)
   cmd = [
     'DISM', '/Online', '/Cleanup-Image',
     '/RestoreHealth' if repair else '/ScanHealth',
