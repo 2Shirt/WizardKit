@@ -15,7 +15,7 @@ import wk # pylint: disable=wrong-import-position
 class MenuEntry():
   # pylint: disable=too-few-public-methods
   """Simple class to allow cleaner code below."""
-  def __init__(self, name, function=None, **kwargs):
+  def __init__(self, name, function, **kwargs):
     self.name = name
 
     # Color reboot entries
@@ -28,29 +28,29 @@ class MenuEntry():
 
     # Set details
     self.details = {
+      'Function': function,
       'Selected': True,
       **kwargs,
       }
-    if function:
-      self.details['Function'] = function
 
 
 # TODO: Deleteme
 TRY_AND_PRINT = wk.std.TryAndPrint()
+TRY_AND_PRINT.width = 50
 def placeholder_function(group, name):
   TRY_AND_PRINT.run(f'{name}...', time.sleep, random.randint(1, 3))
-  wk.repairs.win.save_settings(group, name, done=True)
+  wk.repairs.win.save_settings(group, name, done=True, result='SUCCESS')
 
 def placeholder_reboot(group, name):
   print('"Rebooting" shortly...')
   time.sleep(random.randint(1, 3))
-  wk.repairs.win.save_settings(group, name, done=True)
+  wk.repairs.win.save_settings(group, name, done=True, result='DONE')
   raise SystemExit
 
 
 # STATIC VARIABLES
 BASE_MENUS = {
-  'Options': {
+  'Groups': {
     'Backup Settings': (
       MenuEntry('Enable RegBack', placeholder_function),
       MenuEntry('Enable System Restore', placeholder_function),
@@ -87,15 +87,15 @@ BASE_MENUS = {
       MenuEntry('Enable Windows Updates', placeholder_function),
       ),
     },
-  'Toggles': (
-    MenuEntry('Kill Explorer'),
-    MenuEntry('Run RKill at startup'),
-    MenuEntry('Use Autologon'),
+  'Options': (
+    MenuEntry('Kill Explorer', placeholder_function),
+    MenuEntry('Run RKill at startup', placeholder_function),
+    MenuEntry('Use Autologon', placeholder_function),
     ),
   'Actions': (
-    MenuEntry('Options'),
-    MenuEntry('Start', Separator=True),
-    MenuEntry('Quit'),
+    MenuEntry('Options', placeholder_function),
+    MenuEntry('Start', placeholder_function, Separator=True),
+    MenuEntry('Quit', placeholder_function),
     ),
   }
 

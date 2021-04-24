@@ -985,11 +985,13 @@ def set_title(title):
     print_error('Setting the title is only supported under Windows.')
 
 
-def show_data(message, data, color=None):
-  """Display info using standard WIDTH and INDENT."""
+def show_data(message, data, color=None, indent=None, width=None):
+  """Display info using default or provided indent and width."""
   colors = (None, color if color else None)
+  indent = INDENT if indent is None else indent
+  width = WIDTH if width is None else width
   print_colored(
-    (f'{" "*INDENT}{message:<{WIDTH}}', data),
+    (f'{" "*indent}{message:<{width}}', data),
     colors,
     log=True,
     sep='',

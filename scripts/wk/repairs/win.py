@@ -34,6 +34,7 @@ from wk.std       import (
   print_standard,
   print_warning,
   set_title,
+  show_data,
   sleep,
   strip_colors,
   )
@@ -45,7 +46,9 @@ AUTO_REPAIR_DELAY_IN_SECONDS = 30
 AUTO_REPAIR_KEY = fr'Software\{KIT_NAME_FULL}\Auto Repairs'
 CONEMU = 'ConEmuPID' in os.environ
 OS_VERSION = float(platform.win32_ver()[0])
+WIDTH = 50
 TRY_PRINT = TryAndPrint()
+TRY_PRINT.width = WIDTH
 TRY_PRINT.verbose = True
 #for error in ('subprocess.CalledProcessError', 'FileNotFoundError'):
 #  TRY_PRINT.add_error(error)
@@ -60,22 +63,30 @@ def build_menus(base_menus, title):
   # Main Menu
   for entry in base_menus['Actions']:
     menus['Main'].add_action(entry.name, entry.details)
-  for group in base_menus['Options']:
+  for group in base_menus['Groups']:
     menus['Main'].add_option(group, {'Selected': True})
 
   # Options
   menus['Options'] = Menu(title=f'{title}\n{color_string("Options", "GREEN")}')
-  for entry in base_menus['Toggles']:
-    menus['Options'].add_toggle(entry.name, entry.details)
-  menus['Options'].add_action('Main Menu')
+  for entry in base_menus['Options']:
+    menus['Options'].add_option(entry.name, entry.details)
+  menus['Options'].add_action('All')
+  menus['Options'].add_action('None')
+  menus['Options'].add_action('Main Menu', {'Separator': True})
+  menus['Options'].add_action('Quit')
 
   # Run groups
-  for group, entries in base_menus['Options'].items():
+  for group, entries in base_menus['Groups'].items():
     menus[group] = Menu(title=f'{title}\n{color_string(group, "GREEN")}')
-    menus[group].disabled_str = 'Done'
+    menus[group].disabled_str = 'Locked'
     for entry in entries:
       menus[group].add_option(entry.name, entry.details)
-    menus[group].add_action('Main Menu')
+    menus[group].add_action('All')
+    menus[group].add_action('None')
+    menus[group].add_action('Select Skipped Entries', {'Separator': True})
+    menus[group].add_action('Unlock All Entries')
+    menus[group].add_action('Main Menu', {'Separator': True})
+    menus[group].add_action('Quit')
 
   # Initialize main menu display names
   menus['Main'].update()
@@ -89,11 +100,16 @@ def end_session():
   print_info('Ending repair session')
   auto_admin_logon = '0'
 
-  # Delete Auto Repairs session key
+  # Delete Auto Repairs keys
   try:
     reg_delete_value('HKCU', AUTO_REPAIR_KEY, 'SessionStarted')
   except FileNotFoundError:
     LOG.error('Ending repair session but session not started.')
+  try:
+    cmd = ['reg', 'delete', fr'HKCU\{AUTO_REPAIR_KEY}', '/f']
+    run_program(cmd)
+  except CalledProcessError:
+    LOG.error('Failed to remote Auto Repairs session settings')
 
   # Remove logon task
   cmd = [
@@ -134,12 +150,16 @@ def get_entry_settings(group, name):
   """Get menu entry settings from the registry, returns dict."""
   key_path = fr'{AUTO_REPAIR_KEY}\{group}\{strip_colors(name)}'
   settings = {}
-  for value in ('Done', 'Failed', 'Result'):
+  for value in ('done', 'failed', 'result', 'selected', 'skipped', 'warning'):
     try:
-      settings[value] = reg_read_value('HKCU', key_path, value)
+      settings[value.title()] = reg_read_value('HKCU', key_path, value)
     except FileNotFoundError:
       # Ignore and use current settings
       pass
+
+  # Disable previously run or skipped entries
+  if settings.get('Done', False) or settings.get('Skipped', False):
+    settings['Disabled'] = True
 
   # Done
   return settings
@@ -164,7 +184,7 @@ def init(menus):
 
 def init_run(options):
   """Initialize Auto Repairs Run."""
-  if options.toggles['Kill Explorer']['Selected']:
+  if options['Kill Explorer']['Selected']:
     atexit.register(start_explorer)
     kill_explorer()
   # TODO: Sync Clock
@@ -187,8 +207,9 @@ def init_session(options):
   run_program(cmd)
 
   # One-time tasks
-  if options.toggles['Use Autologon']['Selected']:
+  if options['Use Autologon']['Selected']:
     run_tool('Sysinternals', 'Autologon')
+  # TODO: TDSSKiller?
   # TODO: Re-enable reboot()
 
 
@@ -211,9 +232,6 @@ def load_settings(menus):
       continue
     for name in menu.options:
       menu.options[name].update(get_entry_settings(group, name))
-      if menu.options[name].get('Done', '0') == '1':
-        menu.options[name]['Selected'] = False
-        menu.options[name]['Disabled'] = True
 
 
 def run_auto_repairs(base_menus):
@@ -238,36 +256,29 @@ def run_auto_repairs(base_menus):
 
   # Show Menu
   if session_started is None or not session_started:
-    while True:
-      update_main_menu(menus)
-      selection = menus['Main'].simple_select(update=False)
-      if selection[0] in base_menus['Options'] or selection[0] == 'Options':
-        menus[selection[0]].advanced_select()
-      elif 'Start' in selection:
-        break
-      elif 'Quit' in selection:
-        if ask('End session?'):
-          end_session()
-        raise SystemExit
+    try:
+      show_main_menu(base_menus, menus)
+    except SystemExit:
+      if ask('End session?'):
+        end_session()
+      raise
 
     # Re-check if a repair session was started
     if session_started is None:
       session_started = is_session_started()
 
   # Start or resume repairs
-  init_run(menus['Options'])
+  save_selection_settings(menus)
+  init_run(menus['Options'].options)
   if not session_started:
-    init_session(menus['Options'])
+    init_session(menus['Options'].options)
 
   # Run repairs
   clear_screen()
   for group, menu in menus.items():
     if group in ('Main', 'Options'):
       continue
-    for name, details in menu.options.items():
-      if details.get('Done', None) == '1':
-        continue
-      details['Function'](group, name)
+    run_group(group, menu)
 
   # Done
   end_session()
@@ -275,12 +286,119 @@ def run_auto_repairs(base_menus):
   pause('Press Enter to exit...')
 
 
-def save_settings(group, name, done=False, failed=False, result='Unknown'):
-  """Load session settings from the registry."""
+def run_group(group, menu):
+  """Run entries in group if appropriate."""
+  print_info(f'  {group}')
+  for name, details in menu.options.items():
+    name_str = strip_colors(name)
+    skipped = details.get('Skipped', False)
+    done = details.get('Done', False)
+    disabled = details.get('Disabled', False)
+    selected = details.get('Selected', False)
+
+    # Selection changed
+    if (skipped or done) and not disabled and selected:
+      save_settings(group, name, done=False, skipped=False)
+      details['Function'](group, name)
+      continue
+
+    # Previously skipped
+    if skipped:
+      show_data(f'{name_str}...', 'Skipped', 'YELLOW', width=WIDTH)
+      continue
+
+    # Previously ran
+    if done:
+      color = 'GREEN'
+      if details.get('Failed', False):
+        color = 'RED'
+      elif details.get('Warning', False):
+        color = 'YELLOW'
+      show_data(
+        f'{name_str}...', details.get('Result', 'Unknown'), color, width=WIDTH,
+        )
+      continue
+
+    # Not selected
+    if not selected:
+      show_data(f'{name_str}...', 'Skipped', 'YELLOW', width=WIDTH)
+      save_settings(group, name, skipped=True)
+      continue
+
+    # Selected
+    details['Function'](group, name)
+
+
+def save_selection_settings(menus):
+  """Save selections in the registry."""
+  for group, menu in menus.items():
+    if group == 'Main':
+      continue
+    for name, details in menu.options.items():
+      save_settings(
+        group, name,
+        disabled=details.get('Disabled', False),
+        selected=details.get('Selected', False),
+        )
+
+
+def save_settings(group, name, **kwargs):
+  """Save entry settings in the registry."""
   key_path = fr'{AUTO_REPAIR_KEY}\{group}\{strip_colors(name)}'
-  reg_set_value('HKCU', key_path, 'Done', '1' if done else '0', 'SZ')
-  reg_set_value('HKCU', key_path, 'Failed', '1' if failed else '0', 'SZ')
-  reg_set_value('HKCU', key_path, 'Result', result, 'SZ')
+  for value_name, data in kwargs.items():
+    if isinstance(data, bool):
+      data = 1 if data else 0
+    if isinstance(data, int):
+      data_type = 'DWORD'
+    elif isinstance(data, str):
+      data_type = 'SZ'
+    else:
+      raise TypeError(f'Invalid data: "{data}" ({type(data)})')
+    reg_set_value('HKCU', key_path, value_name, data, data_type)
+
+
+def show_main_menu(base_menus, menus):
+  """Show main menu and handle actions."""
+  while True:
+    update_main_menu(menus)
+    selection = menus['Main'].simple_select(update=False)
+    if selection[0] in base_menus['Groups'] or selection[0] == 'Options':
+      show_sub_menu(menus[selection[0]])
+    elif 'Start' in selection:
+      break
+    elif 'Quit' in selection:
+      raise SystemExit
+
+
+def show_sub_menu(menu):
+  """Show sub-menu and handle sub-menu actions."""
+  while True:
+    selection = menu.advanced_select()
+    if 'Main Menu' in selection:
+      break
+    if 'Quit' in selection:
+      raise SystemExit
+
+    # Modify entries
+    key = 'Selected'
+    unlock_all = False
+    unlock_skipped = False
+    if 'Select Skipped Entries' in selection:
+      key = 'Disabled'
+      unlock_skipped = True
+      value = False
+    if 'Unlock All Entries' in selection:
+      key = 'Disabled'
+      unlock_all = True
+      value = False
+    else:
+      value = 'All' in selection
+    for name in menu.options:
+      if (unlock_all
+          or (unlock_skipped and not menu.options[name].get('Selected', False))
+          or not menu.options[name].get('Disabled', False)
+          ):
+        menu.options[name][key] = value
 
 
 def update_main_menu(menus):
@@ -318,6 +436,7 @@ def auto_dism(group, name):
   save_settings(
     group, name, done=True,
     failed=result['Failed'],
+    warning=not result['Failed'] and needs_reboot,
     result=result['Message'],
     )
 
