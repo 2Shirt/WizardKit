@@ -18,6 +18,7 @@ import time
 import traceback
 
 from collections import OrderedDict
+from functools import cache
 
 import requests
 
@@ -498,24 +499,41 @@ class TryAndPrint():
     # Done
     return result_msg
 
+  @cache
   def _get_exception(self, name):
     # pylint: disable=no-self-use
     """Get exception by name, returns exception object.
 
     [Doctest]
-    >>> self._get_exception('AttributeError')
+    >>> t = TryAndPrint()
+    >>> t._get_exception('AttributeError')
     <class 'AttributeError'>
-    >>> self._get_exception('CalledProcessError')
+    >>> t._get_exception('CalledProcessError')
     <class 'subprocess.CalledProcessError'>
-    >>> self._get_exception('GenericError')
-    <class 'std.GenericError'>
+    >>> t._get_exception('GenericError')
+    <class 'wk.std.GenericError'>
     """
     LOG.debug('Getting exception: %s', name)
-    try:
-      obj = getattr(sys.modules[__name__], name)
-    except AttributeError:
-      # Try builtin classes
-      obj = getattr(sys.modules['builtins'], name)
+    obj = getattr(sys.modules[__name__], name, None)
+    if obj:
+      return obj
+
+    # Try builtin classes
+    obj = getattr(sys.modules['builtins'], name, None)
+    if obj:
+      return obj
+
+    # Try all modules
+    for _mod in sys.modules:
+      obj = getattr(sys.modules[_mod], name, None)
+      if obj:
+        break
+
+    # Check if not found
+    if not obj:
+      raise AttributeError(f'Failed to find exception: {name}')
+
+    # Done
     return obj
 
   def _log_result(self, message, result_msg):
