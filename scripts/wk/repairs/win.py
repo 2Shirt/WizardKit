@@ -5,9 +5,11 @@ import atexit
 import logging
 import os
 import platform
+import re
 import sys
+import time
 
-from subprocess import CalledProcessError
+from subprocess import CalledProcessError, DEVNULL
 
 from wk.cfg.main  import KIT_NAME_FULL
 from wk.exe       import get_procs, run_program, popen_program, wait_for_procs
@@ -47,11 +49,12 @@ AUTO_REPAIR_KEY = fr'Software\{KIT_NAME_FULL}\Auto Repairs'
 CONEMU = 'ConEmuPID' in os.environ
 OS_VERSION = float(platform.win32_ver()[0])
 WIDTH = 50
+SYSTEMDRIVE = os.environ.get('SYSTEMDRIVE')
 TRY_PRINT = TryAndPrint()
 TRY_PRINT.width = WIDTH
 TRY_PRINT.verbose = True
-#for error in ('subprocess.CalledProcessError', 'FileNotFoundError'):
-#  TRY_PRINT.add_error(error)
+for error in ('CalledProcessError', 'FileNotFoundError'):
+  TRY_PRINT.add_error(error)
 
 
 # Auto Repairs
@@ -442,8 +445,20 @@ def update_main_menu(menus):
 
 
 # Auto Repairs: Wrapper Functions
+def auto_backup_power_plans(group, name):
+  """Backup power plans."""
+  result = TRY_PRINT.run('Backup Power Plans...', export_power_plans)
+  save_settings(group, name, result=result)
+
+
+def auto_backup_registry(group, name):
+  """Backup registry."""
+  result = TRY_PRINT.run('Backup Registry...', backup_registry)
+  save_settings(group, name, result=result)
+
+
 def auto_dism(group, name):
-  """Auto DISM repairs, returns bool."""
+  """Run DISM repairs."""
   needs_reboot = False
   result = TRY_PRINT.run('DISM (RestoreHealth)...', run_dism)
 
@@ -467,7 +482,73 @@ def auto_dism(group, name):
     reboot()
 
 
+def auto_enable_regback(group, name):
+  """Enable RegBack."""
+  result = TRY_PRINT.run(
+    'Enable RegBack...', reg_set_value, 'HKLM',
+    r'System\CurrentControlSet\Control\Session Manager\Configuration Manager',
+    'EnablePeriodicBackup', 1, 'DWORD',
+    )
+  save_settings(group, name, result=result)
+
+
+def auto_system_restore_create(group, name):
+  """Create a System Restore point."""
+  result = TRY_PRINT.run(
+    'Create System Restore...', create_system_restore_point,
+    )
+  save_settings(group, name, result=result)
+
+
+def auto_system_restore_enable(group, name):
+  """Enable System Restore."""
+  cmd = [
+    'powershell', '-Command', 'Enable-ComputerRestore',
+    '-Drive', SYSTEMDRIVE,
+    ]
+  result = TRY_PRINT.run('Enable System Restore...', run_program, cmd=cmd)
+  save_settings(group, name, result=result)
+
+
+def auto_system_restore_set_size(group, name):
+  """Set System Restore size."""
+  result = TRY_PRINT.run('Set System Restore Size...', set_system_restore_size)
+  save_settings(group, name, result=result)
+
+
+# Misc Functions
+def set_backup_path(name, date=False):
+  """Set backup path, returns pathlib.Path."""
+  backup_path = format_log_path(log_name=f'../Backups/{name}').with_suffix('')
+  if date:
+    backup_path = backup_path.joinpath(time.strftime('%Y-%m-%d'))
+  return backup_path.resolve()
+
+
+# Tool Functions
+def backup_registry():
+  """Backup Registry."""
+  backup_path = set_backup_path('Registry', date=True)
+  backup_path.parent.mkdir(parents=True, exist_ok=True)
+  run_tool('Erunt', 'ERUNT', backup_path, 'sysreg', 'curuser', 'otherusers')
+
+
 # OS Built-in Functions
+def create_system_restore_point():
+  """Create System Restore point."""
+  cmd = [
+    'powershell', '-Command', 'Checkpoint-Computer',
+    '-Description', f'{KIT_NAME_FULL}-AutoRepairs',
+    ]
+  too_recent = (
+    'WARNING: A new system restore point cannot be created'
+    'because one has already been created within the past'
+    )
+  proc = run_program(cmd)
+  if too_recent in proc.stdout:
+    raise GenericWarning('Skipped, a restore point was created too recently')
+
+
 def disable_windows_updates():
   """Disable and stop Windows Updates."""
   stop_service('wuauserv')
@@ -477,6 +558,31 @@ def disable_windows_updates():
 def enable_windows_updates():
   """Enable Windows Updates."""
   enable_service('wuauserv', 'demand')
+
+
+def export_power_plans():
+  """Export existing power plans."""
+  backup_path = set_backup_path('Power Plans', date=True)
+  backup_path.mkdir(parents=True, exist_ok=True)
+  cmd = ['powercfg', '/L']
+  proc = run_program(cmd)
+  plans = {}
+
+  # Get plans
+  for line in proc.stdout.splitlines():
+    line = line.strip()
+    match = re.match(r'^Power Scheme GUID: (.{36})\s+\((.*)\)\s*(\*?)', line)
+    if match:
+      name = match.group(2)
+      if match.group(3):
+        name += ' (Default)'
+      plans[name] = match.group(1)
+
+  # Backup plans to disk
+  for name, guid in plans.items():
+    out_path = backup_path.joinpath(f'{name}.pow')
+    cmd = ['powercfg', '-export', out_path, guid]
+    run_program(cmd)
 
 
 def kill_explorer():
@@ -606,6 +712,15 @@ def run_sfc_scan():
     raise GenericError('Corruption detected')
   else:
     raise OSError
+
+
+def set_system_restore_size(size=8):
+  """Set System Restore size."""
+  cmd = [
+    'vssadmin', 'Resize', 'ShadowStorage',
+    f'/On={SYSTEMDRIVE}', f'/For={SYSTEMDRIVE}', f'/MaxSize={size}%',
+    ]
+  run_program(cmd, pipe=False, stderr=DEVNULL, stdout=DEVNULL)
 
 
 def start_explorer():
