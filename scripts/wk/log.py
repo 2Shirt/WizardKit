@@ -17,8 +17,7 @@ if os.name == 'nt':
   # Example: "C:\WK\1955-11-05\WizardKit"
   DEFAULT_LOG_DIR = (
     f'{os.environ.get("SYSTEMDRIVE", "C:")}/'
-    f'{cfg.main.KIT_NAME_SHORT}/'
-    f'{time.strftime("%Y-%m-%d")}'
+    f'{cfg.main.KIT_NAME_SHORT}/Logs/'
     )
 else:
   # Example: "/home/tech/Logs"
