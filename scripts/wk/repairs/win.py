@@ -150,7 +150,7 @@ def get_entry_settings(group, name):
   """Get menu entry settings from the registry, returns dict."""
   key_path = fr'{AUTO_REPAIR_KEY}\{group}\{strip_colors(name)}'
   settings = {}
-  for value in ('done', 'failed', 'result', 'selected', 'skipped', 'warning'):
+  for value in ('done', 'failed', 'message', 'selected', 'skipped', 'warning'):
     try:
       settings[value.title()] = reg_read_value('HKCU', key_path, value)
     except FileNotFoundError:
@@ -310,12 +310,13 @@ def run_group(group, menu):
     # Previously ran
     if done:
       color = 'GREEN'
-      if details.get('Failed', False):
-        color = 'RED'
-      elif details.get('Warning', False):
+      if details.get('Warning', False):
         color = 'YELLOW'
+      elif details.get('Failed', False):
+        color = 'RED'
       show_data(
-        f'{name_str}...', details.get('Result', 'Unknown'), color, width=WIDTH,
+        f'{name_str}...',
+        details.get('Message', 'Unknown'), color, width=WIDTH,
         )
       continue
 
@@ -342,9 +343,19 @@ def save_selection_settings(menus):
         )
 
 
-def save_settings(group, name, **kwargs):
+def save_settings(group, name, result=None, **kwargs):
   """Save entry settings in the registry."""
   key_path = fr'{AUTO_REPAIR_KEY}\{group}\{strip_colors(name)}'
+
+  # Get values from TryAndPrint result
+  if result:
+    kwargs.update({
+      'done': True,
+      'failed': result['Failed'],
+      'message': result['Message'],
+      })
+
+  # Write values to registry
   for value_name, data in kwargs.items():
     if isinstance(data, bool):
       data = 1 if data else 0
@@ -437,7 +448,7 @@ def auto_dism(group, name):
     group, name, done=True,
     failed=result['Failed'],
     warning=not result['Failed'] and needs_reboot,
-    result=result['Message'],
+    message=result['Message'],
     )
 
   # Done

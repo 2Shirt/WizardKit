@@ -38,13 +38,13 @@ class MenuEntry():
 TRY_AND_PRINT = wk.std.TryAndPrint()
 TRY_AND_PRINT.width = 50
 def placeholder_function(group, name):
-  TRY_AND_PRINT.run(f'{name}...', time.sleep, random.randint(1, 3))
-  wk.repairs.win.save_settings(group, name, done=True, result='SUCCESS')
+  result = TRY_AND_PRINT.run(f'{name}...', time.sleep, random.randint(1, 3))
+  wk.repairs.win.save_settings(group, name, result=result)
 
 def placeholder_reboot(group, name):
   print('"Rebooting" shortly...')
   time.sleep(random.randint(1, 3))
-  wk.repairs.win.save_settings(group, name, done=True, result='DONE')
+  wk.repairs.win.save_settings(group, name, done=True, message='DONE')
   raise SystemExit
 
 
