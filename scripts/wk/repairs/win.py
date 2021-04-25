@@ -91,6 +91,17 @@ def build_menus(base_menus, title):
   # Initialize main menu display names
   menus['Main'].update()
 
+  # Fix Function references
+  for group, menu in menus.items():
+    if group not in base_menus['Groups']:
+      continue
+    for name in menu.options:
+      _function = menu.options[name]['Function']
+      if isinstance(_function, str):
+        menu.options[name]['Function'] = getattr(
+          sys.modules[__name__], _function,
+          )
+
   # Done
   return menus
 

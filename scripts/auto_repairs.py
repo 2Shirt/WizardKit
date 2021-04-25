@@ -15,7 +15,7 @@ import wk # pylint: disable=wrong-import-position
 class MenuEntry():
   # pylint: disable=too-few-public-methods
   """Simple class to allow cleaner code below."""
-  def __init__(self, name, function, **kwargs):
+  def __init__(self, name, function=None, **kwargs):
     self.name = name
 
     # Color reboot entries
@@ -64,7 +64,7 @@ BASE_MENUS = {
       MenuEntry('Reset Windows Updates', placeholder_function),
       MenuEntry('Reboot', placeholder_reboot),
       MenuEntry('CHKDSK', placeholder_function),
-      MenuEntry('DISM RestoreHealth', wk.repairs.win.auto_dism),
+      MenuEntry('DISM RestoreHealth', 'auto_dism'),
       MenuEntry('SFC Scan', placeholder_function),
       MenuEntry('Fix File Associations', placeholder_function),
       MenuEntry('Clear Proxy Settings', placeholder_function),
@@ -88,14 +88,14 @@ BASE_MENUS = {
       ),
     },
   'Options': (
-    MenuEntry('Kill Explorer', placeholder_function),
-    MenuEntry('Run RKill at startup', placeholder_function),
-    MenuEntry('Use Autologon', placeholder_function),
+    MenuEntry('Kill Explorer'),
+    MenuEntry('Run RKill at startup'),
+    MenuEntry('Use Autologon'),
     ),
   'Actions': (
-    MenuEntry('Options', placeholder_function),
-    MenuEntry('Start', placeholder_function, Separator=True),
-    MenuEntry('Quit', placeholder_function),
+    MenuEntry('Options'),
+    MenuEntry('Start', Separator=True),
+    MenuEntry('Quit'),
     ),
   }
 
