@@ -27,6 +27,8 @@ CACHED_DIRS = {}
 def download_file(out_path, source_url, as_new=False, overwrite=False):
   """Download a file using requests, returns pathlib.Path."""
   out_path = pathlib.Path(out_path).resolve()
+  if as_new:
+    out_path = out_path.with_suffix(f'{out_path.suffix}.new')
   cursor_left = '\u001B[14D'
   print(f'Downloading...{cursor_left}', end='', flush=True)
 
@@ -36,8 +38,6 @@ def download_file(out_path, source_url, as_new=False, overwrite=False):
 
   # Create destination directory
   out_path.parent.mkdir(parents=True, exist_ok=True)
-  if as_new:
-    out_path = out_path.with_suffix(f'{out_path.suffix}.new')
 
   # Request download
   response = requests.get(source_url, stream=True)
