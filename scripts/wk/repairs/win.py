@@ -14,7 +14,7 @@ from subprocess import CalledProcessError, DEVNULL
 from wk.cfg.main  import KIT_NAME_FULL
 from wk.exe       import get_procs, run_program, popen_program, wait_for_procs
 from wk.io        import delete_folder, rename_item
-from wk.kit.tools import run_tool
+from wk.kit.tools import get_tool_path, run_tool
 from wk.log       import format_log_path, update_log_path
 from wk.os.win    import (
   reg_delete_value,
@@ -233,6 +233,9 @@ def init_session(options):
     '/rl', 'HIGHEST',
     '/tr', fr'C:\Windows\System32\cmd.exe "/C {sys.executable} {sys.argv[0]}"',
     ]
+  if CONEMU:
+    exe_path = get_tool_path('ConEmu', 'ConEmu')
+    cmd[-1] = f'{exe_path} -run {sys.executable} {sys.argv[0]}'
   run_program(cmd)
 
   # One-time tasks
