@@ -20,6 +20,7 @@ from wk.os.win    import (
   reg_delete_value,
   reg_read_value,
   reg_set_value,
+  reg_write_settings,
   disable_service,
   enable_service,
   stop_service,
@@ -48,9 +49,22 @@ LOG = logging.getLogger(__name__)
 AUTO_REPAIR_DELAY_IN_SECONDS = 30
 AUTO_REPAIR_KEY = fr'Software\{KIT_NAME_FULL}\Auto Repairs'
 CONEMU = 'ConEmuPID' in os.environ
+GPUPDATE_SUCCESS_STRINGS = (
+  'Computer Policy update has completed successfully.',
+  'User Policy update has completed successfully.',
+  )
 OS_VERSION = float(platform.win32_ver()[0])
-WIDTH = 50
+REG_UAC_DEFAULT_SETTINGS = {
+  'HKLM': {
+    r'Software\Microsoft\Windows\CurrentVersion\Policies\System': (
+      ('ConsentPromptBehaviorAdmin', 5, 'DWORD'),
+      ('ConsentPromptBehaviorUser', 3, 'DWORD'),
+      ('EnableLUA', 1, 'DWORD'),
+      ),
+    },
+  }
 SYSTEMDRIVE = os.environ.get('SYSTEMDRIVE')
+WIDTH = 50
 TRY_PRINT = TryAndPrint()
 TRY_PRINT.width = WIDTH
 TRY_PRINT.verbose = True
@@ -290,6 +304,9 @@ def run_auto_repairs(base_menus):
 
   # Run repairs
   clear_screen()
+  print_standard(title)
+  print('')
+  print_info('Running repairs')
   for group, menu in menus.items():
     if group in ('Main', 'Options'):
       continue
@@ -485,6 +502,14 @@ def auto_chkdsk(group, name):
     reboot()
 
 
+def auto_disable_pending_renames(group, name):
+  """Disable pending renames."""
+  result = TRY_PRINT.run(
+    'Disabling pending renames...', disable_pending_renames,
+    )
+  save_settings(group, name, result=result)
+
+
 def auto_dism(group, name):
   """Run DISM repairs."""
   needs_reboot = False
@@ -517,6 +542,47 @@ def auto_enable_regback(group, name):
     r'System\CurrentControlSet\Control\Session Manager\Configuration Manager',
     'EnablePeriodicBackup', 1, 'DWORD',
     )
+  save_settings(group, name, result=result)
+
+
+def auto_reboot(group, name):
+  """Reboot the system."""
+  save_settings(group, name, done=True, failed=False, message='DONE')
+  print('')
+  reboot(30)
+
+
+def auto_repair_registry(group, name):
+  """Delete registry keys with embedded null characters."""
+  result = TRY_PRINT.run(
+    'Running Registry repairs...', delete_registry_null_keys,
+    )
+  save_settings(group, name, result=result)
+
+
+def auto_reset_proxy(group, name):
+  """Reset proxy settings."""
+  result = TRY_PRINT.run('Clearing proxy settings...', reset_proxy)
+  save_settings(group, name, result=result)
+
+
+def auto_reset_windows_policies(group, name):
+  """Reset Windows policies to defaults."""
+  result = TRY_PRINT.run(
+    'Resetting Windows policies...', reset_windows_policies,
+    )
+  save_settings(group, name, result=result)
+
+
+def auto_restore_uac_defaults(group, name):
+  """Restore UAC default settings."""
+  result = TRY_PRINT.run('Restoring UAC defaults...', restore_uac_defaults)
+  save_settings(group, name, result=result)
+
+
+def auto_sfc(group, name):
+  """Run SFC repairs."""
+  result = TRY_PRINT.run('SFC Scan...', run_sfc_scan)
   save_settings(group, name, result=result)
 
 
@@ -585,6 +651,11 @@ def backup_registry():
   run_tool('Erunt', 'ERUNT', backup_path, 'sysreg', 'curuser', 'otherusers')
 
 
+def delete_registry_null_keys():
+  """Delete registry keys with embedded null characters."""
+  run_tool('RegDelNull', 'RegDelNull', '-s', '-y', cbin=True)
+
+
 # OS Built-in Functions
 def create_system_restore_point():
   """Create System Restore point."""
@@ -599,6 +670,14 @@ def create_system_restore_point():
   proc = run_program(cmd)
   if too_recent in proc.stdout:
     raise GenericWarning('Skipped, a restore point was created too recently')
+
+
+def disable_pending_renames():
+  """Disable pending renames."""
+  reg_set_value(
+    'HKLM', r'SYSTEM\CurrentControlSet\Control\Session Manager',
+    'PendingFileRenameOperations', [], 'MULTI_SZ',
+    )
 
 
 def disable_windows_updates():
@@ -653,14 +732,43 @@ def reboot(timeout=10):
   raise SystemExit
 
 
+def reset_proxy():
+  """Reset WinHTTP proxy settings."""
+  cmd = ['netsh', 'winhttp', 'reset', 'proxy']
+  proc = run_program(cmd, check=False)
+
+  # Check result
+  if 'Direct access (no proxy server)' not in proc.stdout:
+    raise GenericError('Failed to reset proxy settings.')
+
+
+def reset_windows_policies():
+  """Reset Windows policies to defaults."""
+  cmd = ['gpupdate', '/force']
+  proc = run_program(cmd, check=False)
+
+  # Check result
+  if not all(_s in proc.stdout for _s in GPUPDATE_SUCCESS_STRINGS):
+    raise GenericError('Failed to reset one or more policies.')
+
+
 def reset_windows_updates():
   """Reset Windows Updates."""
   system_root = os.environ.get('SYSTEMROOT', 'C:/Windows')
-  rename_item(
-    f'{system_root}/SoftwareDistribution',
-    f'{system_root}/SoftwareDistribution.old',
-    )
-  delete_folder(f'{system_root}/SoftwareDistribution.old', force=True)
+  try:
+    rename_item(
+      f'{system_root}/SoftwareDistribution',
+      f'{system_root}/SoftwareDistribution.old',
+      )
+    delete_folder(f'{system_root}/SoftwareDistribution.old', force=True)
+  except FileNotFoundError:
+    # Ignore
+    pass
+
+
+def restore_uac_defaults():
+  """Restore UAC default settings."""
+  reg_write_settings(REG_UAC_DEFAULT_SETTINGS)
 
 
 def run_chkdsk_offline():

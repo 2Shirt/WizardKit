@@ -46,6 +46,7 @@ SOURCES = {
   'ProduKey32': 'http://www.nirsoft.net/utils/produkey.zip',
   'ProduKey64': 'http://www.nirsoft.net/utils/produkey-x64.zip',
   'PuTTY': 'https://the.earth.li/~sgtatham/putty/latest/w32/putty.zip',
+  'RegDelNull': 'https://download.sysinternals.com/files/Regdelnull.zip',
   'RKill': 'https://download.bleepingcomputer.com/grinler/rkill.exe',
   'Samsung Magician': 'https://s3.ap-northeast-2.amazonaws.com/global.semi.static/SAMSUNG_SSD_v5_3_0_181121/CD0C7CC1BE00525FAC4675B9E502899B41D5C3909ECE3AA2FB6B74A766B2A1EA/Samsung_Magician_Installer.zip',
   'SDIO Themes': 'http://snappy-driver-installer.org/downloads/SDIO_Themes.zip',
