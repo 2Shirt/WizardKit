@@ -88,7 +88,8 @@ BASE_MENUS = {
     },
   'Options': (
     MenuEntry('Kill Explorer'),
-    MenuEntry('Run RKill at startup'),
+    MenuEntry('Run RKill'),
+    MenuEntry('Run TDSSKiller (once)'),
     MenuEntry('Use Autologon'),
     ),
   'Actions': (

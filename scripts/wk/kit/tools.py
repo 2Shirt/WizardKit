@@ -100,7 +100,7 @@ def find_kit_dir(name=None):
   return cur_path
 
 
-def get_tool_path(folder, name):
+def get_tool_path(folder, name, check=True):
   """Get tool path, returns pathlib.Path"""
   bin_dir = find_kit_dir('.bin')
 
@@ -110,7 +110,7 @@ def get_tool_path(folder, name):
     tool_path = tool_path.with_stem(name)
 
   # Missing?
-  if not tool_path.exists():
+  if check and not tool_path.exists():
     raise FileNotFoundError(f'Failed to find tool, {folder=}, {name=}')
 
   # Done

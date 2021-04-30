@@ -48,10 +48,16 @@ from wk.std       import (
 LOG = logging.getLogger(__name__)
 AUTO_REPAIR_DELAY_IN_SECONDS = 30
 AUTO_REPAIR_KEY = fr'Software\{KIT_NAME_FULL}\Auto Repairs'
-CONEMU = 'ConEmuPID' in os.environ
+CONEMU_EXE = get_tool_path('ConEmu', 'ConEmu', check=False)
 GPUPDATE_SUCCESS_STRINGS = (
   'Computer Policy update has completed successfully.',
   'User Policy update has completed successfully.',
+  )
+IN_CONEMU = 'ConEmuPID' in os.environ
+PROGRAMFILES_32 = os.environ.get(
+  'PROGRAMFILES(X86)', os.environ.get(
+    'PROGRAMFILES', r'C:\Program Files (x86)',
+    ),
   )
 OS_VERSION = float(platform.win32_ver()[0])
 REG_UAC_DEFAULT_SETTINGS = {
@@ -63,6 +69,16 @@ REG_UAC_DEFAULT_SETTINGS = {
       ),
     },
   }
+RKILL_WHITELIST = (
+  CONEMU_EXE,
+  fr'{PROGRAMFILES_32}\TeamViewer\TeamViewer.exe',
+  fr'{PROGRAMFILES_32}\TeamViewer\TeamViewer_Desktop.exe',
+  fr'{PROGRAMFILES_32}\TeamViewer\TeamViewer_Note.exe',
+  fr'{PROGRAMFILES_32}\TeamViewer\TeamViewer_Service.exe',
+  fr'{PROGRAMFILES_32}\TeamViewer\tv_w32.exe',
+  fr'{PROGRAMFILES_32}\TeamViewer\tv_x64.exe',
+  sys.executable,
+  )
 SYSTEMDRIVE = os.environ.get('SYSTEMDRIVE')
 WIDTH = 50
 TRY_PRINT = TryAndPrint()
@@ -126,7 +142,6 @@ def build_menus(base_menus, title):
 
 def end_session():
   """End Auto Repairs session."""
-  print_info('Ending repair session')
   auto_admin_logon = '0'
 
   # Delete Auto Repairs keys
@@ -215,14 +230,17 @@ def init_run(options):
   """Initialize Auto Repairs Run."""
   if options['Kill Explorer']['Selected']:
     atexit.register(start_explorer)
-    kill_explorer()
-  # TODO: Sync Clock
-  # TODO: RKill
+    TRY_PRINT.run('Killing Explorer...', kill_explorer, msg_good='DONE')
+  TRY_PRINT.run(
+    'Syncing Clock...', run_tool, 'Neutron', 'Neutron',
+    cbin=True, msg_good='DONE',
+    )
+  if options['Run RKill']['Selected']:
+    TRY_PRINT.run('Running RKill...', run_rkill, msg_good='DONE')
 
 
 def init_session(options):
   """Initialize Auto Repairs session."""
-  print_info('Starting repair session')
   reg_set_value('HKCU', AUTO_REPAIR_KEY, 'SessionStarted', 1, 'DWORD')
 
   # Create logon task for Auto Repairs
@@ -233,16 +251,21 @@ def init_session(options):
     '/rl', 'HIGHEST',
     '/tr', fr'C:\Windows\System32\cmd.exe "/C {sys.executable} {sys.argv[0]}"',
     ]
-  if CONEMU:
-    exe_path = get_tool_path('ConEmu', 'ConEmu')
-    cmd[-1] = f'{exe_path} -run {sys.executable} {sys.argv[0]}'
+  if IN_CONEMU:
+    cmd[-1] = f'{CONEMU_EXE} -run {sys.executable} {sys.argv[0]}'
   run_program(cmd)
 
   # One-time tasks
   if options['Use Autologon']['Selected']:
-    run_tool('Sysinternals', 'Autologon')
-  # TODO: TDSSKiller?
-  # TODO: Re-enable reboot()
+    TRY_PRINT.run(
+      'Running Autologon...', run_tool,
+      'Autologon', 'Autologon',
+      cbin=True, msg_good='DONE',
+      )
+  if options['Run TDSSKiller (once)']['Selected']:
+    TRY_PRINT.run('Running TDSSKiller...', run_tdsskiller, msg_good='DONE')
+  print('')
+  reboot(30)
 
 
 def is_session_started():
@@ -300,16 +323,17 @@ def run_auto_repairs(base_menus):
       session_started = is_session_started()
 
   # Start or resume repairs
-  save_selection_settings(menus)
-  init_run(menus['Options'].options)
-  if not session_started:
-    init_session(menus['Options'].options)
-
-  # Run repairs
   clear_screen()
   print_standard(title)
   print('')
+  save_selection_settings(menus)
+  print_info('Initializing...')
+  init_run(menus['Options'].options)
+  if not session_started:
+    init_session(menus['Options'].options)
   print_info('Running repairs')
+
+  # Run repairs
   for group, menu in menus.items():
     if group in ('Main', 'Options'):
       continue
@@ -640,10 +664,15 @@ def auto_windows_updates_reset(group, name):
 # Misc Functions
 def set_backup_path(name, date=False):
   """Set backup path, returns pathlib.Path."""
-  backup_path = format_log_path(log_name=f'../Backups/{name}').with_suffix('')
+  return get_local_storage_path('Backups', name, date)
+
+
+def get_local_storage_path(folder, name, date=False):
+  """Get path for local storage, returns pathlib.Path."""
+  local_path = format_log_path(log_name=f'../{folder}/{name}').with_suffix('')
   if date:
-    backup_path = backup_path.joinpath(time.strftime('%Y-%m-%d'))
-  return backup_path.resolve()
+    local_path = local_path.joinpath(time.strftime('%Y-%m-%d'))
+  return local_path.resolve()
 
 
 # Tool Functions
@@ -657,6 +686,40 @@ def backup_registry():
 def delete_registry_null_keys():
   """Delete registry keys with embedded null characters."""
   run_tool('RegDelNull', 'RegDelNull', '-s', '-y', cbin=True)
+
+
+def run_rkill():
+  """Run RKill scan."""
+  log_path = format_log_path(log_name='RKill', timestamp=True, tool=True)
+  log_path.parent.mkdir(parents=True, exist_ok=True)
+  whitelist_path = log_path.with_suffix('.wl')
+  whitelist_path.write_text('\n'.join(map(str, RKILL_WHITELIST)))
+  cmd_args = (
+    '-l', log_path,
+    '-w', whitelist_path,
+    '-s',
+    )
+  run_tool('RKill', 'RKill', *cmd_args, download=True)
+
+
+def run_tdsskiller():
+  """Run TDSSKiller scan."""
+  log_path = format_log_path(log_name='TDSSKiller', timestamp=True, tool=True)
+  log_path.parent.mkdir(parents=True, exist_ok=True)
+  quarantine_path = get_local_storage_path(
+    'Quarantine', 'TDSSKiller', date=True,
+    )
+  quarantine_path.mkdir(parents=True, exist_ok=True)
+  cmd_args = (
+    '-accepteula',
+    '-accepteulaksn',
+    '-l', log_path,
+    '-qpath', quarantine_path,
+    '-qsus',
+    '-dcexact',
+    '-silent',
+    )
+  run_tool('TDSSKiller', 'TDSSKiller', *cmd_args, download=True)
 
 
 # OS Built-in Functions
@@ -792,7 +855,7 @@ def run_chkdsk_online():
   cmd = ['CHKDSK', os.environ.get('SYSTEMDRIVE', 'C:')]
   if OS_VERSION >= 8:
     cmd.extend(['/scan', '/perf'])
-  if CONEMU:
+  if IN_CONEMU:
     cmd.extend(['-new_console:nb', '-new_console:s33V'])
   retried = False
 
@@ -826,7 +889,7 @@ def run_chkdsk_online():
 
 def run_dism(repair=True):
   """Run DISM to either scan or repair component store health."""
-  conemu_args = ['-new_console:nb', '-new_console:s33V'] if CONEMU else []
+  conemu_args = ['-new_console:nb', '-new_console:s33V'] if IN_CONEMU else []
 
   # Bail early
   if OS_VERSION < 8:
@@ -834,7 +897,8 @@ def run_dism(repair=True):
 
   # Run (repair) scan
   log_path = format_log_path(
-    log_name=f'DISM_{"Restore" if repair else "Scan"}Health', tool=True,
+    log_name=f'DISM_{"Restore" if repair else "Scan"}Health',
+    timestamp=True, tool=True,
     )
   log_path.parent.mkdir(parents=True, exist_ok=True)
   cmd = [
@@ -847,7 +911,9 @@ def run_dism(repair=True):
   wait_for_procs('dism.exe')
 
   # Run check health
-  log_path = format_log_path(log_name='DISM_CheckHealth.log', tool=True)
+  log_path = format_log_path(
+    log_name='DISM_CheckHealth.log', timestamp=True, tool=True,
+    )
   cmd = [
     'DISM', '/Online', '/Cleanup-Image',
     '/CheckHealth',
@@ -863,7 +929,7 @@ def run_dism(repair=True):
 def run_sfc_scan():
   """Run SFC and save results."""
   cmd = ['sfc', '/scannow']
-  log_path = format_log_path(log_name='SFC', tool=True)
+  log_path = format_log_path(log_name='SFC', timestamp=True, tool=True)
   err_path = log_path.with_suffix('.err')
 
   # Run SFC
