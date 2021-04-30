@@ -369,6 +369,8 @@ def save_settings(group, name, result=None, **kwargs):
       'failed': result['Failed'],
       'message': result['Message'],
       })
+    if isinstance(result['Exception'], GenericWarning):
+      kwargs['warning'] = True
 
   # Write values to registry
   for value_name, data in kwargs.items():
@@ -456,6 +458,31 @@ def auto_backup_registry(group, name):
   """Backup registry."""
   result = TRY_PRINT.run('Backup Registry...', backup_registry)
   save_settings(group, name, result=result)
+
+
+def auto_chkdsk(group, name):
+  """Run CHKDSK repairs."""
+  needs_reboot = False
+  system_disk = os.environ.get('SYSTEMDRIVE', 'C:')
+  result = TRY_PRINT.run(f'CHKDSK ({system_disk})...', run_chkdsk_online)
+
+  # Run offline CHKDSK if required
+  if result['Failed'] and 'Repaired' not in result['Message']:
+    needs_reboot = True
+    result = TRY_PRINT.run(
+      f'Scheduling offline CHKDSK ({system_disk})...',
+      run_chkdsk_offline,
+      )
+    if not result['Failed']:
+      # Successfully set dirty bit to force offline check
+      # Set result['Failed'] to True because we failed to repair online
+      result['Failed'] = True
+      result['Message'] = 'Scheduled offline repairs'
+
+  # Done
+  save_settings(group, name, result=result)
+  if needs_reboot:
+    reboot()
 
 
 def auto_dism(group, name):

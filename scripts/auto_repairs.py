@@ -29,7 +29,7 @@ class MenuEntry():
     # Set details
     self.details = {
       'Function': function,
-      'Selected': True,
+      'Selected': False,
       **kwargs,
       }
 
@@ -64,7 +64,7 @@ BASE_MENUS = {
       MenuEntry('Disable Windows Updates',  'auto_windows_updates_disable'),
       MenuEntry('Reset Windows Updates',    'auto_windows_updates_reset'),
       MenuEntry('Reboot',                   placeholder_reboot),
-      MenuEntry('CHKDSK',                   placeholder_function),
+      MenuEntry('CHKDSK',                   'auto_chkdsk'),
       MenuEntry('DISM RestoreHealth',       'auto_dism'),
       MenuEntry('SFC Scan',                 placeholder_function),
       MenuEntry('Fix File Associations',    placeholder_function),
