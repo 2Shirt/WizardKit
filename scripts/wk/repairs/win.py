@@ -1,4 +1,5 @@
 """WizardKit: Repairs - Windows"""
+# pylint: disable=too-many-lines
 # vim: sts=2 sw=2 ts=2
 
 import atexit
@@ -14,7 +15,7 @@ from subprocess import CalledProcessError, DEVNULL
 from wk.cfg.main  import KIT_NAME_FULL
 from wk.exe       import get_procs, run_program, popen_program, wait_for_procs
 from wk.io        import delete_folder, rename_item
-from wk.kit.tools import get_tool_path, run_tool
+from wk.kit.tools import ARCH, get_tool_path, run_tool
 from wk.log       import format_log_path, update_log_path
 from wk.os.win    import (
   reg_delete_value,
@@ -617,6 +618,12 @@ def auto_enable_regback(group, name):
   save_settings(group, name, result=result)
 
 
+def auto_hitmanpro(group, name):
+  """Run HitmanPro scan."""
+  result = TRY_PRINT.run('HitmanPro...', run_hitmanpro, msg_good='DONE')
+  save_settings(group, name, result=result)
+
+
 def auto_reboot(group, name):
   """Reboot the system."""
   save_settings(group, name, done=True, failed=False, message='DONE')
@@ -740,11 +747,24 @@ def run_bleachbit(cleaners, preview=True):
     *cleaners,
     )
   log_path = format_log_path(log_name='BleachBit', timestamp=True, tool=True)
+  log_path.parent.mkdir(parents=True, exist_ok=True)
   proc = run_tool('BleachBit', 'bleachbit_console', *cmd_args, cbin=True)
 
   # Save logs
   log_path.write_text(proc.stdout)
   log_path.with_suffix('.err').write_text(proc.stderr)
+
+
+def run_hitmanpro():
+  """Run HitmanPro scan."""
+  log_path = format_log_path(log_name='HitmanPro', timestamp=True, tool=True)
+  log_path = log_path.with_suffix('.xml')
+  log_path.parent.mkdir(parents=True, exist_ok=True)
+  cmd_args = ['/scanonly', f'/log={log_path}']
+  run_tool(
+    'HitmanPro', f'HitmanPro{"64" if ARCH=="64" else ""}',
+    *cmd_args, download=True,
+    )
 
 
 def run_rkill():

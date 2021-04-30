@@ -30,7 +30,7 @@ SOURCES = {
   'FastCopy': 'https://ftp.vector.co.jp/73/10/2323/FastCopy392_installer.exe',
   'FurMark': 'https://geeks3d.com/dl/get/569',
   'Firefox uBO': 'https://addons.mozilla.org/firefox/downloads/file/3740966/ublock_origin-1.34.0-an+fx.xpi',
-  'HitmanPro32': 'https://dl.surfright.nl/HitmanPro.exe',
+  'HitmanPro': 'https://dl.surfright.nl/HitmanPro.exe',
   'HitmanPro64': 'https://dl.surfright.nl/HitmanPro_x64.exe',
   'HWiNFO': 'https://files1.majorgeeks.com/c8a055180587599139f8f454712dcc618cd1740e/systeminfo/hwi_702.zip',
   'Intel SSD Toolbox': r'https://downloadmirror.intel.com/28593/eng/Intel%20SSD%20Toolbox%20-%20v3.5.9.exe',
