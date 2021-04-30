@@ -48,6 +48,42 @@ from wk.std       import (
 LOG = logging.getLogger(__name__)
 AUTO_REPAIR_DELAY_IN_SECONDS = 30
 AUTO_REPAIR_KEY = fr'Software\{KIT_NAME_FULL}\Auto Repairs'
+BLEACH_BIT_CLEANERS = (
+  # Applications
+  'adobe_reader.cache',
+  'adobe_reader.tmp',
+  'flash.cache',
+  'gimp.tmp',
+  'hippo_opensim_viewer.cache',
+  'java.cache',
+  'miro.cache',
+  'openofficeorg.cache',
+  'pidgin.cache',
+  'secondlife_viewer.Cache',
+  'thunderbird.cache',
+  'vuze.cache',
+  'yahoo_messenger.cache',
+  # Browsers
+  'chromium.cache',
+  'chromium.session',
+  'firefox.cache',
+  'firefox.session_restore',
+  'google_chrome.cache',
+  'google_chrome.session',
+  'google_earth.temporary_files',
+  'opera.cache',
+  'opera.session',
+  'safari.cache',
+  'seamonkey.cache',
+  # System
+  'system.clipboard',
+  'system.tmp',
+  'winapp2_windows.jump_lists',
+  'winapp2_windows.ms_search',
+  'windows_explorer.run',
+  'windows_explorer.search_history',
+  'windows_explorer.thumbnails',
+  )
 CONEMU_EXE = get_tool_path('ConEmu', 'ConEmu', check=False)
 GPUPDATE_SUCCESS_STRINGS = (
   'Computer Policy update has completed successfully.',
@@ -505,6 +541,14 @@ def auto_backup_registry(group, name):
   save_settings(group, name, result=result)
 
 
+def auto_bleachbit(group, name):
+  """Run BleachBit to clean files."""
+  result = TRY_PRINT.run(
+    'BleachBit...', run_bleachbit, BLEACH_BIT_CLEANERS, msg_good='DONE',
+    )
+  save_settings(group, name, result=result)
+
+
 def auto_chkdsk(group, name):
   """Run CHKDSK repairs."""
   needs_reboot = False
@@ -665,10 +709,10 @@ def auto_windows_updates_reset(group, name):
 # Misc Functions
 def set_backup_path(name, date=False):
   """Set backup path, returns pathlib.Path."""
-  return get_local_storage_path('Backups', name, date)
+  return set_local_storage_path('Backups', name, date)
 
 
-def get_local_storage_path(folder, name, date=False):
+def set_local_storage_path(folder, name, date=False):
   """Get path for local storage, returns pathlib.Path."""
   local_path = format_log_path(log_name=f'../{folder}/{name}').with_suffix('')
   if date:
@@ -689,6 +733,20 @@ def delete_registry_null_keys():
   run_tool('RegDelNull', 'RegDelNull', '-s', '-y', cbin=True)
 
 
+def run_bleachbit(cleaners, preview=True):
+  """Run BleachBit to either clean or preview files."""
+  cmd_args = (
+    '--preview' if preview else '--clean',
+    *cleaners,
+    )
+  log_path = format_log_path(log_name='BleachBit', timestamp=True, tool=True)
+  proc = run_tool('BleachBit', 'bleachbit_console', *cmd_args, cbin=True)
+
+  # Save logs
+  log_path.write_text(proc.stdout)
+  log_path.with_suffix('.err').write_text(proc.stderr)
+
+
 def run_rkill():
   """Run RKill scan."""
   log_path = format_log_path(log_name='RKill', timestamp=True, tool=True)
@@ -707,7 +765,7 @@ def run_tdsskiller():
   """Run TDSSKiller scan."""
   log_path = format_log_path(log_name='TDSSKiller', timestamp=True, tool=True)
   log_path.parent.mkdir(parents=True, exist_ok=True)
-  quarantine_path = get_local_storage_path(
+  quarantine_path = set_local_storage_path(
     'Quarantine', 'TDSSKiller', date=True,
     )
   quarantine_path.mkdir(parents=True, exist_ok=True)

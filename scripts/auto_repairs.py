@@ -74,7 +74,7 @@ BASE_MENUS = {
       MenuEntry('Reset Windows Policies',   'auto_reset_windows_policies'),
       ),
     'Malware Cleanup': (
-      MenuEntry('BleachBit',                placeholder_function),
+      MenuEntry('BleachBit',                'auto_bleachbit'),
       MenuEntry('HitmanPro',                placeholder_function),
       MenuEntry('KVRT',                     placeholder_function),
       MenuEntry('Windows Defender',         placeholder_function),
