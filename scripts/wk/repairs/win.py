@@ -66,6 +66,7 @@ REG_UAC_DEFAULT_SETTINGS = {
       ('ConsentPromptBehaviorAdmin', 5, 'DWORD'),
       ('ConsentPromptBehaviorUser', 3, 'DWORD'),
       ('EnableLUA', 1, 'DWORD'),
+      ('PromptOnSecureDesktop', 1, 'DWORD'),
       ),
     },
   }
