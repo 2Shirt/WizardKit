@@ -13,6 +13,7 @@ from subprocess import CalledProcessError, DEVNULL
 
 from wk.cfg.main  import KIT_NAME_FULL
 from wk.exe       import get_procs, run_program, popen_program, wait_for_procs
+from wk.io        import delete_folder, rename_item
 from wk.kit.tools import run_tool
 from wk.log       import format_log_path, update_log_path
 from wk.os.win    import (
@@ -516,6 +517,30 @@ def auto_system_restore_set_size(group, name):
   save_settings(group, name, result=result)
 
 
+def auto_windows_updates_disable(group, name):
+  """Disable Windows Updates."""
+  result = TRY_PRINT.run('Disable Windows Updates...', disable_windows_updates)
+  if result['Failed']:
+    # Reboot and try again?
+    reboot()
+  save_settings(group, name, result=result)
+
+
+def auto_windows_updates_enable(group, name):
+  """Enable Windows Updates."""
+  result = TRY_PRINT.run('Enable Windows Updates...', enable_windows_updates)
+  save_settings(group, name, result=result)
+
+
+def auto_windows_updates_reset(group, name):
+  """Reset Windows Updates."""
+  result = TRY_PRINT.run('Reset Windows Updates...', reset_windows_updates)
+  if result['Failed']:
+    # Reboot and try again?
+    reboot()
+  save_settings(group, name, result=result)
+
+
 # Misc Functions
 def set_backup_path(name, date=False):
   """Set backup path, returns pathlib.Path."""
@@ -551,8 +576,8 @@ def create_system_restore_point():
 
 def disable_windows_updates():
   """Disable and stop Windows Updates."""
-  stop_service('wuauserv')
   disable_service('wuauserv')
+  stop_service('wuauserv')
 
 
 def enable_windows_updates():
@@ -599,6 +624,16 @@ def reboot(timeout=10):
   cmd = ['shutdown', '-r', '-t', '0']
   run_program(cmd, check=False)
   raise SystemExit
+
+
+def reset_windows_updates():
+  """Reset Windows Updates."""
+  system_root = os.environ.get('SYSTEMROOT', 'C:/Windows')
+  rename_item(
+    f'{system_root}/SoftwareDistribution',
+    f'{system_root}/SoftwareDistribution.old',
+    )
+  delete_folder(f'{system_root}/SoftwareDistribution.old', force=True)
 
 
 def run_chkdsk_offline():

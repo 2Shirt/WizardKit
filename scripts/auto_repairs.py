@@ -56,13 +56,13 @@ BASE_MENUS = {
       MenuEntry('Enable System Restore',    'auto_system_restore_enable'),
       MenuEntry('Set System Restore Size',  'auto_system_restore_set_size'),
       MenuEntry('Create System Restore',    'auto_system_restore_create'),
-      MenuEntry('Backup Browsers',          placeholder_function),
+      #MenuEntry('Backup Browsers',          #TODO),
       MenuEntry('Backup Power Plans',       'auto_backup_power_plans'),
       MenuEntry('Backup Registry',          'auto_backup_registry'),
       ),
     'Windows Repairs': (
-      MenuEntry('Disable Windows Updates',  placeholder_function),
-      MenuEntry('Reset Windows Updates',    placeholder_function),
+      MenuEntry('Disable Windows Updates',  'auto_windows_updates_disable'),
+      MenuEntry('Reset Windows Updates',    'auto_windows_updates_reset'),
       MenuEntry('Reboot',                   placeholder_reboot),
       MenuEntry('CHKDSK',                   placeholder_function),
       MenuEntry('DISM RestoreHealth',       'auto_dism'),
@@ -85,7 +85,7 @@ BASE_MENUS = {
     'Manual Steps': (
       MenuEntry('AdwCleaner',               placeholder_function),
       MenuEntry('IO Bit Uninstaller',       placeholder_function),
-      MenuEntry('Enable Windows Updates',   placeholder_function),
+      MenuEntry('Enable Windows Updates',   'auto_windows_updates_enable'),
       ),
     },
   'Options': (
