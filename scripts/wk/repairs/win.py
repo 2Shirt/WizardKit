@@ -628,6 +628,12 @@ def auto_hitmanpro(group, name):
   save_settings(group, name, result=result)
 
 
+def auto_kvrt(group, name):
+  """Run KVRT scan."""
+  result = TRY_PRINT.run('KVRT...', run_kvrt, msg_good='DONE')
+  save_settings(group, name, result=result)
+
+
 def auto_reboot(group, name):
   """Reboot the system."""
   save_settings(group, name, done=True, failed=False, message='DONE')
@@ -769,6 +775,26 @@ def run_hitmanpro():
     'HitmanPro', f'HitmanPro{"64" if ARCH=="64" else ""}',
     *cmd_args, download=True,
     )
+
+
+def run_kvrt():
+  """Run KVRT scan."""
+  log_path = format_log_path(log_name='KVRT', timestamp=True, tool=True)
+  log_path.parent.mkdir(parents=True, exist_ok=True)
+  quarantine_path = set_local_storage_path(
+    'Quarantine', 'KVRT', date=True,
+    )
+  quarantine_path.mkdir(parents=True, exist_ok=True)
+  cmd_args = (
+    '-accepteula',
+    '-d', quarantine_path,
+    '-dontencrypt', '-fixednames',
+    '-processlevel', '1',
+    '-custom', SYSTEMDRIVE,
+    '-silent', '-adinsilent',
+    )
+  proc = run_tool('KVRT', 'KVRT', *cmd_args, download=True)
+  log_path.write_text(proc.stdout)
 
 
 def run_rkill():
