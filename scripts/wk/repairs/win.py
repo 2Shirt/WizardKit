@@ -10,14 +10,19 @@ import re
 import sys
 import time
 
-from subprocess import CalledProcessError, DEVNULL
+from subprocess       import CalledProcessError, DEVNULL
 
-from wk.cfg.main  import KIT_NAME_FULL
-from wk.exe       import get_procs, run_program, popen_program, wait_for_procs
-from wk.io        import delete_folder, rename_item
-from wk.kit.tools import ARCH, get_tool_path, run_tool
-from wk.log       import format_log_path, update_log_path
-from wk.os.win    import (
+from wk.cfg.main      import KIT_NAME_FULL
+from wk.exe           import (
+  get_procs,
+  run_program,
+  popen_program,
+  wait_for_procs,
+  )
+from wk.io            import delete_folder, rename_item
+from wk.kit.tools     import ARCH, get_tool_path, run_tool
+from wk.log           import format_log_path, update_log_path
+from wk.os.win        import (
   reg_delete_value,
   reg_read_value,
   reg_set_value,
@@ -26,7 +31,7 @@ from wk.os.win    import (
   enable_service,
   stop_service,
   )
-from wk.std       import (
+from wk.std           import (
   GenericError,
   GenericWarning,
   Menu,
@@ -117,7 +122,7 @@ RKILL_WHITELIST = (
   fr'{PROGRAMFILES_32}\TeamViewer\tv_x64.exe',
   sys.executable,
   )
-SYSTEMDRIVE = os.environ.get('SYSTEMDRIVE')
+SYSTEMDRIVE = os.environ.get('SYSTEMDRIVE', 'C:')
 WIDTH = 50
 TRY_PRINT = TryAndPrint()
 TRY_PRINT.width = WIDTH
@@ -553,14 +558,13 @@ def auto_bleachbit(group, name):
 def auto_chkdsk(group, name):
   """Run CHKDSK repairs."""
   needs_reboot = False
-  system_disk = os.environ.get('SYSTEMDRIVE', 'C:')
-  result = TRY_PRINT.run(f'CHKDSK ({system_disk})...', run_chkdsk_online)
+  result = TRY_PRINT.run(f'CHKDSK ({SYSTEMDRIVE})...', run_chkdsk_online)
 
   # Run offline CHKDSK if required
   if result['Failed'] and 'Repaired' not in result['Message']:
     needs_reboot = True
     result = TRY_PRINT.run(
-      f'Scheduling offline CHKDSK ({system_disk})...',
+      f'Scheduling offline CHKDSK ({SYSTEMDRIVE})...',
       run_chkdsk_offline,
       )
     if not result['Failed']:
@@ -918,7 +922,7 @@ def restore_uac_defaults():
 
 def run_chkdsk_offline():
   """Set filesystem 'dirty bit' to force a CHKDSK during startup."""
-  cmd = ['fsutil', 'dirty', 'set', os.environ.get('SYSTEMDRIVE', 'C:')]
+  cmd = ['fsutil', 'dirty', 'set', SYSTEMDRIVE]
   proc = run_program(cmd, check=False)
 
   # Check result
@@ -931,7 +935,7 @@ def run_chkdsk_online():
 
   NOTE: If run on Windows 8+ online repairs are attempted.
   """
-  cmd = ['CHKDSK', os.environ.get('SYSTEMDRIVE', 'C:')]
+  cmd = ['CHKDSK', SYSTEMDRIVE]
   if OS_VERSION >= 8:
     cmd.extend(['/scan', '/perf'])
   if IN_CONEMU:
