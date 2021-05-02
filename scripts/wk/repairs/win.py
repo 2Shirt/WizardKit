@@ -274,10 +274,11 @@ def init_run(options):
   if options['Kill Explorer']['Selected']:
     atexit.register(start_explorer)
     TRY_PRINT.run('Killing Explorer...', kill_explorer, msg_good='DONE')
-  TRY_PRINT.run(
-    'Syncing Clock...', run_tool, 'Neutron', 'Neutron',
-    cbin=True, msg_good='DONE',
-    )
+  if options['Sync Clock']['Selected']:
+    TRY_PRINT.run(
+      'Syncing Clock...', run_tool, 'Neutron', 'Neutron',
+      cbin=True, msg_good='DONE',
+      )
   if options['Run RKill']['Selected']:
     TRY_PRINT.run('Running RKill...', run_rkill, msg_good='DONE')
 

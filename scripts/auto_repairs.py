@@ -90,6 +90,7 @@ BASE_MENUS = {
     MenuEntry('Kill Explorer'),
     MenuEntry('Run RKill'),
     MenuEntry('Run TDSSKiller (once)'),
+    MenuEntry('Sync Clock'),
     MenuEntry('Use Autologon'),
     ),
   'Actions': (
