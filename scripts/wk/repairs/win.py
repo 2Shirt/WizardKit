@@ -634,6 +634,14 @@ def auto_kvrt(group, name):
   save_settings(group, name, result=result)
 
 
+def auto_microsoft_defender(group, name):
+  """Run Microsoft Defender scan."""
+  result = TRY_PRINT.run(
+    'Microsoft Defender...', run_microsoft_defender, msg_good='DONE',
+    )
+  save_settings(group, name, result=result)
+
+
 def auto_reboot(group, name):
   """Reboot the system."""
   save_settings(group, name, done=True, failed=False, message='DONE')
@@ -795,6 +803,47 @@ def run_kvrt():
     )
   proc = run_tool('KVRT', 'KVRT', *cmd_args, download=True)
   log_path.write_text(proc.stdout)
+
+
+def run_microsoft_defender(full=True):
+  """Run Microsoft Defender scan."""
+  reg_key = r'Software\Microsoft\Windows Defender'
+
+  def _get_defender_path():
+    install_path = reg_read_value('HKLM', reg_key, 'InstallLocation')
+    return fr'{install_path}\MpCmdRun.exe'
+
+  log_path = format_log_path(
+    log_name='Microsoft Defender', timestamp=True, tool=True,
+    )
+  log_path.parent.mkdir(parents=True, exist_ok=True)
+
+  # Get MS Defender status
+  ## NOTE: disabled may be set to an int instead of bool
+  ##       This is fine because we're just checking if it's enabled.
+  disabled = bool(reg_read_value('HKLM', reg_key, 'DisableAntiSpyware'))
+  disabled = disabled or reg_read_value('HKLM', reg_key, 'DisableAntiVirus')
+  passive_mode = reg_read_value('HKLM', reg_key, 'PassiveMode') == 2
+  if disabled and not passive_mode:
+    raise GenericError('Defender is disabled.')
+
+  # Update signatures
+  defender_path = _get_defender_path()
+  cmd = (defender_path, '-SignatureUpdate')
+  proc = run_program(cmd, check=False)
+  sleep(2)
+  if proc.returncode > 0:
+    LOG.warning('Failed to update Defender signatures')
+
+  # Update defender path in case it changed after the update
+  defender_path = _get_defender_path()
+
+  # Run scan
+  cmd = (defender_path, '-Scan', '-ScanType', '2' if full else '1')
+  proc = run_program(cmd, check=False)
+  log_path.write_text(proc.stdout)
+  if proc.returncode > 0:
+    raise GenericError('Failed to run scan or clean items.')
 
 
 def run_rkill():

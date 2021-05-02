@@ -77,7 +77,7 @@ BASE_MENUS = {
       MenuEntry('BleachBit',                'auto_bleachbit'),
       MenuEntry('HitmanPro',                'auto_hitmanpro'),
       MenuEntry('KVRT',                     'auto_kvrt'),
-      MenuEntry('Windows Defender',         placeholder_function),
+      MenuEntry('Windows Defender',         'auto_microsoft_defender'),
       MenuEntry('Reboot',                   'auto_reboot'),
       ),
     'Manual Steps': (
