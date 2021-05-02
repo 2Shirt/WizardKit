@@ -3,8 +3,6 @@
 
 import os
 import sys
-import random # TODO: Deleteme
-import time
 
 os.chdir(os.path.dirname(os.path.realpath(__file__)))
 sys.path.append(os.getcwd())
@@ -29,23 +27,9 @@ class MenuEntry():
     # Set details
     self.details = {
       'Function': function,
-      'Selected': False,
+      'Selected': True,
       **kwargs,
       }
-
-
-# TODO: Deleteme
-TRY_AND_PRINT = wk.std.TryAndPrint()
-TRY_AND_PRINT.width = 50
-def placeholder_function(group, name):
-  result = TRY_AND_PRINT.run(f'{name}...', time.sleep, random.randint(1, 3))
-  wk.repairs.win.save_settings(group, name, result=result)
-
-def placeholder_reboot(group, name):
-  print('"Rebooting" shortly...')
-  time.sleep(random.randint(1, 3))
-  wk.repairs.win.save_settings(group, name, done=True, message='DONE')
-  raise SystemExit
 
 
 # STATIC VARIABLES
