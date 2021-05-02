@@ -82,7 +82,7 @@ BASE_MENUS = {
       ),
     'Manual Steps': (
       MenuEntry('AdwCleaner',               'auto_adwcleaner'),
-      MenuEntry('IO Bit Uninstaller',       placeholder_function),
+      MenuEntry('IO Bit Uninstaller',       'auto_iobit_uninstaller'),
       MenuEntry('Enable Windows Updates',   'auto_windows_updates_enable'),
       ),
     },

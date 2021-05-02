@@ -640,6 +640,14 @@ def auto_hitmanpro(group, name):
   save_settings(group, name, result=result)
 
 
+def auto_iobit_uninstaller(group, name):
+  """Run IO Bit Uninstaller scan."""
+  result = TRY_PRINT.run(
+    'IO Bit Uninstaller...', run_iobit_uninstaller, msg_good='DONE',
+    )
+  save_settings(group, name, result=result)
+
+
 def auto_kvrt(group, name):
   """Run KVRT scan."""
   result = TRY_PRINT.run('KVRT...', run_kvrt, msg_good='DONE')
@@ -800,6 +808,11 @@ def run_hitmanpro():
     'HitmanPro', f'HitmanPro{"64" if ARCH=="64" else ""}',
     *cmd_args, download=True,
     )
+
+
+def run_iobit_uninstaller():
+  """Run IO Bit Uninstaller."""
+  run_tool('IObitUninstallerPortable', 'IObitUninstallerPortable', cbin=True)
 
 
 def run_kvrt():
