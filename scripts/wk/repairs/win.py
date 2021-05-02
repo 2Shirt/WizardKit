@@ -20,7 +20,7 @@ from wk.exe           import (
   wait_for_procs,
   )
 from wk.io            import delete_folder, rename_item
-from wk.kit.tools     import ARCH, get_tool_path, run_tool
+from wk.kit.tools     import ARCH, download_tool, get_tool_path, run_tool
 from wk.log           import format_log_path, update_log_path
 from wk.os.win        import (
   reg_delete_value,
@@ -826,12 +826,28 @@ def run_kvrt():
   quarantine_path.mkdir(parents=True, exist_ok=True)
   cmd_args = (
     '-accepteula',
-    '-d', quarantine_path,
+    '-d', str(quarantine_path),
     '-dontencrypt', '-fixednames',
     '-processlevel', '1',
     '-custom', SYSTEMDRIVE,
     '-silent', '-adinsilent',
     )
+
+  # Run in new pane
+  if IN_CONEMU:
+    download_tool('KVRT', 'KVRT')
+    kvrt_path = get_tool_path('KVRT', 'KVRT')
+    tmp_file = fr'{os.environ.get("TMP")}\run_kvrt.cmd'
+    with open(tmp_file, 'w') as _f:
+      _f.write('@echo off\n')
+      _f.write(f'"{kvrt_path}" {" ".join(cmd_args)}\n')
+    cmd = ('cmd', '/c', tmp_file, '-new_console:nb', '-new_console:s33V')
+    run_program(cmd, check=False)
+    sleep(1)
+    wait_for_procs('KVRT.exe')
+    return
+
+  # Run in background
   proc = run_tool('KVRT', 'KVRT', *cmd_args, download=True)
   log_path.write_text(proc.stdout)
 
