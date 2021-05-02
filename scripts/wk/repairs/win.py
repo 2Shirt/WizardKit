@@ -535,6 +535,18 @@ def update_main_menu(menus):
 
 
 # Auto Repairs: Wrapper Functions
+def auto_adwcleaner(group, name):
+  """Run AdwCleaner scan.
+
+  save_settings() is called first since AdwCleaner may kill this script.
+  """
+  save_settings(group, name, done=True, failed=False, message='DONE')
+  result = TRY_PRINT.run('AdwCleaner...', run_adwcleaner, msg_good='DONE')
+
+  # Update with actual results (assuming this script wasn't killed)
+  save_settings(group, name, result=result)
+
+
 def auto_backup_power_plans(group, name):
   """Backup power plans."""
   result = TRY_PRINT.run('Backup Power Plans...', export_power_plans)
@@ -756,6 +768,11 @@ def backup_registry():
 def delete_registry_null_keys():
   """Delete registry keys with embedded null characters."""
   run_tool('RegDelNull', 'RegDelNull', '-s', '-y', cbin=True)
+
+
+def run_adwcleaner():
+  """Run AdwCleaner."""
+  run_tool('AdwCleaner', 'AdwCleaner', download=True)
 
 
 def run_bleachbit(cleaners, preview=True):

@@ -81,7 +81,7 @@ BASE_MENUS = {
       MenuEntry('Reboot',                   'auto_reboot'),
       ),
     'Manual Steps': (
-      MenuEntry('AdwCleaner',               placeholder_function),
+      MenuEntry('AdwCleaner',               'auto_adwcleaner'),
       MenuEntry('IO Bit Uninstaller',       placeholder_function),
       MenuEntry('Enable Windows Updates',   'auto_windows_updates_enable'),
       ),
