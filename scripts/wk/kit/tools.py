@@ -101,6 +101,15 @@ def extract_archive(archive, out_path, *args, mode='x', silent=True):
   run_program(cmd)
 
 
+def extract_tool(folder):
+  """Extract tool."""
+  extract_archive(
+    find_kit_dir('.cbin').joinpath(folder).with_suffix('.7z'),
+    find_kit_dir('.bin').joinpath(folder),
+    '-aos', f'-p{ARCHIVE_PASSWORD}',
+    )
+
+
 def find_kit_dir(name=None):
   """Find folder in kit, returns pathlib.Path.
 
@@ -157,11 +166,7 @@ def run_tool(
 
   # Extract from .cbin
   if cbin:
-    extract_archive(
-      find_kit_dir('.cbin').joinpath(folder).with_suffix('.7z'),
-      find_kit_dir('.bin').joinpath(folder),
-      '-aos', f'-p{ARCHIVE_PASSWORD}',
-      )
+    extract_tool(folder)
 
   # Download tool
   if download:
