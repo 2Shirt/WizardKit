@@ -61,6 +61,34 @@ def download_file(out_path, source_url, as_new=False, overwrite=False):
   return out_path
 
 
+def download_tool(folder, name):
+  """Download tool."""
+  out_path = find_kit_dir('.bin').joinpath(f'{folder}/{name}.exe')
+  up_to_date = False
+
+  # Check if tool is up to date
+  try:
+    ctime = datetime.fromtimestamp(out_path.stat().st_ctime)
+    up_to_date = datetime.now() - ctime < timedelta(days=DOWNLOAD_FREQUENCY)
+  except FileNotFoundError:
+    # Ignore - we'll download it below
+    pass
+  if out_path.exists() and up_to_date:
+    LOG.info('Skip downloading up-to-date tool: %s', name)
+    return
+
+  # Download
+  LOG.info('Downloading tool: %s', name)
+  source_url = SOURCES[name]
+  try:
+    new_file = download_file(out_path, source_url, as_new=True)
+    new_file.replace(out_path)
+  except GenericError:
+    # Ignore as long as there's still a version present
+    if not out_path.exists():
+      raise
+
+
 def extract_archive(archive, out_path, *args, mode='x', silent=True):
   """Extract an archive to out_path."""
   out_path = pathlib.Path(out_path).resolve()
@@ -127,18 +155,6 @@ def run_tool(
   proc will be either subprocess.CompletedProcess or subprocess.Popen."""
   proc = None
 
-  def _is_outdated(file_path):
-    """Check if the ctime is older than the threshold, returns bool."""
-    outdated = False
-    try:
-      ctime = datetime.fromtimestamp(file_path.stat().st_ctime)
-      outdated = datetime.now() - ctime > timedelta(days=DOWNLOAD_FREQUENCY)
-    except FileNotFoundError:
-      LOG.error("This shouldn't happen right?")
-
-    # Done
-    return outdated
-
   # Extract from .cbin
   if cbin:
     extract_archive(
@@ -149,19 +165,7 @@ def run_tool(
 
   # Download tool
   if download:
-    out_path = find_kit_dir('.bin').joinpath(f'{folder}/{name}.exe')
-    if not out_path.exists() or _is_outdated(out_path):
-      LOG.info('Downloading tool: %s', name)
-      source_url = SOURCES[name]
-      try:
-        new_file = download_file(out_path, source_url, as_new=True)
-        new_file.replace(out_path)
-      except GenericError:
-        # Ignore as long as there's still a version present
-        if not out_path.exists():
-          raise
-    else:
-      LOG.info('Skip downloading tool: %s', name)
+    download_tool(folder, name)
 
   # Run
   tool_path = get_tool_path(folder, name)
