@@ -5,19 +5,24 @@ import logging
 import os
 import pathlib
 import platform
-import winreg
 
 from contextlib import suppress
+import psutil
+
+try:
+  import winreg
+except ImportError as err:
+  if platform.system() == 'Windows':
+    raise err
 
 from wk.borrowed import acpi
 from wk.exe import run_program
-from wk.io import non_clobber_path
-from wk.log import format_log_path
 from wk.std import GenericError, GenericWarning, sleep
 
 
 # STATIC VARIABLES
 LOG = logging.getLogger(__name__)
+CONEMU = 'ConEmuPID' in os.environ
 KNOWN_DATA_TYPES = {
   'BINARY': winreg.REG_BINARY,
   'DWORD': winreg.REG_DWORD,
@@ -56,7 +61,7 @@ REG_MSISERVER = r'HKLM\SYSTEM\CurrentControlSet\Control\SafeBoot\Network\MSIServ
 SLMGR = pathlib.Path(f'{os.environ.get("SYSTEMROOT")}/System32/slmgr.vbs')
 
 
-# Functions
+# Activation Functions
 def activate_with_bios():
   """Attempt to activate Windows with a key stored in the BIOS."""
   # Code borrowed from https://github.com/aeruder/get_win8key
@@ -96,36 +101,6 @@ def activate_with_bios():
     raise GenericError('Activation Failed')
 
 
-def disable_safemode():
-  """Edit BCD to remove safeboot value."""
-  cmd = ['bcdedit', '/deletevalue', '{default}', 'safeboot']
-  run_program(cmd)
-
-
-def disable_safemode_msi():
-  """Disable MSI access under safemode."""
-  cmd = ['reg', 'delete', REG_MSISERVER, '/f']
-  run_program(cmd)
-
-
-def enable_safemode():
-  """Edit BCD to set safeboot as default."""
-  cmd = ['bcdedit', '/set', '{default}', 'safeboot', 'network']
-  run_program(cmd)
-
-
-def enable_safemode_msi():
-  """Enable MSI access under safemode."""
-  cmd = ['reg', 'add', REG_MSISERVER, '/f']
-  run_program(cmd)
-  cmd = [
-    'reg', 'add', REG_MSISERVER, '/ve',
-    '/t', 'REG_SZ',
-    '/d', 'Service', '/f',
-    ]
-  run_program(cmd)
-
-
 def get_activation_string():
   """Get activation status, returns str."""
   cmd = ['cscript', '//nologo', SLMGR, '/xpr']
@@ -144,75 +119,6 @@ def is_activated():
   return act_str and 'permanent' in act_str
 
 
-def run_chkdsk_offline():
-  """Set filesystem 'dirty bit' to force a CHKDSK during startup."""
-  cmd = f'fsutil dirty set {os.environ.get("SYSTEMDRIVE")}'
-  proc = run_program(cmd.split(), check=False)
-
-  # Check result
-  if proc.returncode > 0:
-    raise GenericError('Failed to set dirty bit.')
-
-
-def run_chkdsk_online():
-  """Run CHKDSK in a split window.
-
-  NOTE: If run on Windows 8+ online repairs are attempted.
-  """
-  cmd = ['CHKDSK', os.environ.get('SYSTEMDRIVE', 'C:')]
-  if OS_VERSION >= 8:
-    cmd.extend(['/scan', '/perf'])
-  log_path = format_log_path(log_name='CHKDSK', tool=True)
-  err_path = log_path.with_suffix('.err')
-
-  # Run scan
-  proc = run_program(cmd, check=False)
-
-  # Check result
-  if proc.returncode == 1:
-    raise GenericWarning('Repaired (or manually aborted)')
-  if proc.returncode > 1:
-    raise GenericError('Issue(s) detected')
-
-  # Save output
-  os.makedirs(log_path.parent, exist_ok=True)
-  with open(log_path, 'w') as _f:
-    _f.write(proc.stdout)
-  with open(err_path, 'w') as _f:
-    _f.write(proc.stderr)
-
-
-def run_sfc_scan():
-  """Run SFC and save results."""
-  cmd = ['sfc', '/scannow']
-  log_path = format_log_path(log_name='SFC', tool=True)
-  err_path = log_path.with_suffix('.err')
-
-  # Run SFC
-  proc = run_program(cmd, check=False, encoding='utf-16')
-
-  # Fix paths
-  log_path = non_clobber_path(log_path)
-  err_path = non_clobber_path(err_path)
-
-  # Save output
-  os.makedirs(log_path.parent, exist_ok=True)
-  with open(log_path, 'w') as _f:
-    _f.write(proc.stdout)
-  with open(err_path, 'w') as _f:
-    _f.write(proc.stderr)
-
-  # Check result
-  if 'did not find any integrity violations' in proc.stdout:
-    pass
-  elif 'successfully repaired' in proc.stdout:
-    raise GenericWarning('Repaired')
-  elif 'found corrupt files' in proc.stdout:
-    raise GenericError('Corruption detected')
-  else:
-    raise OSError
-
-
 # Registry Functions
 def reg_delete_key(hive, key, recurse=False):
   # pylint: disable=raise-missing-from
@@ -225,7 +131,7 @@ def reg_delete_key(hive, key, recurse=False):
 
   # Delete subkeys first
   if recurse:
-    with suppress(WindowsError), winreg.OpenKey(hive, key) as open_key:
+    with suppress(OSError), winreg.OpenKey(hive, key) as open_key:
       while True:
         subkey = fr'{key}\{winreg.EnumKey(open_key, 0)}'
         reg_delete_key(hive, subkey, recurse=recurse)
@@ -405,6 +311,107 @@ def reg_set_value(hive, key, name, data, data_type, option=None):
   else:
     # Set default value instead
     winreg.SetValue(hive, key, data_type, data)
+
+
+# Safe Mode Functions
+def disable_safemode():
+  """Edit BCD to remove safeboot value."""
+  cmd = ['bcdedit', '/deletevalue', '{default}', 'safeboot']
+  run_program(cmd)
+
+
+def disable_safemode_msi():
+  """Disable MSI access under safemode."""
+  cmd = ['reg', 'delete', REG_MSISERVER, '/f']
+  run_program(cmd)
+
+
+def enable_safemode():
+  """Edit BCD to set safeboot as default."""
+  cmd = ['bcdedit', '/set', '{default}', 'safeboot', 'network']
+  run_program(cmd)
+
+
+def enable_safemode_msi():
+  """Enable MSI access under safemode."""
+  cmd = ['reg', 'add', REG_MSISERVER, '/f']
+  run_program(cmd)
+  cmd = [
+    'reg', 'add', REG_MSISERVER, '/ve',
+    '/t', 'REG_SZ',
+    '/d', 'Service', '/f',
+    ]
+  run_program(cmd)
+
+
+# Service Functions
+def disable_service(service_name):
+  """Set service startup to disabled."""
+  cmd = ['sc', 'config', service_name, 'start=', 'disabled']
+  run_program(cmd, check=False)
+
+  # Verify service was disabled
+  if get_service_start_type(service_name) != 'disabled':
+    raise GenericError(f'Failed to disable service {service_name}')
+
+
+def enable_service(service_name, start_type='auto'):
+  """Enable service by setting start type."""
+  cmd = ['sc', 'config', service_name, 'start=', start_type]
+  psutil_type = 'automatic'
+  if start_type == 'demand':
+    psutil_type = 'manual'
+
+  # Enable service
+  run_program(cmd, check=False)
+
+  # Verify service was enabled
+  if get_service_start_type(service_name) != psutil_type:
+    raise GenericError(f'Failed to enable service {service_name}')
+
+
+def get_service_status(service_name):
+  """Get service status using psutil, returns str."""
+  status = 'unknown'
+  try:
+    service = psutil.win_service_get(service_name)
+    status = service.status()
+  except psutil.NoSuchProcess:
+    status = 'missing?'
+
+  return status
+
+
+def get_service_start_type(service_name):
+  """Get service startup type using psutil, returns str."""
+  start_type = 'unknown'
+  try:
+    service = psutil.win_service_get(service_name)
+    start_type = service.start_type()
+  except psutil.NoSuchProcess:
+    start_type = 'missing?'
+
+  return start_type
+
+
+def start_service(service_name):
+  """Stop service."""
+  cmd = ['net', 'start', service_name]
+  run_program(cmd, check=False)
+
+  # Verify service was started
+  if not get_service_status(service_name) in ('running', 'start_pending'):
+    raise GenericError(f'Failed to start service {service_name}')
+
+
+def stop_service(service_name):
+  """Stop service."""
+  cmd = ['net', 'stop', service_name]
+  run_program(cmd, check=False)
+
+  # Verify service was stopped
+  if not get_service_status(service_name) == 'stopped':
+    raise GenericError(f'Failed to stop service {service_name}')
 
 
 if __name__ == '__main__':

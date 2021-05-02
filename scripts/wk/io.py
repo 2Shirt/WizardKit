@@ -192,5 +192,11 @@ def recursive_copy(source, dest, overwrite=False):
       raise FileExistsError(f'Refusing to delete file: {dest}')
 
 
+def rename_item(path, new_path):
+  """Rename item, returns pathlib.Path."""
+  path = pathlib.Path(path)
+  return path.rename(new_path)
+
+
 if __name__ == '__main__':
   print("This file is not meant to be called directly.")

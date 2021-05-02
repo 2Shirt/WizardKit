@@ -18,6 +18,7 @@ import time
 import traceback
 
 from collections import OrderedDict
+from functools import cache
 
 import requests
 
@@ -381,11 +382,16 @@ class Menu():
     # Done
     return selected_entry
 
-  def simple_select(self, prompt='Please make a selection: '):
+  def simple_select(self, prompt='Please make a selection: ', update=True):
     """Display menu and make a single selection, returns tuple."""
-    self._update()
+    if update:
+      self._update()
     user_selection = self._user_select(prompt)
     return self._resolve_selection(user_selection)
+
+  def update(self):
+    """Update menu with default settings."""
+    self._update()
 
 
 class TryAndPrint():
@@ -455,7 +461,7 @@ class TryAndPrint():
     # Done
     return message
 
-  def _format_function_output(self, output):
+  def _format_function_output(self, output, msg_good):
     """Format function output for use in try_and_print(), returns str."""
     LOG.debug('Formatting output: %s', output)
 
@@ -468,6 +474,10 @@ class TryAndPrint():
       if not isinstance(stdout, str):
         stdout = stdout.decode('utf8')
       output = stdout.strip().splitlines()
+      if not output:
+        # Going to treat these as successes (for now)
+        LOG.warning('Program output was empty, assuming good result.')
+        return color_string(msg_good, 'GREEN')
     else:
       try:
         output = list(output)
@@ -489,24 +499,41 @@ class TryAndPrint():
     # Done
     return result_msg
 
+  @cache
   def _get_exception(self, name):
     # pylint: disable=no-self-use
     """Get exception by name, returns exception object.
 
     [Doctest]
-    >>> self._get_exception('AttributeError')
+    >>> t = TryAndPrint()
+    >>> t._get_exception('AttributeError')
     <class 'AttributeError'>
-    >>> self._get_exception('CalledProcessError')
+    >>> t._get_exception('CalledProcessError')
     <class 'subprocess.CalledProcessError'>
-    >>> self._get_exception('GenericError')
-    <class 'std.GenericError'>
+    >>> t._get_exception('GenericError')
+    <class 'wk.std.GenericError'>
     """
     LOG.debug('Getting exception: %s', name)
-    try:
-      obj = getattr(sys.modules[__name__], name)
-    except AttributeError:
-      # Try builtin classes
-      obj = getattr(sys.modules['builtins'], name)
+    obj = getattr(sys.modules[__name__], name, None)
+    if obj:
+      return obj
+
+    # Try builtin classes
+    obj = getattr(sys.modules['builtins'], name, None)
+    if obj:
+      return obj
+
+    # Try all modules
+    for _mod in sys.modules:
+      obj = getattr(sys.modules[_mod], name, None)
+      if obj:
+        break
+
+    # Check if not found
+    if not obj:
+      raise AttributeError(f'Failed to find exception: {name}')
+
+    # Done
     return obj
 
   def _log_result(self, message, result_msg):
@@ -560,12 +587,11 @@ class TryAndPrint():
       verbose,
       )
     f_exception = None
+    catch_all = catch_all if catch_all else self.catch_all
+    msg_good = msg_good if msg_good else self.msg_good
     output = None
     result_msg = 'UNKNOWN'
-    if catch_all is None:
-      catch_all = self.catch_all
-    if verbose is None:
-      verbose = self.verbose
+    verbose = verbose if verbose else self.verbose
 
     # Build exception tuples
     e_exceptions = tuple(self._get_exception(e) for e in self.list_errors)
@@ -600,17 +626,18 @@ class TryAndPrint():
     else:
       # Success
       if output:
-        result_msg = self._format_function_output(output)
+        result_msg = self._format_function_output(output, msg_good)
         print(result_msg)
       else:
-        result_msg = msg_good if msg_good else self.msg_good
+        result_msg = msg_good
         print_success(result_msg, log=False)
 
     # Done
     self._log_result(message, result_msg)
     return {
-      'Failed': bool(f_exception),
       'Exception': f_exception,
+      'Failed': bool(f_exception),
+      'Message': result_msg,
       'Output': output,
       }
 
@@ -645,7 +672,6 @@ def ask(prompt='Kotaero!'):
 
 def beep(repeat=1):
   """Play system bell with optional repeat."""
-  # TODO: Verify Windows functionality
   while repeat >= 1:
     # Print bell char without a newline
     print('\a', end='', flush=True)
@@ -977,11 +1003,13 @@ def set_title(title):
     print_error('Setting the title is only supported under Windows.')
 
 
-def show_data(message, data, color=None):
-  """Display info using standard WIDTH and INDENT."""
+def show_data(message, data, color=None, indent=None, width=None):
+  """Display info using default or provided indent and width."""
   colors = (None, color if color else None)
+  indent = INDENT if indent is None else indent
+  width = WIDTH if width is None else width
   print_colored(
-    (f'{" "*INDENT}{message:<{WIDTH}}', data),
+    (f'{" "*indent}{message:<{width}}', data),
     colors,
     log=True,
     sep='',

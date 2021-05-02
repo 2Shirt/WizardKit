@@ -130,7 +130,7 @@ def get_json_from_command(cmd, check=True, encoding='utf-8', errors='ignore'):
   return json_data
 
 
-def get_procs(name, exact=True):
+def get_procs(name, exact=True, try_again=True):
   """Get process object(s) based on name, returns list of proc objects."""
   LOG.debug('name: %s, exact: %s', name, exact)
   processes = []
@@ -140,6 +140,11 @@ def get_procs(name, exact=True):
   for proc in psutil.process_iter():
     if re.search(regex, proc.name(), re.IGNORECASE):
       processes.append(proc)
+
+  # Try again?
+  if not processes and try_again:
+    time.sleep(1)
+    processes = get_procs(name, exact, try_again=False)
 
   # Done
   return processes
@@ -242,10 +247,10 @@ def wait_for_procs(name, exact=True, timeout=None):
   """Wait for all process matching name."""
   LOG.debug('name: %s, exact: %s, timeout: %s', name, exact, timeout)
   target_procs = get_procs(name, exact=exact)
-  results = psutil.wait_procs(target_procs, timeout=timeout)
+  procs = psutil.wait_procs(target_procs, timeout=timeout)
 
   # Raise exception if necessary
-  if results[1]: # Alive processes
+  if procs[1]: # Alive processes
     raise psutil.TimeoutExpired(name=name, seconds=timeout)
 
 

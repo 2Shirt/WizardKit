@@ -89,7 +89,7 @@
 			<value name="ProcessNewConArg" type="hex" data="01"/>
 			<value name="ProcessCmdStart" type="hex" data="00"/>
 			<value name="ProcessCtrlZ" type="hex" data="00"/>
-			<value name="SuppressBells" type="hex" data="01"/>
+			<value name="SuppressBells" type="hex" data="00"/>
 			<value name="ConsoleExceptionHandler" type="hex" data="00"/>
 			<value name="UseClink" type="hex" data="01"/>
 			<value name="StoreTaskbarkTasks" type="hex" data="01"/>
