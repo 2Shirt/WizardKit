@@ -185,8 +185,6 @@ def build_menus(base_menus, title):
 
 def end_session():
   """End Auto Repairs session."""
-  auto_admin_logon = '0'
-
   # Delete Auto Repairs keys
   try:
     reg_delete_value('HKCU', AUTO_REPAIR_KEY, 'SessionStarted')
@@ -209,15 +207,7 @@ def end_session():
     LOG.error("Failed to remove scheduled task or it doesn't exist.")
 
   # Disable Autologon
-  try:
-    auto_admin_logon = reg_read_value(
-      'HKLM', r'Software\Microsoft\Windows NT\CurrentVersion\Winlogon',
-      'AutoAdminLogon',
-      )
-  except FileNotFoundError:
-    # Ignore and assume it's disabled
-    return
-  if auto_admin_logon != '0':
+  if is_autologon_enabled():
     run_tool('Sysinternals', 'Autologon')
     reg_set_value(
       'HKLM', r'Software\Microsoft\Windows NT\CurrentVersion\Winlogon',
@@ -274,6 +264,12 @@ def init_run(options):
   if options['Kill Explorer']['Selected']:
     atexit.register(start_explorer)
     TRY_PRINT.run('Killing Explorer...', kill_explorer, msg_good='DONE')
+  if options['Use Autologon']['Selected'] and not is_autologon_enabled():
+    TRY_PRINT.run(
+      'Running Autologon...', run_tool,
+      'Autologon', 'Autologon',
+      cbin=True, msg_good='DONE',
+      )
   if options['Sync Clock']['Selected']:
     TRY_PRINT.run(
       'Syncing Clock...', run_tool, 'Neutron', 'Neutron',
@@ -300,16 +296,28 @@ def init_session(options):
   run_program(cmd)
 
   # One-time tasks
-  if options['Use Autologon']['Selected']:
-    TRY_PRINT.run(
-      'Running Autologon...', run_tool,
-      'Autologon', 'Autologon',
-      cbin=True, msg_good='DONE',
-      )
   if options['Run TDSSKiller (once)']['Selected']:
     TRY_PRINT.run('Running TDSSKiller...', run_tdsskiller, msg_good='DONE')
   print('')
   reboot(30)
+
+
+def is_autologon_enabled():
+  """Check if Autologon is enabled, returns bool."""
+  auto_admin_logon = False
+  try:
+    auto_admin_logon = reg_read_value(
+      'HKLM', r'Software\Microsoft\Windows NT\CurrentVersion\Winlogon',
+      'AutoAdminLogon',
+      )
+  except FileNotFoundError:
+    # Ignore and assume it's disabled
+    pass
+  else:
+    auto_admin_logon = auto_admin_logon != '0'
+
+  # Done
+  return auto_admin_logon
 
 
 def is_session_started():
@@ -373,6 +381,10 @@ def run_auto_repairs(base_menus):
   save_selection_settings(menus)
   print_info('Initializing...')
   init_run(menus['Options'].options)
+  if not is_autologon_enabled():
+    # Either it wasn't selected or a password wasn't entered
+    menus['Options'].options['Use Autologon']['Selected'] = False
+    save_selection_settings(menus)
   if not session_started:
     init_session(menus['Options'].options)
   print_info('Running repairs')
