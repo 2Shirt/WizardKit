@@ -63,6 +63,7 @@ def download_file(out_path, source_url, as_new=False, overwrite=False):
 
 def download_tool(folder, name):
   """Download tool."""
+  name_arch = f'{name}{ARCH}'
   out_path = find_kit_dir('.bin').joinpath(f'{folder}/{name}.exe')
   up_to_date = False
 
@@ -77,9 +78,15 @@ def download_tool(folder, name):
     LOG.info('Skip downloading up-to-date tool: %s', name)
     return
 
+  # Get ARCH specific URL if available
+  if name_arch in SOURCES:
+    source_url = SOURCES[name_arch]
+    out_path = out_path.with_stem(name_arch)
+  else:
+    source_url = SOURCES[name]
+
   # Download
   LOG.info('Downloading tool: %s', name)
-  source_url = SOURCES[name]
   try:
     new_file = download_file(out_path, source_url, as_new=True)
     new_file.replace(out_path)

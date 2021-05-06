@@ -20,7 +20,7 @@ from wk.exe           import (
   wait_for_procs,
   )
 from wk.io            import delete_folder, rename_item
-from wk.kit.tools     import ARCH, download_tool, get_tool_path, run_tool
+from wk.kit.tools     import download_tool, get_tool_path, run_tool
 from wk.log           import format_log_path, update_log_path
 from wk.os.win        import (
   reg_delete_value,
@@ -817,10 +817,7 @@ def run_hitmanpro():
   log_path = log_path.with_suffix('.xml')
   log_path.parent.mkdir(parents=True, exist_ok=True)
   cmd_args = ['/scanonly', f'/log={log_path}']
-  run_tool(
-    'HitmanPro', f'HitmanPro{"64" if ARCH=="64" else ""}',
-    *cmd_args, download=True,
-    )
+  run_tool('HitmanPro', 'HitmanPro', *cmd_args, download=True)
 
 
 def run_iobit_uninstaller():
