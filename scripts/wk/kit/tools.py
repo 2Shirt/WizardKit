@@ -147,10 +147,12 @@ def find_kit_dir(name=None):
 def get_tool_path(folder, name, check=True):
   """Get tool path, returns pathlib.Path"""
   bin_dir = find_kit_dir('.bin')
+  name_arch = f'{name}{ARCH}'
 
   # "Search"
-  tool_path = bin_dir.joinpath(f'{folder}/{name}{ARCH}.exe')
-  if not tool_path.exists():
+  tool_path = bin_dir.joinpath(f'{folder}/{name_arch}.exe')
+  if not (tool_path.exists() or name_arch in SOURCES):
+    # Use "default" path instead
     tool_path = tool_path.with_stem(name)
 
   # Missing?
