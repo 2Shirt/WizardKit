@@ -64,7 +64,7 @@ def download_file(out_path, source_url, as_new=False, overwrite=False):
 def download_tool(folder, name):
   """Download tool."""
   name_arch = f'{name}{ARCH}'
-  out_path = find_kit_dir('.bin').joinpath(f'{folder}/{name}.exe')
+  out_path = get_tool_path(folder, name, check=False)
   up_to_date = False
 
   # Check if tool is up to date
