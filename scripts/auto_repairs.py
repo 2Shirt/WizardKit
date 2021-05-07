@@ -88,6 +88,8 @@ BASE_MENUS = {
 if __name__ == '__main__':
   try:
     wk.repairs.win.run_auto_repairs(BASE_MENUS)
+  except KeyboardInterrupt:
+    wk.std.abort()
   except SystemExit:
     raise
   except: #pylint: disable=bare-except

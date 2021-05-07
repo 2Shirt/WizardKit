@@ -36,6 +36,7 @@ from wk.std           import (
   GenericWarning,
   Menu,
   TryAndPrint,
+  abort,
   ask,
   clear_screen,
   color_string,
@@ -397,7 +398,10 @@ def run_auto_repairs(base_menus):
   for group, menu in menus.items():
     if group in ('Main', 'Options'):
       continue
-    run_group(group, menu)
+    try:
+      run_group(group, menu)
+    except KeyboardInterrupt:
+      abort()
 
   # Done
   end_session()
