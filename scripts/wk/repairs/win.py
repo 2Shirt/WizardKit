@@ -12,7 +12,7 @@ import time
 
 from subprocess       import CalledProcessError, DEVNULL
 
-from wk.cfg.main      import KIT_NAME_FULL
+from wk.cfg.main      import KIT_NAME_FULL, KIT_NAME_SHORT
 from wk.exe           import (
   get_procs,
   run_program,
@@ -782,10 +782,15 @@ def set_backup_path(name, date=False):
 
 def set_local_storage_path(folder, name, date=False):
   """Get path for local storage, returns pathlib.Path."""
-  local_path = format_log_path(log_name=f'../{folder}/{name}').with_suffix('')
+  local_path = get_path_obj(f'{SYSTEMDRIVE}/{KIT_NAME_SHORT}/{folder}/{name}')
   if date:
     local_path = local_path.joinpath(time.strftime('%Y-%m-%d'))
-  return local_path.resolve()
+  return local_path
+
+
+def set_quarantine_path(name, date=False):
+  """Set quarantine path, returns pathlib.Path."""
+  return set_local_storage_path('Quarantine', name, date)
 
 
 # Tool Functions
@@ -910,9 +915,7 @@ def run_kvrt():
   """Run KVRT scan."""
   log_path = format_log_path(log_name='KVRT', timestamp=True, tool=True)
   log_path.parent.mkdir(parents=True, exist_ok=True)
-  quarantine_path = set_local_storage_path(
-    'Quarantine', 'KVRT', date=True,
-    )
+  quarantine_path = set_quarantine_path('KVRT')
   quarantine_path.mkdir(parents=True, exist_ok=True)
   cmd_args = (
     '-accepteula',
@@ -1001,9 +1004,7 @@ def run_tdsskiller():
   """Run TDSSKiller scan."""
   log_path = format_log_path(log_name='TDSSKiller', timestamp=True, tool=True)
   log_path.parent.mkdir(parents=True, exist_ok=True)
-  quarantine_path = set_local_storage_path(
-    'Quarantine', 'TDSSKiller', date=True,
-    )
+  quarantine_path = set_quarantine_path('TDSSKiller')
   quarantine_path.mkdir(parents=True, exist_ok=True)
   cmd_args = (
     '-accepteula',
