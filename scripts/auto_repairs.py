@@ -40,7 +40,7 @@ BASE_MENUS = {
       MenuEntry('Enable System Restore',    'auto_system_restore_enable'),
       MenuEntry('Set System Restore Size',  'auto_system_restore_set_size'),
       MenuEntry('Create System Restore',    'auto_system_restore_create'),
-      #MenuEntry('Backup Browsers',          #TODO),
+      MenuEntry('Backup Browsers',          'auto_backup_browser_profiles'),
       MenuEntry('Backup Power Plans',       'auto_backup_power_plans'),
       MenuEntry('Backup Registry',          'auto_backup_registry'),
       ),

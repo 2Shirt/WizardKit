@@ -19,7 +19,7 @@ from wk.exe           import (
   popen_program,
   wait_for_procs,
   )
-from wk.io            import delete_folder, rename_item
+from wk.io            import delete_folder, get_path_obj, rename_item
 from wk.kit.tools     import download_tool, get_tool_path, run_tool
 from wk.log           import format_log_path, update_log_path
 from wk.os.win        import (
@@ -54,6 +54,10 @@ from wk.std           import (
 LOG = logging.getLogger(__name__)
 AUTO_REPAIR_DELAY_IN_SECONDS = 30
 AUTO_REPAIR_KEY = fr'Software\{KIT_NAME_FULL}\Auto Repairs'
+BACKUP_BROWSER_BASE_CMD = (
+  get_tool_path('7-Zip', '7za'),
+  'a', '-t7z', '-mx=1', '-bso0', '-bse0', '-bsp0',
+  )
 BLEACH_BIT_CLEANERS = (
   # Applications
   'adobe_reader.cache',
@@ -560,6 +564,12 @@ def auto_adwcleaner(group, name):
   save_settings(group, name, result=result)
 
 
+def auto_backup_browser_profiles(group, name):
+  """Backup browser profiles."""
+  backup_all_browser_profiles(use_try_print=True)
+  save_settings(group, name, done=True, failed=False, message='DONE')
+
+
 def auto_backup_power_plans(group, name):
   """Backup power plans."""
   result = TRY_PRINT.run('Backup Power Plans...', export_power_plans)
@@ -779,6 +789,77 @@ def set_local_storage_path(folder, name, date=False):
 
 
 # Tool Functions
+def backup_all_browser_profiles(use_try_print=False):
+  """Backup browser profiles for all users."""
+  users = get_path_obj(f'{SYSTEMDRIVE}/Users')
+  for userprofile in users.iterdir():
+    if use_try_print:
+      print_info(f'{" "*6}{userprofile.name}')
+    backup_browser_profiles(userprofile, use_try_print)
+
+
+def backup_browser_chromium(backup_path, browser, search_path, use_try_print):
+  """Backup Chromium-based browser profile."""
+  for item in search_path.iterdir():
+    match = re.match(r'^(Default|Profile).*', item.name, re.IGNORECASE)
+    if not match:
+      continue
+    output_path = backup_path.joinpath(f'{browser}-{item.name}.7z')
+    cmd = [
+      *BACKUP_BROWSER_BASE_CMD,
+      output_path, item.joinpath('*'), '-x!*Cache*', '-x!Service Worker',
+      ]
+    if use_try_print:
+      TRY_PRINT.run(
+        f'{" "*8}{browser} ({item.name})...',
+        run_program, cmd, check=False,
+        )
+    else:
+      run_program(cmd, check=False)
+
+
+def backup_browser_firefox(backup_path, search_path, use_try_print):
+  """Backup Firefox browser profile."""
+  output_path = backup_path.joinpath('Firefox.7z')
+  cmd = [
+    *BACKUP_BROWSER_BASE_CMD, output_path,
+    search_path.joinpath('Profiles'), search_path.joinpath('profiles.ini'),
+    ]
+  if use_try_print:
+    TRY_PRINT.run(f'{" "*8}Firefox (All)...', run_program, cmd, check=False)
+  else:
+    run_program(cmd, check=False)
+
+
+def backup_browser_profiles(userprofile, use_try_print=False):
+  """Backup browser profiles for userprofile."""
+  backup_path = set_backup_path('Browsers', date=True)
+  backup_path = backup_path.joinpath(userprofile.name)
+  backup_path.mkdir(parents=True, exist_ok=True)
+
+  # Chrome
+  search_path = userprofile.joinpath('AppData/Local/Google/Chrome/User Data')
+  if search_path.exists():
+    backup_browser_chromium(backup_path, 'Chrome', search_path, use_try_print)
+
+  # Edge
+  search_path = userprofile.joinpath('AppData/Local/Microsoft/Edge/User Data')
+  if search_path.exists():
+    backup_browser_chromium(backup_path, 'Edge', search_path, use_try_print)
+
+  # Firefox
+  search_path = userprofile.joinpath('AppData/Roaming/Mozilla/Firefox')
+  if search_path.joinpath('Profiles').exists():
+    backup_browser_firefox(backup_path, search_path, use_try_print)
+
+  # Remove empty folders
+  try:
+    backup_path.rmdir()
+  except OSError:
+    # Only looking for empty folders
+    pass
+
+
 def backup_registry():
   """Backup Registry."""
   backup_path = set_backup_path('Registry', date=True)

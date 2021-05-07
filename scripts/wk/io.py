@@ -113,6 +113,16 @@ def delete_item(path, force=False, ignore_errors=False):
     os.remove(path)
 
 
+def get_path_obj(path, expanduser=True, resolve=True):
+  """Get based on path, returns pathlib.Path."""
+  path = pathlib.Path(path)
+  if expanduser:
+    path = path.expanduser()
+  if resolve:
+    path = path.resolve()
+  return path
+
+
 def non_clobber_path(path):
   """Update path as needed to non-existing path, returns pathlib.Path."""
   LOG.debug('path: %s', path)
