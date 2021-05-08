@@ -18,7 +18,12 @@ import time
 import traceback
 
 from collections import OrderedDict
-from functools import cache
+
+try:
+  from functools import cache
+except ImportError:
+  # Assuming Python is < 3.9
+  from functools import lru_cache as cache
 
 import requests
 
