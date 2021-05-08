@@ -414,5 +414,19 @@ def stop_service(service_name):
     raise GenericError(f'Failed to stop service {service_name}')
 
 
+# Date / Time functions
+def get_timezone():
+  """Get current timezone using tzutil, returns str."""
+  cmd = ['tzutil', '/g']
+  proc = run_program(cmd, check=False)
+  return proc.stdout
+
+
+def set_timezone(zone):
+  """Set current timezone using tzutil."""
+  cmd = ['tzutil', '/s', zone]
+  run_program(cmd, check=False)
+
+
 if __name__ == '__main__':
   print("This file is not meant to be called directly.")

@@ -12,7 +12,7 @@ import time
 
 from subprocess       import CalledProcessError, DEVNULL
 
-from wk.cfg.main      import KIT_NAME_FULL, KIT_NAME_SHORT
+from wk.cfg.main      import KIT_NAME_FULL, KIT_NAME_SHORT, WINDOWS_TIME_ZONE
 from wk.exe           import (
   get_procs,
   run_program,
@@ -23,6 +23,8 @@ from wk.io            import delete_folder, get_path_obj, rename_item
 from wk.kit.tools     import download_tool, get_tool_path, run_tool
 from wk.log           import format_log_path, update_log_path
 from wk.os.win        import (
+  get_timezone,
+  set_timezone,
   reg_delete_value,
   reg_read_value,
   reg_set_value,
@@ -287,6 +289,15 @@ def init_run(options):
 def init_session(options):
   """Initialize Auto Repairs session."""
   reg_set_value('HKCU', AUTO_REPAIR_KEY, 'SessionStarted', 1, 'DWORD')
+
+  # Check timezone
+  zone = get_timezone()
+  msg = (
+    'The timezone is currently set to '
+    f'{zone}, switch it to {WINDOWS_TIME_ZONE}?'
+    )
+  if zone != WINDOWS_TIME_ZONE and ask(msg):
+    set_timezone(WINDOWS_TIME_ZONE)
 
   # Create logon task for Auto Repairs
   cmd = [
