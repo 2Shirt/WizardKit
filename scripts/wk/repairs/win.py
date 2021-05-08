@@ -253,6 +253,13 @@ def init(menus):
   """Initialize Auto Repairs."""
   session_started = is_session_started()
 
+  # Run AVRemover
+  if not session_started:
+    TRY_PRINT.run(
+      'Run AVRemover...', run_tool, 'AVRemover', 'AVRemover',
+      download=True, msg_good='DONE',
+      )
+
   # Start or resume a repair session
   if session_started:
     load_settings(menus)
