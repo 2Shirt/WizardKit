@@ -109,6 +109,11 @@ PROGRAMFILES_32 = os.environ.get(
     ),
   )
 OS_VERSION = float(platform.win32_ver()[0])
+POWER_PLANS = {
+  'Balanced':         '381b4222-f694-41f0-9685-ff5bb260df2e',
+  'Custom':           '01189998-8199-9119-725c-ccccccccccc3',
+  'High Performance': '8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c',
+  }
 REG_UAC_DEFAULT_SETTINGS = {
   'HKLM': {
     r'Software\Microsoft\Windows\CurrentVersion\Policies\System': (
@@ -714,11 +719,25 @@ def auto_reboot(group, name):
   reboot(30)
 
 
+def auto_remove_power_plan(group, name):
+  """Remove custom power plan and set to Balanced."""
+  result = TRY_PRINT.run(
+    'Remove Custom Power Plan...', remove_custom_power_plan,
+    )
+  save_settings(group, name, result=result)
+
+
 def auto_repair_registry(group, name):
   """Delete registry keys with embedded null characters."""
   result = TRY_PRINT.run(
     'Running Registry repairs...', delete_registry_null_keys,
     )
+  save_settings(group, name, result=result)
+
+
+def auto_reset_power_plans(group, name):
+  """Reset power plans."""
+  result = TRY_PRINT.run('Reset Power Plans...', reset_power_plans)
   save_settings(group, name, result=result)
 
 
@@ -739,6 +758,12 @@ def auto_reset_windows_policies(group, name):
 def auto_restore_uac_defaults(group, name):
   """Restore UAC default settings."""
   result = TRY_PRINT.run('Restoring UAC defaults...', restore_uac_defaults)
+  save_settings(group, name, result=result)
+
+
+def auto_set_custom_power_plan(group, name):
+  """Set to a custom power plan."""
+  result = TRY_PRINT.run('Set Custom Power Plan...', create_custom_power_plan)
   save_settings(group, name, result=result)
 
 
@@ -1041,6 +1066,38 @@ def run_tdsskiller():
 
 
 # OS Built-in Functions
+def create_custom_power_plan():
+  """Create new power plan and set as active."""
+  custom_guid = POWER_PLANS['Custom']
+
+  # Duplicate High Performance plan
+  cmd = [
+    'powercfg', '-DuplicateScheme',
+    POWER_PLANS['High Performance'], custom_guid,
+    ]
+  run_program(cmd)
+
+  # Change the name
+  cmd = ['powercfg', '-ChangeName', custom_guid, KIT_NAME_FULL]
+  run_program(cmd)
+
+  # Set as active plan
+  cmd = ['powercfg', '-SetActive', custom_guid]
+  run_program(cmd)
+
+  # Keep the display on
+  for setting in ('monitor-timeout-ac', 'monitor-timeout-dc'):
+    cmd = ['powercfg', '-Change', setting, '0']
+    run_program(cmd)
+
+  # Set CPU min state
+  for arg in ('-SetacValueIndex', '-SetdcValueIndex'):
+    cmd = [
+      'powercfg', arg, custom_guid, 'SUB_PROCESSOR', 'PROCTHROTTLEMIN', '5',
+      ]
+    run_program(cmd)
+
+
 def create_system_restore_point():
   """Create System Restore point."""
   cmd = [
@@ -1114,6 +1171,39 @@ def reboot(timeout=10):
   cmd = ['shutdown', '-r', '-t', '0']
   run_program(cmd, check=False)
   raise SystemExit
+
+
+def remove_custom_power_plan(high_performance=False):
+  """Remove custom power plan and set to a built-in plan.
+
+  If high_performance is True then set to High Performance and set
+  min CPU state to 5% otherwise set to Balanced with default settings.
+  """
+  power_guid = POWER_PLANS['Balanced']
+  if high_performance:
+    power_guid = POWER_PLANS['High Performance']
+
+  # Set active plan
+  cmd = ['powercfg', '-SetActive', power_guid]
+  run_program(cmd)
+
+  # Delete custom power plan (if present)
+  cmd = ['powercfg', '-Delete', POWER_PLANS['Custom']]
+  run_program(cmd, check=False)
+
+  # Set CPU min state (if needed)
+  if high_performance:
+    for arg in ('-SetacValueIndex', '-SetdcValueIndex'):
+      cmd = [
+        'powercfg', arg, power_guid, 'SUB_PROCESSOR', 'PROCTHROTTLEMIN', '5',
+        ]
+      run_program(cmd)
+
+
+def reset_power_plans():
+  """Reset power plans to their default settings."""
+  cmd = ['powercfg', '-RestoreDefaultSchemes']
+  run_program(cmd)
 
 
 def reset_proxy():

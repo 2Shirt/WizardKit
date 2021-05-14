@@ -42,6 +42,8 @@ BASE_MENUS = {
       MenuEntry('Create System Restore',    'auto_system_restore_create'),
       MenuEntry('Backup Browsers',          'auto_backup_browser_profiles'),
       MenuEntry('Backup Power Plans',       'auto_backup_power_plans'),
+      MenuEntry('Reset Power Plans',        'auto_reset_power_plans'),
+      MenuEntry('Set Custom Power Plan',    'auto_set_custom_power_plan'),
       MenuEntry('Backup Registry',          'auto_backup_registry'),
       ),
     'Windows Repairs': (
@@ -62,6 +64,7 @@ BASE_MENUS = {
       MenuEntry('HitmanPro',                'auto_hitmanpro'),
       MenuEntry('KVRT',                     'auto_kvrt'),
       MenuEntry('Windows Defender',         'auto_microsoft_defender'),
+      MenuEntry('Remove Custom Power Plan', 'auto_remove_power_plan'),
       MenuEntry('Reboot',                   'auto_reboot'),
       ),
     'Manual Steps': (
