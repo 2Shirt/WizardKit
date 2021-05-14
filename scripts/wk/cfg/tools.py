@@ -13,6 +13,8 @@ SOURCES = {
   'AdwCleaner': 'https://downloads.malwarebytes.com/file/adwcleaner',
   'AIDA64': 'https://download.aida64.com/aida64engineer633.zip',
   'aria2': 'https://github.com/aria2/aria2/releases/download/release-1.35.0/aria2-1.35.0-win-32bit-build1.zip',
+  'Autologon32': 'http://live.sysinternals.com/Autologon.exe',
+  'Autologon64': 'http://live.sysinternals.com/Autologon64.exe',
   'Autoruns': 'https://download.sysinternals.com/files/Autoruns.zip',
   'AVRemover32': 'https://download.eset.com/com/eset/tools/installers/av_remover/latest/avremover_nt32_enu.exe',
   'AVRemover64': 'https://download.eset.com/com/eset/tools/installers/av_remover/latest/avremover_nt64_enu.exe',

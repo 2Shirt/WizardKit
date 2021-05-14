@@ -215,7 +215,7 @@ def end_session():
 
   # Disable Autologon
   if is_autologon_enabled():
-    run_tool('Sysinternals', 'Autologon')
+    run_tool('Sysinternals', 'Autologon', download=True)
     reg_set_value(
       'HKLM', r'Software\Microsoft\Windows NT\CurrentVersion\Winlogon',
       'AutoAdminLogon', '0', 'SZ',
@@ -281,8 +281,8 @@ def init_run(options):
   if options['Use Autologon']['Selected'] and not is_autologon_enabled():
     TRY_PRINT.run(
       'Running Autologon...', run_tool,
-      'Autologon', 'Autologon',
-      cbin=True, msg_good='DONE',
+      'Sysinternals', 'Autologon',
+      download=True, msg_good='DONE',
       )
   if options['Sync Clock']['Selected']:
     TRY_PRINT.run(
