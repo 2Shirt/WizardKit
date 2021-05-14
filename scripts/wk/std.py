@@ -419,37 +419,33 @@ class TryAndPrint():
   def _format_exception_message(self, _exception):
     """Format using the exception's args or name, returns str."""
     LOG.debug(
-      'Formatting exception: %s',
+      'Formatting exception: %s, %s',
       _exception.__class__.__name__,
+      _exception,
       )
-    message = None
+    message = ''
 
-    # Use known argument index or first string found
+    # Format message string from _exception
     try:
       if isinstance(_exception, subprocess.CalledProcessError):
         message = _exception.stderr
         if not isinstance(message, str):
           message = message.decode('utf-8')
         message = message.strip()
-      elif isinstance(_exception, FileNotFoundError):
-        message = _exception.args[1]
       elif isinstance(_exception, ZeroDivisionError):
-        message = 'ZeroDivisionError'
+        # Skip and just use exception name below
+        pass
       else:
-        for arg in _exception.args:
-          if isinstance(arg, str):
-            message = arg
-            break
+        message = str(_exception)
     except Exception: # pylint: disable=broad-except
       # Just use the exception name instead
       pass
 
-    # Safety check
-    if not message:
-      try:
-        message = _exception.__class__.__name__
-      except Exception: # pylint: disable=broad-except
-        message = 'UNKNOWN ERROR'
+    # Prepend exception name
+    try:
+      message = f'{_exception.__class__.__name__}: {message}'
+    except Exception: # pylint: disable=broad-except
+      message = f'UNKNOWN ERROR: {message}'
 
     # Fix multi-line messages
     if '\n' in message:
