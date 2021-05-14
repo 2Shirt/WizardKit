@@ -122,8 +122,8 @@ function update_live_env() {
 
   # Boot config (legacy)
   mkdir -p "$PROFILE_DIR/arch"
-  cp "$ROOT_DIR/images/Pxelinux.png" "$PROFILE_DIR/arch/pxelinux.png"
-  cp "$ROOT_DIR/images/Syslinux.png" "$PROFILE_DIR/arch/syslinux.png"
+  cp "$ROOT_DIR/images/Pxelinux.png" "$PROFILE_DIR/syslinux/pxelinux.png"
+  cp "$ROOT_DIR/images/Syslinux.png" "$PROFILE_DIR/syslinux/syslinux.png"
   sed -i -r "s/__+/$KIT_NAME_FULL/" "$PROFILE_DIR/syslinux/syslinux.cfg"
   mkdir -p "$TEMP_DIR" 2>/dev/null
   curl -Lo "$TEMP_DIR/wimboot.zip" "http://git.ipxe.org/releases/wimboot/wimboot-latest.zip"

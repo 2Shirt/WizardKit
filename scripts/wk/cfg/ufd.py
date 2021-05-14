@@ -22,9 +22,9 @@ BOOT_ENTRIES = {
   '/sources/boot.wim':  'UFD-WINPE',
   }
 BOOT_FILES = {
-  # Directory:            extension
-  '/arch/boot/syslinux':  'cfg',
-  '/EFI/boot':            'conf',
+  # Directory:  extension
+  '/syslinux':  'cfg',
+  '/EFI/boot':  'conf',
   }
 
 # Definitions: Sources and Destinations
@@ -32,34 +32,33 @@ BOOT_FILES = {
 ##        Sources use rsync's trailing slash syntax
 ITEMS = {
   'Extra Dir': (
-    ('/',                             '/'),
+    ('/',                                     '/'),
     ),
   'Linux': (
-    ('/arch',                         '/'),
-    ('/isolinux',                     '/'),
-    ('/EFI/boot',                     '/EFI/'),
-    ('/EFI/memtest86',                '/EFI/'),
+    ('/arch',                                 '/'),
+    ('/EFI/boot',                             '/EFI/'),
+    ('/syslinux',                             '/'),
     ),
   'Linux (Minimal)': (
-    ('/arch/boot/x86_64/archiso.img', '/arch_minimal/'),
-    ('/arch/boot/x86_64/vmlinuz',     '/arch_minimal/'),
-    ('/arch/pkglist.x86_64.txt',      '/arch_minimal/'),
-    ('/arch/x86_64',                  '/arch_minimal/'),
+    ('/arch/boot/x86_64/initramfs-linux.img', '/arch_minimal/'),
+    ('/arch/boot/x86_64/vmlinuz-linux',       '/arch_minimal/'),
+    ('/arch/pkglist.x86_64.txt',              '/arch_minimal/'),
+    ('/arch/x86_64',                          '/arch_minimal/'),
     ),
   'Main Kit': (
-    ('/',                             f'/{KIT_NAME_FULL}/'),
+    ('/',                                     f'/{KIT_NAME_FULL}/'),
     ),
   'WinPE': (
-    ('/bootmgr',                      '/'),
-    ('/bootmgr.efi',                  '/'),
-    ('/en_us',                        '/'),
-    ('/Boot/',                        '/boot/'),
-    ('/EFI/Boot/',                    '/EFI/Microsoft/'),
-    ('/EFI/Microsoft/',               '/EFI/Microsoft/'),
-    ('/Boot/BCD',                     '/sources/'),
-    ('/Boot/boot.sdi',                '/sources/'),
-    ('/bootmgr',                      '/sources/'),
-    ('/sources/boot.wim',             '/sources/'),
+    ('/bootmgr',                              '/'),
+    ('/bootmgr.efi',                          '/'),
+    ('/en_us',                                '/'),
+    ('/Boot/',                                '/boot/'),
+    ('/EFI/Boot/',                            '/EFI/Microsoft/'),
+    ('/EFI/Microsoft/',                       '/EFI/Microsoft/'),
+    ('/Boot/BCD',                             '/sources/'),
+    ('/Boot/boot.sdi',                        '/sources/'),
+    ('/bootmgr',                              '/sources/'),
+    ('/sources/boot.wim',                     '/sources/'),
     ),
   }
 ITEMS_HIDDEN = (
@@ -67,7 +66,7 @@ ITEMS_HIDDEN = (
   'arch',
   'arch_minimal',
   'EFI',
-  'isolinux',
+  'syslinux',
   # Main Kit
   f'{KIT_NAME_FULL}/.bin',
   f'{KIT_NAME_FULL}/.cbin',

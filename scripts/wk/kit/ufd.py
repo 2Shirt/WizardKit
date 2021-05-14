@@ -19,7 +19,8 @@ from wk.os import linux
 DOCSTRING = '''WizardKit: Build UFD
 
 Usage:
-  build-ufd [options] --ufd-device PATH --linux PATH
+  build-ufd [options] --ufd-device PATH
+            [--linux PATH]
             [--linux-minimal PATH]
             [--main-kit PATH]
             [--winpe PATH]
@@ -34,6 +35,7 @@ Options:
   -u PATH, --ufd-device PATH
   -w PATH, --winpe PATH
 
+  -d --debug            Enable debug mode
   -h --help             Show this page
   -M --use-mbr          Use real MBR instead of GPT w/ Protective MBR
   -F --force            Bypass all confirmation messages. USE WITH EXTREME CAUTION!
@@ -48,9 +50,11 @@ UFD_LABEL = f'{KIT_NAME_SHORT}_UFD'
 def build_ufd():
   """Build UFD using selected sources."""
   args = docopt(DOCSTRING)
+  if args['--debug']:
+    log.enable_debug_mode()
   log.update_log_path(dest_name='build-ufd', timestamp=True)
   try_print = std.TryAndPrint()
-  try_print.add_error(FileNotFoundError)
+  try_print.add_error('FileNotFoundError')
   try_print.catch_all = False
   try_print.verbose = True
   try_print.indent = 2
@@ -93,12 +97,13 @@ def build_ufd():
       dev_path=ufd_dev,
       label=UFD_LABEL,
       )
+  ufd_dev_first_partition = find_first_partition(ufd_dev)
 
   # Mount UFD
   try_print.run(
     message='Mounting UFD...',
     function=linux.mount,
-    source=find_first_partition(ufd_dev),
+    source=ufd_dev_first_partition,
     mount_point='/mnt/UFD',
     read_write=True,
     )
@@ -113,6 +118,10 @@ def build_ufd():
   # Copy sources
   std.print_standard(' ')
   std.print_info('Copy Sources')
+  try_print.run(
+    'Copying Memtest86...', io.recursive_copy,
+    '/usr/share/memtest86-efi/', '/mnt/UFD/EFI/Memtest86/', overwrite=True,
+    )
   for s_label, s_path in sources.items():
     try_print.run(
       message='Copying {}...'.format(s_label),
@@ -134,7 +143,7 @@ def build_ufd():
   try_print.run(
     message='Syslinux (partition)...',
     function=install_syslinux_to_partition,
-    partition=find_first_partition(ufd_dev),
+    partition=ufd_dev_first_partition,
     )
 
   # Unmount UFD
@@ -158,7 +167,7 @@ def build_ufd():
   try_print.run(
     message='Hiding items...',
     function=hide_items,
-    ufd_dev=ufd_dev,
+    ufd_dev_first_partition=ufd_dev_first_partition,
     items=ITEMS_HIDDEN,
     )
 
@@ -231,11 +240,7 @@ def create_table(dev_path, use_mbr=False):
 
 
 def find_first_partition(dev_path):
-  """Find path to first partition of dev, returns str.
-
-  NOTE: This assumes the dev was just partitioned with
-        a single partition.
-  """
+  """Find path to first partition of dev, returns str."""
   cmd = [
     'lsblk',
     '--list',
@@ -247,7 +252,7 @@ def find_first_partition(dev_path):
 
   # Run cmd
   proc = run_program(cmd)
-  part_path = proc.stdout.splitlines()[-1].strip()
+  part_path = proc.stdout.splitlines()[1].strip()
 
   # Done
   return part_path
@@ -281,17 +286,16 @@ def get_uuid(path):
   return proc.stdout.strip()
 
 
-def hide_items(ufd_dev, items):
+def hide_items(ufd_dev_first_partition, items):
   """Set FAT32 hidden flag for items."""
-  first_partition = find_first_partition(ufd_dev)
   with open('/root/.mtoolsrc', 'w') as _f:
-    _f.write(f'drive U: file="{first_partition}"\n')
+    _f.write(f'drive U: file="{ufd_dev_first_partition}"\n')
     _f.write('mtools_skip_check=1\n')
 
   # Hide items
   for item in items:
     cmd = [f'yes | sudo mattrib +h "U:/{item}"']
-    run_program(cmd, shell=True)
+    run_program(cmd, shell=True, check=False)
 
 
 def install_syslinux_to_dev(ufd_dev, use_mbr):
@@ -314,7 +318,7 @@ def install_syslinux_to_partition(partition):
     'syslinux',
     '--install',
     '--directory',
-    '/arch/boot/syslinux/',
+    '/syslinux/',
     partition,
     ]
   run_program(cmd)
