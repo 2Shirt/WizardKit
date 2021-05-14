@@ -81,7 +81,7 @@ def download_tool(folder, name):
   # Get ARCH specific URL if available
   if name_arch in SOURCES:
     source_url = SOURCES[name_arch]
-    out_path = out_path.with_stem(name_arch)
+    out_path = out_path.with_name(f'{name_arch}{out_path.suffix}')
   else:
     source_url = SOURCES[name]
 
@@ -153,7 +153,7 @@ def get_tool_path(folder, name, check=True):
   tool_path = bin_dir.joinpath(f'{folder}/{name_arch}.exe')
   if not (tool_path.exists() or name_arch in SOURCES):
     # Use "default" path instead
-    tool_path = tool_path.with_stem(name)
+    tool_path = tool_path.with_name(f'{name}.exe')
 
   # Missing?
   if check and not tool_path.exists():
