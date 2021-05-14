@@ -151,7 +151,7 @@ def mount_volumes(device_path=None, read_write=False, scan_corestorage=False):
         result += 'Failed to mount'
         report.append(std.color_string(result, 'RED'))
         continue
-    result += f'{"Mounted on "+vol.details.get("mountpoint", "?"):<40}'
+    result += f'{"Mounted on "+str(vol.details.get("mountpoint", "?")):<40}'
 
     # Add size to result
     vol.get_details()
