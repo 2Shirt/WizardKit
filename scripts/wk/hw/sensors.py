@@ -10,6 +10,7 @@ from subprocess import CalledProcessError
 
 from wk.cfg.hw import CPU_CRITICAL_TEMP, SMC_IDS, TEMP_COLORS
 from wk.exe import run_program, start_thread
+from wk.io import non_clobber_path
 from wk.std import PLATFORM, color_string, sleep
 
 
@@ -115,20 +116,27 @@ class Sensors():
     return report
 
   def monitor_to_file(
-      self, out_path,
+      self, out_path, alt_max=None,
       exit_on_thermal_limit=True, temp_labels=None, thermal_action=None):
+    # pylint: disable=too-many-arguments
     """Write report to path every second until stopped.
 
     thermal_action is a cmd to run if ThermalLimitReachedError is caught.
     """
     stop_path = pathlib.Path(out_path).resolve().with_suffix('.stop')
+    if stop_path.exists():
+      # Rename existing file to allow thread to start as expected
+      # Yes this is excessive but safe
+      stop_path.rename(non_clobber_path(stop_path))
     if not temp_labels:
-      temp_labels = ('Current', 'Max')
+      temp_labels = ['Current', 'Max']
+    if alt_max:
+      temp_labels.append(alt_max)
 
     # Start loop
     while True:
       try:
-        self.update_sensor_data(exit_on_thermal_limit)
+        self.update_sensor_data(alt_max, exit_on_thermal_limit)
       except ThermalLimitReachedError:
         if thermal_action:
           run_program(thermal_action, check=False)
@@ -169,8 +177,9 @@ class Sensors():
             source_data[temp_label] = 0
 
   def start_background_monitor(
-      self, out_path,
+      self, out_path, alt_max=None,
       exit_on_thermal_limit=True, temp_labels=None, thermal_action=None):
+    # pylint: disable=too-many-arguments
     """Start background thread to save report to file.
 
     thermal_action is a cmd to run if ThermalLimitReachedError is caught.
@@ -181,7 +190,9 @@ class Sensors():
     self.out_path = pathlib.Path(out_path)
     self.background_thread = start_thread(
       self.monitor_to_file,
-      args=(out_path, exit_on_thermal_limit, temp_labels, thermal_action),
+      args=(
+        out_path, alt_max, exit_on_thermal_limit, temp_labels, thermal_action,
+        ),
       )
 
   def stop_background_monitor(self):
@@ -193,14 +204,14 @@ class Sensors():
     self.background_thread = None
     self.out_path = None
 
-  def update_sensor_data(self, exit_on_thermal_limit=True):
+  def update_sensor_data(self, alt_max=None, exit_on_thermal_limit=True):
     """Update sensor data via OS-specific means."""
     if PLATFORM == 'Darwin':
-      self.update_sensor_data_macos(exit_on_thermal_limit)
+      self.update_sensor_data_macos(alt_max, exit_on_thermal_limit)
     elif PLATFORM == 'Linux':
-      self.update_sensor_data_linux(exit_on_thermal_limit)
+      self.update_sensor_data_linux(alt_max, exit_on_thermal_limit)
 
-  def update_sensor_data_linux(self, exit_on_thermal_limit=True):
+  def update_sensor_data_linux(self, alt_max, exit_on_thermal_limit=True):
     """Update sensor data via lm_sensors."""
     lm_sensor_data = get_sensor_data_lm()
     for section, adapters in self.data.items():
@@ -212,6 +223,8 @@ class Sensors():
             source_data['Current'] = temp
             source_data['Max'] = max(temp, source_data['Max'])
             source_data['Temps'].append(temp)
+            if alt_max:
+              source_data[alt_max] = max(temp, source_data.get(alt_max, 0))
           except KeyError:
             # Dumb workaround for Dell sensors with changing source names
             pass
@@ -221,7 +234,7 @@ class Sensors():
             if source_data['Current'] >= CPU_CRITICAL_TEMP:
               raise ThermalLimitReachedError('CPU temps reached limit')
 
-  def update_sensor_data_macos(self, exit_on_thermal_limit=True):
+  def update_sensor_data_macos(self, alt_max, exit_on_thermal_limit=True):
     """Update sensor data via SMC."""
     for section, adapters in self.data.items():
       for sources in adapters.values():
@@ -239,6 +252,8 @@ class Sensors():
           source_data['Current'] = temp
           source_data['Max'] = max(temp, source_data['Max'])
           source_data['Temps'].append(temp)
+          if alt_max:
+            source_data[alt_max] = max(temp, source_data.get(alt_max, 0))
 
           # Raise exception if thermal limit reached
           if exit_on_thermal_limit and section == 'CPUTemps':

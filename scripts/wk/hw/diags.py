@@ -108,7 +108,7 @@ class State():
     self.tests = OrderedDict({
       'CPU & Cooling': {
         'Enabled': False,
-        'Function': cpu_mprime_test,
+        'Function': cpu_stress_tests,
         'Objects': [],
         },
       'Disk Attributes': {
@@ -302,7 +302,7 @@ class State():
       if not details['Selected']:
         continue
       if 'CPU' in name:
-        # Create two Test objects which will both be used by cpu_mprime_test
+        # Create two Test objects which will both be used by cpu_stress_tests
         # NOTE: Prime95 should be added first
         test_mprime_obj = hw_obj.Test(dev=self.cpu, label='Prime95')
         test_cooling_obj = hw_obj.Test(dev=self.cpu, label='Cooling')
@@ -556,9 +556,12 @@ def calc_io_dd_values(dev_size):
     }
 
 
-def check_cooling_results(test_obj, sensors):
+def check_cooling_results(test_obj, sensors, run_sysbench=False):
   """Check cooling results and update test_obj."""
   max_temp = sensors.cpu_max_temp()
+  temp_labels = ['Idle', 'Max', 'Cooldown']
+  if run_sysbench:
+    temp_labels.append('Sysbench')
 
   # Check temps
   if not max_temp:
@@ -571,8 +574,7 @@ def check_cooling_results(test_obj, sensors):
     test_obj.set_status('Passed')
 
   # Add temps to report
-  for line in sensors.generate_report(
-      'Idle', 'Max', 'Cooldown', only_cpu=True):
+  for line in sensors.generate_report(*temp_labels, only_cpu=True):
     test_obj.report.append(f'  {line}')
 
 
@@ -702,12 +704,13 @@ def check_self_test_results(test_obj, aborted=False):
         test_obj.set_status('Failed')
 
 
-def cpu_mprime_test(state, test_objects):
+def cpu_stress_tests(state, test_objects):
   # pylint: disable=too-many-statements
-  """CPU & cooling check using Prime95."""
+  """CPU & cooling check using Prime95 and Sysbench."""
   LOG.info('CPU Test (Prime95)')
   aborted = False
   prime_log = pathlib.Path(f'{state.log_dir}/prime.log')
+  run_sysbench = False
   sensors_out = pathlib.Path(f'{state.log_dir}/sensors.out')
   test_mprime_obj, test_cooling_obj = test_objects
 
@@ -777,9 +780,41 @@ def cpu_mprime_test(state, test_objects):
   test_mprime_obj.report.append(std.color_string('Prime95', 'BLUE'))
   check_mprime_results(test_obj=test_mprime_obj, working_dir=state.log_dir)
 
+  # Run Sysbench test if necessary
+  run_sysbench = (
+    not aborted and sensors.cpu_max_temp() >= cfg.hw.CPU_FAILURE_TEMP
+    )
+  if run_sysbench:
+    LOG.info('CPU Test (Sysbench)')
+    std.clear_screen()
+    std.print_info('Starting alternate stress test')
+    print('')
+    proc_sysbench, filehandle_sysbench = start_sysbench(
+      sensors,
+      sensors_out,
+      log_path=prime_log.with_name('sysbench.log'),
+      pane='Prime95',
+      )
+    try:
+      print_countdown(proc=proc_sysbench, seconds=cfg.hw.CPU_TEST_MINUTES*60)
+    except AttributeError:
+      # Assuming the sysbench process wasn't found and proc was set to None
+      LOG.error('Failed to find sysbench process', exc_info=True)
+    except KeyboardInterrupt:
+      aborted = True
+    stop_sysbench(proc_sysbench, filehandle_sysbench)
+
+    # Update progress
+    # NOTE: CPU critical temp check isn't really necessary
+    #       Hard to imagine it wasn't hit during Prime95 but was in sysbench
+    if sensors.cpu_reached_critical_temp() or aborted:
+      test_cooling_obj.set_status('Aborted')
+      test_mprime_obj.set_status('Aborted')
+      state.update_progress_pane()
+
   # Check Cooling results
   test_cooling_obj.report.append(std.color_string('Temps', 'BLUE'))
-  check_cooling_results(test_obj=test_cooling_obj, sensors=sensors)
+  check_cooling_results(test_cooling_obj, sensors, run_sysbench)
 
   # Cleanup
   state.update_progress_pane()
@@ -1300,7 +1335,8 @@ def print_countdown(proc, seconds):
     except subprocess.TimeoutExpired:
       # proc still going, continue
       pass
-    if proc.poll() is not None:
+    if ((hasattr(proc, 'poll') and proc.poll() is not None)
+        or (hasattr(proc, 'is_running') and not proc.is_running())):
       # proc exited, stop countdown
       break
 
@@ -1460,6 +1496,35 @@ def start_mprime(working_dir, log_path):
   return proc_mprime
 
 
+def start_sysbench(sensors, sensors_out, log_path, pane):
+  """Start sysbench, returns tuple with Popen object and file handle."""
+  set_apple_fan_speed('max')
+  sysbench_cmd = [
+    'sysbench',
+    f'--threads={exe.psutil.cpu_count()}',
+    '--cpu-max-prime=1000000000',
+    'cpu',
+    'run',
+    ]
+
+  # Restart background monitor for Sysbench
+  sensors.stop_background_monitor()
+  sensors.start_background_monitor(
+    sensors_out,
+    alt_max='Sysbench',
+    thermal_action=('killall', 'sysbench', '-INT'),
+    )
+
+  # Update bottom pane
+  tmux.respawn_pane(pane, watch_file=log_path)
+
+  # Start sysbench
+  filehandle_sysbench = open(log_path, 'a')
+  proc_sysbench = exe.popen_program(sysbench_cmd, stdout=filehandle_sysbench)
+
+  # Done
+  return (proc_sysbench, filehandle_sysbench)
+
 def stop_mprime(proc_mprime):
   """Stop mprime gracefully, then forcefully as needed."""
   proc_mprime.terminate()
@@ -1467,6 +1532,18 @@ def stop_mprime(proc_mprime):
     proc_mprime.wait(timeout=5)
   except subprocess.TimeoutExpired:
     proc_mprime.kill()
+  set_apple_fan_speed('auto')
+
+
+def stop_sysbench(proc_sysbench, filehandle_sysbench):
+  """Stop sysbench."""
+  proc_sysbench.terminate()
+  try:
+    proc_sysbench.wait(timeout=5)
+  except subprocess.TimeoutExpired:
+    proc_sysbench.kill()
+  filehandle_sysbench.flush()
+  filehandle_sysbench.close()
   set_apple_fan_speed('auto')
 
 

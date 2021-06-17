@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 #
 
 set -o errexit
@@ -103,3 +103,11 @@ git clone https://github.com/yuyichao/gnuplot-py gnuplot-py
 cd gnuplot-py
 git checkout 2c2218dc67
 python3 setup.py install
+
+# Sysbench
+git clone https://github.com/akopytov/sysbench sysbench
+cd sysbench
+./autogen.sh LDFLAGS=-L/usr/local/opt/openssl/lib --without-mysql
+./configure LDFLAGS=-L/usr/local/opt/openssl/lib --without-mysql
+make MACOSX_DEPLOYMENT_TARGET="${OS_VERSION:0:5}" -j
+sudo mv -nv sysbench/src/sysbench /usr/local/bin/

@@ -64,6 +64,7 @@ rxvt-unicode-terminfo
 smartmontools-svn
 speedtest-cli
 sudo
+sysbench
 sysfsutils
 syslinux
 systemd-sysvcompat
