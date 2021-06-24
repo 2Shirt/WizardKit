@@ -733,7 +733,7 @@ def cpu_stress_tests(state, test_objects):
   # Create monitor and worker panes
   state.update_progress_pane()
   state.panes['Prime95'] = tmux.split_window(
-    lines=10, vertical=True, watch_file=prime_log)
+    lines=10, vertical=True, watch_file=prime_log, watch_cmd='tail')
   if PLATFORM == 'Darwin':
     state.panes['Temps'] = tmux.split_window(
       behind=True, percent=80, vertical=True, cmd='./hw-sensors')
@@ -749,7 +749,7 @@ def cpu_stress_tests(state, test_objects):
   sensors.save_average_temps(temp_label='Idle', seconds=5)
 
   # Stress CPU
-  std.print_info('Starting stress test')
+  std.print_info('Running stress test')
   set_apple_fan_speed('max')
   proc_mprime = start_mprime(state.log_dir, prime_log)
 
@@ -786,14 +786,16 @@ def cpu_stress_tests(state, test_objects):
     )
   if run_sysbench:
     LOG.info('CPU Test (Sysbench)')
+    std.print_standard('Letting CPU cooldown more...')
+    std.sleep(30)
     std.clear_screen()
-    std.print_info('Starting alternate stress test')
+    std.print_info('Running alternate stress test')
     print('')
     proc_sysbench, filehandle_sysbench = start_sysbench(
       sensors,
       sensors_out,
       log_path=prime_log.with_name('sysbench.log'),
-      pane='Prime95',
+      pane=state.panes['Prime95'],
       )
     try:
       print_countdown(proc=proc_sysbench, seconds=cfg.hw.CPU_TEST_MINUTES*60)
@@ -1516,7 +1518,7 @@ def start_sysbench(sensors, sensors_out, log_path, pane):
     )
 
   # Update bottom pane
-  tmux.respawn_pane(pane, watch_file=log_path)
+  tmux.respawn_pane(pane, watch_file=log_path, watch_cmd='tail')
 
   # Start sysbench
   filehandle_sysbench = open(log_path, 'a')
