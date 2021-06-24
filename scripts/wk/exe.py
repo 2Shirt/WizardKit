@@ -32,8 +32,12 @@ class NonBlockingStreamReader():
 
     def populate_queue(stream, queue):
       """Collect lines from stream and put them in queue."""
-      while True:
-        line = stream.read(1)
+      while not stream.closed:
+        try:
+          line = stream.read(1)
+        except ValueError:
+          # Assuming the stream was closed
+          line = None
         if line:
           queue.put(line)
 
@@ -41,6 +45,10 @@ class NonBlockingStreamReader():
       populate_queue,
       args=(self.stream, self.queue),
       )
+
+  def stop(self):
+    """Stop reading from input stream."""
+    self.stream.close()
 
   def read(self, timeout=None):
     """Read from queue if possible, returns item from queue."""
@@ -61,6 +69,9 @@ class NonBlockingStreamReader():
           out_bytes += out
       with open(out_path, 'a') as _f:
         _f.write(out_bytes.decode('utf-8', errors='ignore'))
+
+    # Close stream to prevent 100% CPU usage
+    self.stream.close()
 
 
 # Functions
