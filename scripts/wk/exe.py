@@ -51,6 +51,7 @@ class NonBlockingStreamReader():
 
   def save_to_file(self, proc, out_path):
     """Continuously save output to file while proc is running."""
+    LOG.debug('Saving process %s output to %s', proc, out_path)
     while proc.poll() is None:
       out = b''
       out_bytes = b''
@@ -70,10 +71,9 @@ def build_cmd_kwargs(cmd, minimized=False, pipe=True, shell=False, **kwargs):
   NOTE: If no encoding specified then UTF-8 will be used.
   """
   LOG.debug(
-    'cmd: %s, minimized: %s, pipe: %s, shell: %s',
-    cmd, minimized, pipe, shell,
+    'cmd: %s, minimized: %s, pipe: %s, shell: %s, kwargs: %s',
+    cmd, minimized, pipe, shell, kwargs,
     )
-  LOG.debug('kwargs: %s', kwargs)
   cmd_kwargs = {
     'args': cmd,
     'shell': shell,
@@ -118,6 +118,7 @@ def get_json_from_command(cmd, check=True, encoding='utf-8', errors='ignore'):
   If the data can't be decoded then either an exception is raised
   or an empty dict is returned depending on errors.
   """
+  LOG.debug('Loading JSON data from cmd: %s', cmd)
   json_data = {}
 
   try:
@@ -187,9 +188,15 @@ def popen_program(cmd, minimized=False, pipe=False, shell=False, **kwargs):
     pipe=pipe,
     shell=shell,
     **kwargs)
+  try:
+    proc = subprocess.Popen(**cmd_kwargs)
+  except FileNotFoundError:
+    LOG.error('Command not found: %s', cmd)
+    raise
+  LOG.debug('proc: %s', proc)
 
-  # Ready to run program
-  return subprocess.Popen(**cmd_kwargs)
+  # Done
+  return proc
 
 
 def run_program(cmd, check=True, pipe=True, shell=False, **kwargs):
@@ -206,7 +213,11 @@ def run_program(cmd, check=True, pipe=True, shell=False, **kwargs):
     pipe=pipe,
     shell=shell,
     **kwargs)
-  proc = subprocess.run(**cmd_kwargs)
+  try:
+    proc = subprocess.run(**cmd_kwargs)
+  except FileNotFoundError:
+    LOG.error('Command not found: %s', cmd)
+    raise
   LOG.debug('proc: %s', proc)
 
   # Done
@@ -215,6 +226,10 @@ def run_program(cmd, check=True, pipe=True, shell=False, **kwargs):
 
 def start_thread(function, args=None, daemon=True):
   """Run function as thread in background, returns Thread object."""
+  LOG.debug(
+    'Starting background thread for function: %s, args: %s, daemon: %s',
+    function, args, daemon,
+    )
   args = args if args else []
   thread = Thread(target=function, args=args, daemon=daemon)
   thread.start()
