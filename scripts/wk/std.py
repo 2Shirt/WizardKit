@@ -701,40 +701,25 @@ def bytes_to_string(size, decimals=0, use_binary=True):
     decimals,
     use_binary,
     )
+  scale = 1024 if use_binary else 1000
   size = float(size)
-  abs_size = abs(size)
-
-  # Set scale
-  scale = 1000
-  suffix = 'B'
-  if use_binary:
-    scale = 1024
-    suffix = 'iB'
+  suffix = '  ' if use_binary else ' '
+  units = list('KMGTPEZY')
 
   # Convert to sensible units
-  if abs_size >= scale ** 5:
-    size /= scale ** 5
-    units = 'P' + suffix
-  elif abs_size >= scale ** 4:
-    size /= scale ** 4
-    units = 'T' + suffix
-  elif abs_size >= scale ** 3:
-    size /= scale ** 3
-    units = 'G' + suffix
-  elif abs_size >= scale ** 2:
-    size /= scale ** 2
-    units = 'M' + suffix
-  elif abs_size >= scale ** 1:
-    size /= scale ** 1
-    units = 'K' + suffix
-  else:
-    size /= scale ** 0
-    units = f' {" " if use_binary else ""}B'
-  size = f'{size:0.{decimals}f} {units}'
+  while units:
+    if abs(size) < scale:
+      break
+    size /= scale
+    suffix = units.pop(0)
+  size_str = (
+    f'{size:0.{decimals}f} {suffix}'
+    f'{"iB" if use_binary and suffix.strip() else "B"}'
+    )
 
   # Done
-  LOG.debug('string: %s', size)
-  return size
+  LOG.debug('string: %s', size_str)
+  return size_str
 
 
 def choice(choices, prompt='答えろ！'):
