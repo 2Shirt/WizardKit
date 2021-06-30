@@ -2,6 +2,7 @@
 # vim: sts=2 sw=2 ts=2
 
 import logging
+import math
 import os
 import shutil
 
@@ -25,6 +26,7 @@ Usage:
             [--main-kit PATH]
             [--winpe PATH]
             [--extra-dir PATH]
+            [EXTRA_IMAGES...]
   build-ufd (-h | --help)
 
 Options:
@@ -42,22 +44,39 @@ Options:
   -U --update           Don't format device, just update
 '''
 LOG = logging.getLogger(__name__)
+MIB = 1024 ** 2
 ISO_LABEL = f'{KIT_NAME_SHORT}_LINUX'
 UFD_LABEL = f'{KIT_NAME_SHORT}_UFD'
 
 
 # Functions
+def apply_image(part_path, image_path):
+  """Apply raw image to dev_path using dd."""
+  cmd = [
+    'sudo',
+    'dd',
+    'bs=4M',
+    f'if={image_path}',
+    f'of={part_path}',
+    ]
+  run_program(cmd)
+
+
 def build_ufd():
+  # pylint: disable=too-many-statements
   """Build UFD using selected sources."""
   args = docopt(DOCSTRING)
   if args['--debug']:
     log.enable_debug_mode()
+  if args['--update'] and args['EXTRA_IMAGES']:
+    std.print_warning('Extra images are ignored when updating')
   log.update_log_path(dest_name='build-ufd', timestamp=True)
   try_print = std.TryAndPrint()
   try_print.add_error('FileNotFoundError')
   try_print.catch_all = False
-  try_print.verbose = True
   try_print.indent = 2
+  try_print.verbose = True
+  try_print.width = 64
 
   # Show header
   std.print_success(KIT_NAME_FULL)
@@ -67,7 +86,8 @@ def build_ufd():
   # Verify selections
   ufd_dev = verify_ufd(args['--ufd-device'])
   sources = verify_sources(args, SOURCES)
-  show_selections(args, sources, ufd_dev, SOURCES)
+  extra_images = [io.case_insensitive_path(i) for i in args['EXTRA_IMAGES']]
+  show_selections(args, sources, ufd_dev, SOURCES, extra_images)
   if not args['--force']:
     confirm_selections(update=args['--update'])
 
@@ -84,6 +104,7 @@ def build_ufd():
       function=create_table,
       dev_path=ufd_dev,
       use_mbr=args['--use-mbr'],
+      images=args['EXTRA_IMAGES'],
       )
     try_print.run(
       message='Setting boot flag...',
@@ -130,6 +151,18 @@ def build_ufd():
       items=ITEMS[s_label],
       overwrite=True,
       )
+
+  # Apply extra images
+  if not args['--update']:
+    std.print_standard(' ')
+    std.print_info('Apply Extra Images')
+    for part_num, image_path in enumerate(extra_images):
+      try_print.run(
+        message=f'Applying {image_path.name}...',
+        function=apply_image,
+        part_path=f'{str(ufd_dev_first_partition)[:-1]}{part_num+2}',
+        image_path=image_path,
+        )
 
   # Update boot entries
   std.print_standard(' ')
@@ -225,17 +258,41 @@ def copy_source(source, items, overwrite=False):
     raise FileNotFoundError('One or more items not found')
 
 
-def create_table(dev_path, use_mbr=False):
+def create_table(dev_path, use_mbr=False, images=None):
   """Create GPT or DOS partition table."""
   cmd = [
     'sudo',
     'parted', dev_path,
-    '--script',
-    '--',
+    '--script', '--',
     'mklabel', 'msdos' if use_mbr else 'gpt',
-    'mkpart', 'primary', 'fat32', '4MiB',
-    '-1s' if use_mbr else '-4MiB',
     ]
+  if images:
+    images = [os.stat(i_path).st_size for i_path in images]
+  else:
+    images = []
+  start = MIB
+  end = -1
+
+  # Calculate partition sizes
+  ## Align all partitions using 1MiB boundaries for 4K alignment
+  ## NOTE: Partitions are aligned to 1 MiB boundaries to match parted's usage
+  ## NOTE 2: Crashing if dev_size can't be set is fine since it's necessary
+  dev_size = get_block_device_size(dev_path)
+  part_sizes = [math.ceil(i/MIB) * MIB for i in images]
+  main_size = dev_size - start*2 - sum(part_sizes)
+  main_size = math.floor(main_size/MIB) * MIB
+  images.insert(0, main_size)
+  part_sizes.insert(0, main_size)
+
+  # Build cmd
+  for part, real in zip(part_sizes, images):
+    end = start + real
+    cmd.append(
+      f'mkpart primary {"fat32" if start==MIB else "hfs+"} {start}B {end-1}B',
+      )
+    start += part
+
+  # Run cmd
   run_program(cmd)
 
 
@@ -268,6 +325,25 @@ def format_partition(dev_path, label):
     find_first_partition(dev_path),
     ]
   run_program(cmd)
+
+
+def get_block_device_size(dev_path):
+  """Get block device size via lsblk, returns int."""
+  cmd = [
+    'lsblk',
+    '--bytes',
+    '--nodeps',
+    '--noheadings',
+    '--output',
+    'size',
+    dev_path,
+    ]
+
+  # Run cmd
+  proc = run_program(cmd)
+
+  # Done
+  return int(proc.stdout.strip())
 
 
 def get_uuid(path):
@@ -361,7 +437,7 @@ def remove_arch():
   shutil.rmtree(io.case_insensitive_path('/mnt/UFD/arch'))
 
 
-def show_selections(args, sources, ufd_dev, ufd_sources):
+def show_selections(args, sources, ufd_dev, ufd_sources, extra_images):
   """Show selections including non-specified options."""
 
   # Sources
@@ -374,9 +450,15 @@ def show_selections(args, sources, ufd_dev, ufd_sources):
         [f'  {label+":":<18}', 'Not Specified'],
         [None, 'YELLOW'],
         )
-  std.print_standard(' ')
+
+  # Extra images
+  if extra_images:
+    print(f'  {"Extra Images:":<18} {extra_images[0]}')
+    for image in extra_images[1:]:
+      print(f'  {" ":<18} {image}')
 
   # Destination
+  std.print_standard(' ')
   std.print_info('Destination')
   cmd = [
     'lsblk', '--nodeps', '--noheadings', '--paths',
