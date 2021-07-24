@@ -95,6 +95,7 @@ sed -Ei '' 's!^(root.*)/bin/sh!\1/bin/zsh!' "${WK_PATH}/etc/passwd"
 # Misc
 cp -a ../linux/known_networks "${WK_PATH}/.known_networks"
 cp -a /usr/bin/rsync "${WK_PATH}/usr/bin"/
+cp -a /usr/sbin/memtest "${WK_PATH}/usr/sbin"/
 cp -a /usr/sbin/networksetup "${WK_PATH}/usr/sbin"/
 cp -a aliases "${WK_PATH}/.aliases"
 cp -a bashrc "${WK_PATH}/etc/profile"
