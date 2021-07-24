@@ -2,6 +2,11 @@
 #
 ## Start desktop apps based on WM
 
+# Numlock
+if ! compgen -G "/sys/class/power_supply/BAT*" >/dev/null; then
+  numlockx &
+fi
+
 # Start common apps
 #picom --backend xrender --xrender-sync --xrender-sync-fence &
 picom --daemon || picom --daemon --no-vsync

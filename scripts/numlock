@@ -1,0 +1,10 @@
+#!/bin/env bash
+#
+## Enable numlock if no battery is detected
+## Credit: https://wiki.archlinux.org/title/Activating_numlock_on_bootup#With_systemd_service
+
+if ! compgen -G "/sys/class/power_supply/BAT*" >/dev/null; then
+  for tty in /dev/tty{1..6}; do
+    /usr/bin/setleds -D +num < "$tty"
+  done
+fi
