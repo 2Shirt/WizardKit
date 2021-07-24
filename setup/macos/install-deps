@@ -29,10 +29,7 @@ sudo installer -pkg gnuplot.pkg -target /
 
 # memtest
 echo "Installing memtest..."
-curl -Lo memtest https://github.com/Vavius/memtest/raw/8aa02c8c34db8dd00f4470e482dace7eaff265c7/memtest
-chmod 755 memtest
-sudo chown root:root memtest
-sudo mv -nv memtest /usr/sbin/
+curl -Lo /usr/local/bin/memtest https://github.com/Vavius/memtest/raw/8aa02c8c34db8dd00f4470e482dace7eaff265c7/memtest
 
 # mprime
 echo "Installing mprime..."
