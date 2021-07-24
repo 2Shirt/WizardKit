@@ -19,7 +19,12 @@ from wk.exe           import (
   popen_program,
   wait_for_procs,
   )
-from wk.io            import delete_folder, get_path_obj, rename_item
+from wk.io            import (
+  delete_folder,
+  get_path_obj,
+  non_clobber_path,
+  rename_item,
+  )
 from wk.kit.tools     import download_tool, get_tool_path, run_tool
 from wk.log           import format_log_path, update_log_path
 from wk.os.win        import (
@@ -1229,12 +1234,11 @@ def reset_windows_policies():
 def reset_windows_updates():
   """Reset Windows Updates."""
   system_root = os.environ.get('SYSTEMROOT', 'C:/Windows')
+  src_path = f'{system_root}/SoftwareDistribution'
+  dest_path = non_clobber_path(f'{src_path}.old')
   try:
-    rename_item(
-      f'{system_root}/SoftwareDistribution',
-      f'{system_root}/SoftwareDistribution.old',
-      )
-    delete_folder(f'{system_root}/SoftwareDistribution.old', force=True)
+    rename_item(src_path, dest_path)
+    delete_folder(dest_path, force=True)
   except FileNotFoundError:
     # Ignore
     pass
