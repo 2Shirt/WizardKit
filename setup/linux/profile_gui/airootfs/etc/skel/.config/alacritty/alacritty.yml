@@ -4,7 +4,7 @@ env:
 font:
   normal:
     family: Hack
-  size: 8.0
+  size: 9.0
 
 colors:
   primary:

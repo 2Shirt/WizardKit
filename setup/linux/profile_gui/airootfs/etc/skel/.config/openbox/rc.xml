@@ -299,7 +299,7 @@
     </keybind>
     <keybind key="C-A-d">
       <action name="Execute">
-        <command>alacritty --title "Hardware Diagnostics" -e "resize-and-run hw-diags"</command>
+        <command>alacritty --title "Hardware Diagnostics" -e resize-and-run hw-diags</command>
       </action>
     </keybind>
     <keybind key="C-A-f">
@@ -314,7 +314,7 @@
     </keybind>
     <keybind key="C-A-m">
       <action name="Execute">
-        <command>alacritty --title "Mount all Volumes" -e "resize-and-run mount-all-volumes gui"</command>
+        <command>alacritty --title "Mount all Volumes" -e resize-and-run mount-all-volumes gui</command>
       </action>
     </keybind>
     <keybind key="C-A-r">
@@ -324,17 +324,17 @@
     </keybind>
     <keybind key="C-A-s">
       <action name="Execute">
-        <command>alacritty --title "Hardware Diagnostics" -e "resize-and-run hw-diags --quick"</command>
+        <command>alacritty --title "Hardware Diagnostics" -e resize-and-run hw-diags --quick</command>
       </action>
     </keybind>
     <keybind key="C-A-t">
       <action name="Execute">
-        <command>alacritty -e "resize-and-run /bin/zsh"</command>
+        <command>alacritty -e resize-and-run /bin/zsh</command>
       </action>
     </keybind>
     <keybind key="C-A-v">
       <action name="Execute">
-        <command>alacritty --title "Hardware Sensors" -e "resize-and-run hw-sensors"</command>
+        <command>alacritty --title "Hardware Sensors" -e resize-and-run hw-sensors</command>
       </action>
     </keybind>
     <keybind key="C-A-w">
@@ -349,7 +349,7 @@
     </keybind>
     <keybind key="W-d">
       <action name="Execute">
-        <command>alacritty --title "Hardware Diagnostics" -e "resize-and-run hw-diags"</command>
+        <command>alacritty --title "Hardware Diagnostics" -e resize-and-run hw-diags</command>
       </action>
     </keybind>
     <keybind key="W-f">
@@ -364,7 +364,7 @@
     </keybind>
     <keybind key="W-m">
       <action name="Execute">
-        <command>alacritty --title "Mount all Volumes" -e "resize-and-run mount-all-volumes gui"</command>
+        <command>alacritty --title "Mount all Volumes" -e resize-and-run mount-all-volumes gui</command>
       </action>
     </keybind>
     <keybind key="W-r">
@@ -374,17 +374,17 @@
     </keybind>
     <keybind key="W-s">
       <action name="Execute">
-        <command>alacritty --title "Hardware Diagnostics" -e "resize-and-run hw-diags --quick"</command>
+        <command>alacritty --title "Hardware Diagnostics" -e resize-and-run hw-diags --quick</command>
       </action>
     </keybind>
     <keybind key="W-t">
       <action name="Execute">
-        <command>alacritty -e "resize-and-run /bin/zsh"</command>
+        <command>alacritty -e resize-and-run /bin/zsh</command>
       </action>
     </keybind>
     <keybind key="W-v">
       <action name="Execute">
-        <command>alacritty --title "Hardware Sensors" -e "resize-and-run hw-sensors"</command>
+        <command>alacritty --title "Hardware Sensors" -e resize-and-run hw-sensors</command>
       </action>
     </keybind>
     <keybind key="W-w">
