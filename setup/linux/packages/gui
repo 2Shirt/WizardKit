@@ -1,3 +1,4 @@
+alacritty
 arandr
 arc-gtk-theme
 cbatticon
@@ -29,7 +30,6 @@ qemu-guest-agent
 rofi
 rxvt-unicode
 spice-vdagent
-termite
 thunar
 tigervnc
 tint2

@@ -1,5 +1,5 @@
 #openbox-autostart
 
-/usr/bin/termite --title "Initializing..." -e "$HOME/.update_x"
+/usr/bin/alacritty --title "Initializing..." -e "$HOME/.update_x"
 "$HOME/.start_desktop_apps" &
 
