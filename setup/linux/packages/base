@@ -69,7 +69,6 @@ sysfsutils
 syslinux
 systemd-sysvcompat
 terminus-font
-termite-terminfo
 testdisk-wip
 texinfo
 tmux
