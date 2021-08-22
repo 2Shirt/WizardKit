@@ -2,24 +2,42 @@
 #
 ## Setup network and update hostname
 
-# Wait for WiFi
+IP=
+NEW_HOSTNAME=
+
+# Load test station details if present
+if [[ -s "/run/archiso/bootmnt/teststation.name" ]]; then
+  NEW_HOSTNAME="$(head -1 "/run/archiso/bootmnt/teststation.name" \
+    | sed -r 's/\s//g')"
+fi
+if [[ -s "/run/archiso/bootmnt/teststation.wall" ]]; then
+  rm "${HOME}/.wallpaper" >/dev/null 2>&1
+  ln -s "/run/archiso/bootmnt/teststation.wall" "${HOME}/.wallpaper"
+fi
+
+# Wait for network connection and get IP
 echo -n "Waiting for network... "
-sleep 3s
+for x in {1..3}; do
+  sleep 1s
+  IP="$(ip a show scope global \
+    | grep inet \
+    | head -1 \
+    | sed -r 's#.*inet ([0-9]+.[0-9]+.[0-9]+.[0-9]+)/.*#\1#')"
+  if [[ "${IP:+x}" ]]; then
+    break
+  fi
+done
 echo "Done"
 
 # Set hostname
-echo -n "Updating hostname... "
-IP="$(ip a show scope global \
-  | grep inet \
-  | head -1 \
-  | sed -r 's#.*inet ([0-9]+.[0-9]+.[0-9]+.[0-9]+.)/.*#\1#')"
-if [[ "${IP:+x}" ]]; then
+if [[ -z "${NEW_HOSTNAME:+x}" && "${IP:+x}" ]]; then
   NEW_HOSTNAME="$(dig +noall +answer +short -x "$IP" \
     | grep -v ';' \
     | head -1 \
     | sed 's/\.$//')"
 fi
 if [[ "${NEW_HOSTNAME:+x}" ]]; then
+  echo -n "Updating hostname... "
   sudo hostnamectl set-hostname "${NEW_HOSTNAME}"
 fi
 echo "Done"
