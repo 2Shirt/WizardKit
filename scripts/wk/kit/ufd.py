@@ -269,7 +269,7 @@ def copy_source(source, items, overwrite=False):
 
 
 def create_table(dev_path, use_mbr=False, images=None):
-  """Create GPT or DOS partition table, returns dict."""
+  """Create GPT or DOS partition table."""
   cmd = [
     'sudo',
     'parted', dev_path,
