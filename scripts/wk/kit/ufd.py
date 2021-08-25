@@ -5,14 +5,22 @@ import logging
 import math
 import os
 import shutil
+from subprocess import CalledProcessError
 
 from collections import OrderedDict
 from docopt import docopt
 
 from wk import io, log, std
 from wk.cfg.main import KIT_NAME_FULL, KIT_NAME_SHORT
-from wk.cfg.ufd import BOOT_ENTRIES, BOOT_FILES, ITEMS, ITEMS_HIDDEN, SOURCES
-from wk.exe import run_program
+from wk.cfg.ufd import (
+  BOOT_ENTRIES,
+  BOOT_FILES,
+  IMAGE_BOOT_ENTRIES,
+  ITEMS,
+  ITEMS_HIDDEN,
+  SOURCES,
+  )
+from wk.exe import get_json_from_command, run_program
 from wk.os import linux
 
 
@@ -104,7 +112,7 @@ def build_ufd():
       function=create_table,
       dev_path=ufd_dev,
       use_mbr=args['--use-mbr'],
-      images=args['EXTRA_IMAGES'],
+      images=extra_images,
       )
     try_print.run(
       message='Setting boot flag...',
@@ -170,6 +178,8 @@ def build_ufd():
   try_print.run(
     message='Updating boot entries...',
     function=update_boot_entries,
+    ufd_dev=ufd_dev,
+    images=extra_images,
     )
 
   # Install syslinux (to partition)
@@ -259,7 +269,7 @@ def copy_source(source, items, overwrite=False):
 
 
 def create_table(dev_path, use_mbr=False, images=None):
-  """Create GPT or DOS partition table."""
+  """Create GPT or DOS partition table, returns dict."""
   cmd = [
     'sudo',
     'parted', dev_path,
@@ -484,10 +494,10 @@ def show_selections(args, sources, ufd_dev, ufd_sources, extra_images):
   std.print_standard(' ')
 
 
-def update_boot_entries():
+def update_boot_entries(ufd_dev, images=None):
   """Update boot files for UFD usage"""
   configs = []
-  uuid = get_uuid('/mnt/UFD')
+  uuids = [get_uuid('/mnt/UFD')]
 
   # Find config files
   for c_path, c_ext in BOOT_FILES.items():
@@ -506,7 +516,7 @@ def update_boot_entries():
     'sed',
     '--in-place',
     '--regexp-extended',
-    f's#archisolabel={ISO_LABEL}#archisodevice=/dev/disk/by-uuid/{uuid}#',
+    f's#archisolabel={ISO_LABEL}#archisodevice=/dev/disk/by-uuid/{uuids[0]}#',
     *configs,
     ]
   run_program(cmd)
@@ -528,6 +538,43 @@ def update_boot_entries():
       *configs,
       ]
     run_program(cmd, check=False)
+
+  # Bail early
+  if not images:
+    return
+
+  # Get PARTUUID values
+  cmd = ['lsblk', '--json', '--output', 'partuuid', ufd_dev]
+  try:
+    uuids = get_json_from_command(cmd)
+  except (CalledProcessError, ValueError):
+    # Bail
+    return
+  uuids = [v['partuuid'] for v in uuids['blockdevices']]
+
+  # Uncomment extra image entries if present
+  for _i, image in enumerate(images):
+    for name, comment in IMAGE_BOOT_ENTRIES.items():
+      if name.lower() in image.name.lower():
+        cmd = [
+          'sudo',
+          'sed',
+          '--in-place',
+          '--regexp-extended',
+          fr's/(#{comment}#.*)"PARTUUID/\1"{uuids[_i+2]}/',
+          *configs,
+          ]
+        run_program(cmd, check=False)
+        cmd = [
+          'sudo',
+          'sed',
+          '--in-place',
+          f's/#{comment}#//',
+          *configs,
+          ]
+        run_program(cmd, check=False)
+        IMAGE_BOOT_ENTRIES.pop(name)
+        break
 
 
 def verify_sources(args, ufd_sources):

@@ -26,6 +26,11 @@ BOOT_FILES = {
   '/syslinux':  'cfg',
   '/EFI/boot':  'conf',
   }
+IMAGE_BOOT_ENTRIES = {
+  'El Capitan':   'UFD-MACOS-10.11',
+  'High Sierra':  'UFD-MACOS-10.13',
+  'Catalina':     'UFD-MACOS-10.15',
+  }
 
 # Definitions: Sources and Destinations
 ## NOTES: Paths are relative to the root of the ISO/UFD
