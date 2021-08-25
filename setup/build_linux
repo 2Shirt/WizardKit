@@ -18,6 +18,8 @@ PROFILE_DIR="$BUILD_DIR/archiso-profile"
 REPO_DIR="$BUILD_DIR/repo"
 SKEL_DIR="$PROFILE_DIR/airootfs/etc/skel"
 TEMP_DIR="$BUILD_DIR/temp"
+WORK_DIR="$(mktemp -dt archiso-tmp.XXXXXXXXXX)"
+ISO_DIR="${WORK_DIR}/iso"
 MIRRORLIST_SOURCE='https://archlinux.org/mirrorlist/?country=US&protocol=http&protocol=https&ip_version=4&use_mirror_status=on'
 if command -v nano >/dev/null 2>&1; then
   EDITOR=nano
@@ -121,16 +123,15 @@ function update_live_env() {
   sed -i -r "s/SUPPORT_URL/$KIT_NAME_SHORT/" "$PROFILE_DIR/profiledef.sh"
 
   # Boot config (legacy)
-  mkdir -p "$PROFILE_DIR/arch"
+  mkdir -p "$PROFILE_DIR/syslinux/wimboot"
   cp "$ROOT_DIR/images/Pxelinux.png" "$PROFILE_DIR/syslinux/pxelinux.png"
   cp "$ROOT_DIR/images/Syslinux.png" "$PROFILE_DIR/syslinux/syslinux.png"
   sed -i -r "s/__+/$KIT_NAME_FULL/" "$PROFILE_DIR/syslinux/syslinux.cfg"
   mkdir -p "$TEMP_DIR" 2>/dev/null
   curl -Lo "$TEMP_DIR/wimboot.zip" "http://git.ipxe.org/releases/wimboot/wimboot-latest.zip"
-  7z e -aoa "$TEMP_DIR/wimboot.zip" -o"$PROFILE_DIR/arch/boot" 'wimboot*/LICENSE.txt' 'wimboot*/README.txt' 'wimboot*/wimboot'
+  7z e -aoa "$TEMP_DIR/wimboot.zip" -o"$PROFILE_DIR/syslinux/wimboot" 'wimboot*/LICENSE.txt' 'wimboot*/README.txt' 'wimboot*/wimboot'
 
   # Boot config (UEFI)
-  mkdir -p "$PROFILE_DIR/EFI/boot"
   cp  "/usr/share/refind/refind_x64.efi" "$PROFILE_DIR/EFI/boot/bootx64.efi"
   cp "$ROOT_DIR/images/rEFInd.png" "$PROFILE_DIR/EFI/boot/rEFInd.png"
   rsync -aI "/usr/share/refind/drivers_x64/" "$PROFILE_DIR/EFI/boot/drivers_x64/"
@@ -339,16 +340,29 @@ function build_iso() {
   # Build ISO
   prefix="${KIT_NAME_SHORT}-Linux"
   label="${KIT_NAME_SHORT}_LINUX"
-  #mkarchiso -w "$BUILD_DIR/work" -o "$OUT_DIR" -v "$PROFILE_DIR" | tee -a "$LOG_DIR/$DATETIME.log"
-  mkarchiso -w /tmp/archiso-tmp -o "$OUT_DIR" -v "$PROFILE_DIR" | tee -a "$LOG_DIR/$DATETIME.log"
+  mkarchiso \
+    -o "$OUT_DIR" \
+    -w ${WORK_DIR} \
+    -v "$PROFILE_DIR" \
+    | tee -a "$LOG_DIR/$DATETIME.log"
+
+  # Build better ISO
+  rm -r "${ISO_DIR:-safety}/EFI"
+  rm -r "${ISO_DIR:-safety}/loader"
+  rsync -aI "$PROFILE_DIR/EFI/" "${ISO_DIR:-safety}/EFI/"
+  rsync -aI --ignore-existing "$PROFILE_DIR/syslinux/" "${ISO_DIR:-safety}/syslinux/"
+  ## Sketchy bit ##
+  . /usr/bin/mkarchiso -o "${OUT_DIR}" -w "${WORK_DIR}" "${PROFILE_DIR}"
+  isofs_dir="${ISO_DIR}"
+  image_name="${KIT_NAME_SHORT}-Linux-${DATE}-x86_64.iso"
+  rm "${OUT_DIR}/${image_name}"
+  _build_iso_image
 
   # Cleanup
   echo "Removing temp files..."
   rm "$TEMP_DIR/Linux" -Rf | tee -a "$LOG_DIR/$DATETIME.log"
-  #sudo umount -R "$BUILD_DIR/work" || true
-  #sudo rm -rf "$BUILD_DIR/work"
-  sudo umount -R /tmp/archiso-tmp || true
-  sudo rm -rf /tmp/archiso-tmp
+  sudo umount -R ${WORK_DIR} || true
+  sudo rm -rf ${WORK_DIR}
 
   echo "Reverting permissions..."
   chown $REAL_USER:$REAL_USER "$PROFILE_DIR" -R

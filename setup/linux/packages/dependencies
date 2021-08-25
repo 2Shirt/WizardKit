@@ -3,6 +3,7 @@ attr
 base-devel
 curl
 dos2unix
+erofs-utils
 git
 gtk-doc
 gtk3
