@@ -172,6 +172,9 @@ function update_live_env() {
   # MOTD
   sed -i -r "s/_+/$KIT_NAME_FULL Linux Environment/" "$PROFILE_DIR/airootfs/etc/motd"
 
+  # Network
+  ln -s "/run/systemd/resolve/stub-resolv.conf" "$PROFILE_DIR/airootfs/etc/resolv.conf"
+
   # Oh My ZSH
   git clone --depth=1 https://github.com/robbyrussell/oh-my-zsh.git "$SKEL_DIR/.oh-my-zsh"
   rm -Rf "$SKEL_DIR/.oh-my-zsh/.git"
@@ -208,7 +211,7 @@ function update_live_env() {
   # Tech user
   echo "tech:$(echo "$TECH_PASSWORD" | openssl passwd -6 -stdin):14871::::::" >> "$PROFILE_DIR/airootfs/etc/shadow"
 
-  # Timezonew
+  # Timezone
   ln -sf "/usr/share/zoneinfo/$LINUX_TIME_ZONE" "$PROFILE_DIR/airootfs/etc/localtime"
 
   if [[ "${1:-}" != "--minimal" ]]; then

@@ -47,6 +47,7 @@ mkinitcpio-archiso
 mprime
 nano
 ncdu
+openssh
 p7zip
 perl
 pipes.sh
