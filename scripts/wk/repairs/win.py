@@ -202,17 +202,6 @@ def build_menus(base_menus, title):
 
 def end_session():
   """End Auto Repairs session."""
-  # Delete Auto Repairs keys
-  try:
-    reg_delete_value('HKCU', AUTO_REPAIR_KEY, 'SessionStarted')
-  except FileNotFoundError:
-    LOG.error('Ending repair session but session not started.')
-  try:
-    cmd = ['reg', 'delete', fr'HKCU\{AUTO_REPAIR_KEY}', '/f']
-    run_program(cmd)
-  except CalledProcessError:
-    LOG.error('Failed to remote Auto Repairs session settings')
-
   # Remove logon task
   cmd = [
     'schtasks', '/delete', '/f',
@@ -224,20 +213,26 @@ def end_session():
     LOG.error("Failed to remove scheduled task or it doesn't exist.")
 
   # Disable Autologon
-  if is_autologon_enabled():
+  autologon_selected = reg_read_value(
+    'HKCU', AUTO_REPAIR_KEY, 'Use Autologon',
+    )
+  if autologon_selected and is_autologon_enabled():
     run_tool('Sysinternals', 'Autologon', download=True)
     reg_set_value(
       'HKLM', r'Software\Microsoft\Windows NT\CurrentVersion\Winlogon',
       'AutoAdminLogon', '0', 'SZ',
       )
-    reg_delete_value(
-      'HKLM', r'Software\Microsoft\Windows NT\CurrentVersion\Winlogon',
-      'DefaultUserName',
-      )
-    reg_delete_value(
-      'HKLM', r'Software\Microsoft\Windows NT\CurrentVersion\Winlogon',
-      'DefaultDomainName',
-      )
+
+  # Delete Auto Repairs keys
+  try:
+    reg_delete_value('HKCU', AUTO_REPAIR_KEY, 'SessionStarted')
+  except FileNotFoundError:
+    LOG.error('Ending repair session but session not started.')
+  try:
+    cmd = ['reg', 'delete', fr'HKCU\{AUTO_REPAIR_KEY}', '/f']
+    run_program(cmd)
+  except CalledProcessError:
+    LOG.error('Failed to remote Auto Repairs session settings')
 
 
 def get_entry_settings(group, name):
@@ -269,6 +264,12 @@ def init(menus):
       'Run AVRemover...', run_tool, 'AVRemover', 'AVRemover',
       download=True, msg_good='DONE',
       )
+
+  # Check if autologon is needed
+  if not session_started and is_autologon_enabled():
+    # Avoid running Autologon and keep current settings
+    menus['Options'].options['Use Autologon']['Selected'] = False
+    save_selection_settings(menus)
 
   # Start or resume a repair session
   if session_started:
@@ -414,6 +415,10 @@ def run_auto_repairs(base_menus):
   save_selection_settings(menus)
   print_info('Initializing...')
   init_run(menus['Options'].options)
+  reg_set_value(
+    'HKCU', AUTO_REPAIR_KEY, 'Use Autologon',
+    int(is_autologon_enabled()), 'DWORD',
+    )
   if not is_autologon_enabled():
     # Either it wasn't selected or a password wasn't entered
     menus['Options'].options['Use Autologon']['Selected'] = False

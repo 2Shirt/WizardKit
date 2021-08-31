@@ -1,4 +1,4 @@
-"""Wizard Kit: Auto-Repair Tool"""
+"""Wizard Kit: Auto Repair Tool"""
 # vim: sts=2 sw=2 ts=2
 
 import os
