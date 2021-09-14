@@ -3,20 +3,20 @@
 
 from sys import version_info as version
 
-from wk import cfg
-from wk import debug
-from wk import exe
-from wk import graph
-from wk import hw
-from wk import io
-from wk import kit
-from wk import log
-from wk import net
-from wk import os
-from wk import repairs
-from wk import std
-from wk import sw
-from wk import tmux
+from . import cfg
+from . import debug
+from . import exe
+from . import graph
+from . import hw
+from . import io
+from . import kit
+from . import log
+from . import net
+from . import os
+from . import repairs
+from . import setup
+from . import std
+from . import tmux
 
 
 # Check env

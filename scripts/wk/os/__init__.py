@@ -4,8 +4,8 @@
 import platform
 
 if platform.system() == 'Darwin':
-  from wk.os import mac
+  from . import mac
 if platform.system() == 'Linux':
-  from wk.os import linux
+  from . import linux
 if platform.system() == 'Windows':
-  from wk.os import win
+  from . import win

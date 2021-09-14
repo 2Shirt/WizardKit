@@ -3,7 +3,7 @@
 
 import platform
 
-from wk.kit import tools
+from . import tools
 
 if platform.system() == 'Linux':
-  from wk.kit import ufd
+  from . import ufd

@@ -3,5 +3,5 @@
 
 import platform
 
-if platform.system() == 'Windows':
-  from . import win
+#if platform.system() == 'Windows':
+#  from . import win
