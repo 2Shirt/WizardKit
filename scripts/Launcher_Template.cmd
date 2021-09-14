@@ -67,8 +67,8 @@ popd
 @exit /b 0
 
 :SetTitle
-rem Sets title using KIT_NAME_FULL from settings\main.py
-set "SETTINGS=%bin%\Scripts\settings\main.py"
+rem Sets title using KIT_NAME_FULL from wk\cfg\main.py
+set "SETTINGS=%bin%\Scripts\wk\cfg\main.py"
 for /f "tokens=* usebackq" %%f in (`findstr KIT_NAME_FULL "%SETTINGS%"`) do (
   set "_v=%%f"
   set "_v=!_v:*'=!"
