@@ -27,6 +27,7 @@ from wk.kit.tools     import (
   ARCH,
   download_tool,
   extract_tool,
+  find_kit_dir,
   get_tool_path,
   run_tool,
   )
@@ -74,6 +75,14 @@ from wk.std           import (
 LOG = logging.getLogger(__name__)
 CONEMU_EXE = get_tool_path('ConEmu', 'ConEmu', check=False)
 IN_CONEMU = 'ConEmuPID' in os.environ
+LIBREOFFICE_XCU_DATA = '''<?xml version="1.0" encoding="UTF-8"?>
+<oor:items xmlns:oor="http://openoffice.org/2001/registry" xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+<item oor:path="/org.openoffice.Setup/Office/Factories/org.openoffice.Setup:Factory['com.sun.star.presentation.PresentationDocument']"><prop oor:name="ooSetupFactoryDefaultFilter" oor:op="fuse"><value>Impress MS PowerPoint 2007 XML</value></prop></item>
+<item oor:path="/org.openoffice.Setup/Office/Factories/org.openoffice.Setup:Factory['com.sun.star.sheet.SpreadsheetDocument']"><prop oor:name="ooSetupFactoryDefaultFilter" oor:op="fuse"><value>Calc MS Excel 2007 XML</value></prop></item>
+<item oor:path="/org.openoffice.Setup/Office/Factories/org.openoffice.Setup:Factory['com.sun.star.text.TextDocument']"><prop oor:name="ooSetupFactoryDefaultFilter" oor:op="fuse"><value>MS Word 2007 XML</value></prop></item>
+<item oor:path="/org.openoffice.Office.Common/Save/Document"><prop oor:name="WarnAlienFormat" oor:op="fuse"><value>false</value></prop></item>
+</oor:items>
+'''
 MENU_PRESETS = Menu()
 PROGRAMFILES_32 = os.environ.get(
   'PROGRAMFILES(X86)', os.environ.get(
@@ -325,11 +334,49 @@ def auto_windows_updates_enable():
 
 
 # Auto Setup: Wrapper Functions
+def auto_install_libreoffice():
+  """Install LibreOffice.
+
+  NOTE: It is assumed that auto_install_vcredists() will be run
+        before this function to satisfy the vcredist=False usage.
+  """
+  TRY_PRINT.run('LibreOffice...', install_libreoffice, vcredist=False)
+
+
 def auto_install_vcredists():
   """Install latest supported Visual C++ runtimes."""
   TRY_PRINT.run('Visual C++ Runtimes...', install_vcredists)
 
 # Install Functions
+def install_libreoffice(
+    register_mso_types=True, use_mso_formats=False, vcredist=True):
+  """Install LibreOffice."""
+  installer = find_kit_dir('Installers').joinpath('LibreOffice.msi')
+  xcu_dir = get_path_obj(f'{os.environ.get("APPDATA")}/LibreOffice/4/user')
+  xcu_file = xcu_dir.joinpath('registrymodifications.xcu')
+
+  # Set default save formats to MSO types
+  if use_mso_formats and not xcu_file.exists():
+    xcu_dir.mkdir(parents=True, exist_ok=True)
+    with open(xcu_file, 'w', encoding='utf-8', newline='\n') as _f:
+      _f.write(LIBREOFFICE_XCU_DATA)
+
+  # Build cmd
+  cmd = [
+    'msiexec', '/passive', '/norestart',
+    '/i', installer,
+    'REBOOTYESNO=No',
+    f'VC_REDIST={1 if vcredist else 0}',
+    ]
+  if register_mso_types:
+    cmd.append('REGISTER_ALL_MSO_TYPES=1')
+  else:
+    cmd.append('REGISTER_NO_MSO_TYPES=1')
+
+  # Install LibreOffice
+  run_program(cmd)
+
+
 def install_vcredists():
   """Install latest supported Visual C++ runtimes."""
   for year in (2012, 2013, 2019):

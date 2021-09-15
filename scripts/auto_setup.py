@@ -111,7 +111,7 @@ BASE_MENUS = {
     'Install Software': (
       MenuEntry('Visual C++ Runtimes',      'auto_install_vcredists'),
       #MenuEntry('ESET NOD32 Antivirus',     no_op),
-      MenuEntry('LibreOffice',              no_op),
+      MenuEntry('LibreOffice',              'auto_install_libreoffice'),
       MenuEntry('Open Shell Skin',          no_op),
       MenuEntry('uBlock Origin',            no_op),
       MenuEntry('Software Bundle',          no_op), # include FF x32 -> x64 convertion?
