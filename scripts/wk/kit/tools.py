@@ -10,7 +10,7 @@ import sys
 import requests
 
 from wk.cfg.main import ARCHIVE_PASSWORD
-from wk.cfg.tools import SOURCES, DOWNLOAD_FREQUENCY
+from wk.cfg.sources import DOWNLOAD_FREQUENCY, SOURCES
 from wk.exe import popen_program, run_program
 from wk.std import GenericError
 
