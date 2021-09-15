@@ -777,7 +777,7 @@ def auto_restore_uac_defaults(group, name):
 
 
 def auto_set_custom_power_plan(group, name):
-  """Set to a custom power plan."""
+  """Set custom power plan."""
   result = TRY_PRINT.run('Set Custom Power Plan...', create_custom_power_plan)
   save_settings(group, name, result=result)
 
@@ -789,7 +789,7 @@ def auto_sfc(group, name):
 
 
 def auto_system_restore_create(group, name):
-  """Create a System Restore point."""
+  """Create System Restore point."""
   result = TRY_PRINT.run(
     'Create System Restore...', create_system_restore_point,
     )

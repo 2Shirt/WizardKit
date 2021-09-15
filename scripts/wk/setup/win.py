@@ -41,16 +41,14 @@ from wk.os.win        import (
   stop_service,
   )
 from wk.repairs.win   import (
-  auto_backup_registry,
-  auto_backup_browser_profiles,
-  auto_backup_power_plans,
-  auto_reset_power_plans,
-  auto_set_custom_power_plan,
-  auto_enable_regback,
-  auto_system_restore_enable,
-  auto_system_restore_set_size,
-  auto_system_restore_create,
-  auto_windows_updates_enable,
+  backup_all_browser_profiles,
+  backup_registry,
+  create_custom_power_plan,
+  create_system_restore_point,
+  enable_windows_updates,
+  export_power_plans,
+  reset_power_plans,
+  set_system_restore_size,
   )
 from wk.std           import (
   GenericError,
@@ -215,7 +213,7 @@ def run_group(group, menu):
       continue
 
     # Selected
-    details['Function'](group, name)
+    details['Function']()
 
 
 def show_main_menu(base_menus, menus, presets):
@@ -265,6 +263,65 @@ def update_main_menu(menus):
     display_name = f' {index}: [{checkmark}] {name}'
     index += 1
     menus['Main'].options[name]['Display Name'] = display_name
+
+
+# Auto Repairs: Wrapper Functions
+def auto_backup_registry():
+  """Backup registry."""
+  TRY_PRINT.run('Backup Registry...', backup_registry)
+
+
+def auto_backup_browser_profiles():
+  """Backup browser profiles."""
+  backup_all_browser_profiles(use_try_print=True)
+
+
+def auto_backup_power_plans():
+  """Backup power plans."""
+  TRY_PRINT.run('Backup Power Plans...', export_power_plans)
+
+
+def auto_reset_power_plans():
+  """Reset power plans."""
+  TRY_PRINT.run('Reset Power Plans...', reset_power_plans)
+
+
+def auto_set_custom_power_plan():
+  """Set custom power plan."""
+  TRY_PRINT.run('Set Custom Power Plan...', create_custom_power_plan)
+
+
+def auto_enable_regback():
+  """Enable RegBack."""
+  TRY_PRINT.run(
+    'Enable RegBack...', reg_set_value, 'HKLM',
+    r'System\CurrentControlSet\Control\Session Manager\Configuration Manager',
+    'EnablePeriodicBackup', 1, 'DWORD',
+    )
+
+
+def auto_system_restore_enable():
+  """Enable System Restore."""
+  cmd = [
+    'powershell', '-Command', 'Enable-ComputerRestore',
+    '-Drive', SYSTEMDRIVE,
+    ]
+  TRY_PRINT.run('Enable System Restore...', run_program, cmd=cmd)
+
+
+def auto_system_restore_set_size():
+  """Set System Restore size."""
+  TRY_PRINT.run('Set System Restore Size...', set_system_restore_size)
+
+
+def auto_system_restore_create():
+  """Create System Restore point."""
+  TRY_PRINT.run('Create System Restore...', create_system_restore_point)
+
+
+def auto_windows_updates_enable():
+  """Enable Windows Updates."""
+  TRY_PRINT.run('Enable Windows Updates...', enable_windows_updates)
 
 
 # Auto Setup: Wrapper Functions
