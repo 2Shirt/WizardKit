@@ -109,7 +109,7 @@ BASE_MENUS = {
       MenuEntry('Set Custom Power Plan',    'auto_set_custom_power_plan'),
       ),
     'Install Software': (
-      MenuEntry('Visual C++ Runtimes',      no_op), # only 2012, 2013, & 2019 rest are EOL
+      MenuEntry('Visual C++ Runtimes',      'auto_install_vcredists'),
       #MenuEntry('ESET NOD32 Antivirus',     no_op),
       MenuEntry('LibreOffice',              no_op),
       MenuEntry('Open Shell Skin',          no_op),

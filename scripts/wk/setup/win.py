@@ -268,7 +268,26 @@ def update_main_menu(menus):
 
 
 # Auto Setup: Wrapper Functions
-## TODO
+def auto_install_vcredists():
+  """Install latest supported Visual C++ runtimes."""
+  TRY_PRINT.run('Visual C++ Runtimes...', install_vcredists)
+
+# Install Functions
+def install_vcredists():
+  """Install latest supported Visual C++ runtimes."""
+  for year in (2012, 2013, 2019):
+    cmd_args = ['/install', '/passive', '/norestart']
+    if year == 2012:
+      cmd_args.pop(0)
+    name = f'VCRedist_{year}_x32'
+    download_tool('VCRedist', name)
+    installer = get_tool_path('VCRedist', name)
+    run_program([installer, *cmd_args])
+    if ARCH == '64':
+      name = f'{name[:-2]}64'
+      download_tool('VCRedist', name)
+      installer = get_tool_path('VCRedist', name)
+      run_program([installer, *cmd_args])
 
 # Misc Functions
 ## TODO?
