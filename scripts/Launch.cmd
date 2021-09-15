@@ -18,7 +18,7 @@ call :DeQuote L_PATH
 call :DeQuote L_TYPE
 
 :SetVariables
-rem Set variables using wk\cfg\main.py file
+rem Set variables using settings\main.py file
 set "SETTINGS=%bin%\Scripts\wk\cfg\main.py"
 for %%v in (ARCHIVE_PASSWORD KIT_NAME_FULL OFFICE_SERVER_IP QUICKBOOKS_SERVER_IP) do (
   set "var=%%v"
