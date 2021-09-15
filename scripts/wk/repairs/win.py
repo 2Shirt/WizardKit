@@ -25,7 +25,12 @@ from wk.io            import (
   non_clobber_path,
   rename_item,
   )
-from wk.kit.tools     import download_tool, get_tool_path, run_tool
+from wk.kit.tools     import (
+  download_tool,
+  extract_tool,
+  get_tool_path,
+  run_tool,
+  )
 from wk.log           import format_log_path, update_log_path
 from wk.os.win        import (
   get_timezone,
@@ -926,7 +931,8 @@ def backup_registry():
   """Backup Registry."""
   backup_path = set_backup_path('Registry', date=True)
   backup_path.parent.mkdir(parents=True, exist_ok=True)
-  run_tool('Erunt', 'ERUNT', backup_path, 'sysreg', 'curuser', 'otherusers')
+  extract_tool('ERUNT')
+  run_tool('ERUNT', 'ERUNT', backup_path, 'sysreg', 'curuser', 'otherusers')
 
 
 def delete_registry_null_keys():
