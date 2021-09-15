@@ -62,10 +62,10 @@ def download_file(out_path, source_url, as_new=False, overwrite=False):
   return out_path
 
 
-def download_tool(folder, name):
+def download_tool(folder, name, suffix=None):
   """Download tool."""
   name_arch = f'{name}{ARCH}'
-  out_path = get_tool_path(folder, name, check=False)
+  out_path = get_tool_path(folder, name, check=False, suffix=suffix)
   up_to_date = False
 
   # Check if tool is up to date
@@ -145,16 +145,18 @@ def find_kit_dir(name=None):
   return cur_path
 
 
-def get_tool_path(folder, name, check=True):
+def get_tool_path(folder, name, check=True, suffix=None):
   """Get tool path, returns pathlib.Path"""
   bin_dir = find_kit_dir('.bin')
+  if not suffix:
+    suffix = 'exe'
   name_arch = f'{name}{ARCH}'
 
   # "Search"
-  tool_path = bin_dir.joinpath(f'{folder}/{name_arch}.exe')
+  tool_path = bin_dir.joinpath(f'{folder}/{name_arch}.{suffix}')
   if not (tool_path.exists() or name_arch in SOURCES):
     # Use "default" path instead
-    tool_path = tool_path.with_name(f'{name}.exe')
+    tool_path = tool_path.with_name(f'{name}.{suffix}')
 
   # Missing?
   if check and not tool_path.exists():
