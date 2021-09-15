@@ -4,6 +4,7 @@
 from datetime import datetime, timedelta
 import logging
 import pathlib
+import platform
 import sys
 
 import requests
@@ -15,7 +16,7 @@ from wk.std import GenericError
 
 
 # STATIC VARIABLES
-ARCH = '64' if sys.maxsize > 2**32 else '32'
+ARCH = '64' if platform.architecture()[0] == '64bit' else '32'
 LOG = logging.getLogger(__name__)
 
 
