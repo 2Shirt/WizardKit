@@ -112,14 +112,14 @@ BASE_MENUS = {
       MenuEntry('Visual C++ Runtimes',      'auto_install_vcredists'),
       #MenuEntry('ESET NOD32 Antivirus',     no_op),
       MenuEntry('LibreOffice',              'auto_install_libreoffice'),
-      MenuEntry('Open Shell Skin',          no_op),
+      MenuEntry('Open Shell',               'auto_install_open_shell'),
       MenuEntry('uBlock Origin',            no_op),
       MenuEntry('Software Bundle',          no_op), # include FF x32 -> x64 convertion?
       ),
     'Configure System': (
       MenuEntry('Chrome Notifications',     no_op),
       #MenuEntry('O&O ShutUp 10',            no_op),
-      MenuEntry('Open Shell',               no_op),
+      MenuEntry('Open Shell',               'auto_config_open_shell'),
       MenuEntry('uBlock Origin',            no_op),
       #MenuEntry('Disable Fast Startup',     no_op),
       MenuEntry('Enable BSoD MiniDumps',    no_op),

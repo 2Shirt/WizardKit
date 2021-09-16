@@ -26,6 +26,7 @@ from wk.io            import (
 from wk.kit.tools     import (
   ARCH,
   download_tool,
+  extract_archive,
   extract_tool,
   find_kit_dir,
   get_tool_path,
@@ -84,12 +85,54 @@ LIBREOFFICE_XCU_DATA = '''<?xml version="1.0" encoding="UTF-8"?>
 </oor:items>
 '''
 MENU_PRESETS = Menu()
+OS_VERSION = float(platform.win32_ver()[0])
 PROGRAMFILES_32 = os.environ.get(
   'PROGRAMFILES(X86)', os.environ.get(
     'PROGRAMFILES', r'C:\Program Files (x86)',
     ),
   )
-OS_VERSION = float(platform.win32_ver()[0])
+PROGRAMFILES_64 = os.environ.get(
+  'PROGRAMW6432', os.environ.get(
+    'PROGRAMFILES', r'C:\Program Files',
+    ),
+  )
+REG_OPEN_SHELL_SETTINGS = {
+  'HKCU': {
+    r'Software\OpenShell\StartMenu': (
+      ('ShowedStyle2', 1, 'DWORD'),
+      ),
+    r'Software\OpenShell\StartMenu\Settings': (
+      ('MenuStyle', 'Win7', 'SZ'),
+      ('RecentPrograms', 'Recent', 'SZ'),
+      ('SkinW7', 'Fluent-Metro', 'SZ'),
+      ('SkinVariationW7', '', 'SZ'),
+      ('SkipMetro', 1, 'DWORD'),
+      (
+        'SkinOptionsW7',
+        [
+          # NOTE: Seems to need all options specified to work?
+          'DARK_MAIN=1', 'METRO_MAIN=0', 'LIGHT_MAIN=0', 'AUTOMODE_MAIN=0',
+          'DARK_SUBMENU=0', 'METRO_SUBMENU=0', 'LIGHT_SUBMENU=0', 'AUTOMODE_SUBMENU=1',
+          'SUBMENU_SEPARATORS=1', 'DARK_SEARCH=0', 'METRO_SEARCH=0', 'LIGHT_SEARCH=1',
+          'AUTOMODE_SEARCH=0', 'SEARCH_FRAME=1', 'SEARCH_COLOR=0', 'SMALL_SEARCH=0',
+          'MODERN_SEARCH=1', 'SEARCH_ITALICS=0', 'NONE=0', 'SEPARATOR=0',
+          'TWO_TONE=1', 'CLASSIC_SELECTOR=1', 'HALF_SELECTOR=0', 'CURVED_MENUSEL=1',
+          'CURVED_SUBMENU=0', 'SELECTOR_REVEAL=0', 'TRANSPARENT=0', 'OPAQUE_SUBMENU=1',
+          'OPAQUE_MENU=0', 'OPAQUE=0', 'STANDARD=1', 'SMALL_MAIN2=0',
+          'SMALL_ICONS=0', 'COMPACT_SUBMENU=0', 'PRESERVE_MAIN2=0', 'LESS_PADDING=0',
+          'EXTRA_PADDING=1', '24_PADDING=0', 'LARGE_PROGRAMS=0', 'TRANSPARENT_SHUTDOWN=0',
+          'OUTLINE_SHUTDOWN=0', 'BUTTON_SHUTDOWN=1', 'EXPERIMENTAL_SHUTDOWN=0', 'LARGE_FONT=0',
+          'CONNECTED_BORDER=1', 'FLOATING_BORDER=0', 'LARGE_SUBMENU=0', 'LARGE_LISTS=0',
+          'THIN_MAIN2=0', 'EXPERIMENTAL_MAIN2=1', 'USER_IMAGE=1', 'USER_OUTSIDE=0',
+          'SCALING_USER=1', '56=0', '64=0', 'TRANSPARENT_USER=0',
+          'UWP_SCROLLBAR=1', 'MODERN_SCROLLBAR=0', 'OLD_ICONS=0', 'NEW_ICONS=1',
+          'SMALL_ARROWS=0', 'ICON_FRAME=0', 'SEARCH_SEPARATOR=0', 'NO_PROGRAMS_BUTTON=0',
+          ],
+        'MULTI_SZ',
+        ),
+      ),
+    },
+  }
 SYSTEMDRIVE = os.environ.get('SYSTEMDRIVE', 'C:')
 WIDTH = 50
 TRY_PRINT = TryAndPrint()
@@ -334,6 +377,11 @@ def auto_windows_updates_enable():
 
 
 # Auto Setup: Wrapper Functions
+def auto_config_open_shell():
+  """Configure Open Shell."""
+  TRY_PRINT.run('Open Shell...', reg_write_settings, REG_OPEN_SHELL_SETTINGS)
+
+
 def auto_install_libreoffice():
   """Install LibreOffice.
 
@@ -343,9 +391,19 @@ def auto_install_libreoffice():
   TRY_PRINT.run('LibreOffice...', install_libreoffice, vcredist=False)
 
 
+def auto_install_open_shell():
+  """Install Open Shell."""
+  TRY_PRINT.run('Open Shell...', install_open_shell)
+
+
 def auto_install_vcredists():
   """Install latest supported Visual C++ runtimes."""
   TRY_PRINT.run('Visual C++ Runtimes...', install_vcredists)
+
+
+# Configure Functions
+# TODO?
+
 
 # Install Functions
 def install_libreoffice(
@@ -377,6 +435,34 @@ def install_libreoffice(
   run_program(cmd)
 
 
+def install_open_shell():
+  """Install Open Shell (just the Start Menu)."""
+  installer = get_tool_path('OpenShell', 'OpenShell', check=False)
+  download_tool('OpenShell', 'OpenShell')
+  download_tool('OpenShell', 'Fluent-Metro', suffix='zip')
+  cmd = [installer, '/qn', 'ADDLOCAL=StartMenu']
+  run_program(cmd)
+
+  # Install Skin
+  skin_zip = installer.with_name('Fluent-Metro.zip')
+  extract_archive(skin_zip, f'{PROGRAMFILES_64}/Open-Shell/Skins', '-aoa')
+
+  # Add scheduled task to handle OS upgrades
+  cmd = ['schtasks', '/query', '/tn', 'Open-Shell OS upgrade check']
+  proc = run_program(cmd, check=False)
+  if proc.returncode == 0:
+    # Task already exists, bail and leave current task unmodified
+    return
+  cmd = [
+    'schtasks', '/create',
+    '/ru', r'NT AUTHORITY\SYSTEM',
+    '/sc', 'ONSTART',
+    '/tn', 'Open-Shell OS upgrade check',
+    '/tr', r'"%PROGRAMFILES%\Open-Shell\StartMenu.exe" -upgrade -silent',
+    ]
+  run_program(cmd)
+
+
 def install_vcredists():
   """Install latest supported Visual C++ runtimes."""
   for year in (2012, 2013, 2019):
@@ -392,6 +478,7 @@ def install_vcredists():
       download_tool('VCRedist', name)
       installer = get_tool_path('VCRedist', name)
       run_program([installer, *cmd_args])
+
 
 # Misc Functions
 ## TODO?

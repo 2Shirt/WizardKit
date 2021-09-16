@@ -5,7 +5,6 @@ from datetime import datetime, timedelta
 import logging
 import pathlib
 import platform
-import sys
 
 import requests
 

@@ -221,7 +221,10 @@ def reg_key_exists(hive, key):
 
 
 def reg_read_value(hive, key, value, force_32=False, force_64=False):
-  """Query value from hive/hey, returns multiple types."""
+  """Query value from hive/hey, returns multiple types.
+
+  NOTE: Set value='' to read the default value.
+  """
   access = winreg.KEY_READ
   data = None
   hive = reg_get_hive(hive)
