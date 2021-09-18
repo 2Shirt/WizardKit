@@ -23,6 +23,9 @@ PRESETS = {
       'Enable Windows Updates',
       'Windows Explorer',
       ),
+    'Install Software': (
+      'Firefox', # Needed to handle profile upgrade nonsense
+      ),
     'System Summary': (
       'Operating System',
       'Windows Activation',
@@ -111,10 +114,11 @@ BASE_MENUS = {
     'Install Software': (
       MenuEntry('Visual C++ Runtimes',      'auto_install_vcredists'),
       #MenuEntry('ESET NOD32 Antivirus',     no_op),
+      MenuEntry('Firefox',                  'auto_install_firefox'),
       MenuEntry('LibreOffice',              'auto_install_libreoffice'),
       MenuEntry('Open Shell',               'auto_install_open_shell'),
-      MenuEntry('uBlock Origin',            no_op),
-      MenuEntry('Software Bundle',          no_op), # include FF x32 -> x64 convertion?
+      MenuEntry('uBlock Origin',            'auto_install_ublock_origin'),
+      MenuEntry('Software Bundle',          no_op),
       ),
     'Configure System': (
       MenuEntry('Chrome Notifications',     no_op),

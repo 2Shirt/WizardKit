@@ -1,7 +1,9 @@
 """WizardKit: Setup - Windows"""
 # vim: sts=2 sw=2 ts=2
 
+import configparser
 import logging
+import json
 import os
 import platform
 import re
@@ -13,11 +15,13 @@ from subprocess       import CalledProcessError, DEVNULL
 from wk.cfg.main      import KIT_NAME_FULL, KIT_NAME_SHORT
 from wk.exe           import (
   get_procs,
+  kill_procs,
   run_program,
   popen_program,
   wait_for_procs,
   )
 from wk.io            import (
+  case_insensitive_path,
   delete_folder,
   get_path_obj,
   non_clobber_path,
@@ -96,6 +100,13 @@ PROGRAMFILES_64 = os.environ.get(
     'PROGRAMFILES', r'C:\Program Files',
     ),
   )
+REG_CHROME_UBLOCK_ORIGIN = {
+  'HKLM': {
+    r'Software\Google\Chrome\Extensions\cjpalhdlnbpafiamejdnhcphjbkeiagm': (
+      ('update_url', 'https://clients2.google.com/service/update2/crx', 'SZ', '32'),
+      )
+    },
+  }
 REG_OPEN_SHELL_SETTINGS = {
   'HKCU': {
     r'Software\OpenShell\StartMenu': (
@@ -382,6 +393,11 @@ def auto_config_open_shell():
   TRY_PRINT.run('Open Shell...', reg_write_settings, REG_OPEN_SHELL_SETTINGS)
 
 
+def auto_install_firefox():
+  """Install Firefox."""
+  TRY_PRINT.run('Firefox...', install_firefox)
+
+
 def auto_install_libreoffice():
   """Install LibreOffice.
 
@@ -396,6 +412,13 @@ def auto_install_open_shell():
   TRY_PRINT.run('Open Shell...', install_open_shell)
 
 
+def auto_install_ublock_origin():
+  """Update the registry to auto-add uBlock Origin to Chrome."""
+  TRY_PRINT.run(
+    'uBlock Origin...', reg_write_settings, REG_CHROME_UBLOCK_ORIGIN,
+    )
+
+
 def auto_install_vcredists():
   """Install latest supported Visual C++ runtimes."""
   TRY_PRINT.run('Visual C++ Runtimes...', install_vcredists)
@@ -406,6 +429,77 @@ def auto_install_vcredists():
 
 
 # Install Functions
+def install_firefox():
+  """Install Firefox.
+
+  As far as I can tell if you use the EXE installers then it will use
+  the same installation directory as the installed version.  As such a
+  32-bit installation could be upgraded to a 64-bit one and still use
+  %PROGRAMFILES(X86)%  However, if a 64-bit MSI installer is used then
+  it ignores the 32-bit directory and just installs a new copy to
+  %PROGRAMFILES% resulting in two copies of Firefox to be in place.
+  To address this issue this function will uninstall all copies of
+  Firefox under 64-bit Windows if it's detected in %PROGRAMFILES(X86)%
+  before installing the latest 64-bit version.
+
+  Firefox 67 changed how profiles are named to avoid reusing the same
+  profile between different channels of Firefox (std, beta, ESR, etc).
+  However the logic used when upgrading from versions before 67 to
+  current isn't ideal.  It can, but doesn't always?, create a new
+  profile and set it as default; even if there's an existing profile
+  being used.  To address this profiles.ini is read to compare with the
+  post-install/upgrade state.  If the default is changed to a new
+  profile then it is reverted so the original existing profile instead.
+  """
+  current_default_profile = None
+  firefox_exe = f'{os.environ["PROGRAMFILES"]}/Mozilla Firefox/firefox.exe'
+  profiles_ini = case_insensitive_path(
+    f'{os.environ["APPDATA"]}/Mozilla/Firefox/profiles.ini',
+    )
+  program_path_32bit_exists = False
+  try:
+    case_insensitive_path(
+      f'{PROGRAMFILES_32}/Mozilla Firefox/firefox.exe',
+      )
+  except FileNotFoundError:
+    # Ignore
+    pass
+  else:
+    program_path_32bit_exists = True
+  revert_default = False
+
+  # Save current default profile
+  if profiles_ini.exists():
+    current_default_profile = get_firefox_default_profile(profiles_ini)
+
+  # Uninstall Firefox if needed
+  if ARCH == '64' and program_path_32bit_exists:
+    uninstall_firefox()
+
+  # Install Firefox
+  run_tool('Firefox', 'Firefox', '/S', download=True)
+
+  # Open Firefox to force profiles.ini update
+  popen_program(firefox_exe)
+  sleep(5)
+  kill_procs('firefox.exe', force=True)
+
+  # Check if default profile changed
+  if current_default_profile:
+    new_default = get_firefox_default_profile(profiles_ini)
+    revert_default = new_default and new_default != current_default_profile
+
+  # Revert default profile if needed
+  if revert_default:
+    out = []
+    for line in profiles_ini.read_text().splitlines():
+      if 'Default=Profile' in line:
+        out.append(f'Default={current_default_profile}')
+      else:
+        out.append(line)
+    profiles_ini.write_text('\n'.join(out))
+
+
 def install_libreoffice(
     register_mso_types=True, use_mso_formats=False, vcredist=True):
   """Install LibreOffice."""
@@ -480,8 +574,50 @@ def install_vcredists():
       run_program([installer, *cmd_args])
 
 
+def uninstall_firefox():
+  """Uninstall all copies of Firefox."""
+  json_file = format_log_path(log_name='Installed Programs', timestamp=True)
+  json_file = json_file.with_name(f'{json_file.stem}.json')
+  uninstall_data = None
+
+  # Get uninstall_data from UninstallView
+  extract_tool('UninstallView')
+  cmd = [get_tool_path('UninstallView', 'UninstallView'), '/sjson', json_file]
+  run_program(cmd)
+  with open(json_file, 'rb') as _f:
+    uninstall_data = json.load(_f)
+
+  # Uninstall Firefox if found
+  for item in uninstall_data:
+    if item['Display Name'].lower().startswith('mozilla firefox'):
+      uninstaller = item['Uninstall String'].replace('"', '')
+      run_program([uninstaller, '/S'])
+
+
 # Misc Functions
-## TODO?
+def get_firefox_default_profile(profiles_ini):
+  """Get Firefox default profile, returns pathlib.Path or None."""
+  default_profile = None
+  parser = None
+
+  # Bail early
+  if not profiles_ini.exists():
+    return None
+
+  # Parse INI
+  parser = configparser.ConfigParser()
+  parser.read(profiles_ini)
+  for section in parser.sections():
+    if section.lower().startswith('install'):
+      default_profile = parser[section].get('default')
+      break
+    value = parser[section].get('default')
+    if value and value == '1':
+      default_profile = parser[section].get('path')
+
+  # Done
+  return default_profile
+
 
 # Tool Functions
 ## TODO?
