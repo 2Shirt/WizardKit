@@ -96,7 +96,9 @@ LIBREOFFICE_XCU_DATA = '''<?xml version="1.0" encoding="UTF-8"?>
 </oor:items>
 '''
 MENU_PRESETS = Menu()
-OS_VERSION = float(platform.win32_ver()[0])
+OS_VERSION = -1
+if platform.system() == 'Windows':
+  OS_VERSION = float(platform.win32_ver()[0])
 PROGRAMFILES_32 = os.environ.get(
   'PROGRAMFILES(X86)', os.environ.get(
     'PROGRAMFILES', r'C:\Program Files (x86)',
@@ -579,6 +581,12 @@ def install_libreoffice(
 def install_open_shell():
   """Install Open Shell (just the Start Menu)."""
   installer = get_tool_path('OpenShell', 'OpenShell', check=False)
+
+  # Bail early
+  if OS_VERSION != 10:
+    raise GenericWarning('Unsupported OS')
+
+  # Install OpenShell
   download_tool('OpenShell', 'OpenShell')
   download_tool('OpenShell', 'Fluent-Metro', suffix='zip')
   cmd = [installer, '/qn', 'ADDLOCAL=StartMenu']
