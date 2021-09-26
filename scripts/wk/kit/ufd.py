@@ -153,7 +153,7 @@ def build_ufd():
     )
   for s_label, s_path in sources.items():
     try_print.run(
-      message='Copying {}...'.format(s_label),
+      message=f'Copying {s_label}...',
       function=copy_source,
       source=s_path,
       items=ITEMS[s_label],
