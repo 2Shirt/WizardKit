@@ -78,6 +78,13 @@ from wk.std           import (
 
 # STATIC VARIABLES
 LOG = logging.getLogger(__name__)
+BROWSER_PATHS = {
+  # Relative to PROGRAMFILES_64, PROGRAMFILES_32, LOCALAPPDATA (in that order)
+  'Google Chrome': 'Google/Chrome/Application/chrome.exe',
+  'Mozilla Firefox': 'Mozilla Firefox/firefox.exe',
+  'Microsoft Edge': 'Microsoft/Edge/Application/msedge.exe',
+  'Opera': 'Opera/launcher.exe',
+  }
 CONEMU_EXE = get_tool_path('ConEmu', 'ConEmu', check=False)
 IN_CONEMU = 'ConEmuPID' in os.environ
 LIBREOFFICE_XCU_DATA = '''<?xml version="1.0" encoding="UTF-8"?>
@@ -151,6 +158,13 @@ TRY_PRINT.width = WIDTH
 TRY_PRINT.verbose = True
 for error in ('CalledProcessError', 'FileNotFoundError'):
   TRY_PRINT.add_error(error)
+UBLOCK_ORIGIN_URLS = {
+  # pylint: disable=line-too-long
+  'Google Chrome':    'https://chrome.google.com/webstore/detail/ublock-origin/cjpalhdlnbpafiamejdnhcphjbkeiagm',
+  'Microsoft Edge':   'https://microsoftedge.microsoft.com/addons/detail/ublock-origin/odfafepnkmbhccpbejgmiehpchacaeak',
+  'Mozilla Firefox':  'https://addons.mozilla.org/addon/ublock-origin/',
+  'Opera':            'https://addons.opera.com/extensions/details/ublock/',
+  }
 
 
 # Auto Setup
@@ -393,6 +407,19 @@ def auto_config_open_shell():
   TRY_PRINT.run('Open Shell...', reg_write_settings, REG_OPEN_SHELL_SETTINGS)
 
 
+def auto_enable_ublock_origin():
+  """Enable uBlock Origin in supported browsers."""
+  prompt = '    Press Enter to continue...'
+  TRY_PRINT.run(
+    'uBlock Origin...', enable_ublock_origin, msg_good='STARTED',
+    )
+  print(prompt, end='', flush=True)
+  pause('')
+
+  # Move cursor to beginning of the previous line and clear prompt
+  print(f'\033[F\r{" "*len(prompt)}\r', end='', flush=True)
+
+
 def auto_install_firefox():
   """Install Firefox."""
   TRY_PRINT.run('Firefox...', install_firefox)
@@ -412,20 +439,40 @@ def auto_install_open_shell():
   TRY_PRINT.run('Open Shell...', install_open_shell)
 
 
-def auto_install_ublock_origin():
-  """Update the registry to auto-add uBlock Origin to Chrome."""
-  TRY_PRINT.run(
-    'uBlock Origin...', reg_write_settings, REG_CHROME_UBLOCK_ORIGIN,
-    )
-
-
 def auto_install_vcredists():
   """Install latest supported Visual C++ runtimes."""
   TRY_PRINT.run('Visual C++ Runtimes...', install_vcredists)
 
 
 # Configure Functions
-# TODO?
+def enable_ublock_origin():
+  """Enable uBlock Origin in supported browsers."""
+  base_paths = [
+    PROGRAMFILES_64, PROGRAMFILES_32, os.environ.get('LOCALAPPDATA'),
+    ]
+  cmds = []
+
+  # Add Google Chrome registry entries
+  reg_write_settings(REG_CHROME_UBLOCK_ORIGIN)
+
+  # Build cmds list
+  for browser, rel_path in BROWSER_PATHS.items():
+    browser_path = None
+    for base_path in base_paths:
+      try:
+        browser_path = case_insensitive_path(f'{base_path}/{rel_path}')
+      except FileNotFoundError:
+        # Ignore missing browsers
+        continue
+      else:
+        # Found a match, skip checking the rest
+        break
+    if browser_path:
+      cmds.append([browser_path, UBLOCK_ORIGIN_URLS[browser]])
+
+  # Open detected browsers
+  for cmd in cmds:
+    popen_program(cmd)
 
 
 # Install Functions
