@@ -778,7 +778,10 @@ def auto_restore_uac_defaults(group, name):
 
 def auto_set_custom_power_plan(group, name):
   """Set custom power plan."""
-  result = TRY_PRINT.run('Set Custom Power Plan...', create_custom_power_plan)
+  result = TRY_PRINT.run(
+    'Set Custom Power Plan...', create_custom_power_plan,
+    keep_display_on=True,
+    )
   save_settings(group, name, result=result)
 
 
@@ -1082,7 +1085,7 @@ def run_tdsskiller():
 
 
 # OS Built-in Functions
-def create_custom_power_plan():
+def create_custom_power_plan(keep_display_on=False):
   """Create new power plan and set as active."""
   custom_guid = POWER_PLANS['Custom']
 
@@ -1102,9 +1105,10 @@ def create_custom_power_plan():
   run_program(cmd)
 
   # Keep the display on
-  for setting in ('monitor-timeout-ac', 'monitor-timeout-dc'):
-    cmd = ['powercfg', '-Change', setting, '0']
-    run_program(cmd)
+  if keep_display_on:
+    for setting in ('monitor-timeout-ac', 'monitor-timeout-dc'):
+      cmd = ['powercfg', '-Change', setting, '0']
+      run_program(cmd)
 
   # Set CPU min state
   for arg in ('-SetacValueIndex', '-SetdcValueIndex'):
