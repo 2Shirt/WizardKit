@@ -57,7 +57,7 @@ def download_file(out_path, source_url, as_new=False, overwrite=False):
       _f.write(chunk)
 
   # Done
-  print(f'\r{" "*len(download_msg)}\r', end='', flush=True)
+  print(f'\033[{len(download_msg)}D\033[0K', end='', flush=True)
   return out_path
 
 

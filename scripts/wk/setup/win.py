@@ -441,6 +441,11 @@ def auto_install_open_shell():
   TRY_PRINT.run('Open Shell...', install_open_shell)
 
 
+def auto_install_software_bundle():
+  """Install standard software bundle."""
+  TRY_PRINT.run('Software Bundle...', install_software_bundle)
+
+
 def auto_install_vcredists():
   """Install latest supported Visual C++ runtimes."""
   TRY_PRINT.run('Visual C++ Runtimes...', install_vcredists)
@@ -610,6 +615,31 @@ def install_open_shell():
     '/tr', r'"%PROGRAMFILES%\Open-Shell\StartMenu.exe" -upgrade -silent',
     ]
   run_program(cmd)
+
+
+def install_software_bundle():
+  """Install standard software bundle."""
+  download_tool('Ninite', 'Software Bundle')
+  installer = get_tool_path('Ninite', 'Software Bundle')
+  msg = 'Waiting for installations to finish...'
+  warning = 'NOTE: Press CTRL+c to manually resume if it gets stuck...'
+
+  # Start installations and wait for them to finish
+  print_standard(msg)
+  print_warning(warning, end='', flush=True)
+  proc = popen_program([installer])
+  try:
+    proc.wait()
+  except KeyboardInterrupt:
+    # Assuming user-forced continue
+    pass
+
+  # Clear info lines
+  print(
+    '\r\033[0K'      # Cursor to start of current line and clear to end of line
+    '\033[F\033[54C' # Cursor to start of prev line and then move 54 right
+    '\033[0K',       # Clear from cursor to end of line
+    end='', flush=True)
 
 
 def install_vcredists():

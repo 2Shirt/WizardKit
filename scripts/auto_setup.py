@@ -117,7 +117,7 @@ BASE_MENUS = {
       MenuEntry('Firefox',                  'auto_install_firefox'),
       MenuEntry('LibreOffice',              'auto_install_libreoffice'),
       MenuEntry('Open Shell',               'auto_install_open_shell'),
-      MenuEntry('Software Bundle',          no_op),
+      MenuEntry('Software Bundle',          'auto_install_software_bundle'),
       ),
     'Configure System': (
       MenuEntry('Chrome Notifications',     no_op),

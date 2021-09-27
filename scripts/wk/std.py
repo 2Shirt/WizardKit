@@ -588,11 +588,11 @@ class TryAndPrint():
       verbose,
       )
     f_exception = None
-    catch_all = catch_all if catch_all else self.catch_all
-    msg_good = msg_good if msg_good else self.msg_good
+    catch_all = catch_all if catch_all is not None else self.catch_all
+    msg_good = msg_good if msg_good is not None else self.msg_good
     output = None
     result_msg = 'UNKNOWN'
-    verbose = verbose if verbose else self.verbose
+    verbose = verbose if verbose is not None else self.verbose
 
     # Build exception tuples
     e_exceptions = tuple(self._get_exception(e) for e in self.list_errors)

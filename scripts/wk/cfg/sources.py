@@ -56,6 +56,7 @@ SOURCES = {
   'Samsung Magician': 'https://s3.ap-northeast-2.amazonaws.com/global.semi.static/SAMSUNG_SSD_v5_3_0_181121/CD0C7CC1BE00525FAC4675B9E502899B41D5C3909ECE3AA2FB6B74A766B2A1EA/Samsung_Magician_Installer.zip',
   'SDIO Themes': 'http://snappy-driver-installer.org/downloads/SDIO_Themes.zip',
   'SDIO Torrent': 'http://snappy-driver-installer.org/downloads/SDIO_Update.torrent',
+  'Software Bundle': 'https://ninite.com/.net4.8-7zip-chrome-edge-vlc/ninite.exe',
   'ShutUp10': 'https://dl5.oo-software.com/files/ooshutup10/OOSU10.exe',
   'smartmontools': 'https://1278-105252244-gh.circle-artifacts.com/0/builds/smartmontools-win32-setup-7.3-r5216.exe',
   'TDSSKiller': 'https://media.kaspersky.com/utilities/VirusUtilities/EN/tdsskiller.exe',
