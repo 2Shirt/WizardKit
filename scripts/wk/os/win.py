@@ -72,6 +72,11 @@ def activate_with_bios():
   #####################################################
   bios_key = None
   table = b"MSDM"
+  # Check if activation is needed
+  if is_activated():
+    raise GenericWarning('System already activated')
+
+  # Get BIOS key
   if acpi.FindAcpiTable(table) is True:
     rawtable = acpi.GetAcpiTable(table)
     #http://msdn.microsoft.com/library/windows/hardware/hh673514
@@ -81,10 +86,6 @@ def activate_with_bios():
     bios_key = rawtable[56:len(rawtable)].decode("utf-8")
   if not bios_key:
     raise GenericError('BIOS key not found.')
-
-  # Check if activation is needed
-  if is_activated():
-    raise GenericWarning('System already activated')
 
   # Install Key
   cmd = ['cscript', '//nologo', SLMGR, '/ipk', bios_key]
