@@ -153,6 +153,27 @@ REG_OPEN_SHELL_SETTINGS = {
       ),
     },
   }
+UAC_DEFAULTS_WIN7 = {
+  'HKLM': {
+    r'Software\Microsoft\Windows\CurrentVersion\Policies\System': (
+      ('ConsentPromptBehaviorAdmin', 5, 'DWORD'),
+      ('EnableLUA', 1, 'DWORD'),
+      ('PromptOnSecureDesktop', 1, 'DWORD'),
+      ),
+    },
+  }
+UAC_DEFAULTS_WIN10 = {
+  'HKLM': {
+    r'Software\Microsoft\Windows\CurrentVersion\Policies\System': (
+      ('ConsentPromptBehaviorAdmin', 5, 'DWORD'),
+      ('ConsentPromptBehaviorUser', 3, 'DWORD'),
+      ('EnableInstallerDetection', 1, 'DWORD'),
+      ('EnableLUA', 1, 'DWORD'),
+      ('EnableVirtualization', 1, 'DWORD'),
+      ('PromptOnSecureDesktop', 1, 'DWORD'),
+      ),
+    },
+  }
 SYSTEMDRIVE = os.environ.get('SYSTEMDRIVE', 'C:')
 WIDTH = 50
 TRY_PRINT = TryAndPrint()
@@ -462,6 +483,11 @@ def auto_install_vcredists():
   TRY_PRINT.run('Visual C++ Runtimes...', install_vcredists)
 
 
+def auto_restore_default_uac():
+  """Restore default UAC settings."""
+  TRY_PRINT.run('User Account Control...', restore_default_uac)
+
+
 # Configure Functions
 def disable_chrome_notifications():
   """Disable notifications in Google Chrome."""
@@ -540,6 +566,15 @@ def enable_ublock_origin():
   # Open detected browsers
   for cmd in cmds:
     popen_program(cmd)
+
+
+def restore_default_uac():
+  """Restore default UAC settings."""
+  settings = UAC_DEFAULTS_WIN10
+  if OS_VERSION != 10:
+    settings = UAC_DEFAULTS_WIN7
+
+  reg_write_settings(settings)
 
 
 # Install Functions
