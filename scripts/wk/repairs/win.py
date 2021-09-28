@@ -875,6 +875,16 @@ def backup_browser_chromium(backup_path, browser, search_path, use_try_print):
     if not match:
       continue
     output_path = backup_path.joinpath(f'{browser}-{item.name}.7z')
+    if output_path.exists():
+      # Assuming backup was already done
+      if use_try_print:
+        show_data(
+          f'{" "*8}{browser} ({item.name})...', 'Backup already exists.',
+          color='YELLOW', width=WIDTH,
+          )
+      continue
+
+    # Backup data
     cmd = [
       *BACKUP_BROWSER_BASE_CMD,
       output_path, item.joinpath('*'), '-x!*Cache*', '-x!Service Worker',
@@ -891,6 +901,18 @@ def backup_browser_chromium(backup_path, browser, search_path, use_try_print):
 def backup_browser_firefox(backup_path, search_path, use_try_print):
   """Backup Firefox browser profile."""
   output_path = backup_path.joinpath('Firefox.7z')
+
+  # Bail early
+  if output_path.exists():
+    # Assuming backup was already done
+    if use_try_print:
+      show_data(
+        f'{" "*8}Firefox (All)...', 'Backup already exists.',
+        color='YELLOW', width=WIDTH,
+        )
+    return
+
+  # Backup data
   cmd = [
     *BACKUP_BROWSER_BASE_CMD, output_path,
     search_path.joinpath('Profiles'), search_path.joinpath('profiles.ini'),
@@ -934,6 +956,12 @@ def backup_registry():
   """Backup Registry."""
   backup_path = set_backup_path('Registry', date=True)
   backup_path.parent.mkdir(parents=True, exist_ok=True)
+
+  # Check if backup was already done today
+  if backup_path.exists():
+    raise GenericWarning('Backup already exists.')
+
+  # Backup registry
   extract_tool('ERUNT')
   run_tool('ERUNT', 'ERUNT', backup_path, 'sysreg', 'curuser', 'otherusers')
 
@@ -1155,6 +1183,12 @@ def enable_windows_updates():
 def export_power_plans():
   """Export existing power plans."""
   backup_path = set_backup_path('Power Plans', date=True)
+
+  # Bail early
+  if backup_path.exists():
+    raise GenericWarning('Backup already exists.')
+
+  # Get powercfg data
   backup_path.mkdir(parents=True, exist_ok=True)
   cmd = ['powercfg', '/L']
   proc = run_program(cmd)

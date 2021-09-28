@@ -105,7 +105,6 @@ def no_op(*args):
 BASE_MENUS = {
   'Groups': {
     'Backup Settings': (
-      # Add checks for existing backups and skip if detected
       MenuEntry('Backup Browsers',          'auto_backup_browser_profiles'),
       MenuEntry('Backup Power Plans',       'auto_backup_power_plans'),
       MenuEntry('Reset Power Plans',        'auto_reset_power_plans'),
@@ -113,7 +112,6 @@ BASE_MENUS = {
       ),
     'Install Software': (
       MenuEntry('Visual C++ Runtimes',      'auto_install_vcredists'),
-      #MenuEntry('ESET NOD32 Antivirus',     no_op),
       MenuEntry('Firefox',                  'auto_install_firefox'),
       MenuEntry('LibreOffice',              'auto_install_libreoffice'),
       MenuEntry('Open Shell',               'auto_install_open_shell'),
@@ -121,12 +119,9 @@ BASE_MENUS = {
       ),
     'Configure System': (
       MenuEntry('Chrome Notifications',     'auto_disable_chrome_notifications'),
-      #MenuEntry('O&O ShutUp 10',            no_op),
       MenuEntry('Open Shell',               'auto_config_open_shell'),
       MenuEntry('uBlock Origin',            'auto_enable_ublock_origin'),
-      #MenuEntry('Disable Fast Startup',     no_op),
       MenuEntry('Enable BSoD MiniDumps',    'auto_enable_bsod_minidumps'),
-      #MenuEntry('Enable Hibernation',       no_op),
       MenuEntry('Enable RegBack',           'auto_enable_regback'),
       MenuEntry('Enable System Restore',    'auto_system_restore_enable'),
       MenuEntry('Set System Restore Size',  'auto_system_restore_set_size'),
@@ -154,7 +149,6 @@ BASE_MENUS = {
     'Run Programs': (
       MenuEntry('Device Manager',           no_op),
       MenuEntry('HWiNFO Sensors',           no_op),
-      #MenuEntry('Snappy Driver Installer',  no_op),
       MenuEntry('Windows Updates',          no_op),
       MenuEntry('Windows Activation',       no_op),
       MenuEntry('XMPlay',                   no_op),
