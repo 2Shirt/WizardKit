@@ -374,7 +374,7 @@ def get_uuid(path):
 
 def hide_items(ufd_dev_first_partition, items):
   """Set FAT32 hidden flag for items."""
-  with open('/root/.mtoolsrc', 'w') as _f:
+  with open('/root/.mtoolsrc', 'w', encoding='utf-8') as _f:
     _f.write(f'drive U: file="{ufd_dev_first_partition}"\n')
     _f.write('mtools_skip_check=1\n')
 

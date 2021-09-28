@@ -449,7 +449,6 @@ def auto_set_custom_power_plan():
 
 def auto_enable_bsod_minidumps():
   """Enable saving minidumps during BSoDs."""
-  cmd = ['wmic', 'RECOVEROS', 'set', 'DebugInfoType', '=', '3']
   TRY_PRINT.run('Enable BSoD mini dumps...', enable_bsod_minidumps)
 
 
@@ -732,12 +731,12 @@ def install_firefox():
   # Revert default profile if needed
   if revert_default:
     out = []
-    for line in profiles_ini.read_text().splitlines():
+    for line in profiles_ini.read_text(encoding='utf-8').splitlines():
       if 'Default=Profile' in line:
         out.append(f'Default={current_default_profile}')
       else:
         out.append(line)
-    profiles_ini.write_text('\n'.join(out))
+    profiles_ini.write_text('\n'.join(out), encoding='utf-8')
 
 
 def install_libreoffice(

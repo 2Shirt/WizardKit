@@ -218,7 +218,7 @@ def scan_corestorage_container(container, timeout=300):
   # Create mapper device(s) if necessary
   for name, cmd in detected_volumes.items():
     cmd_file = make_temp_file()
-    cmd_file.write_text(cmd)
+    cmd_file.write_text(cmd, encoding='utf-8')
     proc = run_program(
       cmd=['sudo', 'dmsetup', 'create', name, cmd_file],
       check=False,

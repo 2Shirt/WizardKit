@@ -402,7 +402,7 @@ class State():
 
     # Try loading JSON data
     if settings_file.exists():
-      with open(settings_file, 'r') as _f:
+      with open(settings_file, 'r', encoding='utf-8') as _f:
         try:
           settings = json.loads(_f.read())
         except (OSError, json.JSONDecodeError) as err:
@@ -450,7 +450,7 @@ class State():
 
     # Try saving JSON data
     try:
-      with open(settings_file, 'w') as _f:
+      with open(settings_file, 'w', encoding='utf-8') as _f:
         json.dump(settings, _f)
     except OSError as err:
       std.print_error('Failed to save clone settings')
@@ -874,7 +874,7 @@ class State():
       f'{self.working_dir}/'
       f'sfdisk_{self.destination.path.name}.script'
       )
-    with open(script_path, 'w') as _f:
+    with open(script_path, 'w', encoding='utf-8') as _f:
       _f.write('\n'.join(sfdisk_script))
 
     # Skip real format for dry runs
@@ -884,7 +884,7 @@ class State():
 
     # Format disk
     LOG.warning('Formatting destination: %s', self.destination.path)
-    with open(script_path, 'r') as _f:
+    with open(script_path, 'r', encoding='utf-8') as _f:
       proc = exe.run_program(
         cmd=['sudo', 'sfdisk', self.destination.path],
         stdin=_f,
@@ -912,7 +912,7 @@ class State():
         pair.status[name] = 'Pending'
 
       # Mark all non-trimmed, non-scraped, and bad areas as non-tried
-      with open(pair.map_path, 'r') as _f:
+      with open(pair.map_path, 'r', encoding='utf-8') as _f:
         for line in _f.readlines():
           line = line.strip()
           if line.startswith('0x') and line.endswith(bad_statuses):
@@ -920,7 +920,7 @@ class State():
           map_data.append(line)
 
       # Save updated map
-      with open(pair.map_path, 'w') as _f:
+      with open(pair.map_path, 'w', encoding='utf-8') as _f:
         _f.write('\n'.join(map_data))
 
       # Reinitialize status
@@ -991,14 +991,15 @@ class State():
 
     # State (self)
     std.save_pickles({'state': self}, debug_dir)
-    with open(f'{debug_dir}/state.report', 'a') as _f:
+    with open(f'{debug_dir}/state.report', 'a', encoding='utf-8') as _f:
       _f.write('[Debug report]\n')
       _f.write('\n'.join(debug.generate_object_report(self)))
       _f.write('\n')
 
     # Block pairs
     for _bp in self.block_pairs:
-      with open(f'{debug_dir}/block_pairs.report', 'a') as _f:
+      with open(
+          f'{debug_dir}/block_pairs.report', 'a', encoding='utf-8') as _f:
         _f.write('[Debug report]\n')
         _f.write('\n'.join(debug.generate_object_report(_bp)))
         _f.write('\n')
@@ -1063,7 +1064,7 @@ class State():
 
     # Write to progress file
     out_path = pathlib.Path(f'{self.log_dir}/progress.out')
-    with open(out_path, 'w') as _f:
+    with open(out_path, 'w', encoding='utf-8') as _f:
       _f.write('\n'.join(report))
 
   def update_top_panes(self):
@@ -1996,7 +1997,7 @@ def run_ddrescue(state, block_pair, pass_name, settings, dry_run=True):
     """Update SMART pane every 30 seconds."""
     state.source.update_smart_details()
     now = datetime.datetime.now(tz=TIMEZONE).strftime('%Y-%m-%d %H:%M %Z')
-    with open(f'{state.log_dir}/smart.out', 'w') as _f:
+    with open(f'{state.log_dir}/smart.out', 'w', encoding='utf-8') as _f:
       _f.write(
         std.color_string(
           ['SMART Attributes', f'Updated: {now}\n'],

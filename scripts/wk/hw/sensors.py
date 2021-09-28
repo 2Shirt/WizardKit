@@ -141,7 +141,7 @@ class Sensors():
         if thermal_action:
           run_program(thermal_action, check=False)
       report = self.generate_report(*temp_labels)
-      with open(out_path, 'w') as _f:
+      with open(out_path, 'w', encoding='utf-8') as _f:
         _f.write('\n'.join(report))
 
       # Check if we should stop

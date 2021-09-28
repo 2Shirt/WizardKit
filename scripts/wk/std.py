@@ -803,7 +803,7 @@ def generate_debug_report():
   if log_path:
     report.append('------ Start Log -------')
     report.append('')
-    with open(log_path, 'r') as log_file:
+    with open(log_path, 'r', encoding='utf-8') as log_file:
       report.extend(log_file.read().splitlines())
     report.append('')
     report.append('------- End Log --------')

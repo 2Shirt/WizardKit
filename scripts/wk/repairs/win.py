@@ -987,8 +987,8 @@ def run_bleachbit(cleaners, preview=True):
   proc = run_tool('BleachBit', 'bleachbit_console', *cmd_args, cbin=True)
 
   # Save logs
-  log_path.write_text(proc.stdout)
-  log_path.with_suffix('.err').write_text(proc.stderr)
+  log_path.write_text(proc.stdout, encoding='utf-8')
+  log_path.with_suffix('.err').write_text(proc.stderr, encoding='utf-8')
 
 
 def run_hitmanpro():
@@ -1025,7 +1025,7 @@ def run_kvrt():
     download_tool('KVRT', 'KVRT')
     kvrt_path = get_tool_path('KVRT', 'KVRT')
     tmp_file = fr'{os.environ.get("TMP")}\run_kvrt.cmd'
-    with open(tmp_file, 'w') as _f:
+    with open(tmp_file, 'w', encoding='utf-8') as _f:
       _f.write('@echo off\n')
       _f.write(f'"{kvrt_path}" {" ".join(cmd_args)}\n')
     cmd = ('cmd', '/c', tmp_file, '-new_console:nb', '-new_console:s33V')
@@ -1036,7 +1036,7 @@ def run_kvrt():
 
   # Run in background
   proc = run_tool('KVRT', 'KVRT', *cmd_args, download=True)
-  log_path.write_text(proc.stdout)
+  log_path.write_text(proc.stdout, encoding='utf-8')
 
 
 def run_microsoft_defender(full=True):
@@ -1075,7 +1075,7 @@ def run_microsoft_defender(full=True):
   # Run scan
   cmd = (defender_path, '-Scan', '-ScanType', '2' if full else '1')
   proc = run_program(cmd, check=False)
-  log_path.write_text(proc.stdout)
+  log_path.write_text(proc.stdout, encoding='utf-8')
   if proc.returncode > 0:
     raise GenericError('Failed to run scan or clean items.')
 
@@ -1085,7 +1085,9 @@ def run_rkill():
   log_path = format_log_path(log_name='RKill', timestamp=True, tool=True)
   log_path.parent.mkdir(parents=True, exist_ok=True)
   whitelist_path = log_path.with_suffix('.wl')
-  whitelist_path.write_text('\n'.join(map(str, RKILL_WHITELIST)))
+  whitelist_path.write_text(
+    '\n'.join(map(str, RKILL_WHITELIST)), encoding='utf-8',
+    )
   cmd_args = (
     '-l', log_path,
     '-w', whitelist_path,
@@ -1398,9 +1400,9 @@ def run_sfc_scan():
 
   # Save output
   os.makedirs(log_path.parent, exist_ok=True)
-  with open(log_path, 'a') as _f:
+  with open(log_path, 'a', encoding='utf-8') as _f:
     _f.write(proc.stdout)
-  with open(err_path, 'a') as _f:
+  with open(err_path, 'a', encoding='utf-8') as _f:
     _f.write(proc.stderr)
 
   # Check result

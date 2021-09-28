@@ -357,11 +357,11 @@ class State():
 
     # State (self)
     std.save_pickles({'state': self}, debug_dir)
-    with open(f'{debug_dir}/state.report', 'a') as _f:
+    with open(f'{debug_dir}/state.report', 'a', encoding='utf-8') as _f:
       _f.write('\n'.join(debug.generate_object_report(self)))
 
     # CPU/RAM
-    with open(f'{debug_dir}/cpu.report', 'a') as _f:
+    with open(f'{debug_dir}/cpu.report', 'a', encoding='utf-8') as _f:
       _f.write('\n'.join(debug.generate_object_report(self.cpu)))
       _f.write('\n\n[Tests]')
       for name, test in self.cpu.tests.items():
@@ -370,7 +370,9 @@ class State():
 
     # Disks
     for disk in self.disks:
-      with open(f'{debug_dir}/disk_{disk.path.name}.report', 'a') as _f:
+      with open(
+          f'{debug_dir}/disk_{disk.path.name}.report', 'a',
+          encoding='utf-8') as _f:
         _f.write('\n'.join(debug.generate_object_report(disk)))
         _f.write('\n\n[Tests]')
         for name, test in disk.tests.items():
@@ -389,7 +391,7 @@ class State():
       except Exception: # pylint: disable=broad-except
         LOG.ERROR('Error(s) encountered while exporting SMC data')
       data = [line.strip() for line in data]
-      with open(f'{debug_dir}/smc.data', 'a') as _f:
+      with open(f'{debug_dir}/smc.data', 'a', encoding='utf-8') as _f:
         _f.write('\n'.join(data))
 
   def update_clock(self):
@@ -426,7 +428,7 @@ class State():
 
     # Write to progress file
     out_path = pathlib.Path(f'{self.log_dir}/progress.out')
-    with open(out_path, 'w') as _f:
+    with open(out_path, 'w', encoding='utf-8') as _f:
       _f.write('\n'.join(report))
 
   def update_top_pane(self, text):
@@ -632,7 +634,7 @@ def check_mprime_results(test_obj, working_dir):
     """Read file and split into lines, returns list."""
     lines = []
     try:
-      with open(f'{working_dir}/{log_name}', 'r') as _f:
+      with open(f'{working_dir}/{log_name}', 'r', encoding='utf-8') as _f:
         lines = _f.readlines()
     except FileNotFoundError:
       # File may be missing on older systems
@@ -916,7 +918,7 @@ def disk_io_benchmark(state, test_objects, skip_usb=True):
         match.group(1)
 
       # Show progress
-      with open(log_path, 'a') as _f:
+      with open(log_path, 'a', encoding='utf-8') as _f:
         if _i % 5 == 0:
           percent = (_i / dd_values['Read Chunks']) * 100
           _f.write(f'  {graph.vertical_graph_line(percent, read_rates[-1])}\n')
@@ -1095,7 +1097,7 @@ def disk_surface_scan(state, test_objects):
 
     # Start scan
     cmd = ['sudo', 'badblocks', '-sv', '-b', block_size, '-e', '1', dev_path]
-    with open(log_path, 'a') as _f:
+    with open(log_path, 'a', encoding='utf-8') as _f:
       size_str = std.bytes_to_string(dev.details["size"], use_binary=False)
       _f.write(
         std.color_string(
@@ -1114,7 +1116,7 @@ def disk_surface_scan(state, test_objects):
         )
 
     # Check results
-    with open(log_path, 'r') as _f:
+    with open(log_path, 'r', encoding='utf-8') as _f:
       for line in _f.readlines():
         line = std.strip_colors(line.strip())
         if not line or line.startswith('Checking') or line.startswith('['):
@@ -1476,13 +1478,13 @@ def show_results(state):
 def start_mprime(working_dir, log_path):
   """Start mprime and save filtered output to log, returns Popen object."""
   set_apple_fan_speed('max')
-  proc_mprime = subprocess.Popen(
+  proc_mprime = subprocess.Popen( # pylint: disable=consider-using-with
     ['mprime', '-t'],
     cwd=working_dir,
     stdout=subprocess.PIPE,
     stderr=subprocess.STDOUT,
     )
-  proc_grep = subprocess.Popen(
+  proc_grep = subprocess.Popen( # pylint: disable=consider-using-with
     'grep --ignore-case --invert-match --line-buffered stress.txt'.split(),
     stdin=proc_mprime.stdout,
     stdout=subprocess.PIPE,
@@ -1521,7 +1523,9 @@ def start_sysbench(sensors, sensors_out, log_path, pane):
   tmux.respawn_pane(pane, watch_file=log_path, watch_cmd='tail')
 
   # Start sysbench
-  filehandle_sysbench = open(log_path, 'a')
+  filehandle_sysbench = open( # pylint: disable=consider-using-with
+    log_path, 'a', encoding='utf-8',
+    )
   proc_sysbench = exe.popen_program(sysbench_cmd, stdout=filehandle_sysbench)
 
   # Done

@@ -67,7 +67,7 @@ class NonBlockingStreamReader():
         out = self.read(0.1)
         if out:
           out_bytes += out
-      with open(out_path, 'a') as _f:
+      with open(out_path, 'a', encoding='utf-8') as _f:
         _f.write(out_bytes.decode('utf-8', errors='ignore'))
 
     # Close stream to prevent 100% CPU usage
@@ -200,6 +200,7 @@ def popen_program(cmd, minimized=False, pipe=False, shell=False, **kwargs):
     shell=shell,
     **kwargs)
   try:
+    # pylint: disable=consider-using-with
     proc = subprocess.Popen(**cmd_kwargs)
   except FileNotFoundError:
     LOG.error('Command not found: %s', cmd)

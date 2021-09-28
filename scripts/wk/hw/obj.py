@@ -356,9 +356,11 @@ class Disk(BaseObj):
           self.details[attr] = -1
 
     # Set description
-    self.description = '{size_str} ({bus}) {model} {serial}'.format(
-      size_str=bytes_to_string(self.details['size'], use_binary=False),
-      **self.details,
+    self.description = (
+      f'{bytes_to_string(self.details["size"], use_binary=False)}'
+      f' ({self.details["bus"]})'
+      f' {self.details["model"]}'
+      f' {self.details["serial"]}'
       )
 
   def get_labels(self):
@@ -482,7 +484,7 @@ class Disk(BaseObj):
     test_minutes = int(test_minutes) + 10
 
     # Start test
-    with open(log_path, 'w') as _f:
+    with open(log_path, 'w', encoding='utf-8') as _f:
       _f.write(f'{header_str}\nInitializing...')
     cmd = [
       'sudo',
@@ -507,7 +509,7 @@ class Disk(BaseObj):
         status_str = status_str.capitalize()
 
         # Update log
-        with open(log_path, 'w') as _f:
+        with open(log_path, 'w', encoding='utf-8') as _f:
           _f.write(f'{header_str}\nSMART self-test status:\n  {status_str}')
 
         # Check if finished
