@@ -442,10 +442,11 @@ class TryAndPrint():
       pass
 
     # Prepend exception name
-    try:
-      message = f'{_exception.__class__.__name__}: {message}'
-    except Exception: # pylint: disable=broad-except
-      message = f'UNKNOWN ERROR: {message}'
+    if _exception.__class__.__name__ not in ('GenericError', 'GenericWarning'):
+      try:
+        message = f'{_exception.__class__.__name__}: {message}'
+      except Exception: # pylint: disable=broad-except
+        message = f'UNKNOWN ERROR: {message}'
 
     # Fix multi-line messages
     if '\n' in message:
@@ -525,8 +526,8 @@ class TryAndPrint():
       return obj
 
     # Try all modules
-    for _mod in sys.modules:
-      obj = getattr(sys.modules[_mod], name, None)
+    for _mod in sys.modules.values():
+      obj = getattr(_mod, name, None)
       if obj:
         break
 
