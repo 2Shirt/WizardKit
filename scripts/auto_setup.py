@@ -120,7 +120,7 @@ BASE_MENUS = {
       MenuEntry('Software Bundle',          'auto_install_software_bundle'),
       ),
     'Configure System': (
-      MenuEntry('Chrome Notifications',     no_op),
+      MenuEntry('Chrome Notifications',     'auto_disable_chrome_notifications'),
       #MenuEntry('O&O ShutUp 10',            no_op),
       MenuEntry('Open Shell',               'auto_config_open_shell'),
       MenuEntry('uBlock Origin',            'auto_enable_ublock_origin'),

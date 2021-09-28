@@ -409,6 +409,11 @@ def auto_config_open_shell():
   TRY_PRINT.run('Open Shell...', reg_write_settings, REG_OPEN_SHELL_SETTINGS)
 
 
+def auto_disable_chrome_notifications():
+  """Disable notifications in Google Chrome."""
+  TRY_PRINT.run('Chrome Notifications...', disable_chrome_notifications)
+
+
 def auto_enable_ublock_origin():
   """Enable uBlock Origin in supported browsers."""
   prompt = '    Press Enter to continue...'
@@ -452,6 +457,49 @@ def auto_install_vcredists():
 
 
 # Configure Functions
+def disable_chrome_notifications():
+  """Disable notifications in Google Chrome."""
+  defaults_key = 'default_content_setting_values'
+  profiles = []
+  search_path = case_insensitive_path(
+    f'{os.environ.get("LOCALAPPDATA")}/Google/Chrome/User Data',
+    )
+
+  # Bail early
+  if not search_path:
+    raise GenericWarning('No profiles detected.')
+
+  # Close any running instances of Chrome
+  kill_procs('chrome.exe', force=True)
+
+  # Build list of profiles
+  for item in search_path.iterdir():
+    if not item.is_dir():
+      continue
+
+    if re.match(r'^(Default|Profile).*', item.name, re.IGNORECASE):
+      profiles.append(item)
+
+  # Bail if no profiles were detected
+  if not profiles:
+    raise GenericWarning('No profiles detected.')
+
+  # Set notifications preference
+  for profile in profiles:
+    pref_file = profile.joinpath('Preferences')
+    if not pref_file.exists():
+      continue
+
+    # Update config
+    pref_data = json.loads(pref_file.read_text())
+    if defaults_key not in pref_data['profile']:
+      pref_data['profile'][defaults_key] = {}
+    pref_data['profile'][defaults_key]['notifications'] = 2
+
+    # Save file
+    pref_file.write_text(json.dumps(pref_data, separators=(',', ':')))
+
+
 def enable_ublock_origin():
   """Enable uBlock Origin in supported browsers."""
   base_paths = [
