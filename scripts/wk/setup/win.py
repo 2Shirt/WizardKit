@@ -38,6 +38,7 @@ from wk.kit.tools     import (
   )
 from wk.log           import format_log_path, update_log_path
 from wk.os.win        import (
+  activate_with_bios,
   reg_delete_value,
   reg_read_value,
   reg_set_value,
@@ -116,6 +117,61 @@ REG_CHROME_UBLOCK_ORIGIN = {
       )
     },
   }
+REG_WINDOWS_EXPLORER = {
+  # pylint: disable=line-too-long
+  'HKLM': {
+    # Disable Location Tracking
+    r'Software\Microsoft\Windows NT\CurrentVersion\Sensor\Overrides\{BFA794E4-F964-4FDB-90F6-51056BFE4B44}': (
+      ('SensorPermissionState', 0, 'DWORD'),
+      ),
+    r'System\CurrentControlSet\Services\lfsvc\Service\Configuration': (
+      ('Status', 0, 'DWORD'),
+      ),
+    # Disable Telemetry
+    r'Software\Microsoft\Windows\CurrentVersion\Policies\DataCollection': (
+      ('AllowTelemetry', 0, 'DWORD'),
+      ('AllowTelemetry', 0, 'DWORD', '32'),
+      ),
+    r'Software\Policies\Microsoft\Windows\DataCollection': (
+      ('AllowTelemetry', 0, 'DWORD'),
+      ),
+    # Disable Wi-Fi Sense
+    r'Software\Microsoft\PolicyManager\default\WiFi\AllowWiFiHotSpotReporting': (
+      ('Value', 0, 'DWORD'),
+      ),
+    r'Software\Microsoft\PolicyManager\default\WiFi\AllowAutoConnectToWiFiSenseHotspots': (
+      ('Value', 0, 'DWORD'),
+      ),
+    },
+  'HKCU': {
+    # Desktop theme (<= v1809 default)
+    r'Software\Microsoft\Windows\CurrentVersion\Themes\Personalize': {
+      ('AppsUseLightTheme', 1, 'DWORD'),
+      ('SystemUsesLightTheme', 0, 'DWORD'),
+      },
+    # Disable features
+    r'Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager': {
+      ('SilentInstalledAppsEnabled', 0, 'DWORD'),
+      # Tips and Tricks
+      ('SoftLandingEnabled ', 0, 'DWORD'),
+      ('SubscribedContent-338389Enabled', 0, 'DWORD'),
+      },
+    # File Explorer
+    r'Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced': {
+      # Change default Explorer view to "Computer"
+      ('LaunchTo', 1, 'DWORD'),
+      ('SeparateProcess', 1, 'DWORD'),
+      },
+    # Hide People bar
+    r'Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced\People': {
+      ('PeopleBand', 0, 'DWORD'),
+      },
+    # Hide Search button / box
+    r'Software\Microsoft\Windows\CurrentVersion\Search': {
+      ('SearchboxTaskbarMode', 1, 'DWORD'),
+      },
+    },
+  }
 REG_OPEN_SHELL_SETTINGS = {
   'HKCU': {
     r'Software\OpenShell\StartMenu': (
@@ -153,7 +209,7 @@ REG_OPEN_SHELL_SETTINGS = {
       ),
     },
   }
-UAC_DEFAULTS_WIN7 = {
+REG_UAC_DEFAULTS_WIN7 = {
   'HKLM': {
     r'Software\Microsoft\Windows\CurrentVersion\Policies\System': (
       ('ConsentPromptBehaviorAdmin', 5, 'DWORD'),
@@ -162,7 +218,7 @@ UAC_DEFAULTS_WIN7 = {
       ),
     },
   }
-UAC_DEFAULTS_WIN10 = {
+REG_UAC_DEFAULTS_WIN10 = {
   'HKLM': {
     r'Software\Microsoft\Windows\CurrentVersion\Policies\System': (
       ('ConsentPromptBehaviorAdmin', 5, 'DWORD'),
@@ -431,6 +487,16 @@ def auto_windows_updates_enable():
 
 
 # Auto Setup: Wrapper Functions
+def auto_activate_windows():
+  """Attempt to activate Windows using BIOS key."""
+  TRY_PRINT.run('Windows Activation...', activate_with_bios)
+
+
+def auto_config_explorer():
+  """Configure Windows Explorer and restart the process."""
+  TRY_PRINT.run('Windows Explorer...', config_explorer)
+
+
 def auto_config_open_shell():
   """Configure Open Shell."""
   TRY_PRINT.run('Open Shell...', reg_write_settings, REG_OPEN_SHELL_SETTINGS)
@@ -488,7 +554,21 @@ def auto_restore_default_uac():
   TRY_PRINT.run('User Account Control...', restore_default_uac)
 
 
+def auto_windows_temp_fix():
+  """Restore default ACLs for Windows\\Temp."""
+  TRY_PRINT.run(r'Windows\Temp fix...', fix_windows_temp)
+
+
+
+
 # Configure Functions
+def config_explorer():
+  """Configure Windows Explorer and restart the process."""
+  reg_write_settings(REG_WINDOWS_EXPLORER)
+  kill_procs('explorer.exe', force=True)
+  popen_program(['explorer.exe'])
+
+
 def disable_chrome_notifications():
   """Disable notifications in Google Chrome."""
   defaults_key = 'default_content_setting_values'
@@ -568,11 +648,22 @@ def enable_ublock_origin():
     popen_program(cmd)
 
 
+def fix_windows_temp():
+  """Restore default permissions for Windows\\Temp."""
+  permissions = (
+    'Users:(CI)(X,WD,AD)',
+    'Administrators:(OI)(CI)(F)',
+    )
+  for _p in permissions:
+    cmd = ['icacls', fr'{SYSTEMDRIVE}\Windows\Temp', '/grant:r', _p, '/T']
+    run_program(cmd)
+
+
 def restore_default_uac():
   """Restore default UAC settings."""
-  settings = UAC_DEFAULTS_WIN10
+  settings = REG_UAC_DEFAULTS_WIN10
   if OS_VERSION != 10:
-    settings = UAC_DEFAULTS_WIN7
+    settings = REG_UAC_DEFAULTS_WIN7
 
   reg_write_settings(settings)
 
