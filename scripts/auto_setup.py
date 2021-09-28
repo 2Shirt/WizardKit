@@ -125,7 +125,7 @@ BASE_MENUS = {
       MenuEntry('Open Shell',               'auto_config_open_shell'),
       MenuEntry('uBlock Origin',            'auto_enable_ublock_origin'),
       #MenuEntry('Disable Fast Startup',     no_op),
-      MenuEntry('Enable BSoD MiniDumps',    no_op),
+      MenuEntry('Enable BSoD MiniDumps',    'auto_enable_bsod_minidumps'),
       #MenuEntry('Enable Hibernation',       no_op),
       MenuEntry('Enable RegBack',           'auto_enable_regback'),
       MenuEntry('Enable System Restore',    'auto_system_restore_enable'),

@@ -370,6 +370,12 @@ def auto_set_custom_power_plan():
   TRY_PRINT.run('Set Custom Power Plan...', create_custom_power_plan)
 
 
+def auto_enable_bsod_minidumps():
+  """Enable saving minidumps during BSoDs."""
+  cmd = ['wmic', 'RECOVEROS', 'set', 'DebugInfoType', '=', '3']
+  TRY_PRINT.run('Enable BSoD mini dumps...', enable_bsod_minidumps)
+
+
 def auto_enable_regback():
   """Enable RegBack."""
   TRY_PRINT.run(
@@ -498,6 +504,12 @@ def disable_chrome_notifications():
 
     # Save file
     pref_file.write_text(json.dumps(pref_data, separators=(',', ':')))
+
+
+def enable_bsod_minidumps():
+  """Enable saving minidumps during BSoDs."""
+  cmd = ['wmic', 'RECOVEROS', 'set', 'DebugInfoType', '=', '3']
+  run_program(cmd)
 
 
 def enable_ublock_origin():
