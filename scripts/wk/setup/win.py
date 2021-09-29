@@ -44,6 +44,7 @@ if platform.system() == 'Windows':
   from wk.os.win        import (
     OS_VERSION,
     activate_with_bios,
+    get_installed_ram,
     get_os_activation,
     get_os_name,
     is_secure_boot_enabled,
@@ -68,6 +69,7 @@ else:
     """No-op function."""
   # wk.os.win
   activate_with_bios = no_op
+  get_installed_ram = no_op
   get_os_activation = no_op
   get_os_name = no_op
   is_secure_boot_enabled = no_op
@@ -563,8 +565,15 @@ def auto_restore_default_uac():
   TRY_PRINT.run('User Account Control...', restore_default_uac)
 
 
+def auto_show_installed_ram():
+  """Display installed RAM."""
+  TRY_PRINT.run('Installed RAM...', get_installed_ram,
+  as_list=True, raise_exceptions=True,
+  )
+
+
 def auto_show_os_activation():
-  """Display OS Name."""
+  """Display OS activation status."""
   TRY_PRINT.run('Activation...', get_os_activation, as_list=True)
 
 

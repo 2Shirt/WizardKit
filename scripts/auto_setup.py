@@ -140,7 +140,7 @@ BASE_MENUS = {
       MenuEntry('Operating System',         'auto_show_os_name'),
       MenuEntry('Windows Activation',       'auto_show_activation'),
       MenuEntry('Secure Boot',              'auto_show_secure_boot_status'),
-      MenuEntry('Installed RAM',            no_op),
+      MenuEntry('Installed RAM',            'auto_show_installed_ram'),
       MenuEntry('Storage Volumes',          no_op),
       MenuEntry('Virus Protection',         no_op),
       MenuEntry('Partitions 4K Aligned',    no_op),

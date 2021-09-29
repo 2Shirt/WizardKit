@@ -24,7 +24,7 @@ from wk.cfg.windows_builds import (
   WINDOWS_BUILDS,
   )
 from wk.exe import run_program
-from wk.std import GenericError, GenericWarning, sleep
+from wk.std import GenericError, GenericWarning, bytes_to_string, sleep
 
 
 # STATIC VARIABLES
@@ -65,6 +65,8 @@ KNOWN_HIVE_NAMES = {
   winreg.HKEY_USERS: 'HKEY_USERS',
   }
 OS_VERSION = float(platform.win32_ver()[0])
+RAM_OK      = 5.5 * 1024**3 # ~6 GiB assuming a bit of shared memory
+RAM_WARNING = 3.5 * 1024**3 # ~4 GiB assuming a bit of shared memory
 REG_MSISERVER = r'HKLM\SYSTEM\CurrentControlSet\Control\SafeBoot\Network\MSIServer'
 SLMGR = pathlib.Path(f'{os.environ.get("SYSTEMROOT")}/System32/slmgr.vbs')
 
@@ -143,6 +145,22 @@ def set_timezone(zone):
 
 
 # Info Functions
+def get_installed_ram(as_list=False, raise_exceptions=False):
+  """Get installed RAM."""
+  mem = psutil.virtual_memory()
+  mem_str = bytes_to_string(mem.total, decimals=1)
+
+  # Raise exception if necessary
+  if raise_exceptions:
+    if RAM_OK > mem.total >= RAM_WARNING:
+      raise GenericWarning(mem_str)
+    if mem.total > RAM_WARNING:
+      raise GenericError(mem_str)
+
+  # Done
+  return [mem_str] if as_list else mem_str
+
+
 def get_os_activation(as_list=False, check=True):
   """Get OS activation status, returns str.
 
