@@ -8,25 +8,10 @@ import os
 import platform
 import re
 import sys
-import time
 
-from subprocess       import CalledProcessError, DEVNULL
-
-from wk.cfg.main      import KIT_NAME_FULL, KIT_NAME_SHORT
-from wk.exe           import (
-  get_procs,
-  kill_procs,
-  run_program,
-  popen_program,
-  wait_for_procs,
-  )
-from wk.io            import (
-  case_insensitive_path,
-  delete_folder,
-  get_path_obj,
-  non_clobber_path,
-  rename_item,
-  )
+from wk.cfg.main      import KIT_NAME_FULL
+from wk.exe           import kill_procs, run_program, popen_program
+from wk.io            import case_insensitive_path, get_path_obj
 from wk.kit.tools     import (
   ARCH,
   download_tool,
@@ -37,28 +22,7 @@ from wk.kit.tools     import (
   run_tool,
   )
 from wk.log           import format_log_path, update_log_path
-from wk.os.win        import (
-  activate_with_bios,
-  reg_delete_value,
-  reg_read_value,
-  reg_set_value,
-  reg_write_settings,
-  disable_service,
-  enable_service,
-  stop_service,
-  )
-from wk.repairs.win   import (
-  backup_all_browser_profiles,
-  backup_registry,
-  create_custom_power_plan,
-  create_system_restore_point,
-  enable_windows_updates,
-  export_power_plans,
-  reset_power_plans,
-  set_system_restore_size,
-  )
 from wk.std           import (
-  GenericError,
   GenericWarning,
   Menu,
   TryAndPrint,
@@ -75,6 +39,41 @@ from wk.std           import (
   sleep,
   strip_colors,
   )
+if platform.system() == 'Windows':
+  from wk.os.win        import (
+    activate_with_bios,
+    reg_read_value,
+    reg_set_value,
+    reg_write_settings,
+    )
+  from wk.repairs.win   import (
+    backup_all_browser_profiles,
+    backup_registry,
+    create_custom_power_plan,
+    create_system_restore_point,
+    enable_windows_updates,
+    export_power_plans,
+    reset_power_plans,
+    set_system_restore_size,
+    )
+else:
+  # Workaround to allow basic testing under non-Windows environments
+  def no_op(*args, **kwargs): # pylint: disable=unused-argument
+    """No-op function."""
+  # wk.os.win
+  activate_with_bios = no_op
+  reg_read_value = no_op
+  reg_set_value = no_op
+  reg_write_settings = no_op
+  # wk.repairs.win
+  backup_all_browser_profiles = no_op
+  backup_registry = no_op
+  create_custom_power_plan = no_op
+  create_system_restore_point = no_op
+  enable_windows_updates = no_op
+  export_power_plans = no_op
+  reset_power_plans = no_op
+  set_system_restore_size = no_op
 
 
 # STATIC VARIABLES

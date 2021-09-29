@@ -32,17 +32,6 @@ from wk.kit.tools     import (
   run_tool,
   )
 from wk.log           import format_log_path, update_log_path
-from wk.os.win        import (
-  get_timezone,
-  set_timezone,
-  reg_delete_value,
-  reg_read_value,
-  reg_set_value,
-  reg_write_settings,
-  disable_service,
-  enable_service,
-  stop_service,
-  )
 from wk.std           import (
   GenericError,
   GenericWarning,
@@ -61,6 +50,32 @@ from wk.std           import (
   sleep,
   strip_colors,
   )
+if platform.system() == 'Windows':
+  from wk.os.win        import (
+    get_timezone,
+    set_timezone,
+    reg_delete_value,
+    reg_read_value,
+    reg_set_value,
+    reg_write_settings,
+    disable_service,
+    enable_service,
+    stop_service,
+    )
+else:
+  # Workaround to allow basic testing under non-Windows environments
+  def no_op(*args, **kwargs): # pylint: disable=unused-argument
+    """No-op function."""
+  # wk.os.win
+  get_timezone = no_op
+  set_timezone = no_op
+  reg_delete_value = no_op
+  reg_read_value = no_op
+  reg_set_value = no_op
+  reg_write_settings = no_op
+  disable_service = no_op
+  enable_service = no_op
+  stop_service = no_op
 
 
 # STATIC VARIABLES
@@ -118,7 +133,9 @@ PROGRAMFILES_32 = os.environ.get(
     'PROGRAMFILES', r'C:\Program Files (x86)',
     ),
   )
-OS_VERSION = float(platform.win32_ver()[0])
+OS_VERSION = -1
+if platform.system() == 'Windows':
+  OS_VERSION = float(platform.win32_ver()[0])
 POWER_PLANS = {
   'Balanced':         '381b4222-f694-41f0-9685-ff5bb260df2e',
   'Custom':           '01189998-8199-9119-725c-ccccccccccc3',
