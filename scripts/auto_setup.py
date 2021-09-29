@@ -133,7 +133,7 @@ BASE_MENUS = {
       MenuEntry(r'Windows\Temp Fix',        'auto_windows_temp_fix'),
       ),
     'System Information': (
-      MenuEntry('AIDA64 Reports',           no_op),
+      MenuEntry('AIDA64 Report',            'auto_export_aida64_report'),
       MenuEntry('Backup Registry',          'auto_backup_registry'),
       MenuEntry('Everything (File List)',   no_op),
       ),

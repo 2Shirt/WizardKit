@@ -23,6 +23,7 @@ from wk.kit.tools     import (
   )
 from wk.log           import format_log_path, update_log_path
 from wk.std           import (
+  GenericError,
   GenericWarning,
   Menu,
   TryAndPrint,
@@ -518,6 +519,11 @@ def auto_enable_ublock_origin():
   print(f'\033[F\r{" "*len(prompt)}\r', end='', flush=True)
 
 
+def auto_export_aida64_report():
+  """Export AIDA64 reports."""
+  TRY_PRINT.run('AIDA64 Report...', export_aida64_report)
+
+
 def auto_install_firefox():
   """Install Firefox."""
   TRY_PRINT.run('Firefox...', install_firefox)
@@ -889,10 +895,25 @@ def get_firefox_default_profile(profiles_ini):
 
 
 # Tool Functions
-## TODO?
+def export_aida64_report():
+  """Export AIDA64 report."""
+  report_path = format_log_path(
+    log_name='AIDA64 System Report',
+    tool=True, timestamp=True,
+    )
+  report_path = report_path.with_suffix('.html')
+  report_path.parent.mkdir(parents=True, exist_ok=True)
 
-# OS Built-in Functions
-## TODO?
+  # Run AIDA64 and check result
+  proc = run_tool(
+    'AIDA64', 'aida64',
+    '/R', report_path,
+    '/CUSTOM', 'basic.rpf',
+    '/HTML', '/SILENT', '/SAFEST',
+    cbin=True, cwd=True)
+  if proc.returncode:
+    raise GenericError('Error(s) encountered exporting report.')
+
 
 if __name__ == '__main__':
   print("This file is not meant to be called directly.")
