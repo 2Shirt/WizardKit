@@ -7,3 +7,4 @@ from . import main
 from . import net
 from . import sources
 from . import ufd
+from . import windows_builds

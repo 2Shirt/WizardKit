@@ -42,10 +42,12 @@ from wk.std           import (
   )
 if platform.system() == 'Windows':
   from wk.os.win        import (
+    OS_VERSION,
     activate_with_bios,
     reg_read_value,
     reg_set_value,
     reg_write_settings,
+    show_os_name,
     )
   from wk.repairs.win   import (
     backup_all_browser_profiles,
@@ -59,6 +61,7 @@ if platform.system() == 'Windows':
     )
 else:
   # Workaround to allow basic testing under non-Windows environments
+  OS_VERSION = -1
   def no_op(*args, **kwargs): # pylint: disable=unused-argument
     """No-op function."""
   # wk.os.win
@@ -66,6 +69,7 @@ else:
   reg_read_value = no_op
   reg_set_value = no_op
   reg_write_settings = no_op
+  show_os_name = no_op
   # wk.repairs.win
   backup_all_browser_profiles = no_op
   backup_registry = no_op
@@ -97,9 +101,6 @@ LIBREOFFICE_XCU_DATA = '''<?xml version="1.0" encoding="UTF-8"?>
 </oor:items>
 '''
 MENU_PRESETS = Menu()
-OS_VERSION = -1
-if platform.system() == 'Windows':
-  OS_VERSION = float(platform.win32_ver()[0])
 PROGRAMFILES_32 = os.environ.get(
   'PROGRAMFILES(X86)', os.environ.get(
     'PROGRAMFILES', r'C:\Program Files (x86)',
@@ -556,6 +557,11 @@ def auto_install_vcredists():
 def auto_restore_default_uac():
   """Restore default UAC settings."""
   TRY_PRINT.run('User Account Control...', restore_default_uac)
+
+
+def auto_show_os_name():
+  """Display OS Name."""
+  TRY_PRINT.run('Operating System...', show_os_name)
 
 
 def auto_windows_temp_fix():

@@ -52,6 +52,7 @@ from wk.std           import (
   )
 if platform.system() == 'Windows':
   from wk.os.win        import (
+    OS_VERSION,
     get_timezone,
     set_timezone,
     reg_delete_value,
@@ -64,6 +65,7 @@ if platform.system() == 'Windows':
     )
 else:
   # Workaround to allow basic testing under non-Windows environments
+  OS_VERSION = -1
   def no_op(*args, **kwargs): # pylint: disable=unused-argument
     """No-op function."""
   # wk.os.win
@@ -133,9 +135,6 @@ PROGRAMFILES_32 = os.environ.get(
     'PROGRAMFILES', r'C:\Program Files (x86)',
     ),
   )
-OS_VERSION = -1
-if platform.system() == 'Windows':
-  OS_VERSION = float(platform.win32_ver()[0])
 POWER_PLANS = {
   'Balanced':         '381b4222-f694-41f0-9685-ff5bb260df2e',
   'Custom':           '01189998-8199-9119-725c-ccccccccccc3',

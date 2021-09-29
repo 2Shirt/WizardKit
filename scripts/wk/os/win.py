@@ -16,12 +16,18 @@ except ImportError as err:
     raise err
 
 from wk.borrowed import acpi
+from wk.cfg.windows_builds import (
+  OLDEST_SUPPORTED_BUILD,
+  OUTDATED_BUILD_NUMBERS,
+  WINDOWS_BUILDS,
+  )
 from wk.exe import run_program
 from wk.std import GenericError, GenericWarning, sleep
 
 
 # STATIC VARIABLES
 LOG = logging.getLogger(__name__)
+ARCH = '64' if platform.architecture()[0] == '64bit' else '32'
 CONEMU = 'ConEmuPID' in os.environ
 KNOWN_DATA_TYPES = {
   'BINARY': winreg.REG_BINARY,
@@ -118,6 +124,33 @@ def is_activated():
 
   # Check result.
   return act_str and 'permanent' in act_str
+
+
+# System Info Functions
+def show_os_name(check=True):
+  """Build OS display name and print it to screen.
+
+  NOTE: If check=True then an exception is raised if the OS version is
+        outdated or unsupported.
+  """
+  key = r'SOFTWARE\Microsoft\Windows NT\CurrentVersion'
+  build_version = int(reg_read_value("HKLM", key, "CurrentBuild"))
+  build_version_full = platform.win32_ver()[1]
+  details = WINDOWS_BUILDS.get(build_version_full, f'Build {build_version}')
+  display_name = (
+    f'{reg_read_value("HKLM", key, "ProductName")} {ARCH}-bit {details}'
+    )
+
+  # Check for support issues
+  if check:
+    if build_version in OUTDATED_BUILD_NUMBERS:
+      raise GenericWarning(f'{display_name} (outdated)')
+
+    if build_version < OLDEST_SUPPORTED_BUILD:
+      raise GenericError(f'{display_name} (unsupported)')
+
+  # Done
+  print(display_name)
 
 
 # Registry Functions
