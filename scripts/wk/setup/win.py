@@ -44,10 +44,12 @@ if platform.system() == 'Windows':
   from wk.os.win        import (
     OS_VERSION,
     activate_with_bios,
+    get_os_activation,
+    get_os_name,
+    is_secure_boot_enabled,
     reg_read_value,
     reg_set_value,
     reg_write_settings,
-    show_os_name,
     )
   from wk.repairs.win   import (
     backup_all_browser_profiles,
@@ -66,10 +68,12 @@ else:
     """No-op function."""
   # wk.os.win
   activate_with_bios = no_op
+  get_os_activation = no_op
+  get_os_name = no_op
+  is_secure_boot_enabled = no_op
   reg_read_value = no_op
   reg_set_value = no_op
   reg_write_settings = no_op
-  show_os_name = no_op
   # wk.repairs.win
   backup_all_browser_profiles = no_op
   backup_registry = no_op
@@ -559,16 +563,27 @@ def auto_restore_default_uac():
   TRY_PRINT.run('User Account Control...', restore_default_uac)
 
 
+def auto_show_os_activation():
+  """Display OS Name."""
+  TRY_PRINT.run('Activation...', get_os_activation, as_list=True)
+
+
 def auto_show_os_name():
   """Display OS Name."""
-  TRY_PRINT.run('Operating System...', show_os_name)
+  TRY_PRINT.run('Operating System...', get_os_name, as_list=True)
+
+
+def auto_show_secure_boot_status():
+  """Display Secure Boot status."""
+  TRY_PRINT.run(
+    'Secure Boot...', is_secure_boot_enabled,
+    raise_exceptions=True, show_alert=True,
+    )
 
 
 def auto_windows_temp_fix():
   """Restore default ACLs for Windows\\Temp."""
   TRY_PRINT.run(r'Windows\Temp fix...', fix_windows_temp)
-
-
 
 
 # Configure Functions

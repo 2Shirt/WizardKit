@@ -1,6 +1,7 @@
 """WizardKit: Windows Functions"""
 # vim: sts=2 sw=2 ts=2
 
+import ctypes
 import logging
 import os
 import pathlib
@@ -16,6 +17,7 @@ except ImportError as err:
     raise err
 
 from wk.borrowed import acpi
+from wk.cfg.main import KIT_NAME_FULL
 from wk.cfg.windows_builds import (
   OLDEST_SUPPORTED_BUILD,
   OUTDATED_BUILD_NUMBERS,
@@ -126,9 +128,40 @@ def is_activated():
   return act_str and 'permanent' in act_str
 
 
-# System Info Functions
-def show_os_name(check=True):
-  """Build OS display name and print it to screen.
+# Date / Time functions
+def get_timezone():
+  """Get current timezone using tzutil, returns str."""
+  cmd = ['tzutil', '/g']
+  proc = run_program(cmd, check=False)
+  return proc.stdout
+
+
+def set_timezone(zone):
+  """Set current timezone using tzutil."""
+  cmd = ['tzutil', '/s', zone]
+  run_program(cmd, check=False)
+
+
+# Info Functions
+def get_os_activation(as_list=False, check=True):
+  """Get OS activation status, returns str.
+
+  NOTE: If check=True then raise an exception if OS isn't activated.
+  """
+  act_str = get_activation_string()
+
+  if check and not is_activated():
+    if 'unavailable' in act_str.lower():
+      raise GenericWarning(act_str)
+    # Else
+    raise GenericError(act_str)
+
+  # Done
+  return [act_str] if as_list else act_str
+
+
+def get_os_name(as_list=False, check=True):
+  """Build OS display name, returns str.
 
   NOTE: If check=True then an exception is raised if the OS version is
         outdated or unsupported.
@@ -150,7 +183,14 @@ def show_os_name(check=True):
       raise GenericError(f'{display_name} (unsupported)')
 
   # Done
-  print(display_name)
+  return [display_name] if as_list else display_name
+
+
+def show_alert_box(message, title=None):
+  """Show Windows alert box with message."""
+  title = title if title else f'{KIT_NAME_FULL} Warning'
+  message_box = ctypes.windll.user32.MessageBoxW
+  message_box(None, message, title, 0x00001030)
 
 
 # Registry Functions
@@ -381,6 +421,72 @@ def enable_safemode_msi():
   run_program(cmd)
 
 
+# Secure Boot Functions
+def is_booted_uefi():
+  """Check if booted UEFI or legacy, returns bool."""
+  kernel = ctypes.windll.kernel32
+  firmware_type = ctypes.c_uint()
+
+  # Get value from kernel32 API (firmware_type is updated by the call)
+  try:
+    kernel.GetFirmwareType(ctypes.byref(firmware_type))
+  except Exception: # pylint: disable=broad-except
+    # Ignore and set firmware_type back to zero
+    firmware_type = ctypes.c_uint(0)
+
+  # Check result
+  return firmware_type.value == 2
+
+
+def is_secure_boot_enabled(raise_exceptions=False, show_alert=False):
+  """Check if Secure Boot is enabled, returns bool.
+
+  If raise_exceptions is True then an exception is raised with details.
+  If show_alert is True a popup alert box is shown if it's not enabled.
+  """
+  booted_uefi = is_booted_uefi()
+  cmd = ['PowerShell', '-Command', 'Confirm-SecureBootUEFI']
+  enabled = False
+  msg_error = None
+  msg_warning = None
+
+  # Bail early
+  if OS_VERSION < 8:
+    if raise_exceptions:
+      raise GenericWarning(f'Secure Boot not available for {OS_VERSION}')
+    return False
+
+  # Check results
+  proc = run_program(cmd, check=False)
+  if proc.returncode:
+    # Something went wrong
+    if booted_uefi:
+      msg_warning = 'UNKNOWN'
+    else:
+      msg_warning = 'DISABLED\n\nOS installed LEGACY'
+  else:
+    # Command completed
+    enabled = 'True' in proc.stdout
+    if 'False' in proc.stdout:
+      msg_error = 'ERROR'
+    else:
+      msg_warning = 'UNKNOWN'
+
+  # Show popup and/or raise exceptions as necessary
+  for msg, exc in ((msg_error, GenericError), (msg_warning, GenericWarning)):
+    if not msg:
+      continue
+    msg = f'Secure Boot {msg}'
+    if show_alert:
+      show_alert_box(msg)
+    if raise_exceptions:
+      raise exc(msg)
+    break
+
+  # Done
+  return enabled
+
+
 # Service Functions
 def disable_service(service_name):
   """Set service startup to disabled."""
@@ -449,20 +555,6 @@ def stop_service(service_name):
   # Verify service was stopped
   if not get_service_status(service_name) == 'stopped':
     raise GenericError(f'Failed to stop service {service_name}')
-
-
-# Date / Time functions
-def get_timezone():
-  """Get current timezone using tzutil, returns str."""
-  cmd = ['tzutil', '/g']
-  proc = run_program(cmd, check=False)
-  return proc.stdout
-
-
-def set_timezone(zone):
-  """Set current timezone using tzutil."""
-  cmd = ['tzutil', '/s', zone]
-  run_program(cmd, check=False)
 
 
 if __name__ == '__main__':
