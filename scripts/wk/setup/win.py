@@ -1,4 +1,5 @@
 """WizardKit: Setup - Windows"""
+# pylint: disable=too-many-lines
 # vim: sts=2 sw=2 ts=2
 
 import configparser
@@ -51,6 +52,7 @@ if platform.system() == 'Windows':
     get_os_name,
     get_raw_disks,
     get_volume_usage,
+    is_activated,
     is_secure_boot_enabled,
     reg_set_value,
     reg_write_settings,
@@ -79,6 +81,7 @@ else:
   get_os_name = no_op
   get_raw_disks = no_op
   get_volume_usage = no_op
+  is_activated = no_op
   is_secure_boot_enabled = no_op
   reg_read_value = no_op
   reg_set_value = no_op
@@ -566,6 +569,32 @@ def auto_install_vcredists():
   TRY_PRINT.run('Visual C++ Runtimes...', install_vcredists)
 
 
+def auto_open_device_manager():
+  """Open Device Manager."""
+  TRY_PRINT.run('Device Manager...', open_device_manager)
+
+
+def auto_open_hwinfo_sensors():
+  """Open HWiNFO Sensors."""
+  TRY_PRINT.run('HWiNFO Sensors...', open_hwinfo_sensors)
+
+
+def auto_open_windows_activation():
+  """Open Windows Activation."""
+  if not is_activated():
+    TRY_PRINT.run('Windows Activation...', open_windows_activation)
+
+
+def auto_open_windows_updates():
+  """Open Windows Updates."""
+  TRY_PRINT.run('Windows Updates...', open_windows_updates)
+
+
+def auto_open_xmplay():
+  """Open XMPlay."""
+  TRY_PRINT.run('XMPlay...', open_xmplay)
+
+
 def auto_restore_default_uac():
   """Restore default UAC settings."""
   TRY_PRINT.run('User Account Control...', restore_default_uac)
@@ -980,6 +1009,42 @@ def export_aida64_report():
     cbin=True, cwd=True)
   if proc.returncode:
     raise GenericError('Error(s) encountered exporting report.')
+
+
+def open_device_manager():
+  """Open Device Manager."""
+  popen_program(['mmc', 'devmgmt.msc'])
+
+
+def open_hwinfo_sensors():
+  """Open HWiNFO sensors."""
+  hwinfo_path = get_tool_path('HWiNFO', 'HWiNFO')
+  base_config = hwinfo_path.with_name('general.ini')
+
+  # Write new config to disk
+  with open(hwinfo_path.with_suffix('.ini'), 'w', encoding='utf-8') as _f:
+    _f.write(
+      f'{base_config.read_text(encoding="utf-8")}\n'
+      'SensorsOnly=1\nSummaryOnly=0\n'
+      )
+
+  # Open HWiNFO
+  run_tool('HWiNFO', 'HWiNFO', popen=True)
+
+
+def open_windows_activation():
+  """Open Windows Activation."""
+  popen_program(['slui'])
+
+
+def open_windows_updates():
+  """Open Windows Updates."""
+  popen_program(['control', '/name', 'Microsoft.WindowsUpdate'])
+
+
+def open_xmplay():
+  """Open XMPlay."""
+  run_tool('XMPlay', 'XMPlay', 'music.7z', cbin=True, cwd=True, popen=True)
 
 
 if __name__ == '__main__':

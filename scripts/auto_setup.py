@@ -145,11 +145,11 @@ BASE_MENUS = {
       MenuEntry('Partitions 4K Aligned',    'auto_show_4k_alignment_check'),
       ),
     'Run Programs': (
-      MenuEntry('Device Manager',           no_op),
-      MenuEntry('HWiNFO Sensors',           no_op),
-      MenuEntry('Windows Updates',          no_op),
-      MenuEntry('Windows Activation',       no_op),
-      MenuEntry('XMPlay',                   no_op),
+      MenuEntry('Device Manager',           'auto_open_device_manager'),
+      MenuEntry('HWiNFO Sensors',           'auto_open_hwinfo_sensors'),
+      MenuEntry('Windows Activation',       'auto_open_windows_activation'),
+      MenuEntry('Windows Updates',          'auto_open_windows_updates'),
+      MenuEntry('XMPlay',                   'auto_open_xmplay'),
       ),
     },
   'Actions': (
