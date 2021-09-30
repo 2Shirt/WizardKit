@@ -152,6 +152,23 @@ def set_timezone(zone):
 
 
 # Info Functions
+def check_4k_alignment(show_alert=False):
+  """Check if all partitions are 4K aligned, returns book."""
+  cmd = ['WMIC', 'partition', 'get', 'StartingOffset']
+
+  # Check offsets
+  proc = run_program(cmd)
+  for offset in proc.stdout.splitlines():
+    offset = offset.strip()
+    if not offset.isnumeric():
+      continue
+    if int(offset) % 4096 != 0:
+      # Not aligned
+      if show_alert:
+        show_alert_box('One or more partitions are not 4K aligned')
+      raise GenericError('One or more partitions are not 4K aligned')
+
+
 def get_installed_antivirus():
   """Get list of installed antivirus programs, returns list."""
   cmd = [

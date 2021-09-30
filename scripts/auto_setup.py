@@ -143,7 +143,7 @@ BASE_MENUS = {
       MenuEntry('Installed RAM',            'auto_show_installed_ram'),
       MenuEntry('Storage Status',           'auto_show_storage_status'),
       MenuEntry('Virus Protection',         'auto_show_installed_antivirus'),
-      MenuEntry('Partitions 4K Aligned',    no_op),
+      MenuEntry('Partitions 4K Aligned',    'auto_show_4k_alignment_check'),
       ),
     'Run Programs': (
       MenuEntry('Device Manager',           no_op),

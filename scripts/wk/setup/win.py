@@ -44,6 +44,7 @@ if platform.system() == 'Windows':
   from wk.os.win        import (
     OS_VERSION,
     activate_with_bios,
+    check_4k_alignment,
     get_installed_antivirus,
     get_installed_ram,
     get_os_activation,
@@ -71,6 +72,7 @@ else:
     """No-op function."""
   # wk.os.win
   activate_with_bios = no_op
+  check_4k_alignment = no_op
   get_installed_antivirus = no_op
   get_installed_ram = no_op
   get_os_activation = no_op
@@ -568,6 +570,11 @@ def auto_install_vcredists():
 def auto_restore_default_uac():
   """Restore default UAC settings."""
   TRY_PRINT.run('User Account Control...', restore_default_uac)
+
+
+def auto_show_4k_alignment_check():
+  """Display 4K alignment check."""
+  TRY_PRINT.run('4K alignment Check...', check_4k_alignment, show_alert=True)
 
 
 def auto_show_installed_antivirus():
