@@ -44,13 +44,13 @@ if platform.system() == 'Windows':
   from wk.os.win        import (
     OS_VERSION,
     activate_with_bios,
+    get_installed_antivirus,
     get_installed_ram,
     get_os_activation,
     get_os_name,
     get_raw_disks,
     get_volume_usage,
     is_secure_boot_enabled,
-    reg_read_value,
     reg_set_value,
     reg_write_settings,
     )
@@ -71,6 +71,7 @@ else:
     """No-op function."""
   # wk.os.win
   activate_with_bios = no_op
+  get_installed_antivirus = no_op
   get_installed_ram = no_op
   get_os_activation = no_op
   get_os_name = no_op
@@ -567,6 +568,11 @@ def auto_install_vcredists():
 def auto_restore_default_uac():
   """Restore default UAC settings."""
   TRY_PRINT.run('User Account Control...', restore_default_uac)
+
+
+def auto_show_installed_antivirus():
+  """Display installed antivirus."""
+  TRY_PRINT.run('Virus Protection...', get_installed_antivirus)
 
 
 def auto_show_installed_ram():

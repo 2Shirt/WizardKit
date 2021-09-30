@@ -142,7 +142,7 @@ BASE_MENUS = {
       MenuEntry('Secure Boot',              'auto_show_secure_boot_status'),
       MenuEntry('Installed RAM',            'auto_show_installed_ram'),
       MenuEntry('Storage Status',           'auto_show_storage_status'),
-      MenuEntry('Virus Protection',         no_op),
+      MenuEntry('Virus Protection',         'auto_show_installed_antivirus'),
       MenuEntry('Partitions 4K Aligned',    no_op),
       ),
     'Run Programs': (

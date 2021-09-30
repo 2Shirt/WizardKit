@@ -152,6 +152,47 @@ def set_timezone(zone):
 
 
 # Info Functions
+def get_installed_antivirus():
+  """Get list of installed antivirus programs, returns list."""
+  cmd = [
+    'WMIC', r'/namespace:\\root\SecurityCenter2',
+    'path', 'AntivirusProduct',
+    'get', 'displayName', '/value',
+    ]
+  products = []
+  report = []
+
+  # Get list of products
+  proc = run_program(cmd)
+  for line in proc.stdout.splitlines():
+    line = line.strip()
+    if '=' in line:
+      products.append(line.split('=')[1])
+
+  # Check product(s) status
+  for product in sorted(products):
+    cmd = [
+      'WMIC', r'/namespace:\\root\SecurityCenter2',
+      'path', 'AntivirusProduct',
+      'where', f'displayName="{product}"',
+      'get', 'productState', '/value',
+      ]
+    proc = run_program(cmd)
+    state = proc.stdout.split('=')[1]
+    state = hex(int(state))
+    if str(state)[3:5] not in ['10', '11']:
+      report.append(color_string(f'[Disabled] {product}', 'YELLOW'))
+    else:
+      report.append(product)
+
+  # Final check
+  if not report:
+    report.append(color_string('No products detected', 'RED'))
+
+  # Done
+  return report
+
+
 def get_installed_ram(as_list=False, raise_exceptions=False):
   """Get installed RAM."""
   mem = psutil.virtual_memory()
