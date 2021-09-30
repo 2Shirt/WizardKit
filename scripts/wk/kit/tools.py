@@ -27,7 +27,9 @@ CACHED_DIRS = {}
 def download_file(out_path, source_url, as_new=False, overwrite=False):
   """Download a file using requests, returns pathlib.Path."""
   out_path = pathlib.Path(out_path).resolve()
-  download_msg = f'Downloading {out_path.name}...'
+  name = out_path.name
+  download_failed = None
+  download_msg = f'Downloading {name}...'
   if as_new:
     out_path = out_path.with_suffix(f'{out_path.suffix}.new')
   print(download_msg, end='', flush=True)
@@ -40,15 +42,17 @@ def download_file(out_path, source_url, as_new=False, overwrite=False):
   out_path.parent.mkdir(parents=True, exist_ok=True)
 
   # Request download
-  response = requests.get(source_url, stream=True)
-  if not response.ok:
-    name = out_path.name
-    if as_new:
-      name = name[:-4]
-    LOG.error(
-      'Failed to download file (status %s): %s',
-      response.status_code, name,
-      )
+  try:
+    response = requests.get(source_url, stream=True)
+  except requests.RequestException as _err:
+    download_failed = _err
+  else:
+    if not response.ok:
+      download_failed = response
+
+  # Download failed
+  if download_failed:
+    LOG.error('Failed to download file: %s', download_failed)
     raise GenericError(f'Failed to download file: {name}')
 
   # Write to file
