@@ -23,8 +23,15 @@ from wk.cfg.windows_builds import (
   OUTDATED_BUILD_NUMBERS,
   WINDOWS_BUILDS,
   )
-from wk.exe import run_program
-from wk.std import GenericError, GenericWarning, bytes_to_string, sleep
+from wk.exe import get_json_from_command, run_program
+from wk.kit.tools import find_kit_dir
+from wk.std import (
+  GenericError,
+  GenericWarning,
+  bytes_to_string,
+  color_string,
+  sleep,
+  )
 
 
 # STATIC VARIABLES
@@ -202,6 +209,50 @@ def get_os_name(as_list=False, check=True):
 
   # Done
   return [display_name] if as_list else display_name
+
+
+def get_raw_disks():
+  """Get all disks without a partiton table, returns list."""
+  script_path = find_kit_dir('Scripts').joinpath('get_raw_disks.ps1')
+  cmd = ['PowerShell', '-ExecutionPolicy', 'Bypass', '-File', script_path]
+  json_data = get_json_from_command(cmd)
+  raw_disks = []
+
+  # Fix JSON if only one disk was detected
+  if isinstance(json_data, dict):
+    json_data = [json_data]
+
+  # Parse JSON
+  for disk in json_data:
+    size_str = bytes_to_string(int(disk["Size"]), use_binary=False)
+    raw_disks.append(f'{disk["FriendlyName"]} ({size_str})')
+
+  # Done
+  return raw_disks
+
+
+def get_volume_usage(use_colors=False):
+  """Get space usage info for all fixed volumes, returns list."""
+  report = []
+  for disk in psutil.disk_partitions():
+    if 'fixed' not in disk.opts:
+      continue
+    total, _, free, percent = psutil.disk_usage(disk.device)
+    color = None
+    if percent > 85:
+      color = 'RED'
+    elif percent > 75:
+      color = 'YELLOW'
+    display_str = (
+      f'{free/total:>5.2f}% Free'
+      f'  ({bytes_to_string(free, 2):>10} / {bytes_to_string(total, 2):>10})'
+      )
+    if use_colors:
+      display_str = color_string(display_str, color)
+    report.append(f'{disk.device}  {display_str}')
+
+  # Done
+  return report
 
 
 def show_alert_box(message, title=None):

@@ -47,6 +47,8 @@ if platform.system() == 'Windows':
     get_installed_ram,
     get_os_activation,
     get_os_name,
+    get_raw_disks,
+    get_volume_usage,
     is_secure_boot_enabled,
     reg_read_value,
     reg_set_value,
@@ -72,6 +74,8 @@ else:
   get_installed_ram = no_op
   get_os_activation = no_op
   get_os_name = no_op
+  get_raw_disks = no_op
+  get_volume_usage = no_op
   is_secure_boot_enabled = no_op
   reg_read_value = no_op
   reg_set_value = no_op
@@ -590,6 +594,11 @@ def auto_show_secure_boot_status():
     )
 
 
+def auto_show_storage_status():
+  """Display storage status."""
+  TRY_PRINT.run('Storage Status...', get_storage_status)
+
+
 def auto_windows_temp_fix():
   """Restore default ACLs for Windows\\Temp."""
   TRY_PRINT.run(r'Windows\Temp fix...', fix_windows_temp)
@@ -922,6 +931,16 @@ def get_firefox_default_profile(profiles_ini):
 
   # Done
   return default_profile
+
+
+def get_storage_status():
+  """Get storage status for fixed disks, returns list."""
+  report = get_volume_usage(use_colors=True)
+  for disk in get_raw_disks():
+    report.append(color_string(f'Uninitialized Disk: {disk}', 'RED'))
+
+  # Done
+  return report
 
 
 # Tool Functions
