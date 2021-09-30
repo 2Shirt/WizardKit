@@ -150,8 +150,9 @@ REG_UAC_DEFAULT_SETTINGS = {
       ),
     },
   }
-RKILL_WHITELIST = (
-  CONEMU_EXE,
+SYSTEMDRIVE = os.environ.get('SYSTEMDRIVE', 'C:')
+WHITELIST = '\n'.join((
+  str(CONEMU_EXE),
   fr'{PROGRAMFILES_32}\TeamViewer\TeamViewer.exe',
   fr'{PROGRAMFILES_32}\TeamViewer\TeamViewer_Desktop.exe',
   fr'{PROGRAMFILES_32}\TeamViewer\TeamViewer_Note.exe',
@@ -159,8 +160,7 @@ RKILL_WHITELIST = (
   fr'{PROGRAMFILES_32}\TeamViewer\tv_w32.exe',
   fr'{PROGRAMFILES_32}\TeamViewer\tv_x64.exe',
   sys.executable,
-  )
-SYSTEMDRIVE = os.environ.get('SYSTEMDRIVE', 'C:')
+  ))
 WIDTH = 50
 TRY_PRINT = TryAndPrint()
 TRY_PRINT.width = WIDTH
@@ -1101,9 +1101,7 @@ def run_rkill():
   log_path = format_log_path(log_name='RKill', timestamp=True, tool=True)
   log_path.parent.mkdir(parents=True, exist_ok=True)
   whitelist_path = log_path.with_suffix('.wl')
-  whitelist_path.write_text(
-    '\n'.join(map(str, RKILL_WHITELIST)), encoding='utf-8',
-    )
+  whitelist_path.write_text(WHITELIST, encoding='utf-8')
   cmd_args = (
     '-l', log_path,
     '-w', whitelist_path,
