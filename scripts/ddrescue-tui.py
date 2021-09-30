@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 """Wizard Kit: ddrescue TUI"""
+# pylint: disable=invalid-name
 # vim: sts=2 sw=2 ts=2
 
-import wk
-
 from docopt import docopt
+
+import wk
 
 
 if __name__ == '__main__':

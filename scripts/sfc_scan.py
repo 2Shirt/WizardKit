@@ -19,7 +19,7 @@ def main():
   print('')
 
   # Run
-  try_print.run('SFC scan...', wk.os.win.run_sfc_scan)
+  try_print.run('SFC scan...', wk.repairs.win.run_sfc_scan)
 
   # Done
   print('Done')

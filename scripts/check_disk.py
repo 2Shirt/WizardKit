@@ -23,10 +23,10 @@ def main():
 
   # Run or schedule scan
   if 'Offline' in selection[0]:
-    function = wk.os.win.run_chkdsk_offline
+    function = wk.repairs.win.run_chkdsk_offline
     msg_good = 'Scheduled'
   else:
-    function = wk.os.win.run_chkdsk_online
+    function = wk.repairs.win.run_chkdsk_online
     msg_good = 'No issues detected'
   try_print.run(
     message=f'CHKDSK ({os.environ.get("SYSTEMDRIVE")})...',
