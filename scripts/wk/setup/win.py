@@ -505,6 +505,23 @@ def auto_activate_windows():
   TRY_PRINT.run('Windows Activation...', activate_with_bios)
 
 
+def auto_config_browsers():
+  """Configure Browsers."""
+  prompt = '    Press Enter to continue...'
+  TRY_PRINT.run('Chrome Notifications...', disable_chrome_notifications)
+  TRY_PRINT.run(
+    'uBlock Origin...', enable_ublock_origin, msg_good='STARTED',
+    )
+  TRY_PRINT.run(
+    'Set default browser...', set_default_browser, msg_good='STARTED',
+    )
+  print(prompt, end='', flush=True)
+  pause('')
+
+  # Move cursor to beginning of the previous line and clear prompt
+  print(f'\033[F\r{" "*len(prompt)}\r', end='', flush=True)
+
+
 def auto_config_explorer():
   """Configure Windows Explorer and restart the process."""
   TRY_PRINT.run('Windows Explorer...', config_explorer)
@@ -513,24 +530,6 @@ def auto_config_explorer():
 def auto_config_open_shell():
   """Configure Open Shell."""
   TRY_PRINT.run('Open Shell...', reg_write_settings, REG_OPEN_SHELL_SETTINGS)
-
-
-def auto_disable_chrome_notifications():
-  """Disable notifications in Google Chrome."""
-  TRY_PRINT.run('Chrome Notifications...', disable_chrome_notifications)
-
-
-def auto_enable_ublock_origin():
-  """Enable uBlock Origin in supported browsers."""
-  prompt = '    Press Enter to continue...'
-  TRY_PRINT.run(
-    'uBlock Origin...', enable_ublock_origin, msg_good='STARTED',
-    )
-  print(prompt, end='', flush=True)
-  pause('')
-
-  # Move cursor to beginning of the previous line and clear prompt
-  print(f'\033[F\r{" "*len(prompt)}\r', end='', flush=True)
 
 
 def auto_export_aida64_report():
@@ -954,6 +953,12 @@ def get_storage_status():
 
   # Done
   return report
+
+
+def set_default_browser():
+  """Open Windows Settings to the default apps section."""
+  cmd = ['start', '', 'ms-settings:defaultapps']
+  popen_program(cmd, shell=True)
 
 
 # Tool Functions
