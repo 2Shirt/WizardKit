@@ -33,6 +33,7 @@ from wk.std           import (
   clear_screen,
   color_string,
   pause,
+  print_error,
   print_info,
   print_standard,
   print_warning,
@@ -299,6 +300,12 @@ def build_menus(base_menus, title, presets):
           sys.modules[__name__], _function,
           )
 
+  # Update presets
+  for group, entries in base_menus['Groups'].items():
+    presets['Default'][group] = tuple(
+      entry.name for entry in entries if entry.details['Selected']
+      )
+
   # Update presets Menu
   MENU_PRESETS.title = f'{title}\n{color_string("Load Preset", "GREEN")}'
   MENU_PRESETS.add_option('Default')
@@ -312,22 +319,41 @@ def build_menus(base_menus, title, presets):
   return menus
 
 
+def check_os_and_set_menu_title(title):
+  """Check OS version and update title for menus, returns str."""
+  color = None
+  os_name = get_os_name(check=False)
+  print_standard(f'Operating System: {os_name}')
+
+  # Check support status and set color
+  try:
+    get_os_name()
+  except GenericWarning:
+    # Outdated version
+    print_warning('OS version is outdated, updating is recommended.')
+    if not ask('Continue anyway?'):
+      abort()
+    color = 'YELLOW'
+  except GenericError:
+    # Unsupported version
+    print_error('OS version is unsupported, updating is recommended.')
+    if not ask('Continue anyway? (NOT RECOMMENDED)'):
+      abort()
+    color = 'RED'
+
+  # Done
+  return f'{title}  ({color_string(os_name, color)})'
+
+
 def load_preset(menus, presets):
-  """Load menu settings from preset."""
+  """Load menu settings from preset, returns selection (str)."""
   selection = MENU_PRESETS.simple_select()
 
   # Exit early
   if 'Main Menu' in selection:
-    return
+    return None
   if 'Quit' in selection:
     raise SystemExit
-
-  # Default case
-  if 'Default' in selection:
-    for menu in menus.values():
-      for name in menu.options:
-        menu.options[name]['Selected'] = True
-    return
 
   # Load preset
   preset = presets[selection[0]]
@@ -336,6 +362,9 @@ def load_preset(menus, presets):
     for name in menu.options:
       value = group_enabled and name in preset[group]
       menu.options[name]['Selected'] = value
+
+  # Done
+  return selection[0]
 
 
 def run_auto_setup(base_menus, presets):
@@ -346,10 +375,23 @@ def run_auto_setup(base_menus, presets):
   set_title(title)
   print_info(title)
   print('')
+  print_standard('Initializing...')
+
+  # Check OS and update title for menus
+  title = check_os_and_set_menu_title(title)
 
   # Generate menus
-  print_standard('Initializing...')
   menus = build_menus(base_menus, title, presets)
+
+  # Get setup preset and ask initial questions
+  MENU_PRESETS.actions['Main Menu'].update({'Disabled':True, 'Hidden':True})
+  selection = load_preset(menus, presets)
+  MENU_PRESETS.actions['Main Menu'].update({'Disabled':False, 'Hidden':False})
+  clear_screen()
+  print_standard(f'{title}')
+  print('')
+  if selection == 'Default' and ask('Install LibreOffice?'):
+    menus['Install Software'].options['LibreOffice']['Selected'] = True
 
   # Show Menu
   show_main_menu(base_menus, menus, presets)
@@ -1044,6 +1086,7 @@ def open_windows_updates():
 
 def open_xmplay():
   """Open XMPlay."""
+  sleep(2)
   run_tool('XMPlay', 'XMPlay', 'music.7z', cbin=True, cwd=True, popen=True)
 
 

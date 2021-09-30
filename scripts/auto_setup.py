@@ -11,6 +11,7 @@ import wk # pylint: disable=wrong-import-position
 
 # STATIC VARIABLES
 PRESETS = {
+  'Default': {}, # Will be built at runtime using BASE_MENUS
   'Additional User': {
     'Configure System': (
       'Chrome Notifications',
@@ -31,7 +32,7 @@ PRESETS = {
       'Windows Activation',
       'Secure Boot',
       'Installed RAM',
-      'Storage Volumes',
+      'Storage Status',
       'Virus Protection',
       'Partitions 4K Aligned',
       ),
@@ -52,7 +53,7 @@ PRESETS = {
       'Windows Activation',
       'Secure Boot',
       'Installed RAM',
-      'Storage Volumes',
+      'Storage Status',
       'Virus Protection',
       'Partitions 4K Aligned',
       ),
@@ -76,7 +77,7 @@ PRESETS = {
       'Windows Activation',
       'Secure Boot',
       'Installed RAM',
-      'Storage Volumes',
+      'Storage Status',
       'Virus Protection',
       'Installed Office',
       'Partitions 4K Aligned',
@@ -88,18 +89,14 @@ PRESETS = {
 class MenuEntry():
   # pylint: disable=too-few-public-methods
   """Simple class to allow cleaner code below."""
-  def __init__(self, name, function=None, **kwargs):
+  def __init__(self, name, function=None, selected=True, **kwargs):
     self.name = name
     self.details = {
       'Function': function,
-      'Selected': True,
+      'Selected': selected,
       **kwargs,
       }
 
-
-# TODO: DELETEME
-def no_op(*args):
-  """No Op"""
 
 # STATIC VARIABLES
 BASE_MENUS = {
@@ -113,7 +110,7 @@ BASE_MENUS = {
     'Install Software': (
       MenuEntry('Visual C++ Runtimes',      'auto_install_vcredists'),
       MenuEntry('Firefox',                  'auto_install_firefox'),
-      MenuEntry('LibreOffice',              'auto_install_libreoffice'),
+      MenuEntry('LibreOffice',              'auto_install_libreoffice', selected=False),
       MenuEntry('Open Shell',               'auto_install_open_shell'),
       MenuEntry('Software Bundle',          'auto_install_software_bundle'),
       ),
