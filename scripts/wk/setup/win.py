@@ -345,13 +345,17 @@ def check_os_and_set_menu_title(title):
   return f'{title}  ({color_string(os_name, color)})'
 
 
-def load_preset(menus, presets):
-  """Load menu settings from preset, returns selection (str)."""
+def load_preset(menus, presets, title, enable_menu_exit=True):
+  """Load menu settings from preset and ask selection question(s)."""
+  if not enable_menu_exit:
+    MENU_PRESETS.actions['Main Menu'].update({'Disabled':True, 'Hidden':True})
+
+  # Get selection
   selection = MENU_PRESETS.simple_select()
 
   # Exit early
   if 'Main Menu' in selection:
-    return None
+    return
   if 'Quit' in selection:
     raise SystemExit
 
@@ -363,8 +367,15 @@ def load_preset(menus, presets):
       value = group_enabled and name in preset[group]
       menu.options[name]['Selected'] = value
 
-  # Done
-  return selection[0]
+  # Ask selection question(s)
+  clear_screen()
+  print_standard(f'{title}')
+  print('')
+  if selection[0] == 'Default' and ask('Install LibreOffice?'):
+    menus['Install Software'].options['LibreOffice']['Selected'] = True
+
+  # Re-enable Main Menu action if disabled
+  MENU_PRESETS.actions['Main Menu'].update({'Disabled':False, 'Hidden':False})
 
 
 def run_auto_setup(base_menus, presets):
@@ -384,17 +395,10 @@ def run_auto_setup(base_menus, presets):
   menus = build_menus(base_menus, title, presets)
 
   # Get setup preset and ask initial questions
-  MENU_PRESETS.actions['Main Menu'].update({'Disabled':True, 'Hidden':True})
-  selection = load_preset(menus, presets)
-  MENU_PRESETS.actions['Main Menu'].update({'Disabled':False, 'Hidden':False})
-  clear_screen()
-  print_standard(f'{title}')
-  print('')
-  if selection == 'Default' and ask('Install LibreOffice?'):
-    menus['Install Software'].options['LibreOffice']['Selected'] = True
+  load_preset(menus, presets, title, enable_menu_exit=False)
 
   # Show Menu
-  show_main_menu(base_menus, menus, presets)
+  show_main_menu(base_menus, menus, presets, title)
 
   # Start setup
   clear_screen()
@@ -431,7 +435,7 @@ def run_group(group, menu):
     details['Function']()
 
 
-def show_main_menu(base_menus, menus, presets):
+def show_main_menu(base_menus, menus, presets, title):
   """Show main menu and handle actions."""
   while True:
     update_main_menu(menus)
@@ -439,7 +443,7 @@ def show_main_menu(base_menus, menus, presets):
     if selection[0] in base_menus['Groups'] or selection[0] == 'Options':
       show_sub_menu(menus[selection[0]])
     if selection[0] == 'Load Preset':
-      load_preset(menus, presets)
+      load_preset(menus, presets, title)
     elif 'Start' in selection:
       break
     elif 'Quit' in selection:
