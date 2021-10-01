@@ -83,6 +83,7 @@ PRESETS = {
       'Partitions 4K Aligned',
       ),
     },
+  'Custom': {}, # Will remain empty at runtime
   }
 
 # Classes

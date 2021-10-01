@@ -311,6 +311,7 @@ def build_menus(base_menus, title, presets):
   MENU_PRESETS.add_option('Default')
   for name in presets:
     MENU_PRESETS.add_option(name)
+  MENU_PRESETS.add_option('Custom')
   MENU_PRESETS.add_action('Main Menu')
   MENU_PRESETS.add_action('Quit')
   MENU_PRESETS.update()
