@@ -939,7 +939,7 @@ def backup_registry():
 
 def delete_registry_null_keys():
   """Delete registry keys with embedded null characters."""
-  run_tool('RegDelNull', 'RegDelNull', '-s', '-y', cbin=True)
+  run_tool('RegDelNull', 'RegDelNull', '-s', '-y', download=True)
 
 
 def run_adwcleaner():
