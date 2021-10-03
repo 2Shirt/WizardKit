@@ -1,7 +1,0 @@
-<Configuration>
-  <Add OfficeClientEdition="32" Channel="Current">
-    <Product ID="HomeStudent2019Retail">
-      <Language ID="en-us" />
-    </Product>
-  </Add>
-</Configuration>

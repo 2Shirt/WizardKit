@@ -1,1 +1,0 @@
-Broken. "requires" .NET 4.5 but fails to accept .NET 4.6 or newer (which we install).

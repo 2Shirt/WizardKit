@@ -1,7 +1,0 @@
-<Configuration>
-  <Add OfficeClientEdition="32" Channel="Current">
-    <Product ID="HomeBusinessRetail">
-      <Language ID="en-us" />
-    </Product>
-  </Add>
-</Configuration>
