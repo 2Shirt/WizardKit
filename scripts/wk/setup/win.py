@@ -163,31 +163,35 @@ REG_WINDOWS_EXPLORER = {
     },
   'HKCU': {
     # Desktop theme (<= v1809 default)
-    r'Software\Microsoft\Windows\CurrentVersion\Themes\Personalize': {
+    r'Software\Microsoft\Windows\CurrentVersion\Themes\Personalize': (
       ('AppsUseLightTheme', 1, 'DWORD'),
       ('SystemUsesLightTheme', 0, 'DWORD'),
-      },
+      ),
     # Disable features
-    r'Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager': {
+    r'Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager': (
       ('SilentInstalledAppsEnabled', 0, 'DWORD'),
       # Tips and Tricks
       ('SoftLandingEnabled ', 0, 'DWORD'),
       ('SubscribedContent-338389Enabled', 0, 'DWORD'),
-      },
+      ),
+    # Disable news and interests from opening on hover
+    r'Software\Microsoft\Windows\CurrentVersion\Feeds': (
+      ('ShellFeedsTaskbarOpenOnHover', 0, 'DWORD'),
+      ),
     # File Explorer
-    r'Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced': {
+    r'Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced': (
       # Change default Explorer view to "Computer"
       ('LaunchTo', 1, 'DWORD'),
       ('SeparateProcess', 1, 'DWORD'),
-      },
+      ),
     # Hide People bar
-    r'Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced\People': {
+    r'Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced\People': (
       ('PeopleBand', 0, 'DWORD'),
-      },
+      ),
     # Hide Search button / box
-    r'Software\Microsoft\Windows\CurrentVersion\Search': {
+    r'Software\Microsoft\Windows\CurrentVersion\Search': (
       ('SearchboxTaskbarMode', 1, 'DWORD'),
-      },
+      ),
     },
   }
 REG_OPEN_SHELL_SETTINGS = {
