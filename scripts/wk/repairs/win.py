@@ -13,6 +13,14 @@ import time
 from subprocess       import CalledProcessError, DEVNULL
 
 from wk.cfg.main      import KIT_NAME_FULL, KIT_NAME_SHORT, WINDOWS_TIME_ZONE
+from wk.cfg.repairs   import (
+  AUTO_REPAIR_DELAY_IN_SECONDS,
+  AUTO_REPAIR_KEY,
+  BLEACH_BIT_CLEANERS,
+  POWER_PLANS,
+  REG_UAC_DEFAULT_SETTINGS,
+  WIDTH,
+  )
 from wk.exe           import (
   get_procs,
   run_program,
@@ -82,47 +90,9 @@ else:
 
 # STATIC VARIABLES
 LOG = logging.getLogger(__name__)
-AUTO_REPAIR_DELAY_IN_SECONDS = 30
-AUTO_REPAIR_KEY = fr'Software\{KIT_NAME_FULL}\Auto Repairs'
 BACKUP_BROWSER_BASE_CMD = (
   get_tool_path('7-Zip', '7za'),
   'a', '-t7z', '-mx=1', '-bso0', '-bse0', '-bsp0',
-  )
-BLEACH_BIT_CLEANERS = (
-  # Applications
-  'adobe_reader.cache',
-  'adobe_reader.tmp',
-  'flash.cache',
-  'gimp.tmp',
-  'hippo_opensim_viewer.cache',
-  'java.cache',
-  'miro.cache',
-  'openofficeorg.cache',
-  'pidgin.cache',
-  'secondlife_viewer.Cache',
-  'thunderbird.cache',
-  'vuze.cache',
-  'yahoo_messenger.cache',
-  # Browsers
-  'chromium.cache',
-  'chromium.session',
-  'firefox.cache',
-  'firefox.session_restore',
-  'google_chrome.cache',
-  'google_chrome.session',
-  'google_earth.temporary_files',
-  'opera.cache',
-  'opera.session',
-  'safari.cache',
-  'seamonkey.cache',
-  # System
-  'system.clipboard',
-  'system.tmp',
-  'winapp2_windows.jump_lists',
-  'winapp2_windows.ms_search',
-  'windows_explorer.run',
-  'windows_explorer.search_history',
-  'windows_explorer.thumbnails',
   )
 CONEMU_EXE = get_tool_path('ConEmu', 'ConEmu', check=False)
 GPUPDATE_SUCCESS_STRINGS = (
@@ -135,21 +105,6 @@ PROGRAMFILES_32 = os.environ.get(
     'PROGRAMFILES', r'C:\Program Files (x86)',
     ),
   )
-POWER_PLANS = {
-  'Balanced':         '381b4222-f694-41f0-9685-ff5bb260df2e',
-  'Custom':           '01189998-8199-9119-725c-ccccccccccc3',
-  'High Performance': '8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c',
-  }
-REG_UAC_DEFAULT_SETTINGS = {
-  'HKLM': {
-    r'Software\Microsoft\Windows\CurrentVersion\Policies\System': (
-      ('ConsentPromptBehaviorAdmin', 5, 'DWORD'),
-      ('ConsentPromptBehaviorUser', 3, 'DWORD'),
-      ('EnableLUA', 1, 'DWORD'),
-      ('PromptOnSecureDesktop', 1, 'DWORD'),
-      ),
-    },
-  }
 SYSTEMDRIVE = os.environ.get('SYSTEMDRIVE', 'C:')
 WHITELIST = '\n'.join((
   str(CONEMU_EXE),
@@ -161,7 +116,6 @@ WHITELIST = '\n'.join((
   fr'{PROGRAMFILES_32}\TeamViewer\tv_x64.exe',
   sys.executable,
   ))
-WIDTH = 50
 TRY_PRINT = TryAndPrint()
 TRY_PRINT.width = WIDTH
 TRY_PRINT.verbose = True

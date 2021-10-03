@@ -1,4 +1,4 @@
-"""WizardKit: Config - Tools"""
+"""WizardKit: Config - Sources"""
 # pylint: disable=line-too-long
 # vim: sts=2 sw=2 ts=2
 
