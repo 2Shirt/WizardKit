@@ -123,7 +123,6 @@ BASE_MENUS = {
       MenuEntry('Enable System Restore',    'auto_system_restore_enable'),
       MenuEntry('Set System Restore Size',  'auto_system_restore_set_size'),
       MenuEntry('Enable Windows Updates',   'auto_windows_updates_enable'),
-      MenuEntry('User Account Control',     'auto_restore_default_uac'),
       MenuEntry('Windows Activation',       'auto_activate_windows'),
       MenuEntry('Windows Explorer',         'auto_config_explorer'),
       MenuEntry(r'Windows\Temp Fix',        'auto_windows_temp_fix'),

@@ -17,8 +17,6 @@ from wk.cfg.setup     import (
   REG_CHROME_UBLOCK_ORIGIN,
   REG_WINDOWS_EXPLORER,
   REG_OPEN_SHELL_SETTINGS,
-  REG_UAC_DEFAULTS_WIN7,
-  REG_UAC_DEFAULTS_WIN10,
   UBLOCK_ORIGIN_URLS,
   )
 from wk.exe           import kill_procs, run_program, popen_program
@@ -510,11 +508,6 @@ def auto_open_xmplay():
   TRY_PRINT.run('XMPlay...', open_xmplay)
 
 
-def auto_restore_default_uac():
-  """Restore default UAC settings."""
-  TRY_PRINT.run('User Account Control...', restore_default_uac)
-
-
 def auto_show_4k_alignment_check():
   """Display 4K alignment check."""
   TRY_PRINT.run('4K alignment Check...', check_4k_alignment, show_alert=True)
@@ -656,15 +649,6 @@ def fix_windows_temp():
   for _p in permissions:
     cmd = ['icacls', fr'{SYSTEMDRIVE}\Windows\Temp', '/grant:r', _p, '/T']
     run_program(cmd)
-
-
-def restore_default_uac():
-  """Restore default UAC settings."""
-  settings = REG_UAC_DEFAULTS_WIN10
-  if OS_VERSION != 10:
-    settings = REG_UAC_DEFAULTS_WIN7
-
-  reg_write_settings(settings)
 
 
 # Install Functions

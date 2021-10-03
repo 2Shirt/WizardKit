@@ -121,27 +121,6 @@ REG_OPEN_SHELL_SETTINGS = {
       ),
     },
   }
-REG_UAC_DEFAULTS_WIN7 = {
-  'HKLM': {
-    r'Software\Microsoft\Windows\CurrentVersion\Policies\System': (
-      ('ConsentPromptBehaviorAdmin', 5, 'DWORD'),
-      ('EnableLUA', 1, 'DWORD'),
-      ('PromptOnSecureDesktop', 1, 'DWORD'),
-      ),
-    },
-  }
-REG_UAC_DEFAULTS_WIN10 = {
-  'HKLM': {
-    r'Software\Microsoft\Windows\CurrentVersion\Policies\System': (
-      ('ConsentPromptBehaviorAdmin', 5, 'DWORD'),
-      ('ConsentPromptBehaviorUser', 3, 'DWORD'),
-      ('EnableInstallerDetection', 1, 'DWORD'),
-      ('EnableLUA', 1, 'DWORD'),
-      ('EnableVirtualization', 1, 'DWORD'),
-      ('PromptOnSecureDesktop', 1, 'DWORD'),
-      ),
-    },
-  }
 UBLOCK_ORIGIN_URLS = {
   'Google Chrome':    'https://chrome.google.com/webstore/detail/ublock-origin/cjpalhdlnbpafiamejdnhcphjbkeiagm',
   'Microsoft Edge':   'https://microsoftedge.microsoft.com/addons/detail/ublock-origin/odfafepnkmbhccpbejgmiehpchacaeak',

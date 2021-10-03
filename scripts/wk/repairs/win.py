@@ -18,7 +18,8 @@ from wk.cfg.repairs   import (
   AUTO_REPAIR_KEY,
   BLEACH_BIT_CLEANERS,
   POWER_PLANS,
-  REG_UAC_DEFAULT_SETTINGS,
+  REG_UAC_DEFAULTS_WIN7,
+  REG_UAC_DEFAULTS_WIN10,
   WIDTH,
   )
 from wk.exe           import (
@@ -1265,7 +1266,11 @@ def reset_windows_updates():
 
 def restore_uac_defaults():
   """Restore UAC default settings."""
-  reg_write_settings(REG_UAC_DEFAULT_SETTINGS)
+  settings = REG_UAC_DEFAULTS_WIN10
+  if OS_VERSION != 10:
+    settings = REG_UAC_DEFAULTS_WIN7
+
+  reg_write_settings(settings)
 
 
 def run_chkdsk_offline():

@@ -46,12 +46,23 @@ POWER_PLANS = {
   'Custom':           '01189998-8199-9119-725c-ccccccccccc3',
   'High Performance': '8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c',
   }
-REG_UAC_DEFAULT_SETTINGS = {
+REG_UAC_DEFAULTS_WIN7 = {
+  'HKLM': {
+    r'Software\Microsoft\Windows\CurrentVersion\Policies\System': (
+      ('ConsentPromptBehaviorAdmin', 5, 'DWORD'),
+      ('EnableLUA', 1, 'DWORD'),
+      ('PromptOnSecureDesktop', 1, 'DWORD'),
+      ),
+    },
+  }
+REG_UAC_DEFAULTS_WIN10 = {
   'HKLM': {
     r'Software\Microsoft\Windows\CurrentVersion\Policies\System': (
       ('ConsentPromptBehaviorAdmin', 5, 'DWORD'),
       ('ConsentPromptBehaviorUser', 3, 'DWORD'),
+      ('EnableInstallerDetection', 1, 'DWORD'),
       ('EnableLUA', 1, 'DWORD'),
+      ('EnableVirtualization', 1, 'DWORD'),
       ('PromptOnSecureDesktop', 1, 'DWORD'),
       ),
     },
