@@ -34,12 +34,7 @@ from wk.io            import (
   non_clobber_path,
   rename_item,
   )
-from wk.kit.tools     import (
-  download_tool,
-  extract_tool,
-  get_tool_path,
-  run_tool,
-  )
+from wk.kit.tools     import (download_tool, get_tool_path, run_tool)
 from wk.log           import format_log_path, update_log_path
 from wk.std           import (
   GenericError,
@@ -933,8 +928,10 @@ def backup_registry():
     raise GenericWarning('Backup already exists.')
 
   # Backup registry
-  extract_tool('ERUNT')
-  run_tool('ERUNT', 'ERUNT', backup_path, 'sysreg', 'curuser', 'otherusers')
+  run_tool(
+    'ERUNT', 'ERUNT', backup_path, 'sysreg', 'curuser', 'otherusers',
+    cbin=True,
+    )
 
 
 def delete_registry_null_keys():
