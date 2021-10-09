@@ -1,14 +1,19 @@
-﻿# Wizard Kit: Download kit components
+﻿# Wizard Kit: Build base kit
 
 ## Init ##
 #Requires -Version 3.0
+[CmdletBinding()]
+Param(
+  [Parameter(Mandatory=$True)]
+    [string]$KitPath
+)
 if (Test-Path Env:\DEBUG) {
   Set-PSDebug -Trace 1
 }
 $Host.UI.RawUI.WindowTitle = "Wizard Kit: Build Tool"
-$WD = $(Split-Path $MyInvocation.MyCommand.Path)
-$Bin = (Get-Item $WD).Parent.FullName
-$Root = (Get-Item $Bin -Force).Parent.FullName
+$WD = Split-Path $MyInvocation.MyCommand.Path | Get-Item
+$Root = Get-Item "$KitPath"
+$Bin = Get-Item "$($Root.FullName)\.bin" -Force
 $Temp = "$Bin\tmp"
 $System32 = "{0}\System32" -f $Env:SystemRoot
 $SysWOW64 = "{0}\SysWOW64" -f $Env:SystemRoot
@@ -74,64 +79,49 @@ if ($MyInvocation.InvocationName -ne ".") {
   Clear-Host
   Write-Host "Wizard Kit: Build Tool`n`n`n`n`n"
 
+  ## Sources ##
+  $Sources = Get-Content -Path "$WD\sources.json" | ConvertFrom-JSON
+
   ## Download ##
   $DownloadErrors = 0
-  $Path = $Temp
 
   # 7-Zip
-  DownloadFile -Path $Path -Name "7z-installer.msi" -Url "https://www.7-zip.org/a/7z1900.msi"
-  DownloadFile -Path $Path -Name "7z-extra.7z" -Url "https://www.7-zip.org/a/7z1900-extra.7z"
+  DownloadFile -Path $Temp -Name "7z-installer.msi" -Url $Sources.'7-Zip Installer'
+  DownloadFile -Path $Temp -Name "7z-extra.7z" -Url $Sources.'7-Zip Extra'
 
   # ConEmu
-  $Url = "https://github.com/Maximus5/ConEmu/releases/download/v19.03.10/ConEmuPack.190310.7z"
-  DownloadFile -Path $Path -Name "ConEmuPack.7z" -Url $Url
-
-  # Notepad++
-  $Url = "https://notepad-plus-plus.org/repository/7.x/7.6.4/npp.7.6.4.bin.minimalist.7z"
-  DownloadFile -Path $Path -Name "npp.7z" -Url $Url
+  DownloadFile -Path $Temp -Name "ConEmuPack.7z" -Url $Sources.'ConEmu'
 
   # Python
-  $Url = "https://www.python.org/ftp/python/3.7.2/python-3.7.2.post1-embed-win32.zip"
-  DownloadFile -Path $Path -Name "python32.zip" -Url $Url
-  $Url = "https://www.python.org/ftp/python/3.7.2/python-3.7.2.post1-embed-amd64.zip"
-  DownloadFile -Path $Path -Name "python64.zip" -Url $Url
+  DownloadFile -Path $Temp -Name "python32.zip" -Url $Sources.'Python x32'
+  DownloadFile -Path $Temp -Name "python64.zip" -Url $Sources.'Python x64'
+
+  # Python: docopt
+  Copy-Item -Path "$WD\docopt\docopt-0.6.2-py2.py3-none-any.whl" -Destination "$Temp\docopt.whl"
 
   # Python: psutil
   $DownloadPage = "https://pypi.org/project/psutil/"
-  $RegEx = "href=.*-cp37-cp37m-win32.whl"
+  $RegEx = "href=.*-cp38-cp38-win32.whl"
   $Url = FindDynamicUrl $DownloadPage $RegEx
-  DownloadFile -Path $Path -Name "psutil32.whl" -Url $Url
-  $RegEx = "href=.*-cp37-cp37m-win_amd64.whl"
+  DownloadFile -Path $Temp -Name "psutil32.whl" -Url $Url
+  $RegEx = "href=.*-cp38-cp38-win_amd64.whl"
   $Url = FindDynamicUrl $DownloadPage $RegEx
-  DownloadFile -Path $Path -Name "psutil64.whl" -Url $Url
+  DownloadFile -Path $Temp -Name "psutil64.whl" -Url $Url
 
-  # Python: requests & dependancies
+  # Python: pytz, requests, & dependancies
   $RegEx = "href=.*.py3-none-any.whl"
-  foreach ($Module in @("chardet", "certifi", "idna", "urllib3", "requests")) {
+  foreach ($Module in @("chardet", "certifi", "idna", "pytz", "urllib3", "requests")) {
     $DownloadPage = "https://pypi.org/project/$Module/"
     $Name = "$Module.whl"
     $Url = FindDynamicUrl -SourcePage $DownloadPage -RegEx $RegEx
-    DownloadFile -Path $Path -Name $Name -Url $Url
+    DownloadFile -Path $Temp -Name $Name -Url $Url
   }
-
-  # Visual C++ Runtimes
-  $Url = "https://aka.ms/vs/15/release/vc_redist.x86.exe"
-  DownloadFile -Path $Path -Name "vcredist_x86.exe" -Url $Url
-  $Url = "https://aka.ms/vs/15/release/vc_redist.x64.exe"
-  DownloadFile -Path $Path -Name "vcredist_x64.exe" -Url $Url
 
   ## Bail ##
   # If errors were encountered during downloads
   if ($DownloadErrors -gt 0) {
     Abort
   }
-
-  ## Install ##
-  # Visual C++ Runtimes
-  $ArgumentList = @("/install", "/passive", "/norestart")
-  Start-Process -FilePath "$Temp\vcredist_x86.exe" -ArgumentList $ArgumentList -Wait
-  Start-Process -FilePath "$Temp\vcredist_x64.exe" -ArgumentList $ArgumentList -Wait
-  Remove-Item "$Temp\vcredist*.exe"
 
   ## Extract ##
   # 7-Zip
@@ -150,20 +140,6 @@ if ($MyInvocation.InvocationName -ne ".") {
     Remove-Item "$Bin\7-Zip\x64" -Recurse
     Remove-Item "$Temp\7z*" -Recurse
     $SevenZip = "$Bin\7-Zip\7za.exe"
-  }
-  catch {
-    Write-Host ("  ERROR: Failed to extract files." ) -ForegroundColor "Red"
-  }
-
-  # Notepad++
-  Write-Host "Extracting: Notepad++"
-  try {
-    $ArgumentList = @(
-      "x", "$Temp\npp.7z", "-o$Bin\NotepadPlusPlus",
-      "-aoa", "-bso0", "-bse0", "-bsp0")
-    Start-Process -FilePath $SevenZip -ArgumentList $ArgumentList -NoNewWindow -Wait
-    Remove-Item "$Temp\npp.7z"
-    Move-Item "$Bin\NotepadPlusPlus\notepad++.exe" "$Bin\NotepadPlusPlus\notepadplusplus.exe"
   }
   catch {
     Write-Host ("  ERROR: Failed to extract files." ) -ForegroundColor "Red"
@@ -189,7 +165,9 @@ if ($MyInvocation.InvocationName -ne ".") {
       "python$Arch.zip",
       "certifi.whl",
       "chardet.whl",
+      "docopt.whl",
       "idna.whl",
+      "pytz.whl",
       "psutil$Arch.whl",
       "requests.whl",
       "urllib3.whl"
@@ -206,22 +184,8 @@ if ($MyInvocation.InvocationName -ne ".") {
       Write-Host ("  ERROR: Failed to extract files." ) -ForegroundColor "Red"
     }
   }
-  try {
-    Copy-Item -Path "$System32\vcruntime140.dll" -Destination "$Bin\Python\x64\vcruntime140.dll" -Force
-    Copy-Item -Path "$SysWOW64\vcruntime140.dll" -Destination "$Bin\Python\x32\vcruntime140.dll" -Force
-  }
-  catch {
-    Write-Host ("  ERROR: Failed to copy Visual C++ Runtime DLLs." ) -ForegroundColor "Red"
-  }
   Remove-Item "$Temp\python*.zip"
   Remove-Item "$Temp\*.whl"
-
-  ## Configure ##
-  Write-Host "Configuring kit"
-  WKPause "Press Enter to open settings..."
-  $Cmd = "$Bin\NotepadPlusPlus\notepadplusplus.exe"
-  Start-Process -FilePath $Cmd -ArgumentList @("$Bin\Scripts\settings\main.py") -Wait
-  Start-Sleep 1
 
   ## Done ##
   Pop-Location
