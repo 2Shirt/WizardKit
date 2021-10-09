@@ -6,7 +6,6 @@ import configparser
 import logging
 import json
 import os
-import platform
 import re
 import sys
 
@@ -31,6 +30,32 @@ from wk.kit.tools     import (
   run_tool,
   )
 from wk.log           import format_log_path, update_log_path
+from wk.os.win        import (
+  OS_VERSION,
+  activate_with_bios,
+  check_4k_alignment,
+  get_installed_antivirus,
+  get_installed_ram,
+  get_os_activation,
+  get_os_name,
+  get_raw_disks,
+  get_volume_usage,
+  is_activated,
+  is_secure_boot_enabled,
+  reg_set_value,
+  reg_write_settings,
+  )
+from wk.repairs.win   import (
+  WIDTH,
+  backup_all_browser_profiles,
+  backup_registry,
+  create_custom_power_plan,
+  create_system_restore_point,
+  enable_windows_updates,
+  export_power_plans,
+  reset_power_plans,
+  set_system_restore_size,
+  )
 from wk.std           import (
   GenericError,
   GenericWarning,
@@ -50,61 +75,6 @@ from wk.std           import (
   sleep,
   strip_colors,
   )
-if platform.system() == 'Windows':
-  from wk.os.win        import (
-    OS_VERSION,
-    activate_with_bios,
-    check_4k_alignment,
-    get_installed_antivirus,
-    get_installed_ram,
-    get_os_activation,
-    get_os_name,
-    get_raw_disks,
-    get_volume_usage,
-    is_activated,
-    is_secure_boot_enabled,
-    reg_set_value,
-    reg_write_settings,
-    )
-  from wk.repairs.win   import (
-    WIDTH,
-    backup_all_browser_profiles,
-    backup_registry,
-    create_custom_power_plan,
-    create_system_restore_point,
-    enable_windows_updates,
-    export_power_plans,
-    reset_power_plans,
-    set_system_restore_size,
-    )
-else:
-  # Workaround to allow basic testing under non-Windows environments
-  OS_VERSION = -1
-  def no_op(*args, **kwargs): # pylint: disable=unused-argument
-    """No-op function."""
-  # wk.os.win
-  activate_with_bios = no_op
-  check_4k_alignment = no_op
-  get_installed_antivirus = no_op
-  get_installed_ram = no_op
-  get_os_activation = no_op
-  get_os_name = no_op
-  get_raw_disks = no_op
-  get_volume_usage = no_op
-  is_activated = no_op
-  is_secure_boot_enabled = no_op
-  reg_read_value = no_op
-  reg_set_value = no_op
-  reg_write_settings = no_op
-  # wk.repairs.win
-  backup_all_browser_profiles = no_op
-  backup_registry = no_op
-  create_custom_power_plan = no_op
-  create_system_restore_point = no_op
-  enable_windows_updates = no_op
-  export_power_plans = no_op
-  reset_power_plans = no_op
-  set_system_restore_size = no_op
 
 
 # STATIC VARIABLES

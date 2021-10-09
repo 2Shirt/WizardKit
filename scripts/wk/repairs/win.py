@@ -5,7 +5,6 @@
 import atexit
 import logging
 import os
-import platform
 import re
 import sys
 import time
@@ -36,6 +35,18 @@ from wk.io            import (
   )
 from wk.kit.tools     import (download_tool, get_tool_path, run_tool)
 from wk.log           import format_log_path, update_log_path
+from wk.os.win        import (
+  OS_VERSION,
+  get_timezone,
+  set_timezone,
+  reg_delete_value,
+  reg_read_value,
+  reg_set_value,
+  reg_write_settings,
+  disable_service,
+  enable_service,
+  stop_service,
+  )
 from wk.std           import (
   GenericError,
   GenericWarning,
@@ -54,34 +65,6 @@ from wk.std           import (
   sleep,
   strip_colors,
   )
-if platform.system() == 'Windows':
-  from wk.os.win        import (
-    OS_VERSION,
-    get_timezone,
-    set_timezone,
-    reg_delete_value,
-    reg_read_value,
-    reg_set_value,
-    reg_write_settings,
-    disable_service,
-    enable_service,
-    stop_service,
-    )
-else:
-  # Workaround to allow basic testing under non-Windows environments
-  OS_VERSION = -1
-  def no_op(*args, **kwargs): # pylint: disable=unused-argument
-    """No-op function."""
-  # wk.os.win
-  get_timezone = no_op
-  set_timezone = no_op
-  reg_delete_value = no_op
-  reg_read_value = no_op
-  reg_set_value = no_op
-  reg_write_settings = no_op
-  disable_service = no_op
-  enable_service = no_op
-  stop_service = no_op
 
 
 # STATIC VARIABLES
