@@ -696,7 +696,7 @@ def install_firefox():
 def install_libreoffice(
     register_mso_types=True, use_mso_formats=False, vcredist=True):
   """Install LibreOffice."""
-  installer = find_kit_dir('Installers').joinpath('LibreOffice.msi')
+  installer = find_kit_dir('Installers').joinpath(f'LibreOffice{ARCH}.msi')
   xcu_dir = get_path_obj(f'{os.environ.get("APPDATA")}/LibreOffice/4/user')
   xcu_file = xcu_dir.joinpath('registrymodifications.xcu')
 
@@ -875,7 +875,8 @@ def export_aida64_report():
     '/R', report_path,
     '/CUSTOM', 'basic.rpf',
     '/HTML', '/SILENT', '/SAFEST',
-    cbin=True, cwd=True)
+    cwd=True,
+    )
   if proc.returncode:
     raise GenericError('Error(s) encountered exporting report.')
 
@@ -914,7 +915,7 @@ def open_windows_updates():
 def open_xmplay():
   """Open XMPlay."""
   sleep(2)
-  run_tool('XMPlay', 'XMPlay', 'music.7z', cbin=True, cwd=True, popen=True)
+  run_tool('XMPlay', 'XMPlay', 'music.7z', cwd=True, popen=True)
 
 
 if __name__ == '__main__':

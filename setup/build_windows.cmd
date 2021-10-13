@@ -25,7 +25,9 @@ set "OUT_DIR=OUT_KIT\%KIT_NAME_FULL%"
 rem Copy base files to a new folder %OUT_DIR%
 mkdir %OUT_DIR% >nul 2>&1
 robocopy /e windows/bin %OUT_DIR%\.bin
-robocopy /e windows/cbin %OUT_DIR%\.cbin
+robocopy /e ..\scripts %OUT_DIR%\.bin\Scripts
+rem robocopy /e windows/cbin %OUT_DIR%\.cbin
+mkdir %OUT_DIR%\.cbin
 copy ..\LICENSE.txt %OUT_DIR%\LICENSE.txt
 copy ..\README.md %OUT_DIR%\README.md
 copy ..\images\ConEmu.png %OUT_DIR%\.bin\ConEmu\

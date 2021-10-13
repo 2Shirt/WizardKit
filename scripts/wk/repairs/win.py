@@ -251,8 +251,7 @@ def init_run(options):
       )
   if options['Sync Clock']['Selected']:
     TRY_PRINT.run(
-      'Syncing Clock...', run_tool, 'Neutron', 'Neutron',
-      cbin=True, msg_good='DONE',
+      'Syncing Clock...', run_tool, 'Neutron', 'Neutron', msg_good='DONE',
       )
   if options['Run RKill']['Selected']:
     TRY_PRINT.run('Running RKill...', run_rkill, msg_good='DONE')
@@ -911,10 +910,7 @@ def backup_registry():
     raise GenericWarning('Backup already exists.')
 
   # Backup registry
-  run_tool(
-    'ERUNT', 'ERUNT', backup_path, 'sysreg', 'curuser', 'otherusers',
-    cbin=True,
-    )
+  run_tool('ERUNT', 'ERUNT', backup_path, 'sysreg', 'curuser', 'otherusers')
 
 
 def delete_registry_null_keys():
@@ -935,7 +931,7 @@ def run_bleachbit(cleaners, preview=True):
     )
   log_path = format_log_path(log_name='BleachBit', timestamp=True, tool=True)
   log_path.parent.mkdir(parents=True, exist_ok=True)
-  proc = run_tool('BleachBit', 'bleachbit_console', *cmd_args, cbin=True)
+  proc = run_tool('BleachBit', 'bleachbit_console', *cmd_args)
 
   # Save logs
   log_path.write_text(proc.stdout, encoding='utf-8')

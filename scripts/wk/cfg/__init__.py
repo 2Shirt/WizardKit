@@ -2,8 +2,10 @@
 
 from . import ddrescue
 from . import hw
+from . import launchers
 from . import log
 from . import main
+from . import music
 from . import net
 from . import repairs
 from . import setup

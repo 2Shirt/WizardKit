@@ -189,6 +189,6 @@ if ($MyInvocation.InvocationName -ne ".") {
 
   ## Done ##
   Pop-Location
-  $ArgumentList = @("-run", "$Bin\Python\x32\python.exe", "$Bin\Scripts\update_kit.py", "-new_console:n")
+  $ArgumentList = @("-run", "$Bin\Python\x32\python.exe", "$Bin\Scripts\build_kit_windows.py", "-new_console:n")
   Start-Process -FilePath "$Bin\ConEmu\ConEmu.exe" -ArgumentList $ArgumentList -verb RunAs
 }
