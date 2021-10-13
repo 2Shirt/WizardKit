@@ -61,6 +61,17 @@ def case_insensitive_search(path, item):
   return real_path
 
 
+def copy_file(source, dest, overwrite=False):
+  """Copy file and optionally overwrite the destination."""
+  source = case_insensitive_path(source)
+  dest = pathlib.Path(dest).resolve()
+  if dest.exists():
+    if not overwrite:
+      raise FileExistsError(f'Refusing to delete file: {dest}')
+    os.remove(dest)
+  shutil.copy2(source, dest)
+
+
 def delete_empty_folders(path):
   """Recursively delete all empty folders in path."""
   LOG.debug('path: %s', path)
