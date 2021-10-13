@@ -645,8 +645,10 @@ def install_firefox():
   profile then it is reverted so the original existing profile instead.
   """
   current_default_profile = None
-  firefox_exe = f'{os.environ["PROGRAMFILES"]}/Mozilla Firefox/firefox.exe'
-  profiles_ini = case_insensitive_path(
+  firefox_exe = get_path_obj(
+    f'{os.environ["PROGRAMFILES"]}/Mozilla Firefox/firefox.exe',
+    )
+  profiles_ini = get_path_obj(
     f'{os.environ["APPDATA"]}/Mozilla/Firefox/profiles.ini',
     )
   program_path_32bit_exists = False
@@ -673,7 +675,7 @@ def install_firefox():
   run_tool('Firefox', 'Firefox', '/S', download=True)
 
   # Open Firefox to force profiles.ini update
-  popen_program(firefox_exe)
+  popen_program([firefox_exe])
   sleep(5)
   kill_procs('firefox.exe', force=True)
 

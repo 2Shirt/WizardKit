@@ -219,7 +219,7 @@ def get_installed_ram(as_list=False, raise_exceptions=False):
   if raise_exceptions:
     if RAM_OK > mem.total >= RAM_WARNING:
       raise GenericWarning(mem_str)
-    if mem.total > RAM_WARNING:
+    if mem.total < RAM_WARNING:
       raise GenericError(mem_str)
 
   # Done
@@ -275,6 +275,11 @@ def get_raw_disks():
   cmd = ['PowerShell', '-ExecutionPolicy', 'Bypass', '-File', script_path]
   json_data = get_json_from_command(cmd)
   raw_disks = []
+
+  # Bail early
+  if not json_data:
+    # No RAW disks detected
+    return raw_disks
 
   # Fix JSON if only one disk was detected
   if isinstance(json_data, dict):
@@ -595,7 +600,7 @@ def is_secure_boot_enabled(raise_exceptions=False, show_alert=False):
     # Command completed
     enabled = 'True' in proc.stdout
     if 'False' in proc.stdout:
-      msg_error = 'ERROR'
+      msg_error = 'DISABLED'
     else:
       msg_warning = 'UNKNOWN'
 
@@ -603,9 +608,8 @@ def is_secure_boot_enabled(raise_exceptions=False, show_alert=False):
   for msg, exc in ((msg_error, GenericError), (msg_warning, GenericWarning)):
     if not msg:
       continue
-    msg = f'Secure Boot {msg}'
     if show_alert:
-      show_alert_box(msg)
+      show_alert_box(f'Secure Boot {msg}')
     if raise_exceptions:
       raise exc(msg)
     break
