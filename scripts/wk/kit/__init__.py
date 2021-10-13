@@ -7,3 +7,6 @@ from . import tools
 
 if platform.system() == 'Linux':
   from . import ufd
+
+if platform.system() == 'Windows':
+  from . import build_win as build

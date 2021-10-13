@@ -65,6 +65,9 @@ MUSIC_SNES = (
   'yi',
   'zamn',
   )
+MUSIC_SNES_BAD = {
+  'ct': ['ct-s*', 'ct-v*'],
+  }
 
 
 if __name__ == '__main__':
