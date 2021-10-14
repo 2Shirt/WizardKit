@@ -1,4 +1,4 @@
-:: Wizard Kit: Create client_dir folder(s)
+:: WizardKit: Create client_dir folder(s)
 
 @echo off
 if defined DEBUG (@echo on)

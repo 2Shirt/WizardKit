@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Wizard Kit: Mount all volumes"""
+"""WizardKit: Mount all volumes"""
 # vim: sts=2 sw=2 ts=2
 
 import sys

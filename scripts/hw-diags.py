@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Wizard Kit: Hardware Diagnostics"""
+"""WizardKit: Hardware Diagnostics"""
 # pylint: disable=invalid-name
 # vim: sts=2 sw=2 ts=2
 

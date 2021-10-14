@@ -1,6 +1,6 @@
 #!/bin/python3
 #
-## Wizard Kit: MS Word content search tool
+## WizardKit: MS Word content search tool
 
 import os
 import re

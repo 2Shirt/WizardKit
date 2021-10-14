@@ -1,4 +1,4 @@
-"""Wizard Kit: Build Kit (Windows)."""
+"""WizardKit: Build Kit (Windows)."""
 # vim: sts=2 sw=2 ts=2
 
 import os

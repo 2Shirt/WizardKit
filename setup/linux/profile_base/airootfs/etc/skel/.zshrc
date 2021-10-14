@@ -6,7 +6,7 @@ HIST_STAMPS="yyyy-mm-dd"
 plugins=(archlinux git sudo systemd tmux)
 source $ZSH/oh-my-zsh.sh
 
-# Wizard Kit
+# WizardKit
 . $HOME/.aliases
 eval $(dircolors ~/.dircolors)
 export PYTHONPATH="/usr/local/bin"

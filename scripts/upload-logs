@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # vim: sts=2 sw=2 ts=2
-"""Wizard Kit: Upload Logs"""
+"""WizardKit: Upload Logs"""
 
 import datetime
 import os

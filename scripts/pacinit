@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-## Wizard Kit: Update pacman settings to usage in live sessions
+## WizardKit: Update pacman settings to usage in live sessions
 
 # Disable custom repo (used at build-time)
 sudo sed -i -r "s/^(\[custom\])/#\1/" /etc/pacman.conf

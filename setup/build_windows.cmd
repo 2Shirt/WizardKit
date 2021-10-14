@@ -1,11 +1,11 @@
-:: Wizard Kit: Build Tool Launcher ::
+:: WizardKit: Windows Kit Build Tool ::
 
 @echo off
 
 :Init
 setlocal EnableDelayedExpansion
 pushd "%~dp0"
-title Wizard Kit: Build Tool
+title WizardKit: Build Tool
 call :CheckFlags %*
 
 :SetVariables

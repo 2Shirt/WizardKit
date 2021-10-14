@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-## Wizard Kit: HW Diagnostics Launcher
+## WizardKit: HW Diagnostics Launcher
 
 source launch-in-tmux
 

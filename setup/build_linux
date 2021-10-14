@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-## Wizard Kit: Live Linux Build Tool
+## WizardKit: Live Linux Build Tool
 
 set -o errexit
 set -o errtrace

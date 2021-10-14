@@ -1,4 +1,4 @@
-﻿# Wizard Kit: Build base kit
+﻿# WizardKit: Build base kit
 
 ## Init ##
 #Requires -Version 3.0
@@ -10,7 +10,7 @@ Param(
 if (Test-Path Env:\DEBUG) {
   Set-PSDebug -Trace 1
 }
-$Host.UI.RawUI.WindowTitle = "Wizard Kit: Build Tool"
+$Host.UI.RawUI.WindowTitle = "WizardKit: Build Tool"
 $WD = Split-Path $MyInvocation.MyCommand.Path | Get-Item
 $Root = Get-Item "$KitPath"
 $Bin = Get-Item "$($Root.FullName)\.bin" -Force
@@ -77,7 +77,7 @@ if ($PSVersionTable.PSVersion.Major -eq 6 -and $PSVersionTable.OS -imatch "Windo
 # Answer by:    https://stackoverflow.com/users/696808/bacon-bits
 if ($MyInvocation.InvocationName -ne ".") {
   Clear-Host
-  Write-Host "Wizard Kit: Build Tool`n`n`n`n`n"
+  Write-Host "WizardKit: Build Tool`n`n`n`n`n"
 
   ## Sources ##
   $Sources = Get-Content -Path "$WD\sources.json" | ConvertFrom-JSON

@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-## Wizard Kit: TMUX Launcher
+## WizardKit: TMUX Launcher
 
 # Live macOS env workaround
 tmux_args=()

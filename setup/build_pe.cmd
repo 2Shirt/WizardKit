@@ -1,10 +1,10 @@
-:: Wizard Kit: Windows PE Build Tool Launcher ::
+:: WizardKit: Windows PE Build Tool ::
 
 @echo off
 
 :Init
 setlocal EnableDelayedExpansion
-title Wizard Kit: Windows PE Build Tool
+title WizardKit: Windows PE Build Tool
 call :CheckFlags %*
 call :CheckElevation || goto Exit
 call :FindKitsRoot || goto ErrorKitNotFound

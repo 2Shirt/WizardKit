@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-## Wizard Kit: RAW image mounting tool
+## WizardKit: RAW image mounting tool
 
 set -o errexit
 set -o errtrace

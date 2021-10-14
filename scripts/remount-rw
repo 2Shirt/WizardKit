@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-## Wizard Kit: Volume remount tool
+## WizardKit: Volume remount tool
 
 if ! mount | grep -q "$1"; then
     echo "ERROR: Can't remount $1"

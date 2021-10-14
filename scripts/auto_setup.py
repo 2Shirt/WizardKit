@@ -1,4 +1,4 @@
-"""Wizard Kit: Auto System Setup Tool"""
+"""WizardKit: Auto System Setup Tool"""
 # vim: sts=2 sw=2 ts=2
 
 import os

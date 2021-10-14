@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-## Wizard Kit: ddrescue TUI Launcher
+## WizardKit: ddrescue TUI Launcher
 
 __OS_NAME="$(uname -s)"
 if [[ "$__OS_NAME" == "Darwin" ]]; then

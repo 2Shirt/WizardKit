@@ -1,4 +1,4 @@
-:: Wizard Kit: Wrapper for launching programs and scripts.
+:: WizardKit: Wrapper for launching programs and scripts.
 ::
 :: Some features:
 ::   * If the OS is 64-bit then the WorkingDir is scanned for a 64-bit version of the programs
@@ -10,7 +10,7 @@ if defined DEBUG (@echo on)
 
 :Init
 setlocal EnableDelayedExpansion
-title Wizard Kit: Launcher
+title WizardKit: Launcher
 pushd "%~dp0"
 call :FindBin
 call :DeQuote L_ITEM

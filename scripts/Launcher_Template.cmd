@@ -1,4 +1,4 @@
-:: Wizard Kit: Launcher Script ::
+:: WizardKit: Launcher Script ::
 ::
 :: This script works by setting env variables and then calling Launch.cmd
 :: which inherits the variables. This bypasses batch file argument parsing
@@ -7,7 +7,7 @@
 
 :Init
 setlocal EnableDelayedExpansion
-title Wizard Kit: Launcher
+title WizardKit: Launcher
 call :CheckFlags %*
 call :FindBin
 call :SetTitle Launcher
