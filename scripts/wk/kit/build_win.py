@@ -273,6 +273,13 @@ def download_notepad_plus_plus():
   delete_from_temp('npp.7z')
 
 
+def download_openshell():
+  """Download OpenShell installer and Fluent-Metro skin."""
+  for name in ('OpenShell.exe', 'Fluent-Metro.zip'):
+    out_path = BIN_DIR.joinpath(f'OpenShell/{name}')
+    download_file(out_path, SOURCES[name])
+
+
 def download_putty():
   """Download PuTTY."""
   archive = download_to_temp('putty.zip', SOURCES['PuTTY'])
@@ -484,6 +491,7 @@ def build_kit():
   try_print.run('Macs Fan Control...',        download_macs_fan_control)
   try_print.run('Neutron...',                 download_neutron)
   try_print.run('Notepad++...',               download_notepad_plus_plus)
+  try_print.run('OpenShell...',               download_openshell)
   try_print.run('PuTTY...',                   download_putty)
   try_print.run('Snappy Driver Installer...', download_snappy_driver_installer_origin)
   try_print.run('TestDisk...',                download_testdisk)

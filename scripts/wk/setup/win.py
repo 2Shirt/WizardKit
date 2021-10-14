@@ -726,20 +726,16 @@ def install_libreoffice(
 
 def install_open_shell():
   """Install Open Shell (just the Start Menu)."""
-  installer = get_tool_path('OpenShell', 'OpenShell', check=False)
+  skin_zip = get_tool_path('OpenShell', 'Fluent-Metro', suffix='zip')
 
   # Bail early
   if OS_VERSION != 10:
     raise GenericWarning('Unsupported OS')
 
   # Install OpenShell
-  download_tool('OpenShell', 'OpenShell')
-  download_tool('OpenShell', 'Fluent-Metro', suffix='zip')
-  cmd = [installer, '/qn', 'ADDLOCAL=StartMenu']
-  run_program(cmd)
+  run_tool('OpenShell', 'OpenShell', '/qn', 'ADDLOCAL=StartMenu')
 
   # Install Skin
-  skin_zip = installer.with_name('Fluent-Metro.zip')
   extract_archive(skin_zip, f'{PROGRAMFILES_64}/Open-Shell/Skins', '-aoa')
 
   # Add scheduled task to handle OS upgrades
