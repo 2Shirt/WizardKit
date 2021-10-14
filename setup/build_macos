@@ -1,11 +1,35 @@
 #!/usr/bin/env bash
 #
-## Update BaseImage for use as WK
+## WizardKit: Live macOS Build Tool
 
 set -o errexit
 set -o errtrace
 set -o nounset
 set -o pipefail
+
+# Show usage if necessary
+if [[ "${1:-}" =~ "-h|--help" || ! -e "${1:-}" ]]; then
+  echo "Usage: build_macos [OPTIONS] <image_path>"
+  echo ""
+  echo "Options:"
+  echo "    -h --help   Show usage"
+  exit
+fi
+
+# Safety Check
+LINUX_DIR="linux"
+MACOS_DIR="macos"
+ROOT_DIR=".."
+TOOLS_TO_CHECK=(memtest mprime smc sysbench)
+for tool in "${TOOLS_TO_CHECK[@]}"; do
+  if [[ ! -e "/usr/local/bin/$tool" ]]; then
+    echo "Missing tool(s) detected"
+    echo "  Installing dependencies in 30 seconds, enter CTRL+c to abort."
+    sleep 30
+    "${MACOS_DIR}/install-deps"
+    exit
+  fi
+done
 
 # Prep
 echo "Initializing..."
@@ -14,7 +38,7 @@ IMAGE_DEV="$(hdiutil attach -mountpoint /Volumes/BaseSystem "${BASE_IMAGE}" -nob
 OS_NAME="$(ls /Volumes/BaseSystem | grep -E 'OS X|macOS' | sed -E 's/Install (OS X|macOS) (.*)\.app/\2/')"
 OS_VERSION="$(defaults read /Volumes/BaseSystem/System/Library/CoreServices/SystemVersion ProductVersion)"
 OUT_NAME="${HOME}/Desktop/WK ${OS_NAME} ($(date +"%Y-%m-%d"))"
-TIMEZONE="$(fgrep LINUX_TIME_ZONE ../../scripts/wk/cfg/main.py | cut -d '=' -f 2 | sed "s/'//g")"
+TIMEZONE="$(fgrep LINUX_TIME_ZONE "${ROOT_DIR}/scripts/wk/cfg/main.py" | cut -d '=' -f 2 | sed "s/'//g")"
 WK_PATH="/Volumes/1201_UFD"
 
 # Convert to a 4 GB R/W image
@@ -34,11 +58,11 @@ rm -R "${WK_PATH}"/Install*.app
 # Update Utilities menu
 echo "Updating Utilities menu..."
 if [[ "${OS_VERSION:0:5}" == "10.11" ]]; then
-  cp -a "El Capitan/Utilities.plist" "${WK_PATH}/System/Installation/CDIS/OS X Utilities.app/Contents/Resources/Utilities.plist"
+  cp -a "${MACOS_DIR}/El Capitan/Utilities.plist" "${WK_PATH}/System/Installation/CDIS/OS X Utilities.app/Contents/Resources/Utilities.plist"
 elif [[ "${OS_VERSION:0:5}" == "10.13" ]]; then
-  cp -a "High Sierra/Utilities.plist" "${WK_PATH}/System/Installation/CDIS/macOS Utilities.app/Contents/Resources/Utilities.plist"
+  cp -a "${MACOS_DIR}/High Sierra/Utilities.plist" "${WK_PATH}/System/Installation/CDIS/macOS Utilities.app/Contents/Resources/Utilities.plist"
 elif [[ "${OS_VERSION:0:5}" == "10.15" ]]; then
-  cp -a "Catalina/Utilities.plist" "${WK_PATH}/System/Installation/CDIS/macOS Utilities.app/Contents/Resources/Utilities.plist"
+  cp -a "${MACOS_DIR}/Catalina/Utilities.plist" "${WK_PATH}/System/Installation/CDIS/macOS Utilities.app/Contents/Resources/Utilities.plist"
 fi
 
 # Dropbear (SSH)
@@ -48,7 +72,7 @@ for t in rsa dss ecdsa ed25519; do
   dropbearkey -t "${t}" -f "${WK_PATH}/etc/dropbear/dropbear_${t}_host_key"
 done
 ln -s /Volumes/RAM_Disk/.ssh "${WK_PATH}/var/root"/
-cp -a ../linux/authorized_keys "${WK_PATH}/.authorized_keys"
+cp -a "${LINUX_DIR}/authorized_keys" "${WK_PATH}/.authorized_keys"
 
 # Homebrew
 echo "Installing Hombrew..."
@@ -70,7 +94,7 @@ cp -a /usr/bin/tput "${WK_PATH}/usr/bin"/
 
 # Terminal
 echo "Installing Terminal Preferences..."
-rsync -aS com.apple.Terminal.plist "${WK_PATH}/var/root/Library/Preferences"/
+cp -a "${MACOS_DIR}/com.apple.Terminal.plist" "${WK_PATH}/var/root/Library/Preferences"/
 
 # Timezones
 echo "Installing timezones..."
@@ -86,7 +110,7 @@ fi
 # zsh
 echo "Installing zsh..."
 cp -a /bin/zsh "${WK_PATH}/bin"/
-cp -a zshenv "${WK_PATH}/etc"/
+cp -a "${MACOS_DIR}/zshenv" "${WK_PATH}/etc"/
 rsync -aS /usr/lib/zsh "${WK_PATH}/usr/lib"/
 rsync -aS /usr/share/zsh "${WK_PATH}/usr/share"/
 rsync -aS /usr/local/share/zsh "${WK_PATH}/usr/local/share"/
@@ -98,12 +122,12 @@ sudo chown 0:0 "${WK_PATH}/usr/sbin/memtest"
 sudo chmod 755 "${WK_PATH}/usr/sbin/memtest"
 
 # Misc
-cp -a ../linux/known_networks "${WK_PATH}/.known_networks"
+cp -a "${LINUX_DIR}/known_networks" "${WK_PATH}/.known_networks"
 cp -a /usr/bin/rsync "${WK_PATH}/usr/bin"/
 cp -a /usr/sbin/networksetup "${WK_PATH}/usr/sbin"/
-cp -a aliases "${WK_PATH}/.aliases"
-cp -a bashrc "${WK_PATH}/etc/profile"
-cp -a vimrc "${WK_PATH}/.vimrc"
+cp -a "${MACOS_DIR}/aliases" "${WK_PATH}/.aliases"
+cp -a "${MACOS_DIR}/bashrc" "${WK_PATH}/etc/profile"
+cp -a "${MACOS_DIR}/vimrc" "${WK_PATH}/.vimrc"
 if [[ "${OS_VERSION:3:2}" == "11" ]]; then
   cp -a /usr/bin/fgrep "${WK_PATH}/usr/bin"/
   cp -a /usr/bin/locale "${WK_PATH}/usr/bin"/
@@ -116,13 +140,13 @@ fi
 echo "Installing WizardKit env..."
 touch "${WK_PATH}/.wk-live-macos"
 ln -s /Volumes/RAM_Disk/Logs "${WK_PATH}/var/root/Logs"
-cp -a ../linux/profile_base/airootfs/etc/skel/.tmux.conf "${WK_PATH}/etc/tmux.conf"
+cp -a "${LINUX_DIR}/profile_base/airootfs/etc/skel/.tmux.conf" "${WK_PATH}/etc/tmux.conf"
 rsync -aS /usr/bin/{env,killall} "${WK_PATH}/usr/bin"/
-rsync -aS live-macos-startup ../../scripts/ "${WK_PATH}/usr/local/bin"/
-if [[ -f "../../images/macOS-${OS_VERSION:0:5}.png" ]]; then
-  cp -a "../../images/macOS-${OS_VERSION:0:5}.png" "${WK_PATH}/usr/local/wallpaper.png"
+rsync -aS "${MACOS_DIR}/live-macos-startup" "${ROOT_DIR}/scripts/" "${WK_PATH}/usr/local/bin"/
+if [[ -f "${ROOT_DIR}/images/macOS-${OS_VERSION:0:5}.png" ]]; then
+  cp -a "${ROOT_DIR}/images/macOS-${OS_VERSION:0:5}.png" "${WK_PATH}/usr/local/wallpaper.png"
 else
-  cp -a ../../images/macOS.png "${WK_PATH}/usr/local/wallpaper.png"
+  cp -a "${ROOT_DIR}/images/macOS.png" "${WK_PATH}/usr/local/wallpaper.png"
 fi
 
 # Unmount sparsebundle
