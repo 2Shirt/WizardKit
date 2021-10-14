@@ -1243,7 +1243,7 @@ def reset_windows_updates():
 def restore_uac_defaults():
   """Restore UAC default settings."""
   settings = REG_UAC_DEFAULTS_WIN10
-  if OS_VERSION != 10:
+  if OS_VERSION in (7, 8, 8.1):
     settings = REG_UAC_DEFAULTS_WIN7
 
   reg_write_settings(settings)
