@@ -4,8 +4,12 @@
 
 :Init
 setlocal EnableDelayedExpansion
-title WizardKit: Windows PE Build Tool
+title WizardKit: Build Tool
 call :CheckFlags %*
+rem TODO: Remove warning
+echo "Windows PE build is currently under development"
+echo "  Proceeding will likely result in errors so be warned"
+pause
 call :CheckElevation || goto Exit
 call :FindKitsRoot || goto ErrorKitNotFound
 
