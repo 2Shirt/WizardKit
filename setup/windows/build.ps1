@@ -192,6 +192,13 @@ if ($MyInvocation.InvocationName -ne ".") {
 
   ## Done ##
   Pop-Location
-  $ArgumentList = @("-run", "$Bin\Python\x32\python.exe", "$Bin\Scripts\build_kit_windows.py", "-new_console:n")
-  Start-Process -FilePath "$Bin\ConEmu\ConEmu.exe" -ArgumentList $ArgumentList -verb RunAs
+  if ([System.Environment]::Is64BitOperatingSystem) {
+    $ConEmu = "$Bin\ConEmu\ConEmu64.exe"
+    $Python = "$Bin\Python\x64\python.exe"
+  } else {
+    $ConEmu = "$Bin\ConEmu\ConEmu.exe"
+    $Python = "$Bin\Python\x32\python.exe"
+  }
+  $ArgumentList = @("-run", "$Python", "$Bin\Scripts\build_kit_windows.py", "-new_console:n")
+  Start-Process -FilePath "$ConEmu" -ArgumentList $ArgumentList -verb RunAs
 }
