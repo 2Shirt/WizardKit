@@ -175,7 +175,7 @@ def end_session():
     autologon_selected = False
     # Assuming it isn't being used
   if autologon_selected and is_autologon_enabled():
-    run_tool('Sysinternals', 'Autologon', download=True)
+    run_tool('Sysinternals', 'Autologon', '-accepteula', download=True)
     reg_set_value(
       'HKLM', r'Software\Microsoft\Windows NT\CurrentVersion\Winlogon',
       'AutoAdminLogon', '0', 'SZ',
@@ -250,7 +250,7 @@ def init_run(options):
   if options['Use Autologon']['Selected'] and not is_autologon_enabled():
     TRY_PRINT.run(
       'Running Autologon...', run_tool,
-      'Sysinternals', 'Autologon',
+      'Sysinternals', 'Autologon', '-accepteula',
       download=True, msg_good='DONE',
       )
   if options['Sync Clock']['Selected']:
