@@ -180,6 +180,11 @@ LAUNCHERS = {
         r'call "%bin%\Scripts\init_client_dir.cmd" /Logs',
         ],
       },
+    'FurMark': {
+      'L_TYPE': 'Executable',
+      'L_PATH': 'FurMark',
+      'L_ITEM': 'FurMark.exe',
+      },
     'HWiNFO': {
       'L_TYPE': 'Executable',
       'L_PATH': 'HWiNFO',
@@ -188,6 +193,18 @@ LAUNCHERS = {
         r'for %%a in (32 64) do (',
         r'  copy /y "%bin%\HWiNFO\general.ini" "%bin%\HWiNFO\HWiNFO%%a.ini"',
         r'  (echo SensorsOnly=0)>>"%bin%\HWiNFO\HWiNFO%%a.ini"',
+        r'  (echo SummaryOnly=0)>>"%bin%\HWiNFO\HWiNFO%%a.ini"',
+        r')',
+        ],
+      },
+    'HWiNFO (Sensors)': {
+      'L_TYPE': 'Executable',
+      'L_PATH': 'HWiNFO',
+      'L_ITEM': 'HWiNFO.exe',
+      'Extra Code': [
+        r'for %%a in (32 64) do (',
+        r'  copy /y "%bin%\HWiNFO\general.ini" "%bin%\HWiNFO\HWiNFO%%a.ini"',
+        r'  (echo SensorsOnly=1)>>"%bin%\HWiNFO\HWiNFO%%a.ini"',
         r'  (echo SummaryOnly=0)>>"%bin%\HWiNFO\HWiNFO%%a.ini"',
         r')',
         ],
