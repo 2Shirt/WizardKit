@@ -98,6 +98,8 @@ rem Check for 64-bit prog (if running on 64-bit system)
 set "prog=%_path%\%L_ITEM%"
 if %ARCH% equ 64 (
   if exist "%_path%\%L_ITEM:.=64.%" set "prog=%_path%\%L_ITEM:.=64.%"
+) else (
+  if exist "%_path%\%L_ITEM:.=32.%" set "prog=%_path%\%L_ITEM:.=32.%"
 )
 if not exist "%prog%" goto ErrorProgramNotFound
 
