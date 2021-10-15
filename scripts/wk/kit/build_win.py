@@ -277,7 +277,7 @@ def download_openshell():
   """Download OpenShell installer and Fluent-Metro skin."""
   for name in ('OpenShell.exe', 'Fluent-Metro.zip'):
     out_path = BIN_DIR.joinpath(f'OpenShell/{name}')
-    download_file(out_path, SOURCES[name])
+    download_file(out_path, SOURCES[name[:-4]])
 
 
 def download_putty():
@@ -364,6 +364,7 @@ def download_testdisk():
   tmp_path = TMP_DIR.joinpath('TestDisk')
   extract_archive(archive, tmp_path)
   rename_item(tmp_path.joinpath('testdisk-7.2-WIP'), out_path)
+  delete_from_temp('TestDisk')
   delete_from_temp('testdisk_wip.zip')
 
 
