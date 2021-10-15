@@ -828,7 +828,11 @@ def get_firefox_default_profile(profiles_ini):
 
   # Parse INI
   parser = configparser.ConfigParser()
-  parser.read(profiles_ini)
+  try:
+    parser.read(profiles_ini)
+  except (configparser.ParsingError, UnicodeError):
+    # Assuming we have the wrong encoding
+    parser.read(profiles_ini, encoding='utf-16')
   for section in parser.sections():
     if section.lower().startswith('install'):
       default_profile = parser[section].get('default')
