@@ -1,5 +1,0 @@
-rsync -aI "${script_path}/${install_dir}/" "${work_dir}/iso/${install_dir}/"
-rm "${work_dir}/iso/EFI" -R
-rm "${work_dir}/iso/loader" -R
-rsync -aI "${script_path}/EFI/" "${work_dir}/iso/EFI/"
-
