@@ -48,7 +48,7 @@ REGEX_SDIO_NETWORK_DRIVERS = re.compile(
   )
 REGEX_TORRENT_INDICES = re.compile(r'^(?P<index>\d+)\|(?P<path>.*)')
 SEVEN_ZIP = get_tool_path('7-Zip', '7za')
-SEVEN_ZIP_FULL = get_tool_path('7-Zip', '7z') # TODO: Replace with unrar from Pypi?
+SEVEN_ZIP_FULL = get_tool_path('7-Zip', '7z', check=False) # TODO: Replace with unrar from Pypi?
 WIDTH = 50
 
 
