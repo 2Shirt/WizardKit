@@ -186,7 +186,7 @@ def end_session():
     cmd = ['reg', 'delete', fr'HKCU\{AUTO_REPAIR_KEY}', '/f']
     run_program(cmd)
   except CalledProcessError:
-    LOG.error('Failed to remote Auto Repairs session settings')
+    LOG.error('Failed to remove Auto Repairs session settings')
 
 
 def get_entry_settings(group, name):
