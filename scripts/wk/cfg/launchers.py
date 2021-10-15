@@ -46,6 +46,7 @@ LAUNCHERS = {
       'L_ITEM': 'FastCopy.exe',
       'L_ARGS': (
         r' /logfile=%log_dir%\Tools\FastCopy.log'
+        r' /acl'
         r' /cmd=noexist_only'
         r' /utf8'
         r' /skip_empty_dir'
@@ -94,6 +95,7 @@ LAUNCHERS = {
       'L_ITEM': 'FastCopy.exe',
       'L_ARGS': (
         r' /logfile=%log_dir%\Tools\FastCopy.log'
+        r' /acl'
         r' /cmd=noexist_only'
         r' /utf8'
         r' /skip_empty_dir'
