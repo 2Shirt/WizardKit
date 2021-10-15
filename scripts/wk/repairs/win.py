@@ -167,9 +167,13 @@ def end_session():
     LOG.error("Failed to remove scheduled task or it doesn't exist.")
 
   # Disable Autologon
-  autologon_selected = reg_read_value(
-    'HKCU', AUTO_REPAIR_KEY, 'Use Autologon',
-    )
+  try:
+    autologon_selected = reg_read_value(
+      'HKCU', AUTO_REPAIR_KEY, 'Use Autologon',
+      )
+  except FileNotFoundError:
+    autologon_selected = False
+    # Assuming it isn't being used
   if autologon_selected and is_autologon_enabled():
     run_tool('Sysinternals', 'Autologon', download=True)
     reg_set_value(
