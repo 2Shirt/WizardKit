@@ -38,7 +38,7 @@ IMAGE_DEV="$(hdiutil attach -mountpoint /Volumes/BaseSystem "${BASE_IMAGE}" -nob
 OS_NAME="$(ls /Volumes/BaseSystem | grep -E 'OS X|macOS' | sed -E 's/Install (OS X|macOS) (.*)\.app/\2/')"
 OS_VERSION="$(defaults read /Volumes/BaseSystem/System/Library/CoreServices/SystemVersion ProductVersion)"
 OUT_NAME="${HOME}/Desktop/WK ${OS_NAME} ($(date +"%Y-%m-%d"))"
-TIMEZONE="$(fgrep LINUX_TIME_ZONE "${ROOT_DIR}/scripts/wk/cfg/main.py" | cut -d '=' -f 2 | sed "s/'//g")"
+TIMEZONE="$(grep -F LINUX_TIME_ZONE "${ROOT_DIR}/scripts/wk/cfg/main.py" | cut -d '=' -f 2 | sed "s/'//g")"
 WK_PATH="/Volumes/1201_UFD"
 
 # Convert to a 4 GB R/W image
@@ -129,7 +129,7 @@ cp -a "${MACOS_DIR}/aliases" "${WK_PATH}/.aliases"
 cp -a "${MACOS_DIR}/bashrc" "${WK_PATH}/etc/profile"
 cp -a "${MACOS_DIR}/vimrc" "${WK_PATH}/.vimrc"
 if [[ "${OS_VERSION:3:2}" == "11" ]]; then
-  cp -a /usr/bin/fgrep "${WK_PATH}/usr/bin"/
+  cp -a /usr/bin/grep -F "${WK_PATH}/usr/bin"/
   cp -a /usr/bin/locale "${WK_PATH}/usr/bin"/
   rsync -aS /usr/share/locale/ "${WK_PATH}/usr/share/locale"/
 elif [[ "${OS_VERSION:3:2}" == "13" ]]; then

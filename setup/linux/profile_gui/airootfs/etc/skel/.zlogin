@@ -4,7 +4,7 @@ if [ "$(fgconsole 2>/dev/null)" -eq "1" ]; then
     "${HOME}/.update_network"
 
     # Start X or HW-diags
-    if ! fgrep -q "nox" /proc/cmdline; then
+    if ! grep -Fq "nox" /proc/cmdline; then
         # Show freeze warning
         echo ""
         echo "NOTE: Not all GPUs/displays are supported."

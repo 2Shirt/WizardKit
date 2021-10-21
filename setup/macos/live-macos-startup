@@ -20,7 +20,7 @@ cd /Volumes/RAM_Disk
 
 # Connect to WiFi?
 if ! [[ -e /Volumes/RAM_Disk/.wifi ]]; then
-  WIFI_NET="$(fgrep ':::' /.known_networks | head -1)"
+  WIFI_NET="$(grep -F ':::' /.known_networks | head -1)"
   if ! ifconfig | grep -Eq '(((10|172)\.\d+|192.168)\.\d+\.\d+)' 2>/dev/null; then
     echo "Connecting to WiFi..."
     NET_DEV="$(/usr/sbin/networksetup \
