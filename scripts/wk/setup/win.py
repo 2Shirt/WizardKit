@@ -535,13 +535,12 @@ def disable_chrome_notifications():
   """Disable notifications in Google Chrome."""
   defaults_key = 'default_content_setting_values'
   profiles = []
-  search_path = case_insensitive_path(
-    f'{os.environ.get("LOCALAPPDATA")}/Google/Chrome/User Data',
-    )
-
-  # Bail early
-  if not search_path:
-    raise GenericWarning('No profiles detected.')
+  try:
+    search_path = case_insensitive_path(
+      f'{os.environ.get("LOCALAPPDATA")}/Google/Chrome/User Data',
+      )
+  except FileNotFoundError as err:
+    raise GenericWarning('No profiles detected.') from err
 
   # Close any running instances of Chrome
   kill_procs('chrome.exe', force=True)
