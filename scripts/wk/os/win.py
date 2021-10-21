@@ -71,7 +71,8 @@ KNOWN_HIVE_NAMES = {
   winreg.HKEY_LOCAL_MACHINE: 'HKEY_LOCAL_MACHINE',
   winreg.HKEY_USERS: 'HKEY_USERS',
   }
-OS_VERSION = float(platform.win32_ver()[0])
+OS_VERSION = platform.win32_ver()[0]
+OS_VERSION = 8.1 if OS_VERSION == '8.1' else int(OS_VERSION)
 RAM_OK      = 5.5 * 1024**3 # ~6 GiB assuming a bit of shared memory
 RAM_WARNING = 3.5 * 1024**3 # ~4 GiB assuming a bit of shared memory
 REG_MSISERVER = r'HKLM\SYSTEM\CurrentControlSet\Control\SafeBoot\Network\MSIServer'
