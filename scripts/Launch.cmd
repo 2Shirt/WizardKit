@@ -31,13 +31,12 @@ for %%v in (ARCHIVE_PASSWORD KIT_NAME_FULL OFFICE_SERVER_IP QUICKBOOKS_SERVER_IP
 rem Set ARCH to 32 as a gross assumption and check for x86_64 status
 set ARCH=32
 if /i "%PROCESSOR_ARCHITECTURE%" == "AMD64" set "ARCH=64"
-set "SEVEN_ZIP=%bin%\7-Zip\7za.exe"
+set "SEVEN_ZIP=%bin%\7-Zip\7z.exe"
 set "CON=%bin%\ConEmu\ConEmu.exe"
 set "FASTCOPY=%bin%\FastCopy\FastCopy.exe"
 set "POWERSHELL=%systemroot%\system32\WindowsPowerShell\v1.0\powershell.exe"
 set "PYTHON=%bin%\Python\x32\python.exe"
 if %ARCH% equ 64 (
-  set "SEVEN_ZIP=%bin%\7-Zip\7za64.exe"
   set "CON=%bin%\ConEmu\ConEmu64.exe"
   set "FASTCOPY=%bin%\FastCopy\FastCopy64.exe"
   set "PYTHON=%bin%\Python\x64\python.exe"

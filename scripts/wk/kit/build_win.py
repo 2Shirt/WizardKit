@@ -47,8 +47,7 @@ REGEX_SDIO_NETWORK_DRIVERS = re.compile(
   re.IGNORECASE,
   )
 REGEX_TORRENT_INDICES = re.compile(r'^(?P<index>\d+)\|(?P<path>.*)')
-SEVEN_ZIP = get_tool_path('7-Zip', '7za')
-SEVEN_ZIP_FULL = get_tool_path('7-Zip', '7z', check=False) # TODO: Replace with unrar from Pypi?
+SEVEN_ZIP = get_tool_path('7-Zip', '7z')
 WIDTH = 50
 
 
@@ -427,16 +426,12 @@ def download_xmplay_music():
   # Extract SNES archives
   for item in music_tmp.joinpath('SNES').iterdir():
     cmd = [
-      SEVEN_ZIP_FULL,
+      SEVEN_ZIP,
       'x', item, f'-oSNES\\{item.stem}',
       '-bso0', '-bse0', '-bsp0',
       ]
     run_program(cmd)
     delete_item(item)
-
-  # Remove 7-Zip (Full) from kit
-  delete_item(SEVEN_ZIP_FULL)
-  delete_item(SEVEN_ZIP_FULL.with_name('7z.dll'))
 
   # Remove bad songs
   for game, globs in MUSIC_SNES_BAD.items():

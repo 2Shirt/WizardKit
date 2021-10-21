@@ -70,7 +70,7 @@ from wk.std           import (
 # STATIC VARIABLES
 LOG = logging.getLogger(__name__)
 BACKUP_BROWSER_BASE_CMD = (
-  get_tool_path('7-Zip', '7za'),
+  get_tool_path('7-Zip', '7z'),
   'a', '-t7z', '-mx=1', '-bso0', '-bse0', '-bsp0',
   )
 CONEMU_EXE = get_tool_path('ConEmu', 'ConEmu', check=False)

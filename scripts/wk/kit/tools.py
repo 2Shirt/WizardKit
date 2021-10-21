@@ -104,7 +104,7 @@ def extract_archive(archive, out_path, *args, mode='x', silent=True):
   """Extract an archive to out_path."""
   out_path = pathlib.Path(out_path).resolve()
   out_path.parent.mkdir(parents=True, exist_ok=True)
-  cmd = [get_tool_path('7-Zip', '7za'), mode, archive, f'-o{out_path}', *args]
+  cmd = [get_tool_path('7-Zip', '7z'), mode, archive, f'-o{out_path}', *args]
   if silent:
     cmd.extend(['-bso0', '-bse0', '-bsp0'])
 

@@ -87,7 +87,6 @@ if ($MyInvocation.InvocationName -ne ".") {
 
   # 7-Zip
   DownloadFile -Path $Temp -Name "7z-installer.msi" -Url $Sources.'7-Zip Installer'
-  DownloadFile -Path $Temp -Name "7z-extra.7z" -Url $Sources.'7-Zip Extra'
 
   # ConEmu
   DownloadFile -Path $Temp -Name "ConEmuPack.7z" -Url $Sources.'ConEmu'
@@ -125,24 +124,16 @@ if ($MyInvocation.InvocationName -ne ".") {
 
   ## Extract ##
   # 7-Zip
-  ## NOTE: 7z.exe & 7z.dll are left for build_kit_windows.py, they'll be removed by it
   Write-Host "Extracting: 7-Zip"
   try {
     $ArgumentList = @("/a", "$Temp\7z-installer.msi", "TARGETDIR=$Temp\7zi", "/qn")
     Start-Process -FilePath "$System32\msiexec.exe" -ArgumentList $ArgumentList -Wait
-    $SevenZip = "$Temp\7zi\Files\7-Zip\7z.exe"
-    $ArgumentList = @(
-      "x", "$Temp\7z-extra.7z", "-o$Bin\7-Zip",
-      "-aoa", "-bso0", "-bse0", "-bsp0",
-      "-x!x64\*.dll", "-x!Far", "-x!*.dll")
-    Start-Process -FilePath $SevenZip -ArgumentList $ArgumentList -NoNewWindow -Wait
-    Start-Sleep 1
-    Move-Item "$Temp\7zi\Files\7-Zip\7z.exe" "$Bin\7-Zip\7z.exe"
+    New-Item -Type Directory $Bin\7-Zip 2>&1 | Out-Null
     Move-Item "$Temp\7zi\Files\7-Zip\7z.dll" "$Bin\7-Zip\7z.dll"
-    Move-Item "$Bin\7-Zip\x64\7za.exe" "$Bin\7-Zip\7za64.exe"
-    Remove-Item "$Bin\7-Zip\x64" -Recurse
+    Move-Item "$Temp\7zi\Files\7-Zip\7z.exe" "$Bin\7-Zip\7z.exe"
+    Move-Item "$Temp\7zi\Files\7-Zip\License.txt" "$Bin\7-Zip\License.txt"
     Remove-Item "$Temp\7z*" -Recurse
-    $SevenZip = "$Bin\7-Zip\7za.exe"
+    $SevenZip = "$Bin\7-Zip\7z.exe"
   }
   catch {
     Write-Host ("  ERROR: Failed to extract files." ) -ForegroundColor "Red"
