@@ -1008,7 +1008,11 @@ def run_microsoft_defender(full=True):
   ##       This is fine because we're just checking if it's enabled.
   disabled = bool(reg_read_value('HKLM', reg_key, 'DisableAntiSpyware'))
   disabled = disabled or reg_read_value('HKLM', reg_key, 'DisableAntiVirus')
-  passive_mode = reg_read_value('HKLM', reg_key, 'PassiveMode') == 2
+  try:
+    passive_mode = reg_read_value('HKLM', reg_key, 'PassiveMode') == 2
+  except FileNotFoundError:
+    # The registry key may not exist so this is fine
+    passive_mode = False
   if disabled and not passive_mode:
     raise GenericError('Defender is disabled.')
 
