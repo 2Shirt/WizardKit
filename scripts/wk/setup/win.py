@@ -80,6 +80,15 @@ from wk.std           import (
 # STATIC VARIABLES
 LOG = logging.getLogger(__name__)
 CONEMU_EXE = get_tool_path('ConEmu', 'ConEmu', check=False)
+KNOWN_ENCODINGS = (
+  'utf-8',
+  'utf-16',
+  'utf-32',
+  'utf-16-be',
+  'utf-16-le',
+  'utf-32-be',
+  'utf-32-le',
+  )
 IN_CONEMU = 'ConEmuPID' in os.environ
 MENU_PRESETS = Menu()
 PROGRAMFILES_32 = os.environ.get(
@@ -644,6 +653,7 @@ def install_firefox():
   profile then it is reverted so the original existing profile instead.
   """
   current_default_profile = None
+  encoding = None
   firefox_exe = get_path_obj(
     f'{os.environ["PROGRAMFILES"]}/Mozilla Firefox/firefox.exe',
     )
@@ -664,7 +674,9 @@ def install_firefox():
 
   # Save current default profile
   if profiles_ini.exists():
-    current_default_profile = get_firefox_default_profile(profiles_ini)
+    current_default_profile, encoding = get_firefox_default_profile(
+      profiles_ini,
+      )
 
   # Uninstall Firefox if needed
   if ARCH == '64' and program_path_32bit_exists:
@@ -680,13 +692,13 @@ def install_firefox():
 
   # Check if default profile changed
   if current_default_profile:
-    new_default = get_firefox_default_profile(profiles_ini)
+    new_default, encoding = get_firefox_default_profile(profiles_ini)
     revert_default = new_default and new_default != current_default_profile
 
   # Revert default profile if needed
   if revert_default:
     out = []
-    for line in profiles_ini.read_text(encoding='utf-8').splitlines():
+    for line in profiles_ini.read_text(encoding=encoding).splitlines():
       if 'Default=Profile' in line:
         out.append(f'Default={current_default_profile}')
       else:
@@ -817,21 +829,31 @@ def uninstall_firefox():
 
 # Misc Functions
 def get_firefox_default_profile(profiles_ini):
-  """Get Firefox default profile, returns pathlib.Path or None."""
+  """Get Firefox default profile, returns(pathlib.Path, encoding) or None."""
   default_profile = None
+  encoding = None
   parser = None
 
   # Bail early
   if not profiles_ini.exists():
-    return None
+    return (default_profile, encoding)
+
+  # Determine encoding (if possible)
+  for enc in KNOWN_ENCODINGS:
+    try:
+      profiles_ini.read_text(encoding=enc)
+    except UnicodeError:
+      # Ignore and keep trying
+      pass
+    else:
+      encoding = enc
+      break
+  if not encoding:
+    raise UnicodeError('Failed to determine encoding of profiles.ini')
 
   # Parse INI
   parser = configparser.ConfigParser()
-  try:
-    parser.read(profiles_ini)
-  except (configparser.ParsingError, UnicodeError):
-    # Assuming we have the wrong encoding
-    parser.read(profiles_ini, encoding='utf-16')
+  parser.read(profiles_ini, encoding=encoding)
   for section in parser.sections():
     if section.lower().startswith('install'):
       default_profile = parser[section].get('default')
@@ -841,7 +863,7 @@ def get_firefox_default_profile(profiles_ini):
       default_profile = parser[section].get('path')
 
   # Done
-  return default_profile
+  return (default_profile, encoding)
 
 
 def get_storage_status():
