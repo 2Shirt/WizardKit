@@ -59,10 +59,15 @@ BLEACH_BIT_CLEANERS = (
   'windows_explorer.run',
   'windows_explorer.thumbnails',
   )
+CUSTOM_POWER_PLAN_NAME = f'{KIT_NAME_FULL} Power Plan'
 POWER_PLANS = {
   'Balanced':         '381b4222-f694-41f0-9685-ff5bb260df2e',
   'Custom':           '01189998-8199-9119-725c-ccccccccccc3',
   'High Performance': '8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c',
+  }
+POWER_PLAN_SLEEP_TIMEOUTS = {
+  'Balanced': ('1800', '900'),
+  'High Performance': ('0', '0'),
   }
 REG_UAC_DEFAULTS_WIN7 = {
   'HKLM': {

@@ -16,7 +16,9 @@ from wk.cfg.repairs   import (
   AUTO_REPAIR_DELAY_IN_SECONDS,
   AUTO_REPAIR_KEY,
   BLEACH_BIT_CLEANERS,
+  CUSTOM_POWER_PLAN_NAME,
   POWER_PLANS,
+  POWER_PLAN_SLEEP_TIMEOUTS,
   REG_UAC_DEFAULTS_WIN7,
   REG_UAC_DEFAULTS_WIN10,
   WIDTH,
@@ -732,6 +734,7 @@ def auto_set_custom_power_plan(group, name):
   """Set custom power plan."""
   result = TRY_PRINT.run(
     'Set Custom Power Plan...', create_custom_power_plan,
+    enable_sleep=False,
     keep_display_on=True,
     )
   save_settings(group, name, result=result)
@@ -1068,19 +1071,24 @@ def run_tdsskiller():
 
 
 # OS Built-in Functions
-def create_custom_power_plan(keep_display_on=False):
+def create_custom_power_plan(enable_sleep=True, keep_display_on=False):
   """Create new power plan and set as active."""
   custom_guid = POWER_PLANS['Custom']
+  sleep_timeouts = POWER_PLAN_SLEEP_TIMEOUTS['High Performance']
+  if enable_sleep:
+    sleep_timeouts = POWER_PLAN_SLEEP_TIMEOUTS['Balanced']
 
   # Duplicate High Performance plan
   cmd = [
     'powercfg', '-DuplicateScheme',
     POWER_PLANS['High Performance'], custom_guid,
     ]
-  run_program(cmd)
+  proc = run_program(cmd, check=False)
+  if proc.returncode and 'GUID already exists' not in proc.stderr:
+    LOG.error("Failed to create custom power plan.\n  Details: %s", proc)
 
   # Change the name
-  cmd = ['powercfg', '-ChangeName', custom_guid, KIT_NAME_FULL]
+  cmd = ['powercfg', '-ChangeName', custom_guid, CUSTOM_POWER_PLAN_NAME]
   run_program(cmd)
 
   # Set as active plan
@@ -1097,6 +1105,14 @@ def create_custom_power_plan(keep_display_on=False):
   for arg in ('-SetacValueIndex', '-SetdcValueIndex'):
     cmd = [
       'powercfg', arg, custom_guid, 'SUB_PROCESSOR', 'PROCTHROTTLEMIN', '5',
+      ]
+    run_program(cmd)
+
+  # Set sleep values
+  for arg, value in zip(
+      ('-SetacValueIndex', '-SetdcValueIndex'), sleep_timeouts):
+    cmd = [
+      'powercfg', arg, custom_guid, 'SUB_SLEEP', 'STANDBYIDLE', value,
       ]
     run_program(cmd)
 
