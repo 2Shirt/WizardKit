@@ -16,6 +16,7 @@ from wk.cfg.repairs   import (
   AUTO_REPAIR_DELAY_IN_SECONDS,
   AUTO_REPAIR_KEY,
   BLEACH_BIT_CLEANERS,
+  CUSTOM_POWER_PLAN_DESC,
   CUSTOM_POWER_PLAN_NAME,
   POWER_PLANS,
   POWER_PLAN_SLEEP_TIMEOUTS,
@@ -1088,7 +1089,10 @@ def create_custom_power_plan(enable_sleep=True, keep_display_on=False):
     LOG.error("Failed to create custom power plan.\n  Details: %s", proc)
 
   # Change the name
-  cmd = ['powercfg', '-ChangeName', custom_guid, CUSTOM_POWER_PLAN_NAME]
+  cmd = [
+    'powercfg', '-ChangeName', custom_guid,
+    CUSTOM_POWER_PLAN_NAME, CUSTOM_POWER_PLAN_DESC,
+    ]
   run_program(cmd)
 
   # Set as active plan

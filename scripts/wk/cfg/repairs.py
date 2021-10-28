@@ -60,6 +60,7 @@ BLEACH_BIT_CLEANERS = (
   'windows_explorer.thumbnails',
   )
 CUSTOM_POWER_PLAN_NAME = f'{KIT_NAME_FULL} Power Plan'
+CUSTOM_POWER_PLAN_DESC = 'Customized for the best experience.'
 POWER_PLANS = {
   'Balanced':         '381b4222-f694-41f0-9685-ff5bb260df2e',
   'Custom':           '01189998-8199-9119-725c-ccccccccccc3',
