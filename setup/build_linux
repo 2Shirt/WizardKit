@@ -59,7 +59,7 @@ function cleanup() {
 
 function fix_kit_permissions() {
   # GitHub zip archives don't preserve the correct permissions
-  for d in docs images scripts setup; do
+  for d in images scripts setup; do
     find "$ROOT_DIR/$d" -type d -exec chmod 755 "{}" \;
   done
 }
