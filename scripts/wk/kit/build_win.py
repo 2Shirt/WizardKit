@@ -204,6 +204,7 @@ def download_fastcopy():
     )
   delete_from_temp('FastCopy64')
   delete_from_temp('FastCopyInstaller.exe')
+  delete_item(BIN_DIR.joinpath('FastCopy/setup.exe'))
 
 
 def download_furmark():
