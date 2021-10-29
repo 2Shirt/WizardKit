@@ -31,6 +31,7 @@ from wk.exe           import (
   wait_for_procs,
   )
 from wk.io            import (
+  copy_file,
   delete_folder,
   get_path_obj,
   non_clobber_path,
@@ -928,6 +929,11 @@ def delete_registry_null_keys():
 
 def run_adwcleaner():
   """Run AdwCleaner."""
+  settings_path = get_tool_path('AdwCleaner', 'AdwCleaner')
+  settings_path = settings_path.with_name('settings')
+  out_path = get_path_obj(f'{SYSTEMDRIVE}/AdwCleaner/settings')
+  out_path.parent.mkdir(exist_ok=True)
+  copy_file(settings_path, out_path, overwrite=True)
   run_tool('AdwCleaner', 'AdwCleaner', download=True)
 
 
