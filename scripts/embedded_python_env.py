@@ -11,3 +11,9 @@ import sys
 os.chdir(os.path.dirname(os.path.realpath(__file__)))
 sys.path.append(os.getcwd())
 import wk # pylint: disable=wrong-import-position
+wk.std.print_colored(
+  (wk.cfg.main.KIT_NAME_FULL, ': ', 'Debug Console'),
+  ('GREEN', None, 'YELLOW'),
+  sep='',
+  )
+print('')

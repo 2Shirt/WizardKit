@@ -246,6 +246,17 @@ LAUNCHERS = {
       'L_PATH': 'PuTTY',
       'L_ITEM': 'PUTTY.EXE',
       },
+    'WizardKit Debug Console': {
+      'L_TYPE': 'Executable',
+      'L_PATH': 'ConEmu',
+      'L_ITEM': 'ConEmu.exe',
+      'L_ARGS': r'-Dir %bin%\Scripts -Run ..\Python\x%ARCH%\python.exe -i embedded_python_env.py',
+      'L_ELEV': 'True',
+      'Extra Code': [
+        'set ARCH=32',
+        'if /i "%PROCESSOR_ARCHITECTURE%" == "AMD64" set "ARCH=64"',
+        ],
+      },
     'WizTree': {
       'L_TYPE': 'Executable',
       'L_PATH': 'WizTree',
