@@ -308,7 +308,7 @@ def get_volume_usage(use_colors=False):
     elif percent > 75:
       color = 'YELLOW'
     display_str = (
-      f'{free/total:>5.2f}% Free'
+      f'{free/total:>5.2%} Free'
       f'  ({bytes_to_string(free, 2):>10} / {bytes_to_string(total, 2):>10})'
       )
     if use_colors:
