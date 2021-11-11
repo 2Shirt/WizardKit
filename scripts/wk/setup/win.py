@@ -517,8 +517,7 @@ def auto_show_os_name():
 def auto_show_secure_boot_status():
   """Display Secure Boot status."""
   TRY_PRINT.run(
-    'Secure Boot...', is_secure_boot_enabled,
-    raise_exceptions=True, show_alert=True,
+    'Secure Boot...', check_secure_boot_status, msg_good='Enabled',
     )
 
 
@@ -828,6 +827,11 @@ def uninstall_firefox():
 
 
 # Misc Functions
+def check_secure_boot_status():
+  """Check Secure Boot status."""
+  is_secure_boot_enabled(raise_exceptions=True, show_alert=True)
+
+
 def get_firefox_default_profile(profiles_ini):
   """Get Firefox default profile, returns(pathlib.Path, encoding) or None."""
   default_profile = None

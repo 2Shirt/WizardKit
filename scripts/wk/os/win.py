@@ -599,8 +599,9 @@ def is_secure_boot_enabled(raise_exceptions=False, show_alert=False):
       msg_warning = 'DISABLED\n\nOS installed LEGACY'
   else:
     # Command completed
-    enabled = 'True' in proc.stdout
-    if 'False' in proc.stdout:
+    if 'True' in proc.stdout:
+      enabled = True
+    elif 'False' in proc.stdout:
       msg_error = 'DISABLED'
     else:
       msg_warning = 'UNKNOWN'
