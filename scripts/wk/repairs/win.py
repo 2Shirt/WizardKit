@@ -172,13 +172,13 @@ def end_session():
 
   # Disable Autologon
   try:
-    autologon_selected = reg_read_value(
+    use_autologon_in_autorepairs = reg_read_value(
       'HKCU', AUTO_REPAIR_KEY, 'Use Autologon',
       )
   except FileNotFoundError:
-    autologon_selected = False
     # Assuming it isn't being used
-  if autologon_selected and is_autologon_enabled():
+    use_autologon_in_autorepairs = False
+  if use_autologon_in_autorepairs and is_autologon_enabled():
     run_tool('Sysinternals', 'Autologon', '-accepteula', download=True)
     reg_set_value(
       'HKLM', r'Software\Microsoft\Windows NT\CurrentVersion\Winlogon',
@@ -229,8 +229,10 @@ def init(menus):
 
   # Check if autologon is needed
   if not session_started and is_autologon_enabled():
-    # Avoid running Autologon and keep current settings
+    LOG.warning('Skipping Autologon to preserve current settings.')
+    menus['Options'].options['Use Autologon']['Disabled'] = True
     menus['Options'].options['Use Autologon']['Selected'] = False
+    reg_set_value('HKCU', AUTO_REPAIR_KEY, 'Use Autologon', 0, 'DWORD')
     save_selection_settings(menus)
 
   # Start or resume a repair session
@@ -257,6 +259,13 @@ def init_run(options):
       'Sysinternals', 'Autologon', '-accepteula',
       download=True, msg_good='DONE',
       )
+    if is_autologon_enabled():
+      # Update session settings to remove during end_session()
+      reg_set_value('HKCU', AUTO_REPAIR_KEY, 'Use Autologon', 1, 'DWORD')
+    else:
+      # A password wasn't provided or the account doesn't have one
+      options['Use Autologon']['Disabled'] = True
+      options['Use Autologon']['Selected'] = False
   if options['Sync Clock']['Selected']:
     TRY_PRINT.run(
       'Syncing Clock...', run_tool, 'Neutron', 'Neutron', msg_good='DONE',
@@ -376,14 +385,7 @@ def run_auto_repairs(base_menus):
   save_selection_settings(menus)
   print_info('Initializing...')
   init_run(menus['Options'].options)
-  reg_set_value(
-    'HKCU', AUTO_REPAIR_KEY, 'Use Autologon',
-    int(is_autologon_enabled()), 'DWORD',
-    )
-  if not is_autologon_enabled():
-    # Either it wasn't selected or a password wasn't entered
-    menus['Options'].options['Use Autologon']['Selected'] = False
-    save_selection_settings(menus)
+  save_selection_settings(menus)
   if not session_started:
     init_session(menus['Options'].options)
   print_info('Running repairs')
