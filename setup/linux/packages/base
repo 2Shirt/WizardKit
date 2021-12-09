@@ -28,11 +28,11 @@ inetutils
 intel-ucode
 iwd
 jfsutils
-ldmtool
 ldns
 less
 lha
 libewf
+libldm
 linux
 linux-firmware
 lm_sensors
