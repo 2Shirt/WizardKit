@@ -1,6 +1,7 @@
 archiso
 attr
 base-devel
+boost
 curl
 dos2unix
 erofs-utils
