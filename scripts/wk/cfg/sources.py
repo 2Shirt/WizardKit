@@ -63,7 +63,7 @@ SOURCES = {
   'XMPlay 7z':          'https://support.xmplay.com/files/16/xmp-7z.zip?v=800962',
   'XMPlay Game':        'https://support.xmplay.com/files/12/xmp-gme.zip?v=515637',
   'XMPlay RAR':         'https://support.xmplay.com/files/16/xmp-rar.zip?v=409646',
-  'XMPlay Innocuous':   'https://support.xmplay.com/files/10/Innocuous%20(v1.4).zip?v=594785',
+  'XMPlay Innocuous':   'https://support.xmplay.com/files/10/Innocuous%20(v1.5).zip?v=155959',
 }
 
 

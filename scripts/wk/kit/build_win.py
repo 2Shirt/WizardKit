@@ -391,7 +391,7 @@ def download_xmplay():
     args = [archive, BIN_DIR.joinpath('XMPlay/plugins')]
     if archive.name == 'Innocuous.zip':
       args.append(
-        'Innocuous (v1.4)/Innocuous (Hue Shifted)/'
+        'Innocuous (v1.5)/Innocuous (Hue Shifted)/'
         'Innocuous (Dark Skies - Purple-80) [L1].xmpskin'
         )
     extract_archive(*args, mode='e')
