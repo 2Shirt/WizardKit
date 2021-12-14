@@ -52,6 +52,7 @@ Options:
   -U --update           Don't format device, just update
 '''
 LOG = logging.getLogger(__name__)
+EXTRA_IMAGES_LIST = '/mnt/UFD/arch/extra_images.list'
 MIB = 1024 ** 2
 ISO_LABEL = f'{KIT_NAME_SHORT}_LINUX'
 UFD_LABEL = f'{KIT_NAME_SHORT}_UFD'
@@ -78,6 +79,7 @@ def build_ufd():
     log.enable_debug_mode()
   if args['--update'] and args['EXTRA_IMAGES']:
     std.print_warning('Extra images are ignored when updating')
+    args['EXTRA_IMAGES'] = []
   log.update_log_path(dest_name='build-ufd', timestamp=True)
   try_print = std.TryAndPrint()
   try_print.add_error('FileNotFoundError')
@@ -137,6 +139,14 @@ def build_ufd():
     read_write=True,
     )
 
+  # Load extra images if updating
+  if args['--update'] and os.path.exists(EXTRA_IMAGES_LIST):
+    with open(EXTRA_IMAGES_LIST, 'r', encoding='utf-8') as _f:
+      extra_images = [
+        io.get_path_obj(image.strip(), resolve=False)
+        for image in _f.readlines()
+        ]
+
   # Remove Arch folder
   if args['--update']:
     try_print.run(
@@ -171,6 +181,11 @@ def build_ufd():
         part_path=f'{str(ufd_dev_first_partition)[:-1]}{part_num+2}',
         image_path=image_path,
         )
+
+  # Save extra image list
+  if extra_images:
+    with open(EXTRA_IMAGES_LIST, 'w', encoding='utf-8') as _f:
+      _f.write('\n'.join([image.name for image in extra_images]))
 
   # Update boot entries
   std.print_standard(' ')
@@ -539,8 +554,12 @@ def update_boot_entries(ufd_dev, images=None):
       ]
     run_program(cmd, check=False)
 
-  # Bail early
+  # Check if we're working with extra images
+  if not images and os.path.exists(EXTRA_IMAGES_LIST):
+    with open(EXTRA_IMAGES_LIST, 'r', encoding='utf-8') as _f:
+      images = [image.strip() for image in _f.readlines()]
   if not images:
+    # No extra images detected
     return
 
   # Get PARTUUID values
