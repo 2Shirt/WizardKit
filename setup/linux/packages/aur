@@ -1,6 +1,7 @@
 aic94xx-firmware
 hfsprogs
 iwgtk
+memtest86-efi
 mprime
 openbox-patched
 pipes.sh
