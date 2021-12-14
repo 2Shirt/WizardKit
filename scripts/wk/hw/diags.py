@@ -482,6 +482,10 @@ def build_menu(cli_mode=False, quick_mode=False):
       # Only select quick option(s)
       menu.options[name]['Selected'] = name in MENU_OPTIONS_QUICK
 
+  # Skip CPU tests for TestStations
+  if os.path.exists(cfg.hw.TESTSTATION_FILE):
+    menu.options['CPU & Cooling']['Selected'] = False
+
   # Add CLI actions if necessary
   if cli_mode or 'DISPLAY' not in os.environ:
     menu.add_action('Reboot')

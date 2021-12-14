@@ -119,6 +119,7 @@ TEMP_COLORS = {
   90:             'RED',
   100:            'ORANGE_RED',
   }
+TESTSTATION_FILE = '/run/archiso/bootmnt/teststation.name'
 # THRESHOLDS: Rates used to determine HDD/SSD pass/fail
 THRESH_HDD_MIN =       50 * 1024**2
 THRESH_HDD_AVG_HIGH =  75 * 1024**2
