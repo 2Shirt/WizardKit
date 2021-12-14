@@ -931,7 +931,7 @@ def delete_registry_null_keys():
 
 def run_adwcleaner():
   """Run AdwCleaner."""
-  settings_path = get_tool_path('AdwCleaner', 'AdwCleaner')
+  settings_path = get_tool_path('AdwCleaner', 'AdwCleaner', check=False)
   settings_path = settings_path.with_name('settings')
   out_path = get_path_obj(f'{SYSTEMDRIVE}/AdwCleaner/settings')
   out_path.parent.mkdir(exist_ok=True)
