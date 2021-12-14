@@ -47,6 +47,7 @@ memtest86-efi
 mkinitcpio
 mkinitcpio-archiso
 mprime
+mtools
 nano
 ncdu
 openssh
