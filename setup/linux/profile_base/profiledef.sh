@@ -15,5 +15,6 @@ file_permissions=(
   ["/etc/shadow"]="0:0:0400"
   ["/etc/gshadow"]="0:0:0400"
   ["/etc/skel/.ssh"]="0:0:0700"
+  ["/etc/skel/.ssh/authorized_keys"]="0:0:0600"
   ["/etc/skel/.ssh/id_rsa"]="0:0:0600"
 )
