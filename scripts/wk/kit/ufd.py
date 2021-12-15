@@ -59,7 +59,7 @@ UFD_LABEL = f'{KIT_NAME_SHORT}_UFD'
 
 
 # Functions
-def apply_image(part_path, image_path):
+def apply_image(part_path, image_path, hide_macos_boot=True):
   """Apply raw image to dev_path using dd."""
   cmd = [
     'sudo',
@@ -69,6 +69,24 @@ def apply_image(part_path, image_path):
     f'of={part_path}',
     ]
   run_program(cmd)
+
+  # Bail?
+  if not ('macwk' in image_path.name.lower() and hide_macos_boot):
+    return
+
+  # Hide macOS boot files
+  boot_efi_path = '/mnt/TMP/System/Library/CoreServices/boot.efi'
+  linux.mount(source=part_path, mount_point='/mnt/TMP', read_write=True)
+  if os.path.exists(boot_efi_path):
+    try:
+      os.rename(
+        boot_efi_path,
+        boot_efi_path.replace('boot.efi', 'secretboot.efi'),
+        )
+    except OSError:
+      # Ignore for now?
+      pass
+  linux.unmount(source_or_mountpoint='/mnt/TMP')
 
 
 def build_ufd():
