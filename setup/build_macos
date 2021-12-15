@@ -7,20 +7,62 @@ set -o errtrace
 set -o nounset
 set -o pipefail
 
-# Show usage if necessary
-if [[ "${1:-}" =~ "-h|--help" || ! -e "${1:-}" ]]; then
+# Variables
+BASE_IMAGE=""
+HELP=""
+LINUX_DIR="linux"
+MACOS_DIR="macos"
+ROOT_DIR=".."
+STANDLONE=""
+TOOLS_TO_CHECK=(memtest mprime smc sysbench)
+
+# Usage
+function usage() {
   echo "Usage: build_macos [OPTIONS] <image_path>"
   echo ""
   echo "Options:"
   echo "    -h --help   Show usage"
-  exit
-fi
+  exit "${1:-0}"
+}
 
-# Safety Check
-LINUX_DIR="linux"
-MACOS_DIR="macos"
-ROOT_DIR=".."
-TOOLS_TO_CHECK=(memtest mprime smc sysbench)
+# Check arguments
+while :; do
+  case "${1:-}" in
+    -h|--help)
+      HELP="True"
+      ;;
+    -s|--standalone)
+      STANDALONE="True"
+      ;;
+    -hs|-sh)
+      HELP="True"
+      ;;
+    *)
+      if [[ ! "${1:-}" == "" ]]; then
+        BASE_IMAGE="${1}"
+      fi
+      break
+      ;;
+  esac
+  shift
+done
+
+# Safety Checks
+if [[ ! "${HELP:-}" == "" ]]; then
+  usage
+fi
+if [[ ! "${STANDALONE:-}" == "" ]]; then
+  echo "Building standalone image"
+fi
+if [[ "${BASE_IMAGE:-}" == "" ]]; then
+  echo "No image specified" 1>&2
+  echo ""
+  usage 1
+elif [[ ! -f "${BASE_IMAGE:-}" ]]; then
+  echo "Invalid image specified" 1>&2
+  echo ""
+  usage 1
+fi
 for tool in "${TOOLS_TO_CHECK[@]}"; do
   if [[ ! -e "/usr/local/bin/$tool" ]]; then
     echo "Missing tool(s) detected"
@@ -31,15 +73,25 @@ for tool in "${TOOLS_TO_CHECK[@]}"; do
   fi
 done
 
+# Load settings
+while read line; do
+  if echo "$line" | grep -Eq "^\w+='"; then
+    line="$(echo "$line" | sed -E 's/[\r\n]+//')"
+    eval "$line"
+  fi
+done < "$ROOT_DIR/scripts/wk/cfg/main.py"
+
 # Prep
 echo "Initializing..."
-BASE_IMAGE="$1"
 IMAGE_DEV="$(hdiutil attach -mountpoint /Volumes/BaseSystem "${BASE_IMAGE}" -nobrowse | grep -Eo '(/dev/disk[0-9]+)\b')"
 OS_NAME="$(ls /Volumes/BaseSystem | grep -E 'OS X|macOS' | sed -E 's/Install (OS X|macOS) (.*)\.app/\2/')"
 OS_VERSION="$(defaults read /Volumes/BaseSystem/System/Library/CoreServices/SystemVersion ProductVersion)"
-OUT_NAME="${HOME}/Desktop/WK ${OS_NAME} ($(date +"%Y-%m-%d"))"
+OUT_NAME="${HOME}/Desktop/macWK ${OS_NAME} ($(date +"%Y-%m-%d"))"
+if [[ "${STANDALONE:-}" == "" ]]; then
+  OUT_NAME="${OUT_NAME} (NoBoot)"
+fi
 TIMEZONE="$(grep -F LINUX_TIME_ZONE "${ROOT_DIR}/scripts/wk/cfg/main.py" | cut -d '=' -f 2 | sed "s/'//g")"
-WK_PATH="/Volumes/1201_UFD"
+WK_PATH="/Volumes/${KIT_NAME_SHORT}_UFD"
 
 # Convert to a 4 GB R/W image
 echo "Creating read-write copy of the ${OS_NAME} Base System image..."
@@ -47,8 +99,8 @@ hdiutil create -srcdevice "${IMAGE_DEV}s1" -format UDSB "${OUT_NAME}.sparsebundl
 hdiutil detach "${IMAGE_DEV}"
 hdiutil resize -size 4g "${OUT_NAME}.sparsebundle"
 WK_IMAGE_DEV="$(hdiutil attach "${OUT_NAME}.sparsebundle" -nobrowse | grep -Eo '(/dev/disk[0-9]+)\b')"
-if ! diskutil rename "OS X Base System" "1201_UFD"; then
-  diskutil rename "macOS Base System" "1201_UFD"
+if ! diskutil rename "OS X Base System" "${KIT_NAME_SHORT}_UFD"; then
+  diskutil rename "macOS Base System" "${KIT_NAME_SHORT}_UFD"
 fi
 
 # Remove Install app
@@ -129,7 +181,7 @@ cp -a "${MACOS_DIR}/aliases" "${WK_PATH}/.aliases"
 cp -a "${MACOS_DIR}/bashrc" "${WK_PATH}/etc/profile"
 cp -a "${MACOS_DIR}/vimrc" "${WK_PATH}/.vimrc"
 if [[ "${OS_VERSION:3:2}" == "11" ]]; then
-  cp -a /usr/bin/grep -F "${WK_PATH}/usr/bin"/
+  cp -a /usr/bin/grep "${WK_PATH}/usr/bin"/
   cp -a /usr/bin/locale "${WK_PATH}/usr/bin"/
   rsync -aS /usr/share/locale/ "${WK_PATH}/usr/share/locale"/
 elif [[ "${OS_VERSION:3:2}" == "13" ]]; then
@@ -147,6 +199,13 @@ if [[ -f "${ROOT_DIR}/images/macOS-${OS_VERSION:0:5}.png" ]]; then
   cp -a "${ROOT_DIR}/images/macOS-${OS_VERSION:0:5}.png" "${WK_PATH}/usr/local/wallpaper.png"
 else
   cp -a "${ROOT_DIR}/images/macOS.png" "${WK_PATH}/usr/local/wallpaper.png"
+fi
+
+# Unbless
+if [[ "${STANDALONE:-}" == "" ]]; then
+  echo "Unblessing image..."
+  sudo bless --unbless "${WK_PATH}"
+  sudo bless --unbless "${WK_PATH}/System/Library/CoreServices"
 fi
 
 # Unmount sparsebundle
